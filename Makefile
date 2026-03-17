@@ -1,6 +1,6 @@
 SHELL := bash
 
-.PHONY: help qa analyze-bsl format-bsl test-xunit test-bdd smoke export-context verify-traceability
+.PHONY: help qa analyze-bsl format-bsl test-xunit test-bdd smoke export-context verify-traceability template-check-update template-update
 
 help:
 	@printf '%s\n' \
@@ -12,7 +12,9 @@ help:
 		'  make test-bdd' \
 		'  make smoke' \
 		'  make export-context' \
-		'  make verify-traceability'
+		'  make verify-traceability' \
+		'  make template-check-update' \
+		'  make template-update'
 
 qa: analyze-bsl verify-traceability
 
@@ -36,3 +38,9 @@ export-context:
 
 verify-traceability:
 	@./scripts/llm/verify-traceability.sh
+
+template-check-update:
+	@./scripts/template/check-update.sh
+
+template-update:
+	@./scripts/template/update-template.sh

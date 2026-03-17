@@ -110,6 +110,7 @@ new-1c-project ~/code/my-project --defaults --beads-prefix docflow
 `new-1c-project` это не часть сгенерированного проекта, а локальный helper-скрипт поверх `copier copy`.
 Если `destination` не указан или равен `.`, helper берёт `project_name` и `project_slug` из имени текущей папки.
 Post-copy bootstrap создаёт базовый `AGENTS.md` через `openspec init` и дополняет его типовым project overlay с workflow, rules для `bd` и playbook поиска по коду.
+Шаблон также сохраняет `.copier-answers.yml`, чтобы сгенерированный проект можно было обновлять через `copier update`.
 
 2. Убедитесь, что установлены `openspec` и `bd`, потому что post-copy bootstrap вызывает `openspec init` и по умолчанию `bd init --stealth`.
 
@@ -144,6 +145,32 @@ ln -sf "$(pwd)/tooling/new-1c-project" ~/.local/bin/new-1c-project
 new-1c-project --help
 ```
 
+## Обновление Сгенерированного Проекта От Шаблона
+
+Чтобы конечный проект можно было обновлять после изменений шаблона:
+
+- создавайте проект из Git-репозитория шаблона или из локального template-repo, который тоже находится в Git;
+- публикуйте изменения шаблона через commit/tag, а не только через незакоммиченные локальные файлы;
+- храните `.copier-answers.yml` в конечном репозитории;
+- запускайте update из чистого git worktree.
+
+Канонические entrypoint-скрипты в сгенерированном проекте:
+
+```bash
+make template-check-update
+make template-update
+```
+
+Или напрямую:
+
+```bash
+./scripts/template/check-update.sh
+./scripts/template/update-template.sh
+copier update --trust --defaults
+```
+
+`template-update` обновляет файлы шаблона и refresh-ит managed-блок в `AGENTS.md`, не переинициализируя `openspec`, `git` и `bd`.
+
 ## Make targets
 
 - `make help`
@@ -155,6 +182,8 @@ new-1c-project --help
 - `make smoke`
 - `make export-context`
 - `make verify-traceability`
+- `make template-check-update`
+- `make template-update`
 
 ## Что этот шаблон не делает автоматически
 

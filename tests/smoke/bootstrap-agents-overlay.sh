@@ -14,6 +14,7 @@ bd_log="$tmpdir/bd.log"
 mkdir -p "$project_root/scripts/bootstrap" "$project_root/scripts/lib" "$bindir"
 git init -q "$project_root" >/dev/null 2>&1
 
+cp "$SOURCE_ROOT/scripts/bootstrap/agents-overlay.sh" "$project_root/scripts/bootstrap/agents-overlay.sh"
 cp "$SOURCE_ROOT/scripts/bootstrap/copier-post-copy.sh" "$project_root/scripts/bootstrap/copier-post-copy.sh"
 cp "$SOURCE_ROOT/scripts/lib/common.sh" "$project_root/scripts/lib/common.sh"
 

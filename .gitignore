@@ -15,6 +15,7 @@ tmp/
 .idea/
 .fleet/
 .vscode/
+.codex/
 
 .env
 .env.*
