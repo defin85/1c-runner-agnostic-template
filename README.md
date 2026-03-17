@@ -5,7 +5,7 @@
 - `SDD` (`Spec-Driven Development`) через `OpenSpec`
 - `TDD` через `tests/` и `features/`
 - `beads` для локального issue-tracking в stealth-режиме
-- `LLM-first automation` через `PROJECT_RULES.md`, `automation/` и стабильные launcher-скрипты
+- `LLM-first automation` через `AGENTS.md`, `automation/` и стабильные launcher-скрипты
 - `runner-agnostic execution`, где `vrunner` является опциональным адаптером, а не фундаментом проекта
 
 ## Ключевая идея
@@ -21,7 +21,9 @@
 
 - не смешивать код с архивом задач;
 - менять механизм запуска без перестройки репозитория;
-- держать явные цепочки `OpenSpec -> Beads -> Code` и `Requirement -> Code -> Test -> Traceability`.
+- держать в репозитории явные точки входа для спецификаций, тестов, запуска и локального трекинга.
+
+Правила работы, workflow агента и operational contract находятся в `AGENTS.md`.
 
 ## Структура
 
@@ -29,7 +31,6 @@
 .
 ├── .claude/
 ├── .github/
-├── PROJECT_RULES.md
 ├── Makefile
 ├── automation/
 ├── docs/
@@ -134,20 +135,6 @@ cp env/local.example.json env/local.json
 ```bash
 ./scripts/qa/check-skill-bindings.sh
 ```
-
-## Рекомендуемый workflow
-
-1. Создать change в `openspec/changes/<change-id>/`.
-2. Зафиксировать требования в одном или нескольких `specs/<capability>/spec.md`.
-3. Для новых и крупных изменений получить явное согласование (`Go!`) до перехода к production code.
-4. Перевести change в исполняемый план через `bd` и работать от `bd ready`. Если beads отключен, проговорить это как исключение, а не заменять его markdown TODO-списком.
-5. Разложить контракт изменения: входы, выходы, инварианты, ограничения.
-6. Построить явную матрицу `Requirement -> Code -> Test`.
-7. Написать red-check в `tests/` или `features/`.
-8. Реализовать код в `src/`.
-9. Обновить `traceability.md`.
-10. Прогнать узкие проверки через `scripts/test/*` и `scripts/qa/*`.
-11. Завершать сессию только после `git push`, если нет внешнего блокера.
 
 ## Быстрый старт
 

@@ -73,4 +73,4 @@ Advanced capability, которые можно включить в v1 тольк
   - `env/*.example.json`
   - `.github/workflows/*`
   - `README.md`
-  - `PROJECT_RULES.md`
+  - `AGENTS.md` managed overlay

@@ -21,6 +21,6 @@
 
 ## 4. Delivery And Docs
 
-- [x] 4.1 Обновить `README.md`, `PROJECT_RULES.md` и agent overlays под новый toolkit contract.
+- [x] 4.1 Обновить `README.md` и agent overlays под новый toolkit contract, не дублируя правила во втором root-level policy файле.
 - [x] 4.2 Обновить traceability для всех обязательных требований этого change.
 - [x] 4.3 Прогнать `openspec validate --strict --no-interactive` и релевантные smoke checks.
