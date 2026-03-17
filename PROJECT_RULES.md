@@ -14,7 +14,7 @@
 ### 1. Intent Formation
 
 - Любая новая capability, breaking change, архитектурный сдвиг, заметная performance/security работа или неоднозначная задача начинается с change в `openspec/changes/<change-id>/`.
-- До начала кодовых правок change должен быть доведен до подписываемого контракта как минимум через `proposal.md`, `spec.md`, `tasks.md` и `traceability.md`.
+- До начала кодовых правок change должен быть доведен до подписываемого контракта как минимум через `proposal.md`, один или несколько `specs/<capability>/spec.md`, `tasks.md` и `traceability.md`.
 - Для новых и крупных изменений в код нельзя переходить без явного согласования. Канонический сигнал: `Go!`.
 - До согласования допустимы анализ, уточнение требований и правки spec-артефактов, но не production code.
 
@@ -34,7 +34,7 @@
 
 ## Источники истины
 
-1. `openspec/changes/<change-id>/spec.md` — требования
+1. `openspec/changes/<change-id>/specs/<capability>/spec.md` — требования и capability deltas
 2. `.beads/` — live task graph и статус исполнения, если beads включен
 3. `tests/` и `features/` — автоматизированные проверки
 4. `src/` — production source tree
@@ -51,6 +51,9 @@
 - Не веди параллельные markdown TODO-списки для кодовой работы.
 - Для обязательных требований сначала добавляй или обновляй тест/acceptance-check.
 - Используй канонические входные точки из `scripts/`, а не случайные ad-hoc команды.
+- Skills и agent wrappers не должны дублировать runtime logic, уже существующую в `scripts/`.
+- Capability-скрипты должны возвращать machine-readable artifacts (`summary.json`, `stdout.log`, `stderr.log`).
+- Runtime profiles брать из `env/*.json` через `--profile` или `ONEC_PROFILE`, а не из несвязанных ad-hoc env dumps.
 - Не делай `vrunner` обязательной зависимостью, если задача решается через `direct-platform` или `remote-windows`.
 - Если в проекте инициализирован beads, перед планированием и исполнением запускай `bd prime`.
 
@@ -61,13 +64,15 @@
 - `tests/` — code-level тесты и smoke
 - `features/` — acceptance/BDD
 - `automation/` — контекст для агентов
+- `.claude/skills/` — project-scoped agent skills, которые должны ссылаться на repo-owned scripts
+- `env/` — canonical runtime profile examples для launcher-скриптов
 
 ## Минимальный контракт change
 
 Каждый осмысленный change должен иметь:
 
 - `proposal.md`
-- `spec.md`
+- один или несколько `specs/<capability>/spec.md`
 - `tasks.md`
 - `traceability.md`
 
@@ -110,6 +115,7 @@
 После изменений запускать минимально релевантные проверки:
 
 - `./scripts/qa/analyze-bsl.sh`
+- `./scripts/qa/check-skill-bindings.sh`
 - `./scripts/test/run-xunit.sh`
 - `./scripts/test/run-bdd.sh`
 - `./scripts/test/run-smoke.sh`

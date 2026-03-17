@@ -27,6 +27,8 @@
 
 ```text
 .
+├── .claude/
+├── .github/
 ├── PROJECT_RULES.md
 ├── Makefile
 ├── automation/
@@ -49,6 +51,8 @@
 - `scripts/` — канонические входные точки для людей, CI и агентов.
 - `env/` — примеры конфигурации окружений.
 - `automation/` — контекст и правила для LLM/агентов.
+- `.claude/` — project-scoped Claude settings и skills.
+- `.github/` — CI workflows, поставляемые шаблоном.
 - `.codex/` — project-local Codex config template, включая пример `config.toml` для MCP servers.
 - `docs/` — ADR, архитектурные заметки, эксплуатационная документация.
 - `.beads/` — локальная issue-база beads, создается bootstrap-скриптом и скрывается из Git.
@@ -60,9 +64,12 @@
 Все запускатели идут через стабильные entrypoint-скрипты:
 
 - `./scripts/platform/create-ib.sh`
+- `./scripts/platform/dump-src.sh`
 - `./scripts/platform/load-src.sh`
 - `./scripts/platform/update-db.sh`
+- `./scripts/platform/diff-src.sh`
 - `./scripts/platform/publish-http.sh`
+- `./scripts/diag/doctor.sh`
 - `./scripts/test/run-xunit.sh`
 - `./scripts/test/run-bdd.sh`
 - `./scripts/test/run-smoke.sh`
@@ -77,10 +84,61 @@ Backend выбирается через `RUNNER_ADAPTER`:
 
 Сами команды задаются через env vars. Примеры есть в `env/*.example.json`.
 
+### Runtime Profile Contract
+
+Канонический способ конфигурации launcher-скриптов теперь это runtime profile JSON:
+
+- versioned examples лежат в `env/*.example.json`;
+- локальные рабочие профили можно хранить в `env/local.json`, `env/ci.json`, `env/windows-executor.json` и они уже исключены из Git;
+- любой capability entrypoint принимает `--profile <file>` и `--run-root <dir>`;
+- если `--profile` не указан, скрипт пытается использовать `ONEC_PROFILE`, затем `env/local.json`;
+- каждый capability entrypoint пишет `summary.json`, `stdout.log` и `stderr.log` в `run-root`.
+
+Базовые поля profile:
+
+- `schemaVersion`
+- `profileName`
+- `runnerAdapter`
+- `shellEnv`
+
+Минимальный capability set v1:
+
+- `create-ib`
+- `dump-src`
+- `load-src`
+- `update-db`
+- `diff-src`
+- `run-xunit`
+- `run-bdd`
+- `run-smoke`
+- `doctor`
+
+Пример:
+
+```bash
+cp env/local.example.json env/local.json
+./scripts/diag/doctor.sh --profile env/local.json
+./scripts/platform/load-src.sh --profile env/local.json --run-root /tmp/load-src-run
+```
+
+### Project-Scoped Skills
+
+Шаблон поставляет project-scoped Claude skills в `.claude/skills/`.
+
+- Skills являются thin-wrapper над repo-owned scripts и не должны дублировать runtime logic.
+- Таблица соответствия `intent -> skill -> script` лежит в `.claude/skills/README.md`.
+- Базовая project policy для Claude находится в `.claude/settings.json`.
+
+Проверка связки skills:
+
+```bash
+./scripts/qa/check-skill-bindings.sh
+```
+
 ## Рекомендуемый workflow
 
 1. Создать change в `openspec/changes/<change-id>/`.
-2. Зафиксировать требования в `spec.md`.
+2. Зафиксировать требования в одном или нескольких `specs/<capability>/spec.md`.
 3. Для новых и крупных изменений получить явное согласование (`Go!`) до перехода к production code.
 4. Перевести change в исполняемый план через `bd` и работать от `bd ready`. Если beads отключен, проговорить это как исключение, а не заменять его markdown TODO-списком.
 5. Разложить контракт изменения: входы, выходы, инварианты, ограничения.
@@ -111,6 +169,7 @@ new-1c-project ~/code/my-project --defaults --beads-prefix docflow
 `new-1c-project` это не часть сгенерированного проекта, а локальный helper-скрипт поверх `copier copy`.
 Если `destination` не указан или равен `.`, helper берёт `project_name` и `project_slug` из имени текущей папки.
 Post-copy bootstrap создаёт базовый `AGENTS.md` через `openspec init` и дополняет его типовым project overlay с workflow, rules для `bd` и playbook поиска по коду.
+OpenSpec-артефакты самого репозитория шаблона (`openspec/`, корневые `AGENTS.md`/`CLAUDE.md`, `.claude/commands/openspec`) не рендерятся в конечный проект и не должны перетирать его собственный OpenSpec при `copier update`.
 Шаблон также сохраняет `.copier-answers.yml`, чтобы сгенерированный проект можно было обновлять через `copier update`.
 
 2. Убедитесь, что установлены `openspec` и `bd`, потому что post-copy bootstrap вызывает `openspec init` и по умолчанию `bd init --stealth`.
@@ -199,6 +258,13 @@ update-1c-project /path/to/generated-project --vcs-ref v0.1.1
 - `make qa`
 - `make analyze-bsl`
 - `make format-bsl`
+- `make check-skill-bindings`
+- `make create-ib`
+- `make dump-src`
+- `make load-src`
+- `make update-db`
+- `make diff-src`
+- `make doctor`
 - `make test-xunit`
 - `make test-bdd`
 - `make smoke`
@@ -217,3 +283,24 @@ update-1c-project /path/to/generated-project --vcs-ref v0.1.1
 - не содержит готовых секретов, строк подключений и учетных данных.
 
 Шаблон задает контракт структуры и точек входа. Конкретные команды запуска вы заполняете под свой контур.
+
+## CI Contours
+
+Шаблон поставляет layered CI workflow в `.github/workflows/ci.yml`.
+
+- `static`:
+  - shell syntax
+  - OpenSpec validation
+  - проверка skill bindings
+- `fixture`:
+  - runtime shell fixtures
+  - bootstrap/update smoke
+- `runtime`:
+  - только `workflow_dispatch`
+  - только self-hosted runner с labels `self-hosted`, `linux`, `1c`
+  - запускается лишь если в репозитории существует `env/ci.json`
+
+Важно:
+
+- `runtime` contour не рассчитан на shared CI среду без 1С runtime;
+- реальные credentials и connection details должны поступать из внешних secrets/local-only config, а не из versioned template files.

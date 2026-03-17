@@ -1,14 +1,19 @@
 {
+  "schemaVersion": 1,
+  "profileName": "windows-executor",
   "projectName": "{{ project_name }}",
   "projectSlug": "{{ project_slug }}",
+  "description": "Remote Windows execution profile for UI-heavy or TestClient flows",
   "runnerAdapter": "remote-windows",
   "notes": [
     "Используйте этот профиль, если UI/TestClient лучше работают на Windows-хосте или в Windows VM."
   ],
   "shellEnv": {
     "WINDOWS_CREATE_IB_CMD": "powershell -File C:/1c/create-ib.ps1",
+    "WINDOWS_DUMP_SRC_CMD": "powershell -File C:/1c/dump-src.ps1",
     "WINDOWS_LOAD_SRC_CMD": "powershell -File C:/1c/load-src.ps1",
     "WINDOWS_UPDATE_DB_CMD": "powershell -File C:/1c/update-db.ps1",
+    "WINDOWS_DIFF_SRC_CMD": "powershell -File C:/1c/diff-src.ps1",
     "WINDOWS_PUBLISH_HTTP_CMD": "powershell -File C:/1c/publish-http.ps1",
     "WINDOWS_XUNIT_RUN_CMD": "powershell -File C:/1c/run-xunit.ps1",
     "WINDOWS_BDD_RUN_CMD": "powershell -File C:/1c/run-bdd.ps1",

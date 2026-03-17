@@ -1,6 +1,6 @@
 SHELL := bash
 
-.PHONY: help qa analyze-bsl format-bsl test-xunit test-bdd smoke export-context verify-traceability template-check-update template-update
+.PHONY: help qa analyze-bsl format-bsl check-skill-bindings create-ib dump-src load-src update-db diff-src doctor test-xunit test-bdd smoke export-context verify-traceability template-check-update template-update
 
 help:
 	@printf '%s\n' \
@@ -8,6 +8,13 @@ help:
 		'  make qa' \
 		'  make analyze-bsl' \
 		'  make format-bsl' \
+		'  make check-skill-bindings' \
+		'  make create-ib' \
+		'  make dump-src' \
+		'  make load-src' \
+		'  make update-db' \
+		'  make diff-src' \
+		'  make doctor' \
 		'  make test-xunit' \
 		'  make test-bdd' \
 		'  make smoke' \
@@ -16,13 +23,34 @@ help:
 		'  make template-check-update' \
 		'  make template-update'
 
-qa: analyze-bsl verify-traceability
+qa: analyze-bsl check-skill-bindings verify-traceability
 
 analyze-bsl:
 	@./scripts/qa/analyze-bsl.sh
 
 format-bsl:
 	@./scripts/qa/format-bsl.sh
+
+check-skill-bindings:
+	@./scripts/qa/check-skill-bindings.sh
+
+create-ib:
+	@./scripts/platform/create-ib.sh
+
+dump-src:
+	@./scripts/platform/dump-src.sh
+
+load-src:
+	@./scripts/platform/load-src.sh
+
+update-db:
+	@./scripts/platform/update-db.sh
+
+diff-src:
+	@./scripts/platform/diff-src.sh
+
+doctor:
+	@./scripts/diag/doctor.sh
 
 test-xunit:
 	@./scripts/test/run-xunit.sh

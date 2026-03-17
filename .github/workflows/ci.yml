@@ -1,0 +1,101 @@
+{% raw %}
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  static:
+    name: static
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install OpenSpec CLI
+        run: npm install -g @fission-ai/openspec@latest
+
+      - name: Shell syntax
+        run: |
+          mapfile -t files < <(find scripts tests -type f -name '*.sh' | LC_ALL=C sort)
+          if [ "${#files[@]}" -gt 0 ]; then
+            bash -n "${files[@]}"
+          fi
+
+      - name: Validate OpenSpec
+        if: ${{ hashFiles('openspec/**') != '' }}
+        run: openspec validate --strict --no-interactive
+
+      - name: Verify traceability layout
+        if: ${{ hashFiles('openspec/changes/**') != '' }}
+        run: ./scripts/llm/verify-traceability.sh
+
+      - name: Check skill bindings
+        if: ${{ hashFiles('.claude/skills/**') != '' }}
+        run: ./scripts/qa/check-skill-bindings.sh
+
+  fixture:
+    name: fixture
+    runs-on: ubuntu-latest
+    needs: static
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Copier
+        run: python -m pip install --upgrade pip copier
+
+      - name: Runtime capability contract
+        if: ${{ hashFiles('tests/smoke/runtime-capability-contract.sh') != '' }}
+        run: bash tests/smoke/runtime-capability-contract.sh
+
+      - name: Runtime doctor contract
+        if: ${{ hashFiles('tests/smoke/runtime-doctor-contract.sh') != '' }}
+        run: bash tests/smoke/runtime-doctor-contract.sh
+
+      - name: Bootstrap AGENTS overlay
+        if: ${{ hashFiles('tests/smoke/bootstrap-agents-overlay.sh') != '' }}
+        run: bash tests/smoke/bootstrap-agents-overlay.sh
+
+      - name: Copier update-ready smoke
+        if: ${{ hashFiles('tests/smoke/copier-update-ready.sh') != '' }}
+        run: bash tests/smoke/copier-update-ready.sh
+
+  runtime:
+    name: runtime
+    if: ${{ github.event_name == 'workflow_dispatch' && hashFiles('env/ci.json') != '' }}
+    runs-on:
+      - self-hosted
+      - linux
+      - 1c
+    needs: static
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Runtime doctor
+        run: ./scripts/diag/doctor.sh --profile env/ci.json --run-root ./.artifacts/runtime/doctor
+
+      - name: Runtime smoke
+        run: ./scripts/test/run-smoke.sh --profile env/ci.json --run-root ./.artifacts/runtime/smoke
+
+      - name: Runtime xUnit
+        run: ./scripts/test/run-xunit.sh --profile env/ci.json --run-root ./.artifacts/runtime/xunit
+
+      - name: Upload runtime artifacts
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: runtime-artifacts
+          path: ./.artifacts/runtime
+          if-no-files-found: ignore
+{% endraw %}

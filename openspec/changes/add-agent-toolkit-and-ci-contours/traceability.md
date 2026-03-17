@@ -1,0 +1,14 @@
+# Traceability Matrix
+
+## Requirement -> Code -> Test
+
+| Requirement | Code / artifacts | Verification |
+| --- | --- | --- |
+| `agent-runtime-toolkit.runtime-entrypoints` | `scripts/platform/create-ib.sh`, `scripts/platform/dump-src.sh`, `scripts/platform/load-src.sh`, `scripts/platform/update-db.sh`, `scripts/platform/diff-src.sh`, `scripts/platform/publish-http.sh`, `scripts/test/run-xunit.sh`, `scripts/test/run-bdd.sh`, `scripts/test/run-smoke.sh`, `scripts/diag/doctor.sh`, `README.md`, `env/*.example.json` | `bash -n scripts/lib/common.sh scripts/lib/runtime-profile.sh scripts/lib/capability.sh scripts/platform/create-ib.sh scripts/platform/dump-src.sh scripts/platform/diff-src.sh scripts/platform/load-src.sh scripts/platform/publish-http.sh scripts/platform/update-db.sh scripts/test/run-xunit.sh scripts/test/run-bdd.sh scripts/test/run-smoke.sh scripts/diag/doctor.sh`, `bash tests/smoke/runtime-capability-contract.sh`, `bash tests/smoke/copier-update-ready.sh` |
+| `agent-runtime-toolkit.machine-readable-artifacts` | `scripts/lib/capability.sh`, `scripts/lib/runtime-profile.sh`, `scripts/platform/*.sh`, `scripts/test/*.sh`, `scripts/diag/doctor.sh`, `env/README.md` | `bash tests/smoke/runtime-capability-contract.sh`, `bash tests/smoke/runtime-doctor-contract.sh` |
+| `project-scoped-skills.repo-owned-skills` | `.claude/settings.json`, `.claude/skills/README.md`, `.claude/skills/*/SKILL.md`, `README.md`, `PROJECT_RULES.md` | `./scripts/qa/check-skill-bindings.sh`, `bash tests/smoke/copier-update-ready.sh` |
+| `project-scoped-skills.no-duplicated-runtime-logic` | `.claude/skills/*/SKILL.md`, `scripts/qa/check-skill-bindings.sh`, `PROJECT_RULES.md` | `./scripts/qa/check-skill-bindings.sh` |
+| `project-scoped-skills.intent-to-capability-mapping` | `.claude/skills/README.md`, `README.md` | `./scripts/qa/check-skill-bindings.sh`, `bash tests/smoke/copier-update-ready.sh` |
+| `template-ci-contours.layered-ci` | `.github/workflows/ci.yml`, `Makefile`, `scripts/llm/verify-traceability.sh`, `scripts/qa/check-skill-bindings.sh`, `tests/smoke/*.sh` | `openspec validate add-agent-toolkit-and-ci-contours --strict --no-interactive`, `bash tests/smoke/copier-update-ready.sh`, `bash tests/smoke/runtime-capability-contract.sh`, `bash tests/smoke/runtime-doctor-contract.sh` |
+| `template-ci-contours.runtime-boundary` | `.github/workflows/ci.yml`, `README.md`, `env/README.md`, `env/ci.example.json` | `rg -n 'workflow_dispatch|self-hosted|linux|1c|env/ci.json' .github/workflows/ci.yml README.md env/README.md`, `bash tests/smoke/copier-update-ready.sh` |
+| `template-ci-contours.safe-secret-handling` | `.gitignore`, `.claude/settings.json`, `env/README.md`, `env/*.example.json`, `.github/workflows/ci.yml`, `README.md` | `rg -n 'env/local.json|env/ci.json|secrets|external secrets|versioned template files' .gitignore .claude/settings.json README.md env/README.md .github/workflows/ci.yml`, `bash tests/smoke/copier-update-ready.sh` |

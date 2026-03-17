@@ -1,11 +1,16 @@
 {
+  "schemaVersion": 1,
+  "profileName": "ci",
   "projectName": "{{ project_name }}",
   "projectSlug": "{{ project_slug }}",
+  "description": "Example CI runtime profile for self-hosted 1C contour",
   "runnerAdapter": "{{ preferred_adapter }}",
   "shellEnv": {
     "CREATE_IB_CMD": "echo CI create infobase",
+    "DUMP_SRC_CMD": "echo CI dump source tree",
     "LOAD_SRC_CMD": "echo CI load source tree",
     "UPDATE_DB_CMD": "echo CI update DB configuration",
+    "DIFF_SRC_CMD": "echo CI diff source tree",
     "PUBLISH_HTTP_CMD": "echo CI publish HTTP service",
     "XUNIT_RUN_CMD": "echo CI run xUnit",
     "BDD_RUN_CMD": "echo CI run BDD",

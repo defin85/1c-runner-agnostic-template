@@ -2,26 +2,30 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-# shellcheck source=../lib/common.sh
-source "$SCRIPT_DIR/../lib/common.sh"
+# shellcheck source=../lib/capability.sh
+source "$SCRIPT_DIR/../lib/capability.sh"
 
-adapter="${RUNNER_ADAPTER:-direct-platform}"
+usage() {
+  cat <<'EOF'
+Usage: ./scripts/platform/load-src.sh [options]
 
-case "$adapter" in
-  direct-platform)
-    require_env LOAD_SRC_CMD
-    run_command_string "Load source tree via direct-platform adapter" "$LOAD_SRC_CMD"
-    ;;
-  remote-windows)
-    require_env WINDOWS_LOAD_SRC_CMD
-    run_command_string "Load source tree via remote-windows adapter" "$WINDOWS_LOAD_SRC_CMD"
-    ;;
-  vrunner)
-    require_env VRUNNER_LOAD_SRC_CMD
-    run_command_string "Load source tree via vrunner adapter" "$VRUNNER_LOAD_SRC_CMD"
-    ;;
-  *)
-    printf 'error: unsupported RUNNER_ADAPTER: %s\n' "$adapter" >&2
-    exit 1
-    ;;
-esac
+Options:
+  --profile <file>   Runtime profile JSON (defaults to env/local.json if present)
+  --run-root <dir>   Directory for summary.json and command logs
+  --dry-run          Resolve adapter/profile and write dry-run summary only
+  -h, --help         Show this help
+EOF
+}
+
+if capability_help_requested "$@"; then
+  usage
+  exit 0
+fi
+
+run_adapter_capability \
+  "load-src" \
+  "Load source tree" \
+  "LOAD_SRC_CMD" \
+  "WINDOWS_LOAD_SRC_CMD" \
+  "VRUNNER_LOAD_SRC_CMD" \
+  "$@"

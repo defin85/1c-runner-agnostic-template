@@ -84,7 +84,7 @@ We operate in a cycle: **OpenSpec (What) -> Beads (How) -> Code (Implementation)
 ## 1. Intent Formation
 
 - Any new capability, breaking change, architecture shift, major performance or security work, or ambiguous request starts with a change in `openspec/changes/<change-id>/`.
-- Before code changes begin, the change must be brought to a signable contract through `proposal.md`, `spec.md`, `tasks.md`, and `traceability.md`.
+- Before code changes begin, the change must be brought to a signable contract through `proposal.md`, one or more `specs/<capability>/spec.md` deltas, `tasks.md`, and `traceability.md`.
 - Do not move to production code for new or major changes without explicit approval. Canonical signal: `Go!`.
 - Before approval, analysis, requirement clarification, and spec edits are allowed; production code changes are not.
 

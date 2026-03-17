@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(./scripts/platform/*)",
+      "Bash(./scripts/test/*)",
+      "Bash(./scripts/diag/*)",
+      "Bash(./scripts/qa/*)"
+    ],
+    "deny": [
+      "Read(./env/local.json)",
+      "Read(./env/ci.json)",
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Read(./secrets/**)"
+    ]
+  }
+}

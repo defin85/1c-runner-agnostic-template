@@ -1,11 +1,16 @@
 {
+  "schemaVersion": 1,
+  "profileName": "wsl",
   "projectName": "{{ project_name }}",
   "projectSlug": "{{ project_slug }}",
+  "description": "Linux/WSL-first profile for direct platform execution",
   "runnerAdapter": "{{ preferred_adapter }}",
   "shellEnv": {
     "CREATE_IB_CMD": "/opt/1cv8/x86_64/8.3.27.1859/1cv8 CREATEINFOBASE File='/var/tmp/{{ project_slug }}'",
+    "DUMP_SRC_CMD": "/opt/1cv8/x86_64/8.3.27.1859/1cv8 DESIGNER /S127.0.0.1:1541\\{{ project_slug|replace('-', '_') }} /DumpConfigToFiles ./src/cf",
     "LOAD_SRC_CMD": "/opt/1cv8/x86_64/8.3.27.1859/1cv8 DESIGNER /S127.0.0.1:1541\\{{ project_slug|replace('-', '_') }} /LoadConfigFromFiles ./src/cf",
     "UPDATE_DB_CMD": "/opt/1cv8/x86_64/8.3.27.1859/1cv8 DESIGNER /S127.0.0.1:1541\\{{ project_slug|replace('-', '_') }} /UpdateDBCfg",
+    "DIFF_SRC_CMD": "git diff -- ./src",
     "PUBLISH_HTTP_CMD": "echo TODO: publish selected HTTP service",
     "XUNIT_RUN_CMD": "echo TODO: direct platform xUnit contour",
     "BDD_RUN_CMD": "echo TODO: direct platform BDD contour",

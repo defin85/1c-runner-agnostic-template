@@ -4,6 +4,12 @@ _templates_suffix: ""
 _exclude:
   - .git
   - .git/**
+  - AGENTS.md
+  - CLAUDE.md
+  - openspec
+  - openspec/**
+  - .claude/commands
+  - .claude/commands/**
   - tooling
   - tooling/**
 _message_before_update: |-

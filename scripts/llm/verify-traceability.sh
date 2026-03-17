@@ -18,14 +18,15 @@ status=0
 
 while IFS= read -r change_dir; do
   [ "$change_dir" = "$changes_dir" ] && continue
+  spec_count="$(find "$change_dir/specs" -mindepth 2 -maxdepth 2 -type f -name spec.md 2>/dev/null | wc -l | tr -d ' ')"
 
   if [ ! -f "$change_dir/proposal.md" ]; then
     printf 'missing proposal.md: %s\n' "$change_dir" >&2
     status=1
   fi
 
-  if [ ! -f "$change_dir/spec.md" ]; then
-    printf 'missing spec.md: %s\n' "$change_dir" >&2
+  if [ "$spec_count" -eq 0 ]; then
+    printf 'missing capability spec delta under specs/*/spec.md: %s\n' "$change_dir" >&2
     status=1
   fi
 

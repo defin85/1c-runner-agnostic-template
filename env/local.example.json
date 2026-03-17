@@ -1,15 +1,20 @@
 {
+  "schemaVersion": 1,
+  "profileName": "local",
   "projectName": "{{ project_name }}",
   "projectSlug": "{{ project_slug }}",
+  "description": "Minimal local runtime profile example",
   "runnerAdapter": "{{ preferred_adapter }}",
   "notes": [
     "Этот файл является примером.",
-    "Launcher-скрипты читают env vars напрямую, а не JSON."
+    "Launcher-скрипты могут загрузить этот JSON напрямую через --profile или ONEC_PROFILE."
   ],
   "shellEnv": {
     "CREATE_IB_CMD": "echo TODO: create infobase",
+    "DUMP_SRC_CMD": "echo TODO: dump source tree",
     "LOAD_SRC_CMD": "echo TODO: load source tree",
     "UPDATE_DB_CMD": "echo TODO: update database configuration",
+    "DIFF_SRC_CMD": "echo TODO: diff source tree",
     "PUBLISH_HTTP_CMD": "echo TODO: publish HTTP service",
     "XUNIT_RUN_CMD": "echo TODO: run xUnit checks",
     "BDD_RUN_CMD": "echo TODO: run BDD checks",

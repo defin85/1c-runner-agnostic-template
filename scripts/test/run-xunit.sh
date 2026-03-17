@@ -2,26 +2,30 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-# shellcheck source=../lib/common.sh
-source "$SCRIPT_DIR/../lib/common.sh"
+# shellcheck source=../lib/capability.sh
+source "$SCRIPT_DIR/../lib/capability.sh"
 
-adapter="${RUNNER_ADAPTER:-direct-platform}"
+usage() {
+  cat <<'EOF'
+Usage: ./scripts/test/run-xunit.sh [options]
 
-case "$adapter" in
-  direct-platform)
-    require_env XUNIT_RUN_CMD
-    run_command_string "Run xUnit checks via direct-platform adapter" "$XUNIT_RUN_CMD"
-    ;;
-  remote-windows)
-    require_env WINDOWS_XUNIT_RUN_CMD
-    run_command_string "Run xUnit checks via remote-windows adapter" "$WINDOWS_XUNIT_RUN_CMD"
-    ;;
-  vrunner)
-    require_env VRUNNER_XUNIT_CMD
-    run_command_string "Run xUnit checks via vrunner adapter" "$VRUNNER_XUNIT_CMD"
-    ;;
-  *)
-    printf 'error: unsupported RUNNER_ADAPTER: %s\n' "$adapter" >&2
-    exit 1
-    ;;
-esac
+Options:
+  --profile <file>   Runtime profile JSON (defaults to env/local.json if present)
+  --run-root <dir>   Directory for summary.json and command logs
+  --dry-run          Resolve adapter/profile and write dry-run summary only
+  -h, --help         Show this help
+EOF
+}
+
+if capability_help_requested "$@"; then
+  usage
+  exit 0
+fi
+
+run_adapter_capability \
+  "run-xunit" \
+  "Run xUnit checks" \
+  "XUNIT_RUN_CMD" \
+  "WINDOWS_XUNIT_RUN_CMD" \
+  "VRUNNER_XUNIT_CMD" \
+  "$@"
