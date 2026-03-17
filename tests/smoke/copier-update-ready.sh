@@ -123,9 +123,12 @@ PATH="$bindir:$PATH" COMMAND_LOG="$command_log" copier copy --trust --defaults \
 
 assert_exists "$rendered_root/.copier-answers.yml"
 assert_not_exists "$rendered_root/{{ _copier_conf.answers_file }}"
+assert_exists "$rendered_root/.codex/.gitkeep"
 assert_exists "$rendered_root/scripts/template/update-template.sh"
 assert_exists "$rendered_root/scripts/template/check-update.sh"
 assert_contains "$rendered_root/Makefile" "template-update:"
+assert_contains "$rendered_root/.gitignore" ".codex/*"
+assert_contains "$rendered_root/.gitignore" "!.codex/.gitkeep"
 
 assert_count "$command_log" "openspec init --tools none" "1"
 assert_count "$command_log" "bd init --stealth -p smoke-project" "1"
@@ -138,8 +141,6 @@ git -C "$rendered_root" commit -qm "generated v0.1.0"
 cat >"$template_root/docs/template-update-note.txt" <<'EOF'
 This file is added in template v0.2.0 to verify copier update.
 EOF
-
-printf '\n.codex/\n' >>"$template_root/.gitignore"
 
 python - <<PY
 from pathlib import Path

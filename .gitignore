@@ -15,7 +15,8 @@ tmp/
 .idea/
 .fleet/
 .vscode/
-.codex/
+.codex/*
+!.codex/.gitkeep
 
 .env
 .env.*
