@@ -145,6 +145,26 @@ ln -sf "$(pwd)/tooling/new-1c-project" ~/.local/bin/new-1c-project
 new-1c-project --help
 ```
 
+### Команда `update-1c-project`
+
+- Versioned source helper-скрипта лежит в `tooling/update-1c-project` репозитория шаблона
+- Рекомендуемое место установки: `~/.local/bin/update-1c-project`
+- В `~/.local/bin/update-1c-project` достаточно держать thin-wrapper или symlink на versioned source
+- Helper ожидает, что конечный проект уже является git-репозиторием и содержит `.copier-answers.yml`
+
+Простейший сценарий установки через symlink из корня репозитория шаблона:
+
+```bash
+install -d ~/.local/bin
+ln -sf "$(pwd)/tooling/update-1c-project" ~/.local/bin/update-1c-project
+```
+
+После этого проверьте:
+
+```bash
+update-1c-project --help
+```
+
 ## Обновление Сгенерированного Проекта От Шаблона
 
 Чтобы конечный проект можно было обновлять после изменений шаблона:
@@ -167,6 +187,7 @@ make template-update
 ./scripts/template/check-update.sh
 ./scripts/template/update-template.sh
 copier update --trust --defaults
+update-1c-project /path/to/generated-project --vcs-ref v0.1.1
 ```
 
 `template-update` обновляет файлы шаблона и refresh-ит managed-блок в `AGENTS.md`, не переинициализируя `openspec`, `git` и `bd`.
