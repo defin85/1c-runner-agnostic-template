@@ -85,6 +85,34 @@ assert_count() {
   fi
 }
 
+assert_next_line() {
+  local file="$1"
+  local expected_current="$2"
+  local expected_next="$3"
+
+  if ! awk -v expected_current="$expected_current" -v expected_next="$expected_next" '
+    $0 == expected_current {
+      found = 1
+      if (getline next_line <= 0) {
+        exit 2
+      }
+      if (next_line != expected_next) {
+        exit 1
+      }
+      exit 0
+    }
+    END {
+      if (!found) {
+        exit 3
+      }
+    }
+  ' "$file"; then
+    printf 'expected "%s" to be followed immediately by "%s"\n' "$expected_current" "$expected_next" >&2
+    cat "$file" >&2
+    exit 1
+  fi
+}
+
 run_bootstrap
 run_bootstrap
 
@@ -97,3 +125,4 @@ assert_contains "$agents_file" 'Final delivery must include explicit `Requiremen
 assert_contains "$agents_file" '1. `mcp__claude-context__search_code`, if available in the current environment'
 assert_contains "$agents_file" 'A session with code changes is not complete until `git push` succeeds.'
 assert_count "$agents_file" "<!-- RUNNER_AGNOSTIC_TEMPLATE:START -->" "1"
+assert_next_line "$agents_file" "<!-- OPENSPEC:END -->" "<!-- RUNNER_AGNOSTIC_TEMPLATE:START -->"

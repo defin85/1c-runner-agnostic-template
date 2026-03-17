@@ -38,14 +38,38 @@ remove_managed_block() {
   mv "$tmp_file" "$target_file"
 }
 
+trim_trailing_blank_lines() {
+  local target_file="$1"
+  local tmp_file
+
+  tmp_file="$(mktemp)"
+
+  awk '
+    {
+      lines[NR] = $0
+      if ($0 !~ /^[[:space:]]*$/) {
+        last_nonblank = NR
+      }
+    }
+    END {
+      for (i = 1; i <= last_nonblank; i++) {
+        print lines[i]
+      }
+    }
+  ' "$target_file" >"$tmp_file"
+
+  mv "$tmp_file" "$target_file"
+}
+
 append_project_agents_overlay() {
   local agents_file="$1"
   local use_beads="$2"
 
   ensure_agents_file "$agents_file"
   remove_managed_block "$agents_file" "$project_agents_block_start" "$project_agents_block_end"
+  trim_trailing_blank_lines "$agents_file"
 
-  printf '\n%s\n\n' "$project_agents_block_start" >>"$agents_file"
+  printf '%s\n\n' "$project_agents_block_start" >>"$agents_file"
 
   cat >>"$agents_file" <<'EOF'
 # Language
