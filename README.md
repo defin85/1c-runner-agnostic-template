@@ -49,6 +49,7 @@
 - `scripts/` — канонические входные точки для людей, CI и агентов.
 - `env/` — примеры конфигурации окружений.
 - `automation/` — контекст и правила для LLM/агентов.
+- `.codex/` — project-local Codex config template, включая пример `config.toml` для MCP servers.
 - `docs/` — ADR, архитектурные заметки, эксплуатационная документация.
 - `.beads/` — локальная issue-база beads, создается bootstrap-скриптом и скрывается из Git.
 

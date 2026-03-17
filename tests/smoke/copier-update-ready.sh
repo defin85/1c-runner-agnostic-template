@@ -124,11 +124,15 @@ PATH="$bindir:$PATH" COMMAND_LOG="$command_log" copier copy --trust --defaults \
 assert_exists "$rendered_root/.copier-answers.yml"
 assert_not_exists "$rendered_root/{{ _copier_conf.answers_file }}"
 assert_exists "$rendered_root/.codex/.gitkeep"
+assert_exists "$rendered_root/.codex/config.toml"
 assert_exists "$rendered_root/scripts/template/update-template.sh"
 assert_exists "$rendered_root/scripts/template/check-update.sh"
 assert_contains "$rendered_root/Makefile" "template-update:"
 assert_contains "$rendered_root/.gitignore" ".codex/*"
 assert_contains "$rendered_root/.gitignore" "!.codex/.gitkeep"
+assert_contains "$rendered_root/.gitignore" "!.codex/config.toml"
+assert_contains "$rendered_root/.codex/config.toml" "mcp_servers.claude-context"
+assert_contains "$rendered_root/.codex/config.toml" "mcp_servers.chrome-devtools"
 
 assert_count "$command_log" "openspec init --tools none" "1"
 assert_count "$command_log" "bd init --stealth -p smoke-project" "1"
@@ -165,6 +169,6 @@ git -C "$template_root" tag v0.2.0
 
 assert_exists "$rendered_root/docs/template-update-note.txt"
 assert_contains "$rendered_root/AGENTS.md" "Refresh managed AGENTS overlays during template updates."
-assert_contains "$rendered_root/.gitignore" ".codex/"
+assert_contains "$rendered_root/.gitignore" ".codex/*"
 assert_count "$command_log" "openspec init --tools none" "1"
 assert_count "$command_log" "bd init --stealth -p smoke-project" "1"

@@ -17,6 +17,7 @@ tmp/
 .vscode/
 .codex/*
 !.codex/.gitkeep
+!.codex/config.toml
 
 .env
 .env.*

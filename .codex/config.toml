@@ -1,0 +1,36 @@
+# Project-local Codex MCP examples.
+# Uncomment and adapt paths, ports, and env values for your machine.
+# The examples below are intentionally commented out so a freshly generated
+# project does not fail on hosts where the local MCP binaries are absent.
+
+# [mcp_servers.claude-context]
+# command = "bash"
+# args = [
+#   "-lc",
+#   'export NVM_DIR="$HOME/.nvm"; [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"; export OLLAMA_HOST="http://$(awk "/nameserver/{print \$2; exit}" /etc/resolv.conf):11434"; [ -f "$HOME/code/claude-context/packages/mcp/dist/index.js" ] || { echo "Local MCP build not found: $HOME/code/claude-context/packages/mcp/dist/index.js" >&2; echo "Run: $HOME/code/claude-context/scripts/build-local-mcp.sh" >&2; exit 1; }; nvm exec --silent 22 -- node "$HOME/code/claude-context/packages/mcp/dist/index.js"'
+# ]
+# startup_timeout_sec = 60.0
+
+# [mcp_servers.claude-context.env]
+# EMBEDDING_MODEL = "nomic-embed-text-v2-moe"
+# EMBEDDING_PROVIDER = "Ollama"
+# MILVUS_ADDRESS = "127.0.0.1:20530"
+# CUSTOM_EXTENSIONS = ".bsl"
+# CUSTOM_IGNORE_PATTERNS = ".git/**,.venv/**,.beads/**,.agent-browser/**,.ruff_cache/**,node_modules/**,dist/**,build/**,coverage/**,openspec/changes/**,docs/archive/**,generated/**"
+
+# [mcp_servers.chrome-devtools]
+# command = "npx"
+# args = [
+#   "-y",
+#   "chrome-devtools-mcp@latest",
+#   "--executablePath=/usr/lib/chromium/chromium",
+#   "--isolated",
+#   "--headless",
+#   "--logFile=/tmp/chrome-devtools-mcp.log",
+#   "--chromeArg=--no-sandbox",
+#   "--chromeArg=--disable-setuid-sandbox",
+#   "--chromeArg=--no-first-run",
+#   "--chromeArg=--no-default-browser-check",
+#   "--chromeArg=--disable-dev-shm-usage"
+# ]
+# startup_timeout_sec = 30.0
