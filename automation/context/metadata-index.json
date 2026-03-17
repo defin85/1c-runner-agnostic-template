@@ -1,0 +1,16 @@
+{
+  "generatedAt": null,
+  "configuration": {
+    "name": "{{ project_name }}",
+    "srcDir": "src/cf"
+  },
+  "extensions": [],
+  "httpServices": [],
+  "scheduledJobs": [],
+  "externalProcessors": [],
+  "reports": [],
+  "notes": [
+    "Этот файл является шаблоном.",
+    "Его можно генерировать автоматически из metadata export."
+  ]
+}

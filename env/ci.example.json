@@ -1,0 +1,15 @@
+{
+  "projectName": "{{ project_name }}",
+  "projectSlug": "{{ project_slug }}",
+  "runnerAdapter": "{{ preferred_adapter }}",
+  "shellEnv": {
+    "CREATE_IB_CMD": "echo CI create infobase",
+    "LOAD_SRC_CMD": "echo CI load source tree",
+    "UPDATE_DB_CMD": "echo CI update DB configuration",
+    "PUBLISH_HTTP_CMD": "echo CI publish HTTP service",
+    "XUNIT_RUN_CMD": "echo CI run xUnit",
+    "BDD_RUN_CMD": "echo CI run BDD",
+    "SMOKE_RUN_CMD": "echo CI run smoke",
+    "BSL_LANGUAGE_SERVER_JAR": "/workspace/tools/bsl-language-server.jar"
+  }
+}

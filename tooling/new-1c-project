@@ -1,0 +1,224 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+DEFAULT_TEMPLATE="/home/egor/code/1c-runner-agnostic-template"
+
+usage() {
+  cat <<'EOF'
+Usage:
+  new-1c-project [destination] [options]
+
+Options:
+  -h, --help                 Show this help
+  -t, --template PATH        Override template path or copier template URL
+      --project-name NAME    Set Copier answer: project_name
+      --slug SLUG            Set Copier answer: project_slug
+      --adapter NAME         Set Copier answer: preferred_adapter
+      --tools LIST           Set Copier answer: openspec_tools
+      --beads-prefix PREFIX  Set Copier answer: beads_prefix
+      --defaults             Use Copier defaults without interactive prompts
+      --force                Force overwrite/defaults in Copier
+      --no-beads             Disable beads init in post-copy bootstrap
+      --no-git               Disable git init in post-copy bootstrap
+
+Examples:
+  new-1c-project
+  new-1c-project ~/code/my-project
+  new-1c-project ~/code/my-project --defaults --tools none
+  new-1c-project . --project-name "My Diadoc Project" --slug my-diadoc-project
+  new-1c-project ~/code/my-project --defaults --beads-prefix docflow
+
+Notes:
+  - If destination is omitted, current directory is used.
+  - Template path can be overridden with ONEC_PROJECT_TEMPLATE.
+EOF
+}
+
+die() {
+  printf 'error: %s\n' "$*" >&2
+  exit 1
+}
+
+slugify() {
+  printf '%s' "$1" \
+    | tr '[:upper:]' '[:lower:]' \
+    | sed -E 's/[^a-z0-9]+/-/g; s/^-+//; s/-+$//; s/-{2,}/-/g'
+}
+
+humanize_name() {
+  printf '%s' "$1" | sed -E 's/[-_]+/ /g'
+}
+
+require_command() {
+  command -v "$1" >/dev/null 2>&1 || die "command not found: $1"
+}
+
+has_git_repository() {
+  local path="$1"
+  git -C "$path" rev-parse --is-inside-work-tree >/dev/null 2>&1
+}
+
+template="${ONEC_PROJECT_TEMPLATE:-$DEFAULT_TEMPLATE}"
+destination="."
+destination_set=0
+project_name=""
+project_slug=""
+preferred_adapter=""
+openspec_tools=""
+beads_prefix=""
+use_defaults=0
+use_force=0
+init_git_repository="true"
+init_beads="true"
+default_name_source=""
+
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    -t|--template)
+      [ "$#" -ge 2 ] || die "--template requires a value"
+      template="$2"
+      shift 2
+      ;;
+    --project-name)
+      [ "$#" -ge 2 ] || die "--project-name requires a value"
+      project_name="$2"
+      shift 2
+      ;;
+    --slug)
+      [ "$#" -ge 2 ] || die "--slug requires a value"
+      project_slug="$2"
+      shift 2
+      ;;
+    --adapter)
+      [ "$#" -ge 2 ] || die "--adapter requires a value"
+      preferred_adapter="$2"
+      shift 2
+      ;;
+    --tools)
+      [ "$#" -ge 2 ] || die "--tools requires a value"
+      openspec_tools="$2"
+      shift 2
+      ;;
+    --beads-prefix)
+      [ "$#" -ge 2 ] || die "--beads-prefix requires a value"
+      beads_prefix="$2"
+      shift 2
+      ;;
+    --defaults)
+      use_defaults=1
+      shift
+      ;;
+    --force)
+      use_force=1
+      shift
+      ;;
+    --no-git)
+      init_git_repository="false"
+      shift
+      ;;
+    --no-beads)
+      init_beads="false"
+      shift
+      ;;
+    -*)
+      die "unknown option: $1"
+      ;;
+    *)
+      if [ "$destination_set" -eq 0 ]; then
+        destination="$1"
+        destination_set=1
+        shift
+      else
+        die "unexpected positional argument: $1"
+      fi
+      ;;
+  esac
+done
+
+require_command copier
+require_command openspec
+
+if [ "$init_beads" = "true" ]; then
+  require_command bd
+fi
+
+if [ "$init_git_repository" = "false" ] && [ "$init_beads" = "true" ]; then
+  if [ "$destination" = "." ]; then
+    has_git_repository "$PWD" || die "--no-git with beads enabled requires an existing git repository or use --no-beads"
+  elif [ -e "$destination" ]; then
+    has_git_repository "$destination" || die "--no-git with beads enabled requires an existing git repository or use --no-beads"
+  else
+    die "--no-git with beads enabled requires an existing git repository or use --no-beads"
+  fi
+fi
+
+case "$destination" in
+  .|./)
+    default_name_source="$PWD"
+    ;;
+  *)
+    default_name_source="$destination"
+    ;;
+esac
+
+if [ -z "$project_slug" ]; then
+  project_slug="$(slugify "$(basename "$default_name_source")")"
+fi
+
+if [ -z "$project_name" ]; then
+  project_name="$(humanize_name "$(basename "$default_name_source")")"
+fi
+
+if [ "$destination" != "." ] && [ ! -e "$destination" ]; then
+  mkdir -p "$destination"
+fi
+
+cmd=(copier copy --trust)
+
+if [ "$use_defaults" -eq 1 ]; then
+  cmd+=(--defaults)
+fi
+
+if [ "$use_force" -eq 1 ]; then
+  cmd+=(--force)
+fi
+
+if [ -n "$project_name" ]; then
+  cmd+=(-d "project_name=$project_name")
+fi
+
+if [ -n "$project_slug" ]; then
+  cmd+=(-d "project_slug=$project_slug")
+fi
+
+if [ -n "$preferred_adapter" ]; then
+  cmd+=(-d "preferred_adapter=$preferred_adapter")
+fi
+
+if [ -n "$openspec_tools" ]; then
+  cmd+=(-d "openspec_tools=$openspec_tools")
+fi
+
+if [ -n "$beads_prefix" ]; then
+  cmd+=(-d "beads_prefix=$beads_prefix")
+fi
+
+if [ "$init_beads" = "false" ]; then
+  cmd+=(-d "init_beads=false")
+fi
+
+if [ "$init_git_repository" = "false" ]; then
+  cmd+=(-d "init_git_repository=false")
+fi
+
+cmd+=("$template" "$destination")
+
+printf 'Running: '
+printf '%q ' "${cmd[@]}"
+printf '\n'
+
+"${cmd[@]}"

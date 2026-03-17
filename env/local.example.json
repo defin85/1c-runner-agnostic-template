@@ -1,0 +1,19 @@
+{
+  "projectName": "{{ project_name }}",
+  "projectSlug": "{{ project_slug }}",
+  "runnerAdapter": "{{ preferred_adapter }}",
+  "notes": [
+    "Этот файл является примером.",
+    "Launcher-скрипты читают env vars напрямую, а не JSON."
+  ],
+  "shellEnv": {
+    "CREATE_IB_CMD": "echo TODO: create infobase",
+    "LOAD_SRC_CMD": "echo TODO: load source tree",
+    "UPDATE_DB_CMD": "echo TODO: update database configuration",
+    "PUBLISH_HTTP_CMD": "echo TODO: publish HTTP service",
+    "XUNIT_RUN_CMD": "echo TODO: run xUnit checks",
+    "BDD_RUN_CMD": "echo TODO: run BDD checks",
+    "SMOKE_RUN_CMD": "echo TODO: run smoke checks",
+    "BSL_LANGUAGE_SERVER_JAR": "/opt/tools/bsl-language-server.jar"
+  }
+}

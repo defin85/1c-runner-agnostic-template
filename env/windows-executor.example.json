@@ -1,0 +1,18 @@
+{
+  "projectName": "{{ project_name }}",
+  "projectSlug": "{{ project_slug }}",
+  "runnerAdapter": "remote-windows",
+  "notes": [
+    "Используйте этот профиль, если UI/TestClient лучше работают на Windows-хосте или в Windows VM."
+  ],
+  "shellEnv": {
+    "WINDOWS_CREATE_IB_CMD": "powershell -File C:/1c/create-ib.ps1",
+    "WINDOWS_LOAD_SRC_CMD": "powershell -File C:/1c/load-src.ps1",
+    "WINDOWS_UPDATE_DB_CMD": "powershell -File C:/1c/update-db.ps1",
+    "WINDOWS_PUBLISH_HTTP_CMD": "powershell -File C:/1c/publish-http.ps1",
+    "WINDOWS_XUNIT_RUN_CMD": "powershell -File C:/1c/run-xunit.ps1",
+    "WINDOWS_BDD_RUN_CMD": "powershell -File C:/1c/run-bdd.ps1",
+    "WINDOWS_SMOKE_RUN_CMD": "powershell -File C:/1c/run-smoke.ps1",
+    "BSL_LANGUAGE_SERVER_JAR": "/opt/tools/bsl-language-server.jar"
+  }
+}

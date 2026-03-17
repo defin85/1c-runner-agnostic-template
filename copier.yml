@@ -1,0 +1,62 @@
+_min_copier_version: "9.0.0"
+_answers_file: .copier-answers.yml
+_templates_suffix: ""
+_exclude:
+  - tooling
+  - tooling/**
+_tasks:
+  - command: >-
+      bash ./scripts/bootstrap/copier-post-copy.sh
+      "{{ project_name }}"
+      "{{ project_slug }}"
+      "{{ preferred_adapter }}"
+      "{{ openspec_tools }}"
+      "{{ 'yes' if init_git_repository else 'no' }}"
+      "{{ 'yes' if init_beads else 'no' }}"
+      "{{ beads_prefix }}"
+
+project_name:
+  type: str
+  help: Человекочитаемое имя проекта
+  default: "My 1C Project"
+
+project_slug:
+  type: str
+  help: Идентификатор проекта для путей, каталогов и default-настроек
+  default: "my-1c-project"
+
+project_description:
+  type: str
+  help: Краткое описание проекта
+  default: "1С-проект на шаблоне runner-agnostic monorepo"
+
+preferred_adapter:
+  type: str
+  help: Предпочтительный adapter для launcher-скриптов
+  choices:
+    - direct-platform
+    - remote-windows
+    - vrunner
+  default: direct-platform
+
+openspec_tools:
+  type: str
+  help: Значение для openspec init --tools
+  default: "none"
+
+init_git_repository:
+  type: bool
+  help: Выполнить git init после создания проекта
+  default: true
+
+init_beads:
+  type: bool
+  help: Инициализировать beads в stealth-режиме. Требует git-репозиторий.
+  when: "{{ init_git_repository }}"
+  default: "{{ init_git_repository }}"
+
+beads_prefix:
+  type: str
+  help: Префикс задач beads; если пусто, используется project_slug
+  when: "{{ init_beads }}"
+  default: ""
