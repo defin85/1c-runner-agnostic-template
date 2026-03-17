@@ -10,24 +10,68 @@ trap 'rm -rf "$tmpdir"' EXIT
 profile_path="$tmpdir/profile.json"
 run_root_success="$tmpdir/run-success"
 run_root_failure="$tmpdir/run-failure"
+run_root_xunit="$tmpdir/run-xunit"
+fake_binary="$tmpdir/fake-1cv8"
 
-cat >"$profile_path" <<'EOF'
+cat >"$fake_binary" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+
+for arg in "$@"; do
+  printf '%s\n' "$arg"
+done
+
+printf 'fake-1cv8-stderr\n' >&2
+
+for arg in "$@"; do
+  if [ "$arg" = "/DumpConfigToFiles" ]; then
+    printf 'dump failed\n' >&2
+    exit 17
+  fi
+done
+EOF
+
+chmod +x "$fake_binary"
+
+cat >"$profile_path" <<EOF
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "profileName": "fixture",
   "runnerAdapter": "direct-platform",
-  "shellEnv": {
-    "CREATE_IB_CMD": "printf 'create-ok\\n'; printf 'create-stderr\\n' >&2",
-    "DUMP_SRC_CMD": "printf 'dump failed\\n' >&2; exit 17",
-    "LOAD_SRC_CMD": "printf 'load-ok\\n'",
-    "UPDATE_DB_CMD": "printf 'update-ok\\n'",
-    "DIFF_SRC_CMD": "printf 'diff-ok\\n'",
-    "XUNIT_RUN_CMD": "printf 'xunit-ok\\n'",
-    "BDD_RUN_CMD": "printf 'bdd-ok\\n'",
-    "SMOKE_RUN_CMD": "printf 'smoke-ok\\n'"
+  "platform": {
+    "binaryPath": "$fake_binary"
+  },
+  "infobase": {
+    "mode": "client-server",
+    "server": "127.0.0.1:1541",
+    "ref": "fixture-ref",
+    "auth": {
+      "mode": "user-password",
+      "user": "fixture-user",
+      "passwordEnv": "ONEC_IB_PASSWORD"
+    }
+  },
+  "capabilities": {
+    "dumpSrc": {
+      "outputDir": "./src/cf"
+    },
+    "loadSrc": {
+      "sourceDir": "./src/cf"
+    },
+    "xunit": {
+      "command": ["bash", "-lc", "printf 'xunit-ok\\\\n'"]
+    },
+    "bdd": {
+      "command": ["bash", "-lc", "printf 'bdd-ok\\\\n'"]
+    },
+    "smoke": {
+      "command": ["bash", "-lc", "printf 'smoke-ok\\\\n'"]
+    }
   }
 }
 EOF
+
+export ONEC_IB_PASSWORD="super-secret"
 
 assert_contains() {
   local file="$1"
@@ -61,14 +105,22 @@ assert_jq() {
 assert_jq "$run_root_success/summary.json" '.status == "success"' "success-status"
 assert_jq "$run_root_success/summary.json" '.capability.id == "create-ib"' "success-capability"
 assert_jq "$run_root_success/summary.json" '.adapter == "direct-platform"' "success-adapter"
+assert_jq "$run_root_success/summary.json" '.execution.source == "standard-builder"' "success-execution-source"
+assert_jq "$run_root_success/summary.json" '.infobase.mode == "client-server"' "success-ib-mode"
+assert_jq "$run_root_success/summary.json" '.infobase.auth_mode == "user-password"' "success-auth-mode"
 if ! jq -e --arg profile "$profile_path" '.profile_path == $profile' "$run_root_success/summary.json" >/dev/null; then
   printf 'jq assertion failed (success-profile)\n' >&2
   cat "$run_root_success/summary.json" >&2
   exit 1
 fi
-assert_jq "$run_root_success/summary.json" '.command_var == "CREATE_IB_CMD"' "success-command-var"
-assert_contains "$run_root_success/stdout.log" "create-ok"
-assert_contains "$run_root_success/stderr.log" "create-stderr"
+assert_contains "$run_root_success/stdout.log" "CREATEINFOBASE"
+assert_contains "$run_root_success/stdout.log" "fixture-ref"
+assert_contains "$run_root_success/stderr.log" "fake-1cv8-stderr"
+if grep -Fq -- "super-secret" "$run_root_success/summary.json"; then
+  printf 'summary.json must not contain resolved secrets\n' >&2
+  cat "$run_root_success/summary.json" >&2
+  exit 1
+fi
 
 set +e
 (
@@ -85,5 +137,14 @@ fi
 
 assert_jq "$run_root_failure/summary.json" '.status == "failed"' "failure-status"
 assert_jq "$run_root_failure/summary.json" '.exit_code == 17' "failure-exit-code"
-assert_jq "$run_root_failure/summary.json" '.command_var == "DUMP_SRC_CMD"' "failure-command-var"
+assert_jq "$run_root_failure/summary.json" '.execution.source == "standard-builder"' "failure-execution-source"
 assert_contains "$run_root_failure/stderr.log" "dump failed"
+
+(
+  cd "$SOURCE_ROOT"
+  ./scripts/test/run-xunit.sh --profile "$profile_path" --run-root "$run_root_xunit" >/dev/null
+)
+
+assert_jq "$run_root_xunit/summary.json" '.status == "success"' "xunit-status"
+assert_jq "$run_root_xunit/summary.json" '.execution.source == "profile-command"' "xunit-execution-source"
+assert_contains "$run_root_xunit/stdout.log" "xunit-ok"

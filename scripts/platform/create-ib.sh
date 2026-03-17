@@ -4,6 +4,8 @@ set -euo pipefail
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=../lib/capability.sh
 source "$SCRIPT_DIR/../lib/capability.sh"
+# shellcheck source=../lib/onec.sh
+source "$SCRIPT_DIR/../lib/onec.sh"
 
 usage() {
   cat <<'EOF'
@@ -22,10 +24,8 @@ if capability_help_requested "$@"; then
   exit 0
 fi
 
-run_adapter_capability \
+run_profile_capability \
   "create-ib" \
   "Create infobase" \
-  "CREATE_IB_CMD" \
-  "WINDOWS_CREATE_IB_CMD" \
-  "VRUNNER_CREATE_IB_CMD" \
+  "prepare_create_ib_command" \
   "$@"

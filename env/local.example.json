@@ -1,24 +1,48 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "profileName": "local",
   "projectName": "{{ project_name }}",
   "projectSlug": "{{ project_slug }}",
-  "description": "Minimal local runtime profile example",
-  "runnerAdapter": "{{ preferred_adapter }}",
+  "description": "Minimal direct-platform runtime profile example",
+  "runnerAdapter": "direct-platform",
   "notes": [
-    "Этот файл является примером.",
-    "Launcher-скрипты могут загрузить этот JSON напрямую через --profile или ONEC_PROFILE."
+    "Этот файл является примером structured runtime profile.",
+    "Реальные секреты не храните в JSON; используйте passwordEnv и внешние env vars."
   ],
-  "shellEnv": {
-    "CREATE_IB_CMD": "echo TODO: create infobase",
-    "DUMP_SRC_CMD": "echo TODO: dump source tree",
-    "LOAD_SRC_CMD": "echo TODO: load source tree",
-    "UPDATE_DB_CMD": "echo TODO: update database configuration",
-    "DIFF_SRC_CMD": "echo TODO: diff source tree",
-    "PUBLISH_HTTP_CMD": "echo TODO: publish HTTP service",
-    "XUNIT_RUN_CMD": "echo TODO: run xUnit checks",
-    "BDD_RUN_CMD": "echo TODO: run BDD checks",
-    "SMOKE_RUN_CMD": "echo TODO: run smoke checks",
-    "BSL_LANGUAGE_SERVER_JAR": "/opt/tools/bsl-language-server.jar"
+  "platform": {
+    "binaryPath": "/opt/1cv8/x86_64/8.3.27.1859/1cv8"
+  },
+  "infobase": {
+    "mode": "file",
+    "filePath": "/var/tmp/{{ project_slug }}",
+    "connectionStringOverride": null,
+    "auth": {
+      "mode": "os",
+      "user": null,
+      "passwordEnv": null
+    }
+  },
+  "capabilities": {
+    "dumpSrc": {
+      "outputDir": "./src/cf"
+    },
+    "loadSrc": {
+      "sourceDir": "./src/cf"
+    },
+    "diffSrc": {
+      "command": ["git", "diff", "--", "./src"]
+    },
+    "xunit": {
+      "command": ["bash", "-lc", "echo TODO: run xUnit checks"]
+    },
+    "bdd": {
+      "command": ["bash", "-lc", "echo TODO: run BDD checks"]
+    },
+    "smoke": {
+      "command": ["bash", "-lc", "echo TODO: run smoke checks"]
+    },
+    "publishHttp": {
+      "command": ["bash", "-lc", "echo TODO: publish HTTP service"]
+    }
   }
 }

@@ -1,23 +1,49 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "profileName": "windows-executor",
   "projectName": "{{ project_name }}",
   "projectSlug": "{{ project_slug }}",
   "description": "Remote Windows execution profile for UI-heavy or TestClient flows",
   "runnerAdapter": "remote-windows",
   "notes": [
-    "Используйте этот профиль, если UI/TestClient лучше работают на Windows-хосте или в Windows VM."
+    "Используйте этот профиль, если UI/TestClient лучше работают на Windows-хосте или в Windows VM.",
+    "Стандартные операции create/load/dump/update будут собирать argv из structured profile и передавать их в scripts/adapters/remote-windows.sh."
   ],
-  "shellEnv": {
-    "WINDOWS_CREATE_IB_CMD": "powershell -File C:/1c/create-ib.ps1",
-    "WINDOWS_DUMP_SRC_CMD": "powershell -File C:/1c/dump-src.ps1",
-    "WINDOWS_LOAD_SRC_CMD": "powershell -File C:/1c/load-src.ps1",
-    "WINDOWS_UPDATE_DB_CMD": "powershell -File C:/1c/update-db.ps1",
-    "WINDOWS_DIFF_SRC_CMD": "powershell -File C:/1c/diff-src.ps1",
-    "WINDOWS_PUBLISH_HTTP_CMD": "powershell -File C:/1c/publish-http.ps1",
-    "WINDOWS_XUNIT_RUN_CMD": "powershell -File C:/1c/run-xunit.ps1",
-    "WINDOWS_BDD_RUN_CMD": "powershell -File C:/1c/run-bdd.ps1",
-    "WINDOWS_SMOKE_RUN_CMD": "powershell -File C:/1c/run-smoke.ps1",
-    "BSL_LANGUAGE_SERVER_JAR": "/opt/tools/bsl-language-server.jar"
+  "platform": {
+    "binaryPath": "C:/Program Files/1cv8/8.3.27.1859/bin/1cv8.exe"
+  },
+  "infobase": {
+    "mode": "client-server",
+    "server": "win-1c:1541",
+    "ref": "{{ project_slug|replace('-', '_') }}",
+    "connectionStringOverride": null,
+    "auth": {
+      "mode": "user-password",
+      "user": "Administrator",
+      "passwordEnv": "ONEC_IB_PASSWORD"
+    }
+  },
+  "capabilities": {
+    "dumpSrc": {
+      "outputDir": "./src/cf"
+    },
+    "loadSrc": {
+      "sourceDir": "./src/cf"
+    },
+    "diffSrc": {
+      "command": ["git", "diff", "--", "./src"]
+    },
+    "xunit": {
+      "command": ["powershell", "-File", "C:/1c/run-xunit.ps1"]
+    },
+    "bdd": {
+      "command": ["powershell", "-File", "C:/1c/run-bdd.ps1"]
+    },
+    "smoke": {
+      "command": ["powershell", "-File", "C:/1c/run-smoke.ps1"]
+    },
+    "publishHttp": {
+      "command": ["powershell", "-File", "C:/1c/publish-http.ps1"]
+    }
   }
 }

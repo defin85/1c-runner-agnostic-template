@@ -1,20 +1,45 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "profileName": "wsl",
   "projectName": "{{ project_name }}",
   "projectSlug": "{{ project_slug }}",
   "description": "Linux/WSL-first profile for direct platform execution",
-  "runnerAdapter": "{{ preferred_adapter }}",
-  "shellEnv": {
-    "CREATE_IB_CMD": "/opt/1cv8/x86_64/8.3.27.1859/1cv8 CREATEINFOBASE File='/var/tmp/{{ project_slug }}'",
-    "DUMP_SRC_CMD": "/opt/1cv8/x86_64/8.3.27.1859/1cv8 DESIGNER /S127.0.0.1:1541\\{{ project_slug|replace('-', '_') }} /DumpConfigToFiles ./src/cf",
-    "LOAD_SRC_CMD": "/opt/1cv8/x86_64/8.3.27.1859/1cv8 DESIGNER /S127.0.0.1:1541\\{{ project_slug|replace('-', '_') }} /LoadConfigFromFiles ./src/cf",
-    "UPDATE_DB_CMD": "/opt/1cv8/x86_64/8.3.27.1859/1cv8 DESIGNER /S127.0.0.1:1541\\{{ project_slug|replace('-', '_') }} /UpdateDBCfg",
-    "DIFF_SRC_CMD": "git diff -- ./src",
-    "PUBLISH_HTTP_CMD": "echo TODO: publish selected HTTP service",
-    "XUNIT_RUN_CMD": "echo TODO: direct platform xUnit contour",
-    "BDD_RUN_CMD": "echo TODO: direct platform BDD contour",
-    "SMOKE_RUN_CMD": "echo TODO: direct platform smoke contour",
-    "BSL_LANGUAGE_SERVER_JAR": "/opt/tools/bsl-language-server.jar"
+  "runnerAdapter": "direct-platform",
+  "platform": {
+    "binaryPath": "/opt/1cv8/x86_64/8.3.27.1859/1cv8"
+  },
+  "infobase": {
+    "mode": "client-server",
+    "server": "127.0.0.1:1541",
+    "ref": "{{ project_slug|replace('-', '_') }}",
+    "connectionStringOverride": null,
+    "auth": {
+      "mode": "os",
+      "user": null,
+      "passwordEnv": null
+    }
+  },
+  "capabilities": {
+    "dumpSrc": {
+      "outputDir": "./src/cf"
+    },
+    "loadSrc": {
+      "sourceDir": "./src/cf"
+    },
+    "diffSrc": {
+      "command": ["git", "diff", "--", "./src"]
+    },
+    "xunit": {
+      "command": ["bash", "-lc", "echo TODO: direct platform xUnit contour"]
+    },
+    "bdd": {
+      "command": ["bash", "-lc", "echo TODO: direct platform BDD contour"]
+    },
+    "smoke": {
+      "command": ["bash", "-lc", "echo TODO: direct platform smoke contour"]
+    },
+    "publishHttp": {
+      "command": ["bash", "-lc", "echo TODO: publish selected HTTP service"]
+    }
   }
 }

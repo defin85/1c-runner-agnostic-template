@@ -1,20 +1,45 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "profileName": "ci",
   "projectName": "{{ project_name }}",
   "projectSlug": "{{ project_slug }}",
   "description": "Example CI runtime profile for self-hosted 1C contour",
-  "runnerAdapter": "{{ preferred_adapter }}",
-  "shellEnv": {
-    "CREATE_IB_CMD": "echo CI create infobase",
-    "DUMP_SRC_CMD": "echo CI dump source tree",
-    "LOAD_SRC_CMD": "echo CI load source tree",
-    "UPDATE_DB_CMD": "echo CI update DB configuration",
-    "DIFF_SRC_CMD": "echo CI diff source tree",
-    "PUBLISH_HTTP_CMD": "echo CI publish HTTP service",
-    "XUNIT_RUN_CMD": "echo CI run xUnit",
-    "BDD_RUN_CMD": "echo CI run BDD",
-    "SMOKE_RUN_CMD": "echo CI run smoke",
-    "BSL_LANGUAGE_SERVER_JAR": "/workspace/tools/bsl-language-server.jar"
+  "runnerAdapter": "direct-platform",
+  "platform": {
+    "binaryPath": "/opt/1cv8/x86_64/8.3.27.1859/1cv8"
+  },
+  "infobase": {
+    "mode": "client-server",
+    "server": "127.0.0.1:1541",
+    "ref": "{{ project_slug|replace('-', '_') }}_ci",
+    "connectionStringOverride": null,
+    "auth": {
+      "mode": "user-password",
+      "user": "ci-user",
+      "passwordEnv": "ONEC_IB_PASSWORD"
+    }
+  },
+  "capabilities": {
+    "dumpSrc": {
+      "outputDir": "./src/cf"
+    },
+    "loadSrc": {
+      "sourceDir": "./src/cf"
+    },
+    "diffSrc": {
+      "command": ["git", "diff", "--", "./src"]
+    },
+    "xunit": {
+      "command": ["bash", "-lc", "echo TODO: CI xUnit contour"]
+    },
+    "bdd": {
+      "command": ["bash", "-lc", "echo TODO: CI BDD contour"]
+    },
+    "smoke": {
+      "command": ["bash", "-lc", "echo TODO: CI smoke contour"]
+    },
+    "publishHttp": {
+      "command": ["bash", "-lc", "echo TODO: CI publish HTTP service"]
+    }
   }
 }

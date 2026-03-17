@@ -10,12 +10,23 @@ CAPABILITY_PROFILE_INPUT=""
 CAPABILITY_RUN_ROOT_INPUT=""
 CAPABILITY_DRY_RUN="${DRY_RUN:-0}"
 CAPABILITY_SHOW_HELP=0
+CAPABILITY_COMMAND_SOURCE=""
+CAPABILITY_COMMAND_EXECUTOR="direct"
+CAPABILITY_CONTEXT_JSON="{}"
+CAPABILITY_COMMAND=()
 
 reset_capability_cli_state() {
   CAPABILITY_PROFILE_INPUT=""
   CAPABILITY_RUN_ROOT_INPUT=""
   CAPABILITY_DRY_RUN="${DRY_RUN:-0}"
   CAPABILITY_SHOW_HELP=0
+}
+
+reset_prepared_capability_command() {
+  CAPABILITY_COMMAND_SOURCE=""
+  CAPABILITY_COMMAND_EXECUTOR="direct"
+  CAPABILITY_CONTEXT_JSON="{}"
+  CAPABILITY_COMMAND=()
 }
 
 parse_capability_cli_args() {
@@ -81,6 +92,27 @@ capability_summary_path() {
   printf '%s/summary.json\n' "$1"
 }
 
+set_prepared_capability_command() {
+  local source="$1"
+  local executor="$2"
+  shift 2
+
+  CAPABILITY_COMMAND_SOURCE="$source"
+  CAPABILITY_COMMAND_EXECUTOR="$executor"
+  CAPABILITY_COMMAND=("$@")
+}
+
+set_capability_context_json() {
+  local json="${1-}"
+
+  if [ -z "$json" ]; then
+    json='{}'
+  fi
+
+  require_command jq
+  CAPABILITY_CONTEXT_JSON="$(jq -c '.' <<<"$json")"
+}
+
 write_capability_summary() {
   local summary_path="$1"
   local status="$2"
@@ -88,14 +120,16 @@ write_capability_summary() {
   local capability_label="$4"
   local adapter="$5"
   local profile_path="$6"
-  local command_var="$7"
-  local run_root="$8"
-  local exit_code="$9"
-  local started_at="${10}"
-  local finished_at="${11}"
-  local stdout_log="${12}"
-  local stderr_log="${13}"
-  local dry_run="${14}"
+  local run_root="$7"
+  local exit_code="$8"
+  local started_at="$9"
+  local finished_at="${10}"
+  local stdout_log="${11}"
+  local stderr_log="${12}"
+  local dry_run="${13}"
+  local command_source="${14}"
+  local executor="${15}"
+  local context_json="${16}"
 
   require_command jq
 
@@ -105,15 +139,17 @@ write_capability_summary() {
     --arg capability_label "$capability_label" \
     --arg adapter "$adapter" \
     --arg profile_path "$profile_path" \
-    --arg command_var "$command_var" \
     --arg run_root "$run_root" \
     --arg summary_json "$summary_path" \
     --arg started_at "$started_at" \
     --arg finished_at "$finished_at" \
     --arg stdout_log "$stdout_log" \
     --arg stderr_log "$stderr_log" \
+    --arg command_source "$command_source" \
+    --arg executor "$executor" \
     --argjson exit_code "$exit_code" \
     --argjson dry_run "$dry_run" \
+    --argjson context "$context_json" \
     '{
       status: $status,
       capability: {
@@ -122,35 +158,40 @@ write_capability_summary() {
       },
       adapter: $adapter,
       profile_path: (if $profile_path == "" then null else $profile_path end),
-      command_var: $command_var,
       run_root: $run_root,
       started_at: $started_at,
       finished_at: $finished_at,
       exit_code: $exit_code,
       dry_run: $dry_run,
+      execution: {
+        source: $command_source,
+        executor: $executor
+      },
       artifacts: {
         summary_json: $summary_json,
         stdout_log: $stdout_log,
         stderr_log: $stderr_log
       }
-    }' >"$summary_path"
+    } + $context' >"$summary_path"
 }
 
-resolve_adapter_command_var() {
+resolve_adapter_wrapper() {
   local adapter="$1"
-  local direct_var="$2"
-  local windows_var="$3"
-  local vrunner_var="$4"
+  local root="$2"
+  local array_name="$3"
+  local -n out_ref="$array_name"
+
+  out_ref=()
 
   case "$adapter" in
     direct-platform)
-      printf '%s\n' "$direct_var"
+      out_ref=("$root/scripts/adapters/direct-platform.sh")
       ;;
     remote-windows)
-      printf '%s\n' "$windows_var"
+      out_ref=("$root/scripts/adapters/remote-windows.sh")
       ;;
     vrunner)
-      printf '%s\n' "$vrunner_var"
+      die "adapter vrunner requires capability-specific command arrays under schemaVersion 2"
       ;;
     *)
       die "unsupported RUNNER_ADAPTER: $adapter"
@@ -158,19 +199,49 @@ resolve_adapter_command_var() {
   esac
 }
 
-run_adapter_capability() {
+execute_prepared_capability_command() {
+  local root="$1"
+  local adapter="$2"
+  local stdout_log="$3"
+  local stderr_log="$4"
+  local -a wrapped_command=()
+  local exit_code=0
+
+  if [ "${CAPABILITY_COMMAND[*]-}" = "" ]; then
+    die "capability command was not prepared"
+  fi
+
+  set +e
+  case "$CAPABILITY_COMMAND_EXECUTOR" in
+    direct)
+      "${CAPABILITY_COMMAND[@]}" >"$stdout_log" 2>"$stderr_log"
+      exit_code=$?
+      ;;
+    adapter-wrapper)
+      resolve_adapter_wrapper "$adapter" "$root" wrapped_command
+      wrapped_command+=("${CAPABILITY_COMMAND[@]}")
+      "${wrapped_command[@]}" >"$stdout_log" 2>"$stderr_log"
+      exit_code=$?
+      ;;
+    *)
+      set -e
+      die "unsupported capability command executor: $CAPABILITY_COMMAND_EXECUTOR"
+      ;;
+  esac
+  set -e
+
+  return "$exit_code"
+}
+
+run_profile_capability() {
   local capability_id="$1"
   local capability_label="$2"
-  local direct_var="$3"
-  local windows_var="$4"
-  local vrunner_var="$5"
-  shift 5
+  local builder_fn="$3"
+  shift 3
 
   local root=""
   local profile_path=""
   local adapter=""
-  local command_var=""
-  local command_string=""
   local run_root=""
   local summary_path=""
   local stdout_log=""
@@ -181,6 +252,7 @@ run_adapter_capability() {
   local status="success"
 
   parse_capability_cli_args "$@"
+  reset_prepared_capability_command
 
   if [ "$CAPABILITY_SHOW_HELP" = "1" ]; then
     return 2
@@ -189,11 +261,10 @@ run_adapter_capability() {
   root="$(project_root)"
   profile_path="$(resolve_runtime_profile_path "$CAPABILITY_PROFILE_INPUT" "$root")"
   load_runtime_profile "$profile_path"
+  require_runtime_profile_loaded
 
   adapter="${RUNNER_ADAPTER:-${RUNTIME_PROFILE_RUNNER_ADAPTER:-direct-platform}}"
-  command_var="$(resolve_adapter_command_var "$adapter" "$direct_var" "$windows_var" "$vrunner_var")"
-  require_env "$command_var"
-  command_string="${!command_var}"
+  "$builder_fn" "$capability_id" "$adapter"
 
   run_root="$(prepare_capability_run_root "$capability_id" "$CAPABILITY_RUN_ROOT_INPUT")"
   summary_path="$(capability_summary_path "$run_root")"
@@ -204,7 +275,8 @@ run_adapter_capability() {
 
   log "$capability_label"
   log "adapter=$adapter"
-  log "command_var=$command_var"
+  log "command_source=$CAPABILITY_COMMAND_SOURCE"
+  log "executor=$CAPABILITY_COMMAND_EXECUTOR"
   if [ -n "$profile_path" ]; then
     log "profile=$profile_path"
   fi
@@ -215,12 +287,10 @@ run_adapter_capability() {
   if [ "$CAPABILITY_DRY_RUN" = "1" ]; then
     status="dry-run"
   else
-    set +e
-    bash -lc "$command_string" >"$stdout_log" 2>"$stderr_log"
-    exit_code=$?
-    set -e
-
-    if [ "$exit_code" -ne 0 ]; then
+    if execute_prepared_capability_command "$root" "$adapter" "$stdout_log" "$stderr_log"; then
+      exit_code=0
+    else
+      exit_code=$?
       status="failed"
     fi
   fi
@@ -233,14 +303,16 @@ run_adapter_capability() {
     "$capability_label" \
     "$adapter" \
     "$profile_path" \
-    "$command_var" \
     "$run_root" \
     "$exit_code" \
     "$started_at" \
     "$finished_at" \
     "$stdout_log" \
     "$stderr_log" \
-    "$CAPABILITY_DRY_RUN"
+    "$CAPABILITY_DRY_RUN" \
+    "$CAPABILITY_COMMAND_SOURCE" \
+    "$CAPABILITY_COMMAND_EXECUTOR" \
+    "$CAPABILITY_CONTEXT_JSON"
 
   log "summary_json=$summary_path"
 

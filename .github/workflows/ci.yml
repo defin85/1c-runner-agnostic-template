@@ -62,6 +62,14 @@ jobs:
         if: hashFiles('tests/smoke/runtime-doctor-contract.sh') != ''
         run: bash tests/smoke/runtime-doctor-contract.sh
 
+      - name: Legacy runtime profile rejection
+        if: hashFiles('tests/smoke/runtime-profile-legacy-rejection.sh') != ''
+        run: bash tests/smoke/runtime-profile-legacy-rejection.sh
+
+      - name: Runtime profile migration helper
+        if: hashFiles('tests/smoke/runtime-profile-migration-helper.sh') != ''
+        run: bash tests/smoke/runtime-profile-migration-helper.sh
+
       - name: Bootstrap AGENTS overlay
         if: hashFiles('tests/smoke/bootstrap-agents-overlay.sh') != ''
         run: bash tests/smoke/bootstrap-agents-overlay.sh

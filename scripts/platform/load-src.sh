@@ -4,6 +4,8 @@ set -euo pipefail
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=../lib/capability.sh
 source "$SCRIPT_DIR/../lib/capability.sh"
+# shellcheck source=../lib/onec.sh
+source "$SCRIPT_DIR/../lib/onec.sh"
 
 usage() {
   cat <<'EOF'
@@ -22,10 +24,8 @@ if capability_help_requested "$@"; then
   exit 0
 fi
 
-run_adapter_capability \
+run_profile_capability \
   "load-src" \
   "Load source tree" \
-  "LOAD_SRC_CMD" \
-  "WINDOWS_LOAD_SRC_CMD" \
-  "VRUNNER_LOAD_SRC_CMD" \
+  "prepare_load_src_command" \
   "$@"

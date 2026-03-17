@@ -13,28 +13,57 @@ Launcher-скрипты могут загрузить runtime profile напря
 Versioned файлы `*.example.json` являются source of truth для формата профиля.
 Рабочие профили `env/local.json`, `env/ci.json`, `env/windows-executor.json` не коммитятся.
 
+`schemaVersion: 1` больше не поддерживается. Existing local profiles нужно мигрировать вручную:
+
+- helper: `./scripts/template/migrate-runtime-profile-v2.sh <legacy-profile>`
+- guide: `docs/migrations/runtime-profile-v2.md`
+
+## Canonical SchemaVersion 2 Shape
+
 Каждый profile должен содержать:
 
 - `schemaVersion`
 - `profileName`
 - `runnerAdapter`
-- `shellEnv`
+- `platform`
+- `infobase`
+- `capabilities`
 
-## Базовые переменные
+Минимальные обязательные поля для standard direct-platform / remote-windows path:
 
-- `RUNNER_ADAPTER`
-- `CREATE_IB_CMD`
-- `DUMP_SRC_CMD`
-- `LOAD_SRC_CMD`
-- `UPDATE_DB_CMD`
-- `DIFF_SRC_CMD`
-- `PUBLISH_HTTP_CMD`
-- `XUNIT_RUN_CMD`
-- `BDD_RUN_CMD`
-- `SMOKE_RUN_CMD`
-- `BSL_LANGUAGE_SERVER_JAR`
+- `platform.binaryPath`
+- `infobase.mode`
+- `infobase.filePath` для `mode=file`
+- `infobase.server` и `infobase.ref` для `mode=client-server`
 
-Для `remote-windows` и `vrunner` используются отдельные варианты переменных, см. примеры ниже.
+## Secrets
+
+Секреты не хранятся в versioned JSON.
+
+Вместо literal values profile хранит ссылки на переменные окружения:
+
+- `infobase.auth.passwordEnv`
+- `dbms.passwordEnv`
+- `clusterAdmin.passwordEnv`
+
+Пример:
+
+```json
+{
+  "auth": {
+    "mode": "user-password",
+    "user": "ci-user",
+    "passwordEnv": "ONEC_IB_PASSWORD"
+  }
+}
+```
+
+Перед запуском:
+
+```bash
+export ONEC_IB_PASSWORD='...'
+./scripts/diag/doctor.sh --profile env/ci.json
+```
 
 ## Capability Contract
 
@@ -43,4 +72,27 @@ Versioned файлы `*.example.json` являются source of truth для ф
 - принимает `--profile`;
 - поддерживает `--run-root`;
 - пишет `summary.json`, `stdout.log`, `stderr.log`;
-- возвращает ненулевой exit code на failure.
+- возвращает ненулевой exit code на failure;
+- не пишет resolved secrets в `summary.json`.
+
+## Capabilities Block
+
+В `schemaVersion: 2` есть два пути конфигурации capability:
+
+1. standard builder
+   Для `create-ib`, `dump-src`, `load-src`, `update-db` launcher строит argv сам из `platform` и `infobase`.
+
+2. profile-defined command array
+   Для project-specific contour вроде `xunit`, `bdd`, `smoke`, `publishHttp` profile задаёт `command` как массив строк:
+
+```json
+{
+  "capabilities": {
+    "xunit": {
+      "command": ["bash", "-lc", "echo TODO: run xUnit"]
+    }
+  }
+}
+```
+
+`diffSrc.command` тоже можно задать явно, но по умолчанию script использует `git diff -- ./src`.

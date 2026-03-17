@@ -4,6 +4,8 @@ set -euo pipefail
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=../lib/capability.sh
 source "$SCRIPT_DIR/../lib/capability.sh"
+# shellcheck source=../lib/onec.sh
+source "$SCRIPT_DIR/../lib/onec.sh"
 
 usage() {
   cat <<'EOF'
@@ -22,10 +24,8 @@ if capability_help_requested "$@"; then
   exit 0
 fi
 
-run_adapter_capability \
+run_profile_capability \
   "run-smoke" \
   "Run smoke checks" \
-  "SMOKE_RUN_CMD" \
-  "WINDOWS_SMOKE_RUN_CMD" \
-  "VRUNNER_SMOKE_CMD" \
+  "prepare_required_profile_command" \
   "$@"

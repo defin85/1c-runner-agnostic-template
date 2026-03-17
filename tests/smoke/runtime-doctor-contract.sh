@@ -9,24 +9,48 @@ trap 'rm -rf "$tmpdir"' EXIT
 
 profile_path="$tmpdir/doctor-profile.json"
 run_root="$tmpdir/doctor-run"
+fake_binary="$tmpdir/fake-1cv8"
 
-cat >"$profile_path" <<'EOF'
+cat >"$fake_binary" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+exit 0
+EOF
+
+chmod +x "$fake_binary"
+
+cat >"$profile_path" <<EOF
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "profileName": "doctor-fixture",
   "runnerAdapter": "direct-platform",
-  "shellEnv": {
-    "CREATE_IB_CMD": "echo create",
-    "DUMP_SRC_CMD": "echo dump",
-    "LOAD_SRC_CMD": "echo load",
-    "UPDATE_DB_CMD": "echo update",
-    "DIFF_SRC_CMD": "echo diff",
-    "XUNIT_RUN_CMD": "echo xunit",
-    "BDD_RUN_CMD": "echo bdd",
-    "SMOKE_RUN_CMD": "echo smoke"
+  "platform": {
+    "binaryPath": "$fake_binary"
+  },
+  "infobase": {
+    "mode": "file",
+    "filePath": "/var/tmp/doctor-fixture",
+    "auth": {
+      "mode": "user-password",
+      "user": "doctor-user",
+      "passwordEnv": "ONEC_DOCTOR_PASSWORD"
+    }
+  },
+  "capabilities": {
+    "xunit": {
+      "command": ["bash", "-lc", "printf 'xunit-ok\\\\n'"]
+    },
+    "bdd": {
+      "command": ["bash", "-lc", "printf 'bdd-ok\\\\n'"]
+    },
+    "smoke": {
+      "command": ["bash", "-lc", "printf 'smoke-ok\\\\n'"]
+    }
   }
 }
 EOF
+
+export ONEC_DOCTOR_PASSWORD="doctor-secret"
 
 assert_jq() {
   local file="$1"
@@ -48,5 +72,13 @@ assert_jq() {
 assert_jq "$run_root/summary.json" '.status == "success"' "doctor-status"
 assert_jq "$run_root/summary.json" '.capability.id == "doctor"' "doctor-capability"
 assert_jq "$run_root/summary.json" '.adapter == "direct-platform"' "doctor-adapter"
-assert_jq "$run_root/summary.json" '[.checks.required_env[] | select(.status != "set")] | length == 0' "doctor-required-env"
+assert_jq "$run_root/summary.json" '[.checks.required_profile_fields[] | select(.status != "present")] | length == 0' "doctor-required-fields"
+assert_jq "$run_root/summary.json" '[.checks.required_env_refs[] | select(.status != "set")] | length == 0' "doctor-required-env-refs"
+assert_jq "$run_root/summary.json" '[.checks.required_capabilities[] | select(.status != "present")] | length == 0' "doctor-required-capabilities"
 assert_jq "$run_root/summary.json" '[.checks.required_tools[] | select(.status != "present")] | length == 0' "doctor-required-tools"
+
+if grep -Fq -- "doctor-secret" "$run_root/summary.json"; then
+  printf 'doctor summary.json must not contain resolved secrets\n' >&2
+  cat "$run_root/summary.json" >&2
+  exit 1
+fi

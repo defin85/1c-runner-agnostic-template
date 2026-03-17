@@ -83,7 +83,7 @@ Backend выбирается через `RUNNER_ADAPTER`:
 - `remote-windows`
 - `vrunner`
 
-Сами команды задаются через env vars. Примеры есть в `env/*.example.json`.
+Параметры подключения к ИБ и platform paths задаются через structured runtime profile. Для project-specific contour допускаются `command`-массивы в секции `capabilities`.
 
 ### Runtime Profile Contract
 
@@ -94,13 +94,26 @@ Backend выбирается через `RUNNER_ADAPTER`:
 - любой capability entrypoint принимает `--profile <file>` и `--run-root <dir>`;
 - если `--profile` не указан, скрипт пытается использовать `ONEC_PROFILE`, затем `env/local.json`;
 - каждый capability entrypoint пишет `summary.json`, `stdout.log` и `stderr.log` в `run-root`.
+- `schemaVersion: 1` больше не поддерживается.
 
 Базовые поля profile:
 
 - `schemaVersion`
 - `profileName`
 - `runnerAdapter`
-- `shellEnv`
+- `platform`
+- `infobase`
+- `capabilities`
+
+Для password-based auth profile хранит не secret value, а имя env var, например `passwordEnv: "ONEC_IB_PASSWORD"`.
+
+Миграция legacy profiles:
+
+```bash
+./scripts/template/migrate-runtime-profile-v2.sh env/local.json > /tmp/local.v2.json
+```
+
+Подробности: `docs/migrations/runtime-profile-v2.md`.
 
 Минимальный capability set v1:
 
@@ -118,6 +131,7 @@ Backend выбирается через `RUNNER_ADAPTER`:
 
 ```bash
 cp env/local.example.json env/local.json
+export ONEC_IB_PASSWORD='...'
 ./scripts/diag/doctor.sh --profile env/local.json
 ./scripts/platform/load-src.sh --profile env/local.json --run-root /tmp/load-src-run
 ```
