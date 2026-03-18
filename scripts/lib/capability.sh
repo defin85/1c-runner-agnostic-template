@@ -33,6 +33,14 @@ reset_prepared_capability_command() {
   CAPABILITY_COMMAND=()
 }
 
+prepare_adapter_wrapper_env() {
+  local _adapter="$1"
+  local array_name="$2"
+  local -n out_ref="$array_name"
+
+  out_ref=()
+}
+
 parse_capability_cli_args() {
   reset_capability_cli_state
 
@@ -304,6 +312,7 @@ execute_prepared_capability_command() {
   local adapter="$2"
   local stdout_log="$3"
   local stderr_log="$4"
+  local -a adapter_env=()
   local -a wrapped_command=()
   local exit_code=0
 
@@ -320,7 +329,13 @@ execute_prepared_capability_command() {
     adapter-wrapper)
       resolve_adapter_wrapper "$adapter" "$root" wrapped_command
       wrapped_command+=("${CAPABILITY_COMMAND[@]}")
-      "${wrapped_command[@]}" >"$stdout_log" 2>"$stderr_log"
+      prepare_adapter_wrapper_env "$adapter" adapter_env
+      set -- "${adapter_env[@]}"
+      if [ "$#" -gt 0 ]; then
+        env "${adapter_env[@]}" "${wrapped_command[@]}" >"$stdout_log" 2>"$stderr_log"
+      else
+        "${wrapped_command[@]}" >"$stdout_log" 2>"$stderr_log"
+      fi
       exit_code=$?
       ;;
     *)

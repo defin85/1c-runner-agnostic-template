@@ -3,11 +3,15 @@
   "profileName": "wsl",
   "projectName": "{{ project_name }}",
   "projectSlug": "{{ project_slug }}",
-  "description": "Linux/WSL-first profile for direct platform execution",
+  "description": "Linux/WSL-first profile for direct platform execution with Xvfb GUI isolation",
   "runnerAdapter": "direct-platform",
   "platform": {
     "binaryPath": "/opt/1cv8/x86_64/8.3.27.1859/1cv8",
-    "ibcmdPath": "/opt/1cv8/x86_64/8.3.27.1859/ibcmd"
+    "ibcmdPath": "/opt/1cv8/x86_64/8.3.27.1859/ibcmd",
+    "xvfb": {
+      "enabled": true,
+      "serverArgs": ["-screen", "0", "1440x900x24", "-noreset"]
+    }
   },
   "infobase": {
     "mode": "client-server",

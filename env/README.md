@@ -11,7 +11,7 @@ Launcher-скрипты могут загрузить runtime profile напря
 - по умолчанию из `env/local.json`, если такой файл существует.
 
 Versioned файлы `*.example.json` являются source of truth для формата профиля.
-Рабочие профили `env/local.json`, `env/ci.json`, `env/windows-executor.json` не коммитятся.
+Рабочие профили `env/local.json`, `env/ci.json`, `env/wsl.json`, `env/windows-executor.json` не коммитятся.
 
 `env/local.example.json` намеренно показывает mixed-profile contour:
 
@@ -49,6 +49,18 @@ Versioned файлы `*.example.json` являются source of truth для ф
 - `ibcmd.auth.user`
 - `ibcmd.auth.passwordEnv`
 - `ibcmd.databasePath` только если `createIb.driver = "ibcmd"`
+
+Дополнительные поля для WSL/Linux GUI isolation contour:
+
+- `platform.xvfb.enabled`
+- `platform.xvfb.serverArgs`
+
+Этот contour является opt-in:
+
+- включается только при `runnerAdapter=direct-platform`;
+- требует локальные `xvfb-run` и `xauth`;
+- применяется к standard-builder launches и к `command`-массивам, если basename исполняемого файла это `1cv8` или `1cv8c`;
+- не меняет default behavior, если блок `platform.xvfb` отсутствует или выключен.
 
 ## Secrets
 
@@ -89,6 +101,8 @@ export ONEC_IB_PASSWORD='...'
 - возвращает ненулевой exit code на failure;
 - не пишет resolved secrets в `summary.json`.
 
+Если direct-platform contour запускается через `Xvfb`, capability `summary.json` и `doctor` summary добавляют structured `adapter_context` с выбранным wrapper и redacted `serverArgs`.
+
 ## Capabilities Block
 
 В `schemaVersion: 2` есть два пути конфигурации capability:
@@ -114,6 +128,8 @@ export ONEC_IB_PASSWORD='...'
 
 `diffSrc.command` тоже можно задать явно, но по умолчанию script использует `git diff -- ./src`.
 
+Если `platform.xvfb.enabled=true`, direct-platform adapter автоматически оборачивает только те `command`-массивы, где первый элемент указывает на локальный `1cv8` или `1cv8c`. Для `bash -lc ...` и других non-1C executables wrapper не включается.
+
 ## Ibcmd Phase 1
 
 Поддерживаемая матрица phase 1:
@@ -133,3 +149,20 @@ Partial import поддерживается только для `load-src` с `d
 ```
 
 Если брать за основу `env/local.example.json`, дополнительная правка `loadSrc.driver` не нужна.
+
+## WSL / Linux Xvfb Contour
+
+`env/wsl.example.json` является canonical preset для isolated GUI launches:
+
+- `runnerAdapter=direct-platform`
+- `platform.xvfb.enabled=true`
+- `platform.xvfb.serverArgs=["-screen","0","1440x900x24","-noreset"]`
+- core capabilities остаются на `designer`
+
+Типовой запуск:
+
+```bash
+cp env/wsl.example.json env/wsl.json
+./scripts/diag/doctor.sh --profile env/wsl.json
+./scripts/platform/dump-src.sh --profile env/wsl.json --run-root /tmp/wsl-dump
+```

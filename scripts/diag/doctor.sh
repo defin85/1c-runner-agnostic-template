@@ -56,6 +56,12 @@ profile_field_status() {
     platform.ibcmdPath)
       profile_has_nonnull '.platform.ibcmdPath' && printf 'present\n' || printf 'missing\n'
       ;;
+    platform.xvfb.enabled)
+      [ "$(profile_string '(.platform.xvfb.enabled // null) | if . == null then "null" else type end')" = "boolean" ] && printf 'present\n' || printf 'missing\n'
+      ;;
+    platform.xvfb.serverArgs)
+      [ "$(profile_string '(.platform.xvfb.serverArgs // null) | if . == null then "null" else type end')" = "array" ] && printf 'present\n' || printf 'missing\n'
+      ;;
     infobase.mode)
       profile_has_nonnull '.infobase.mode' && printf 'present\n' || printf 'missing\n'
       ;;
@@ -153,6 +159,9 @@ main() {
   require_runtime_profile_loaded
 
   adapter="${RUNNER_ADAPTER:-${RUNTIME_PROFILE_RUNNER_ADAPTER:-direct-platform}}"
+  if doctor_requires_direct_platform_xvfb_tools "$adapter"; then
+    required_tools+=(xvfb-run xauth)
+  fi
   run_root="$(prepare_capability_run_root "doctor" "$CAPABILITY_RUN_ROOT_INPUT")"
   summary_path="$(capability_summary_path "$run_root")"
   stdout_log="$run_root/stdout.log"
@@ -261,7 +270,7 @@ main() {
     --argjson required_capabilities "$required_capabilities_json" \
     --argjson optional_capabilities "$optional_capabilities_json" \
     --argjson capability_drivers "$capability_drivers_json" \
-    --argjson context "$(build_redacted_context_json)" \
+    --argjson context "$(build_doctor_context_json "$adapter")" \
     '{
       status: $status,
       capability: {

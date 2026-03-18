@@ -152,6 +152,7 @@ assert_exists "$rendered_root/scripts/diag/doctor.sh"
 assert_exists "$rendered_root/scripts/template/migrate-runtime-profile-v2.sh"
 assert_exists "$rendered_root/tests/smoke/runtime-capability-contract.sh"
 assert_exists "$rendered_root/tests/smoke/runtime-doctor-contract.sh"
+assert_exists "$rendered_root/tests/smoke/runtime-direct-platform-xvfb-contract.sh"
 assert_exists "$rendered_root/tests/smoke/runtime-ibcmd-capability-contract.sh"
 assert_exists "$rendered_root/tests/smoke/runtime-ibcmd-doctor-contract.sh"
 assert_exists "$rendered_root/tests/smoke/runtime-ibcmd-validation-contract.sh"
@@ -175,10 +176,11 @@ assert_contains "$rendered_root/.github/workflows/ci.yml" "runtime-gate:"
 assert_contains "$rendered_root/.github/workflows/ci.yml" "needs.runtime-gate.outputs.ci_profile_present == 'true'"
 assert_contains "$rendered_root/env/local.example.json" "\"driver\": \"ibcmd\""
 assert_jq "$rendered_root/env/ci.example.json" '.runnerAdapter == "direct-platform" and .capabilities.loadSrc.driver == "designer"' "ci-example-driver"
-assert_jq "$rendered_root/env/wsl.example.json" '.runnerAdapter == "direct-platform" and .capabilities.loadSrc.driver == "designer"' "wsl-example-driver"
+assert_jq "$rendered_root/env/wsl.example.json" '.runnerAdapter == "direct-platform" and .platform.xvfb.enabled == true and .platform.xvfb.serverArgs == ["-screen","0","1440x900x24","-noreset"] and .capabilities.loadSrc.driver == "designer"' "wsl-example-driver"
 assert_jq "$rendered_root/env/windows-executor.example.json" '.runnerAdapter == "remote-windows" and .capabilities.loadSrc.driver == "designer"' "windows-example-driver"
 assert_contains "$rendered_root/README.md" "partial import"
 assert_contains "$rendered_root/env/README.md" "driver=ibcmd"
+assert_contains "$rendered_root/env/README.md" "xvfb-run"
 
 assert_count "$command_log" "openspec init --tools none" "1"
 assert_count "$command_log" "bd init --stealth -p smoke-project" "1"
@@ -229,6 +231,7 @@ assert_exists "$rendered_root/scripts/template/migrate-runtime-profile-v2.sh"
 assert_exists "$rendered_root/tests/smoke/runtime-ibcmd-capability-contract.sh"
 assert_exists "$rendered_root/tests/smoke/runtime-ibcmd-doctor-contract.sh"
 assert_exists "$rendered_root/tests/smoke/runtime-ibcmd-validation-contract.sh"
+assert_exists "$rendered_root/tests/smoke/runtime-direct-platform-xvfb-contract.sh"
 assert_not_exists "$rendered_root/PROJECT_RULES.md"
 assert_not_exists "$rendered_root/openspec"
 assert_not_exists "$rendered_root/CLAUDE.md"
@@ -241,8 +244,16 @@ assert_count "$command_log" "bd init --stealth -p smoke-project" "1"
 
 runtime_fake_designer="$bindir/fake-1cv8"
 runtime_fake_ibcmd="$bindir/fake-ibcmd"
+runtime_wsl_bindir="$tmpdir/wsl-bin"
+runtime_fake_wsl_designer="$runtime_wsl_bindir/1cv8"
+runtime_fake_xvfb="$bindir/xvfb-run"
+runtime_fake_xauth="$bindir/xauth"
 runtime_doctor_run="$tmpdir/runtime-doctor"
 runtime_load_run="$tmpdir/runtime-load"
+runtime_wsl_doctor_run="$tmpdir/runtime-wsl-doctor"
+runtime_wsl_create_run="$tmpdir/runtime-wsl-create"
+
+mkdir -p "$runtime_wsl_bindir"
 
 cat >"$runtime_fake_designer" <<'EOF'
 #!/usr/bin/env bash
@@ -260,7 +271,59 @@ for arg in "$@"; do
 done
 EOF
 
-chmod +x "$runtime_fake_designer" "$runtime_fake_ibcmd"
+cat >"$runtime_fake_wsl_designer" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+
+printf 'fake-wsl-1cv8\n'
+for arg in "$@"; do
+  printf '%s\n' "$arg"
+done
+EOF
+
+cat >"$runtime_fake_xvfb" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+
+printf 'fake-xvfb-run\n'
+for arg in "$@"; do
+  printf 'wrapper-arg=%s\n' "$arg"
+done
+
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    -a|--auto-servernum)
+      shift
+      ;;
+    --error-file=*|--server-args=*)
+      shift
+      ;;
+    --error-file|--server-args)
+      shift 2
+      ;;
+    --)
+      shift
+      break
+      ;;
+    -*)
+      shift
+      ;;
+    *)
+      break
+      ;;
+  esac
+done
+
+"$@"
+EOF
+
+cat >"$runtime_fake_xauth" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+exit 0
+EOF
+
+chmod +x "$runtime_fake_designer" "$runtime_fake_ibcmd" "$runtime_fake_wsl_designer" "$runtime_fake_xvfb" "$runtime_fake_xauth"
 
 jq \
   --arg binary_path "$runtime_fake_designer" \
@@ -304,3 +367,28 @@ assert_contains "$runtime_load_run/stdout.log" "--base-dir=./src/cf"
 assert_contains "$runtime_load_run/stdout.log" "--partial"
 assert_contains "$runtime_load_run/stdout.log" "Catalogs/Items.xml"
 assert_contains "$runtime_load_run/stdout.log" "Forms/List.xml"
+
+jq \
+  --arg binary_path "$runtime_fake_wsl_designer" \
+  '.platform.binaryPath = $binary_path' \
+  "$rendered_root/env/wsl.example.json" >"$rendered_root/env/wsl.json"
+
+(
+  cd "$rendered_root"
+  PATH="$bindir:$PATH" ./scripts/diag/doctor.sh --profile env/wsl.json --run-root "$runtime_wsl_doctor_run" >/dev/null
+)
+
+assert_jq "$runtime_wsl_doctor_run/summary.json" '.status == "success"' "runtime-wsl-doctor-status"
+assert_jq "$runtime_wsl_doctor_run/summary.json" '.adapter_context.wrapper == "xvfb-run"' "runtime-wsl-doctor-wrapper"
+assert_jq "$runtime_wsl_doctor_run/summary.json" '[.checks.required_tools[] | select(.name == "xvfb-run" and .status == "present")] | length == 1' "runtime-wsl-doctor-xvfb"
+assert_jq "$runtime_wsl_doctor_run/summary.json" '[.checks.required_tools[] | select(.name == "xauth" and .status == "present")] | length == 1' "runtime-wsl-doctor-xauth"
+
+(
+  cd "$rendered_root"
+  PATH="$bindir:$PATH" ./scripts/platform/create-ib.sh --profile env/wsl.json --run-root "$runtime_wsl_create_run" >/dev/null
+)
+
+assert_jq "$runtime_wsl_create_run/summary.json" '.status == "success"' "runtime-wsl-create-status"
+assert_jq "$runtime_wsl_create_run/summary.json" '.adapter_context.wrapper == "xvfb-run"' "runtime-wsl-create-wrapper"
+assert_contains "$runtime_wsl_create_run/stdout.log" "fake-xvfb-run"
+assert_contains "$runtime_wsl_create_run/stdout.log" "fake-wsl-1cv8"

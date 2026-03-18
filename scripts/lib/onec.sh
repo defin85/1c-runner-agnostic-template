@@ -56,6 +56,228 @@ capability_has_profile_driver() {
   profile_has_nonnull "$(capability_driver_expr "$1")"
 }
 
+command_basename() {
+  local command_path="${1:-}"
+
+  printf '%s\n' "${command_path##*/}"
+}
+
+command_targets_local_platform_gui() {
+  local command_path="${1:-}"
+  local name=""
+
+  name="$(command_basename "$command_path")"
+  case "$name" in
+    1cv8|1cv8c)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+direct_platform_xvfb_enabled() {
+  local enabled_type=""
+  local enabled_value=""
+
+  enabled_type="$(profile_string '(.platform.xvfb.enabled // null) | if . == null then "null" else type end')"
+  case "$enabled_type" in
+    null)
+      return 1
+      ;;
+    boolean)
+      ;;
+    *)
+      die "runtime profile field must be a boolean: .platform.xvfb.enabled"
+      ;;
+  esac
+
+  enabled_value="$(profile_string '.platform.xvfb.enabled // false')"
+  [ "$enabled_value" = "true" ]
+}
+
+load_direct_platform_xvfb_server_args() {
+  local array_name="$1"
+  local server_args_type=""
+  local -n out_ref="$array_name"
+
+  out_ref=()
+  if ! direct_platform_xvfb_enabled; then
+    return 0
+  fi
+
+  server_args_type="$(profile_string '(.platform.xvfb.serverArgs // null) | if . == null then "null" else type end')"
+  if [ "$server_args_type" != "array" ]; then
+    die "runtime profile field must be an array: .platform.xvfb.serverArgs"
+  fi
+
+  profile_array_to_named_array '.platform.xvfb.serverArgs' "$array_name"
+}
+
+build_json_array_from_named_array() {
+  local array_name="$1"
+  local -n array_ref="$array_name"
+
+  require_command jq
+  set -- "${array_ref[@]}"
+  if [ "$#" -eq 0 ]; then
+    printf '[]\n'
+    return 0
+  fi
+
+  jq -cn '$ARGS.positional' --args -- "${array_ref[@]}"
+}
+
+join_named_array_with_spaces() {
+  local array_name="$1"
+  local result=""
+  local value=""
+  local first=1
+  local -n array_ref="$array_name"
+
+  for value in "${array_ref[@]}"; do
+    if [ "$first" -eq 0 ]; then
+      result+=" "
+    fi
+    result+="$value"
+    first=0
+  done
+
+  printf '%s\n' "$result"
+}
+
+direct_platform_xvfb_wrapper_selected_for_command() {
+  local adapter="$1"
+  local command_path="${2:-}"
+
+  if [ "$adapter" != "direct-platform" ]; then
+    return 1
+  fi
+
+  if ! direct_platform_xvfb_enabled; then
+    return 1
+  fi
+
+  command_targets_local_platform_gui "$command_path"
+}
+
+direct_platform_xvfb_failure_reason_for_command_path() {
+  local adapter="$1"
+  local command_path="${2:-}"
+
+  if ! direct_platform_xvfb_wrapper_selected_for_command "$adapter" "$command_path"; then
+    printf '\n'
+    return 0
+  fi
+
+  if ! command -v xvfb-run >/dev/null 2>&1; then
+    printf 'missing xvfb-run for direct-platform xvfb wrapper\n'
+    return 0
+  fi
+
+  if ! command -v xauth >/dev/null 2>&1; then
+    printf 'missing xauth for direct-platform xvfb wrapper\n'
+    return 0
+  fi
+
+  printf '\n'
+}
+
+build_direct_platform_adapter_context_json() {
+  local -a server_args=()
+  local server_args_json="[]"
+
+  if [ "${RUNTIME_PROFILE_RUNNER_ADAPTER:-}" != "direct-platform" ]; then
+    printf '{}\n'
+    return 0
+  fi
+
+  if ! direct_platform_xvfb_enabled; then
+    printf '{}\n'
+    return 0
+  fi
+
+  load_direct_platform_xvfb_server_args server_args
+  server_args_json="$(build_json_array_from_named_array server_args)"
+  jq -cn \
+    --argjson server_args "$server_args_json" \
+    '{
+      adapter_context: {
+        wrapper: "xvfb-run",
+        xvfb: {
+          enabled: true,
+          server_args: $server_args
+        }
+      }
+    }'
+}
+
+build_capability_adapter_context_json() {
+  local adapter="$1"
+  local command_path="${2:-}"
+
+  if ! direct_platform_xvfb_wrapper_selected_for_command "$adapter" "$command_path"; then
+    printf '{}\n'
+    return 0
+  fi
+
+  build_direct_platform_adapter_context_json
+}
+
+build_capability_context_json() {
+  local adapter="$1"
+  local base_json="{}"
+  local adapter_json="{}"
+
+  base_json="$(build_redacted_context_json)"
+  set -- "${CAPABILITY_COMMAND[@]}"
+  if [ "$#" -gt 0 ]; then
+    adapter_json="$(build_capability_adapter_context_json "$adapter" "${CAPABILITY_COMMAND[0]}")"
+  fi
+
+  jq -cn \
+    --argjson base "$base_json" \
+    --argjson extra "$adapter_json" \
+    '$base + $extra'
+}
+
+build_doctor_context_json() {
+  local adapter="$1"
+  local base_json="{}"
+  local adapter_json="{}"
+
+  base_json="$(build_redacted_context_json)"
+  if [ "$adapter" = "direct-platform" ] && direct_platform_xvfb_enabled; then
+    adapter_json="$(build_direct_platform_adapter_context_json)"
+  fi
+
+  jq -cn \
+    --argjson base "$base_json" \
+    --argjson extra "$adapter_json" \
+    '$base + $extra'
+}
+
+profile_command_uses_direct_platform_wrapper() {
+  local adapter="$1"
+  local array_name="$2"
+  local -n command_ref="$array_name"
+
+  set -- "${command_ref[@]}"
+  if [ "$#" -eq 0 ]; then
+    return 1
+  fi
+
+  direct_platform_xvfb_wrapper_selected_for_command "$adapter" "${command_ref[0]}"
+}
+
+doctor_requires_direct_platform_xvfb_tools() {
+  local adapter="$1"
+
+  [ "$adapter" = "direct-platform" ] || return 1
+  direct_platform_xvfb_enabled
+}
+
 validate_capability_command_driver_contract() {
   local capability_id="$1"
   local has_command=1
@@ -146,7 +368,9 @@ build_redacted_context_json() {
 }
 
 set_prepared_context_from_profile() {
-  set_capability_context_json "$(build_redacted_context_json)"
+  local adapter="$1"
+
+  set_capability_context_json "$(build_capability_context_json "$adapter")"
 }
 
 build_doctor_driver_context_json() {
@@ -198,6 +422,8 @@ load_profile_command_array() {
 
 maybe_use_profile_command() {
   local capability_id="$1"
+  local adapter="$2"
+  local executor="direct"
   local -a profile_command=()
 
   validate_capability_command_driver_contract "$capability_id"
@@ -210,8 +436,12 @@ maybe_use_profile_command() {
     die "runtime profile capability command must not be empty: $(capability_command_expr "$capability_id")"
   fi
 
-  set_prepared_capability_command "" "profile-command" "direct" "${profile_command[@]}"
-  set_prepared_context_from_profile
+  if profile_command_uses_direct_platform_wrapper "$adapter" profile_command; then
+    executor="adapter-wrapper"
+  fi
+
+  set_prepared_capability_command "" "profile-command" "$executor" "${profile_command[@]}"
+  set_prepared_context_from_profile "$adapter"
   return 0
 }
 
@@ -400,7 +630,7 @@ prepare_create_ib_command() {
   local binary_path=""
 
   reject_capability_selected_files "$capability_id"
-  if maybe_use_profile_command "$capability_id"; then
+  if maybe_use_profile_command "$capability_id" "$adapter"; then
     return 0
   fi
 
@@ -428,7 +658,7 @@ prepare_create_ib_command() {
   binary_path="$(platform_binary_path)"
   connection_string="$(build_create_infobase_connection_string)"
   set_prepared_capability_command "designer" "standard-builder" "adapter-wrapper" "$binary_path" "CREATEINFOBASE" "$connection_string"
-  set_prepared_context_from_profile
+  set_prepared_context_from_profile "$adapter"
 }
 
 prepare_dump_src_command() {
@@ -439,7 +669,7 @@ prepare_dump_src_command() {
   local -a command=()
 
   reject_capability_selected_files "$capability_id"
-  if maybe_use_profile_command "$capability_id"; then
+  if maybe_use_profile_command "$capability_id" "$adapter"; then
     return 0
   fi
 
@@ -467,7 +697,7 @@ prepare_dump_src_command() {
 
   build_designer_command command "/DumpConfigToFiles" "$output_dir"
   set_prepared_capability_command "designer" "standard-builder" "adapter-wrapper" "${command[@]}"
-  set_prepared_context_from_profile
+  set_prepared_context_from_profile "$adapter"
 }
 
 prepare_load_src_command() {
@@ -481,7 +711,7 @@ prepare_load_src_command() {
     die "partial load-src is not supported when capabilities.loadSrc.command override is set"
   fi
 
-  if maybe_use_profile_command "$capability_id"; then
+  if maybe_use_profile_command "$capability_id" "$adapter"; then
     return 0
   fi
 
@@ -513,7 +743,7 @@ prepare_load_src_command() {
 
   build_designer_command command "/LoadConfigFromFiles" "$source_dir"
   set_prepared_capability_command "designer" "standard-builder" "adapter-wrapper" "${command[@]}"
-  set_prepared_context_from_profile
+  set_prepared_context_from_profile "$adapter"
 }
 
 prepare_update_db_command() {
@@ -523,7 +753,7 @@ prepare_update_db_command() {
   local -a command=()
 
   reject_capability_selected_files "$capability_id"
-  if maybe_use_profile_command "$capability_id"; then
+  if maybe_use_profile_command "$capability_id" "$adapter"; then
     return 0
   fi
 
@@ -550,7 +780,7 @@ prepare_update_db_command() {
 
   build_designer_command command "/UpdateDBCfg"
   set_prepared_capability_command "designer" "standard-builder" "adapter-wrapper" "${command[@]}"
-  set_prepared_context_from_profile
+  set_prepared_context_from_profile "$adapter"
 }
 
 prepare_diff_src_command() {
@@ -558,12 +788,12 @@ prepare_diff_src_command() {
   local _adapter="$2"
 
   reject_capability_selected_files "$capability_id"
-  if maybe_use_profile_command "$capability_id"; then
+  if maybe_use_profile_command "$capability_id" "$_adapter"; then
     return 0
   fi
 
   set_prepared_capability_command "" "builtin-command" "direct" git diff -- ./src
-  set_prepared_context_from_profile
+  set_prepared_context_from_profile "$_adapter"
 }
 
 prepare_required_profile_command() {
@@ -571,7 +801,7 @@ prepare_required_profile_command() {
   local _adapter="$2"
 
   reject_capability_selected_files "$capability_id"
-  if maybe_use_profile_command "$capability_id"; then
+  if maybe_use_profile_command "$capability_id" "$_adapter"; then
     return 0
   fi
 
@@ -659,6 +889,13 @@ collect_designer_required_profile_fields() {
   fi
 }
 
+collect_direct_platform_xvfb_required_profile_fields() {
+  local array_name="$1"
+
+  append_unique_field "$array_name" platform.xvfb.enabled
+  append_unique_field "$array_name" platform.xvfb.serverArgs
+}
+
 collect_ibcmd_required_profile_fields() {
   local array_name="$1"
   local create_driver=""
@@ -717,19 +954,34 @@ collect_required_profile_fields() {
   if [ "$ibcmd_required" -eq 0 ]; then
     collect_ibcmd_required_profile_fields out_ref
   fi
+
+  if [ "$adapter" = "direct-platform" ] && direct_platform_xvfb_enabled; then
+    collect_direct_platform_xvfb_required_profile_fields out_ref
+  fi
 }
 
 doctor_capability_failure_reason() {
   local capability_id="$1"
   local adapter="$2"
   local driver=""
+  local binary_path=""
   local infobase_mode=""
   local infobase_auth_mode=""
   local connection_mode=""
+  local command_reason=""
+  local -a profile_command=()
 
   validate_capability_command_driver_contract "$capability_id"
   if capability_has_profile_command "$capability_id"; then
-    printf '\n'
+    load_profile_command_array "$capability_id" profile_command
+    set -- "${profile_command[@]}"
+    if [ "$#" -eq 0 ]; then
+      printf 'empty %s\n' "$(capability_command_expr "$capability_id")"
+      return 0
+    fi
+
+    command_reason="$(direct_platform_xvfb_failure_reason_for_command_path "$adapter" "${profile_command[0]}")"
+    printf '%s\n' "$command_reason"
     return 0
   fi
 
@@ -747,7 +999,8 @@ doctor_capability_failure_reason() {
               ;;
           esac
 
-          profile_has_nonnull '.platform.binaryPath' || {
+          binary_path="$(profile_string '.platform.binaryPath // empty')"
+          [ -n "$binary_path" ] || {
             printf 'missing platform.binaryPath\n'
             return 0
           }
@@ -799,6 +1052,12 @@ doctor_capability_failure_reason() {
               return 0
               ;;
           esac
+
+          command_reason="$(direct_platform_xvfb_failure_reason_for_command_path "$adapter" "$binary_path")"
+          if [ -n "$command_reason" ]; then
+            printf '%s\n' "$command_reason"
+            return 0
+          fi
           ;;
         ibcmd)
           if [ "$adapter" != "direct-platform" ]; then
@@ -846,9 +1105,34 @@ doctor_capability_failure_reason() {
       esac
       ;;
     diff-src)
+      if capability_has_profile_command "$capability_id"; then
+        load_profile_command_array "$capability_id" profile_command
+        set -- "${profile_command[@]}"
+        if [ "$#" -eq 0 ]; then
+          printf 'empty %s\n' "$(capability_command_expr "$capability_id")"
+          return 0
+        fi
+
+        command_reason="$(direct_platform_xvfb_failure_reason_for_command_path "$adapter" "${profile_command[0]}")"
+        printf '%s\n' "$command_reason"
+        return 0
+      fi
       ;;
     run-xunit|run-bdd|run-smoke|publish-http)
-      printf 'missing %s\n' "$(capability_command_expr "$capability_id")"
+      if ! capability_has_profile_command "$capability_id"; then
+        printf 'missing %s\n' "$(capability_command_expr "$capability_id")"
+        return 0
+      fi
+
+      load_profile_command_array "$capability_id" profile_command
+      set -- "${profile_command[@]}"
+      if [ "$#" -eq 0 ]; then
+        printf 'empty %s\n' "$(capability_command_expr "$capability_id")"
+        return 0
+      fi
+
+      command_reason="$(direct_platform_xvfb_failure_reason_for_command_path "$adapter" "${profile_command[0]}")"
+      printf '%s\n' "$command_reason"
       return 0
       ;;
     *)
@@ -918,4 +1202,22 @@ doctor_has_required_capability() {
   local capability_id="$1"
   local adapter="$2"
   [ -z "$(doctor_capability_failure_reason "$capability_id" "$adapter")" ]
+}
+
+prepare_adapter_wrapper_env() {
+  local adapter="$1"
+  local array_name="$2"
+  local server_args_string=""
+  local -a server_args=()
+  local -n out_ref="$array_name"
+
+  out_ref=()
+  if [ "$adapter" != "direct-platform" ] || ! direct_platform_xvfb_enabled; then
+    return 0
+  fi
+
+  load_direct_platform_xvfb_server_args server_args
+  server_args_string="$(join_named_array_with_spaces server_args)"
+  out_ref+=("ONEC_DIRECT_PLATFORM_XVFB_ENABLED=1")
+  out_ref+=("ONEC_DIRECT_PLATFORM_XVFB_SERVER_ARGS=$server_args_string")
 }

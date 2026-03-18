@@ -88,6 +88,7 @@ Backend выбирается через `RUNNER_ADAPTER`:
 - default: `designer`
 - phase 1 opt-in: `ibcmd` только вместе с `RUNNER_ADAPTER=direct-platform`
 - `env/local.example.json` показывает mixed-profile: `load-src` уже переключен на `driver=ibcmd`, чтобы partial import был готов из checked-in preset
+- `env/wsl.example.json` показывает canonical WSL/Linux contour с `platform.xvfb`, чтобы локальные `1cv8`/`1cv8c` запускались без мигания GUI-окон на хосте
 
 Параметры подключения к ИБ, `ibcmd` coordinates и platform paths задаются через structured runtime profile. Для project-specific contour допускаются `command`-массивы в секции `capabilities`.
 
@@ -112,6 +113,7 @@ Backend выбирается через `RUNNER_ADAPTER`:
 - `capabilities`
 
 Если хотя бы один core capability использует `driver=ibcmd`, profile также задаёт `platform.ibcmdPath` и блок `ibcmd` с phase-1 connection model.
+Для WSL/Linux GUI isolation profile может дополнительно задавать `platform.xvfb.enabled=true` и `platform.xvfb.serverArgs` как массив токенов для `xvfb-run`.
 
 Для password-based auth profile хранит не secret value, а имя env var, например `passwordEnv: "ONEC_IB_PASSWORD"`.
 
@@ -145,11 +147,20 @@ export ONEC_IBCMD_PASSWORD='...'
 ./scripts/platform/load-src.sh --profile env/local.json --files "Catalogs/Items.xml,Forms/List.xml"
 ```
 
+Для WSL/Linux isolated GUI launches:
+
+```bash
+cp env/wsl.example.json env/wsl.json
+./scripts/diag/doctor.sh --profile env/wsl.json
+./scripts/platform/dump-src.sh --profile env/wsl.json --run-root /tmp/wsl-dump-run
+```
+
 Важно:
 
 - `driver` и `command` нельзя смешивать в одной capability;
 - checked-in `env/local.example.json` уже wired для partial import через `loadSrc.driver=ibcmd`;
 - `summary.json` для `create-ib`, `dump-src`, `load-src`, `update-db` теперь отражает выбранный `driver`;
+- direct-platform contour с `platform.xvfb.enabled=true` требует локальные `xvfb-run` и `xauth`, а capability/doctor summary публикуют structured `adapter_context`;
 - canonical XML source-tree format для `ibcmd` это hierarchical.
 
 ### Project-Scoped Skills
@@ -196,7 +207,7 @@ npm install -g @fission-ai/openspec@latest
 ```
 
 3. Если в вопросах Copier выбрать `git init = no`, beads в интерактивном сценарии будет автоматически отключен. Для уже существующего git-репозитория beads можно явно включить через `-d init_beads=true`.
-4. Настройте команды окружения на базе `env/wsl.example.json` или `env/windows-executor.example.json`.
+4. Настройте команды окружения на базе `env/wsl.example.json`, `env/local.example.json` или `env/windows-executor.example.json`.
 5. При необходимости добавьте свой adapter в `scripts/adapters/`.
 6. Обновите `automation/context/project-map.md` под предметную область проекта.
 7. Создайте первый change в `openspec/changes/`.
