@@ -78,14 +78,35 @@ jobs:
         if: hashFiles('tests/smoke/copier-update-ready.sh') != ''
         run: bash tests/smoke/copier-update-ready.sh
 
+  runtime-gate:
+    name: runtime-gate
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    needs: static
+    outputs:
+      ci_profile_present: {% raw %}${{ steps.detect.outputs.present }}{% endraw %}
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: detect
+        name: Detect env/ci.json
+        run: |
+          if [ -f env/ci.json ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+          fi
+
   runtime:
     name: runtime
-    if: github.event_name == 'workflow_dispatch' && hashFiles('env/ci.json') != ''
+    if: github.event_name == 'workflow_dispatch' && needs.runtime-gate.outputs.ci_profile_present == 'true'
     runs-on:
       - self-hosted
       - linux
       - 1c
-    needs: static
+    needs:
+      - static
+      - runtime-gate
     steps:
       - uses: actions/checkout@v4
 
