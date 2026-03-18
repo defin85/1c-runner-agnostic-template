@@ -30,7 +30,7 @@ jobs:
 
       - name: Validate OpenSpec
         if: hashFiles('openspec/**') != ''
-        run: openspec validate --strict --no-interactive
+        run: openspec validate --all --strict --no-interactive
 
       - name: Verify traceability layout
         if: hashFiles('openspec/changes/**') != ''
