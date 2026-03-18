@@ -161,12 +161,15 @@ main() {
   local required_capabilities_json="[]"
   local optional_capabilities_json="[]"
   local status="success"
+  local layout_warning_json="{}"
   local tool_name=""
   local field_name=""
   local env_name=""
   local capability_id=""
   local check_status=""
   local check_reason=""
+  local warning_path_list=""
+  local -a layout_drift_paths=()
   local -a required_tools=(git jq rg)
   local -a optional_tools=(openspec bd)
   local -a required_fields=()
@@ -213,11 +216,18 @@ main() {
 
   collect_required_profile_fields "$adapter" required_fields
   collect_required_env_refs required_env_refs
+  collect_runtime_profile_layout_drift_paths "$root" layout_drift_paths
+  layout_warning_json="$(build_runtime_profile_layout_warning_json "$root")"
 
   log "Run 1C runtime doctor"
   log "adapter=$adapter"
   log "profile=$profile_path"
   log "run_root=$run_root"
+  if [ "${layout_drift_paths[*]-}" != "" ]; then
+    warning_path_list="$(printf '%s, ' "${layout_drift_paths[@]}")"
+    warning_path_list="${warning_path_list%, }"
+    log "warning: non-canonical runtime profiles in env/: $warning_path_list. Move ad-hoc profiles to ${RUNTIME_PROFILE_LOCAL_SANDBOX_DIR}"
+  fi
 
   for tool_name in "${required_tools[@]}"; do
     if command -v "$tool_name" >/dev/null 2>&1; then
@@ -297,6 +307,7 @@ main() {
     --argjson required_capabilities "$required_capabilities_json" \
     --argjson optional_capabilities "$optional_capabilities_json" \
     --argjson capability_drivers "$capability_drivers_json" \
+    --argjson warnings "$layout_warning_json" \
     --argjson context "$(build_doctor_context_json "$adapter")" \
     '{
       status: $status,
@@ -320,7 +331,8 @@ main() {
         required_env_refs: $required_env_refs,
         required_capabilities: $required_capabilities,
         optional_capabilities: $optional_capabilities
-      }
+      },
+      warnings: $warnings
     } + $context' >"$summary_path"
 
   log "summary_json=$summary_path"

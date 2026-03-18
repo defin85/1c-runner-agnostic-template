@@ -26,8 +26,11 @@ tmp/
 node_modules/
 
 env/local.json
+env/wsl.json
 env/ci.json
 env/windows-executor.json
+env/.local/*.json
+env/.local/**/*.json
 
 automation/context/generated-project-tree.txt
 automation/context/generated-source-files.txt

@@ -8,6 +8,7 @@ RUNTIME_PROFILE_PATH=""
 RUNTIME_PROFILE_JSON=""
 RUNTIME_PROFILE_NAME=""
 RUNTIME_PROFILE_RUNNER_ADAPTER=""
+RUNTIME_PROFILE_LOCAL_SANDBOX_DIR="env/.local/"
 
 runtime_profile_loaded() {
   [ -n "$RUNTIME_PROFILE_PATH" ] && [ -n "$RUNTIME_PROFILE_JSON" ]
@@ -49,6 +50,73 @@ runtime_profile_migration_error() {
 
 require_runtime_profile_loaded() {
   runtime_profile_loaded || die "runtime profile is required; pass --profile <file> or create env/local.json"
+}
+
+canonical_root_runtime_profile_filename() {
+  local filename="$1"
+
+  case "$filename" in
+    *.example.json|local.json|wsl.json|ci.json|windows-executor.json)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+collect_runtime_profile_layout_drift_paths() {
+  local root="$1"
+  local array_name="$2"
+  local env_root="$root/env"
+  local path=""
+  local filename=""
+  local -n out_ref="$array_name"
+
+  out_ref=()
+
+  [ -d "$env_root" ] || return 0
+
+  shopt -s nullglob
+  for path in "$env_root"/*.json; do
+    [ -f "$path" ] || continue
+    filename="$(basename "$path")"
+    [ -n "$filename" ] || continue
+
+    if canonical_root_runtime_profile_filename "$filename"; then
+      continue
+    fi
+
+    out_ref+=("env/$filename")
+  done
+  shopt -u nullglob
+}
+
+build_runtime_profile_layout_warning_json() {
+  local root="$1"
+  local status="clean"
+  local unexpected_json="[]"
+  local -a unexpected_paths=()
+
+  require_command jq
+
+  collect_runtime_profile_layout_drift_paths "$root" unexpected_paths
+  if [ "${unexpected_paths[*]-}" != "" ]; then
+    status="warning"
+    unexpected_json="$(printf '%s\n' "${unexpected_paths[@]}" | jq -R . | jq -s '.')"
+  fi
+
+  jq -cn \
+    --arg status "$status" \
+    --arg recommended_sandbox "$RUNTIME_PROFILE_LOCAL_SANDBOX_DIR" \
+    --argjson unexpected_root_profiles "$unexpected_json" \
+    '{
+      runtime_profile_layout: {
+        status: $status,
+        unexpected_root_profiles: $unexpected_root_profiles,
+        recommended_sandbox: $recommended_sandbox
+      }
+    }'
 }
 
 profile_jq_raw() {

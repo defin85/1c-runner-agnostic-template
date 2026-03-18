@@ -10,8 +10,27 @@ Launcher-скрипты могут загрузить runtime profile напря
 - через переменную `ONEC_PROFILE`;
 - по умолчанию из `env/local.json`, если такой файл существует.
 
+`env/.local/*` никогда не участвует в implicit default resolution. Для такого профиля его нужно передавать явно:
+
+```bash
+./scripts/diag/doctor.sh --profile env/.local/develop.json
+```
+
 Versioned файлы `*.example.json` являются source of truth для формата профиля.
 Рабочие профили `env/local.json`, `env/ci.json`, `env/wsl.json`, `env/windows-executor.json` не коммитятся.
+
+Канонический allowlist для root-level runtime profiles в `env/` такой:
+
+- versioned `*.example.json`;
+- `env/local.json`;
+- `env/wsl.json`;
+- `env/ci.json`;
+- `env/windows-executor.json`.
+
+Ad-hoc и machine-specific profiles нужно складывать в `env/.local/`.
+Например: `env/.local/develop.json`, `env/.local/do-rolf.json`, `env/.local/local-ibcmd.json`.
+
+`doctor` проверяет этот layout и пишет warning в `summary.json`, если находит неожиданные root-level `env/*.json` вне allowlist. Это warning-only policy: runtime launch не падает только из-за layout drift.
 
 `env/local.example.json` намеренно показывает mixed-profile contour:
 

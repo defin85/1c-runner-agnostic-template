@@ -5,7 +5,8 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 SOURCE_ROOT="$(cd -- "$SCRIPT_DIR/../.." && pwd)"
 
 tmpdir="$(mktemp -d)"
-trap 'rm -rf "$tmpdir"' EXIT
+root_drift_profile_path="$SOURCE_ROOT/env/runtime-doctor-drift.fixture.json"
+trap 'rm -rf "$tmpdir"; rm -f "$root_drift_profile_path"' EXIT
 
 profile_path="$tmpdir/doctor-profile.json"
 run_root="$tmpdir/doctor-run"
@@ -13,6 +14,7 @@ command_override_profile_path="$tmpdir/doctor-command-profile.json"
 command_override_run_root="$tmpdir/doctor-command-run"
 ld_preload_profile_path="$tmpdir/doctor-ld-preload-profile.json"
 ld_preload_run_root="$tmpdir/doctor-ld-preload-run"
+layout_warning_run_root="$tmpdir/doctor-layout-warning-run"
 fake_binary="$tmpdir/fake-1cv8"
 fake_libstdcpp="$tmpdir/libstdc++.so.6"
 fake_libgcc="$tmpdir/libgcc_s.so.1"
@@ -104,6 +106,29 @@ fi
 if grep -Fq -- "doctor-secret" "$run_root/summary.json"; then
   printf 'doctor summary.json must not contain resolved secrets\n' >&2
   cat "$run_root/summary.json" >&2
+  exit 1
+fi
+
+cat >"$root_drift_profile_path" <<'EOF'
+{
+  "fixture": true
+}
+EOF
+
+(
+  cd "$SOURCE_ROOT"
+  ./scripts/diag/doctor.sh --profile "$profile_path" --run-root "$layout_warning_run_root" >/dev/null
+)
+
+assert_jq "$layout_warning_run_root/summary.json" '.status == "success"' "doctor-layout-warning-status"
+assert_jq "$layout_warning_run_root/summary.json" '.warnings.runtime_profile_layout.status == "warning"' "doctor-layout-warning-state"
+assert_jq "$layout_warning_run_root/summary.json" '.warnings.runtime_profile_layout.recommended_sandbox == "env/.local/"' "doctor-layout-warning-sandbox"
+assert_jq "$layout_warning_run_root/summary.json" '.warnings.runtime_profile_layout.unexpected_root_profiles | index($ARGS.positional[0]) != null' "doctor-layout-warning-path" \
+  --args "env/runtime-doctor-drift.fixture.json"
+
+if ! grep -Fq -- "env/.local/" "$layout_warning_run_root/stdout.log"; then
+  printf 'doctor stdout.log must mention env/.local/ recommendation when layout drifts\n' >&2
+  cat "$layout_warning_run_root/stdout.log" >&2
   exit 1
 fi
 

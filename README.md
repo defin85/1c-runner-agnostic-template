@@ -97,11 +97,14 @@ Backend выбирается через `RUNNER_ADAPTER`:
 Канонический способ конфигурации launcher-скриптов теперь это runtime profile JSON:
 
 - versioned examples лежат в `env/*.example.json`;
-- локальные рабочие профили можно хранить в `env/local.json`, `env/ci.json`, `env/windows-executor.json` и они уже исключены из Git;
+- локальные канонические профили можно хранить только в `env/local.json`, `env/wsl.json`, `env/ci.json`, `env/windows-executor.json`, и они уже исключены из Git;
+- ad-hoc и machine-specific profiles нужно складывать в `env/.local/*.json`;
 - любой capability entrypoint принимает `--profile <file>` и `--run-root <dir>`;
 - если `--profile` не указан, скрипт пытается использовать `ONEC_PROFILE`, затем `env/local.json`;
 - каждый capability entrypoint пишет `summary.json`, `stdout.log` и `stderr.log` в `run-root`.
 - `schemaVersion: 1` больше не поддерживается.
+
+`doctor` дополнительно предупреждает о layout drift, если в корне `env/` появляются локальные `*.json` вне канонического allowlist. Это warning-only check: он не меняет default resolution и не блокирует runtime launch сам по себе.
 
 Базовые поля profile:
 
@@ -154,6 +157,13 @@ export ONEC_IBCMD_PASSWORD='...'
 cp env/wsl.example.json env/wsl.json
 ./scripts/diag/doctor.sh --profile env/wsl.json
 ./scripts/platform/dump-src.sh --profile env/wsl.json --run-root /tmp/wsl-dump-run
+```
+
+Для временных локальных контуров:
+
+```bash
+cp env/local.example.json env/.local/develop.json
+./scripts/diag/doctor.sh --profile env/.local/develop.json
 ```
 
 Если этот contour использует `platform.ldPreload`, `doctor` fail-closed завершится до старта 1С, если одна из library paths отсутствует или задана не как абсолютный путь.

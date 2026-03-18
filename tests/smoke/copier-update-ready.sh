@@ -144,6 +144,7 @@ assert_exists "$rendered_root/.claude/skills/README.md"
 assert_exists "$rendered_root/.claude/skills/1c-doctor/SKILL.md"
 assert_exists "$rendered_root/.github/workflows/ci.yml"
 assert_exists "$rendered_root/docs/migrations/runtime-profile-v2.md"
+assert_exists "$rendered_root/env/.local/README.md"
 assert_exists "$rendered_root/scripts/lib/capability.sh"
 assert_exists "$rendered_root/scripts/lib/ibcmd.sh"
 assert_exists "$rendered_root/scripts/platform/dump-src.sh"
@@ -169,6 +170,9 @@ assert_contains "$rendered_root/Makefile" "template-update:"
 assert_contains "$rendered_root/.gitignore" ".codex/*"
 assert_contains "$rendered_root/.gitignore" "!.codex/.gitkeep"
 assert_contains "$rendered_root/.gitignore" "!.codex/config.toml"
+assert_contains "$rendered_root/.gitignore" "env/local.json"
+assert_contains "$rendered_root/.gitignore" "env/wsl.json"
+assert_contains "$rendered_root/.gitignore" "env/.local/*.json"
 assert_contains "$rendered_root/.codex/config.toml" "mcp_servers.claude-context"
 assert_contains "$rendered_root/.codex/config.toml" "mcp_servers.chrome-devtools"
 assert_contains "$rendered_root/.github/workflows/ci.yml" "name: CI"
@@ -187,9 +191,11 @@ assert_jq "$rendered_root/env/ci.example.json" '.runnerAdapter == "direct-platfo
 assert_jq "$rendered_root/env/wsl.example.json" '.runnerAdapter == "direct-platform" and .ibcmd.runtimeMode == "standalone-server" and .platform.xvfb.enabled == true and .platform.xvfb.serverArgs == ["-screen","0","1440x900x24","-noreset"] and .platform.ldPreload.enabled == true and .platform.ldPreload.libraries == ["/usr/lib/libstdc++.so.6","/usr/lib/libgcc_s.so.1"] and .capabilities.loadSrc.driver == "designer"' "wsl-example-driver"
 assert_jq "$rendered_root/env/windows-executor.example.json" '.runnerAdapter == "remote-windows" and .capabilities.loadSrc.driver == "designer"' "windows-example-driver"
 assert_contains "$rendered_root/README.md" "partial import"
+assert_contains "$rendered_root/README.md" "env/.local/"
 assert_contains "$rendered_root/env/README.md" "driver=ibcmd"
 assert_contains "$rendered_root/env/README.md" "xvfb-run"
 assert_contains "$rendered_root/env/README.md" "LD_PRELOAD"
+assert_contains "$rendered_root/env/README.md" "env/.local/"
 
 assert_count "$command_log" "openspec init --tools none" "1"
 assert_count "$command_log" "bd init --stealth -p smoke-project" "1"
@@ -231,6 +237,7 @@ assert_exists "$rendered_root/.claude/settings.json"
 assert_exists "$rendered_root/.claude/skills/1c-doctor/SKILL.md"
 assert_exists "$rendered_root/.github/workflows/ci.yml"
 assert_exists "$rendered_root/docs/migrations/runtime-profile-v2.md"
+assert_exists "$rendered_root/env/.local/README.md"
 assert_exists "$rendered_root/scripts/lib/capability.sh"
 assert_exists "$rendered_root/scripts/lib/ibcmd.sh"
 assert_exists "$rendered_root/scripts/platform/dump-src.sh"
@@ -258,6 +265,14 @@ assert_contains "$rendered_root/env/local.example.json" "\"driver\": \"ibcmd\""
 assert_count "$command_log" "openspec init --tools none" "1"
 assert_count "$command_log" "bd init --stealth -p smoke-project" "1"
 
+printf '{"fixture":true}\n' >"$rendered_root/env/.local/drift.json"
+ignored_status="$(git -C "$rendered_root" status --short --ignored -- env/.local/drift.json)"
+if ! grep -Fq -- "!! env/.local/drift.json" <<<"$ignored_status"; then
+  printf 'env/.local drift profile must be ignored by git\n' >&2
+  printf '%s\n' "$ignored_status" >&2
+  exit 1
+fi
+
 runtime_fake_designer="$bindir/fake-1cv8"
 runtime_fake_ibcmd="$bindir/fake-ibcmd"
 runtime_wsl_bindir="$tmpdir/wsl-bin"
@@ -265,6 +280,7 @@ runtime_fake_wsl_designer="$runtime_wsl_bindir/1cv8"
 runtime_fake_xvfb="$bindir/xvfb-run"
 runtime_fake_xauth="$bindir/xauth"
 runtime_doctor_run="$tmpdir/runtime-doctor"
+runtime_layout_warning_run="$tmpdir/runtime-layout-warning"
 runtime_load_run="$tmpdir/runtime-load"
 runtime_wsl_doctor_run="$tmpdir/runtime-wsl-doctor"
 runtime_wsl_create_run="$tmpdir/runtime-wsl-create"
@@ -367,6 +383,29 @@ assert_jq "$runtime_doctor_run/summary.json" '.capability_drivers["load-src"].dr
 assert_jq "$runtime_doctor_run/summary.json" '.capability_drivers["load-src"].context.runtime_mode == "file-infobase"' "runtime-doctor-runtime-mode"
 assert_jq "$runtime_doctor_run/summary.json" '[.checks.required_env_refs[] | select(.name == "ONEC_IBCMD_PASSWORD" and .status == "set")] | length == 1' "runtime-doctor-env-ref"
 
+printf '{"fixture":true}\n' >"$rendered_root/env/develop.json"
+ignored_status="$(git -C "$rendered_root" status --short --ignored -- env/local.json env/develop.json env/wsl.json)"
+if ! grep -Fq -- "!! env/local.json" <<<"$ignored_status"; then
+  printf 'env/local.json must be ignored by git\n' >&2
+  printf '%s\n' "$ignored_status" >&2
+  exit 1
+fi
+if grep -Fq -- "!! env/develop.json" <<<"$ignored_status"; then
+  printf 'non-canonical env/develop.json must not be ignored by git\n' >&2
+  printf '%s\n' "$ignored_status" >&2
+  exit 1
+fi
+
+(
+  cd "$rendered_root"
+  PATH="$bindir:$PATH" ONEC_IBCMD_PASSWORD="copier-smoke-ibcmd-secret" ./scripts/diag/doctor.sh --profile env/local.json --run-root "$runtime_layout_warning_run" >/dev/null
+)
+
+assert_jq "$runtime_layout_warning_run/summary.json" '.status == "success"' "runtime-layout-warning-status"
+assert_jq "$runtime_layout_warning_run/summary.json" '.warnings.runtime_profile_layout.status == "warning"' "runtime-layout-warning-state"
+assert_jq "$runtime_layout_warning_run/summary.json" '.warnings.runtime_profile_layout.unexpected_root_profiles | index("env/develop.json") != null' "runtime-layout-warning-path"
+assert_jq "$runtime_layout_warning_run/summary.json" '.warnings.runtime_profile_layout.recommended_sandbox == "env/.local/"' "runtime-layout-warning-sandbox"
+
 (
   cd "$rendered_root"
   PATH="$bindir:$PATH" ONEC_IBCMD_PASSWORD="copier-smoke-ibcmd-secret" ./scripts/platform/load-src.sh \
@@ -391,6 +430,13 @@ jq \
   --arg binary_path "$runtime_fake_wsl_designer" \
   '.platform.binaryPath = $binary_path' \
   "$rendered_root/env/wsl.example.json" >"$rendered_root/env/wsl.json"
+
+ignored_status="$(git -C "$rendered_root" status --short --ignored -- env/wsl.json)"
+if ! grep -Fq -- "!! env/wsl.json" <<<"$ignored_status"; then
+  printf 'env/wsl.json must be ignored by git\n' >&2
+  printf '%s\n' "$ignored_status" >&2
+  exit 1
+fi
 
 (
   cd "$rendered_root"
