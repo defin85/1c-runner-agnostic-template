@@ -4,6 +4,10 @@
   "projectName": "{{ project_name }}",
   "projectSlug": "{{ project_slug }}",
   "description": "Linux/WSL-first profile for direct platform execution with Xvfb GUI isolation",
+  "notes": [
+    "Этот preset показывает canonical standalone-server contour для ibcmd, но core capabilities по умолчанию остаются на designer.",
+    "Если проекту нужен ibcmd на WSL/Linux, переключайте driver на нужной capability явно."
+  ],
   "runnerAdapter": "direct-platform",
   "platform": {
     "binaryPath": "/opt/1cv8/x86_64/8.3.27.1859/1cv8",
@@ -25,12 +29,17 @@
     }
   },
   "ibcmd": {
-    "connectionMode": "data-dir",
-    "dataDir": "/var/lib/onec/{{ project_slug }}-standalone",
-    "databasePath": "/var/lib/onec/{{ project_slug }}-standalone/db",
+    "runtimeMode": "standalone-server",
+    "serverAccess": {
+      "mode": "data-dir",
+      "dataDir": "/var/lib/onec/{{ project_slug }}-standalone"
+    },
     "auth": {
       "user": "standalone-admin",
       "passwordEnv": "ONEC_IBCMD_PASSWORD"
+    },
+    "standalone": {
+      "databasePath": "/var/lib/onec/{{ project_slug }}-standalone/db"
     }
   },
   "capabilities": {

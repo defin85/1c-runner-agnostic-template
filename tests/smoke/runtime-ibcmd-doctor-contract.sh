@@ -11,6 +11,8 @@ profile_path="$tmpdir/doctor-ibcmd-profile.json"
 run_root="$tmpdir/doctor-ibcmd-run"
 invalid_profile_path="$tmpdir/doctor-ibcmd-invalid-profile.json"
 invalid_run_root="$tmpdir/doctor-ibcmd-invalid-run"
+create_only_profile_path="$tmpdir/doctor-ibcmd-create-only-profile.json"
+create_only_run_root="$tmpdir/doctor-ibcmd-create-only-run"
 fake_designer="$tmpdir/fake-1cv8"
 fake_ibcmd="$tmpdir/fake-ibcmd"
 
@@ -28,6 +30,22 @@ EOF
 
 chmod +x "$fake_designer" "$fake_ibcmd"
 
+export ONEC_IBCMD_PASSWORD="doctor-ibcmd-secret"
+export ONEC_DBMS_PASSWORD="doctor-dbms-secret"
+
+assert_jq() {
+  local file="$1"
+  local expr="$2"
+  local label="$3"
+  shift 3
+
+  if ! jq -e "$expr" "$file" "$@" >/dev/null; then
+    printf 'jq assertion failed (%s): %s\n' "$label" "$expr" >&2
+    cat "$file" >&2
+    exit 1
+  fi
+}
+
 cat >"$profile_path" <<EOF
 {
   "schemaVersion": 2,
@@ -39,7 +57,7 @@ cat >"$profile_path" <<EOF
   },
   "infobase": {
     "mode": "file",
-    "filePath": "/var/tmp/doctor-designer-fixture",
+    "filePath": "/var/tmp/doctor-ibcmd-fixture",
     "auth": {
       "mode": "os",
       "user": null,
@@ -47,12 +65,21 @@ cat >"$profile_path" <<EOF
     }
   },
   "ibcmd": {
-    "connectionMode": "data-dir",
-    "dataDir": "$tmpdir/standalone",
-    "databasePath": "$tmpdir/standalone/db-data",
+    "runtimeMode": "dbms-infobase",
+    "serverAccess": {
+      "mode": "data-dir",
+      "dataDir": "$tmpdir/dbms-server"
+    },
     "auth": {
       "user": "doctor-ibcmd-user",
       "passwordEnv": "ONEC_IBCMD_PASSWORD"
+    },
+    "dbmsInfobase": {
+      "kind": "PostgreSQL",
+      "server": "127.0.0.1 port=5432;",
+      "name": "doctor_runtime",
+      "user": "doctor-db-admin",
+      "passwordEnv": "ONEC_DBMS_PASSWORD"
     }
   },
   "capabilities": {
@@ -81,21 +108,6 @@ cat >"$profile_path" <<EOF
 }
 EOF
 
-export ONEC_IBCMD_PASSWORD="doctor-ibcmd-secret"
-
-assert_jq() {
-  local file="$1"
-  local expr="$2"
-  local label="$3"
-  shift 3
-
-  if ! jq -e "$expr" "$file" "$@" >/dev/null; then
-    printf 'jq assertion failed (%s): %s\n' "$label" "$expr" >&2
-    cat "$file" >&2
-    exit 1
-  fi
-}
-
 (
   cd "$SOURCE_ROOT"
   ./scripts/diag/doctor.sh --profile "$profile_path" --run-root "$run_root" >/dev/null
@@ -107,12 +119,23 @@ assert_jq "$run_root/summary.json" '.artifacts.stdout_log == ($ARGS.positional[0
 assert_jq "$run_root/summary.json" '.artifacts.stderr_log == ($ARGS.positional[0])' "doctor-stderr-log" --args "$run_root/stderr.log"
 assert_jq "$run_root/summary.json" '.capability_drivers["create-ib"].driver == "ibcmd"' "doctor-create-driver"
 assert_jq "$run_root/summary.json" '.capability_drivers["load-src"].driver == "ibcmd"' "doctor-load-driver"
-assert_jq "$run_root/summary.json" '.capability_drivers["load-src"].context.connection_mode == "data-dir"' "doctor-load-connection-mode"
+assert_jq "$run_root/summary.json" '.capability_drivers["load-src"].context.runtime_mode == "dbms-infobase"' "doctor-load-runtime-mode"
+assert_jq "$run_root/summary.json" '.capability_drivers["load-src"].context.server_access.mode == "data-dir"' "doctor-load-server-access"
+assert_jq "$run_root/summary.json" '.capability_drivers["load-src"].context.topology.dbms.kind == "PostgreSQL"' "doctor-load-dbms-kind"
+assert_jq "$run_root/summary.json" '.capability_drivers["load-src"].context.topology.dbms.password_configured == true' "doctor-load-dbms-password"
 assert_jq "$run_root/summary.json" '[.checks.required_profile_fields[] | select(.name == "platform.ibcmdPath" and .status == "present")] | length == 1' "doctor-ibcmd-path"
-assert_jq "$run_root/summary.json" '[.checks.required_profile_fields[] | select(.name == "ibcmd.connectionMode" and .status == "present")] | length == 1' "doctor-connection-mode"
-assert_jq "$run_root/summary.json" '[.checks.required_profile_fields[] | select(.name == "ibcmd.dataDir" and .status == "present")] | length == 1' "doctor-data-dir"
-assert_jq "$run_root/summary.json" '[.checks.required_profile_fields[] | select(.name == "ibcmd.databasePath" and .status == "present")] | length == 1' "doctor-database-path"
-assert_jq "$run_root/summary.json" '[.checks.required_env_refs[] | select(.name == "ONEC_IBCMD_PASSWORD" and .status == "set")] | length == 1' "doctor-env-ref"
+assert_jq "$run_root/summary.json" '[.checks.required_profile_fields[] | select(.name == "ibcmd.runtimeMode" and .status == "present")] | length == 1' "doctor-runtime-mode"
+assert_jq "$run_root/summary.json" '[.checks.required_profile_fields[] | select(.name == "ibcmd.serverAccess.mode" and .status == "present")] | length == 1' "doctor-server-access-mode"
+assert_jq "$run_root/summary.json" '[.checks.required_profile_fields[] | select(.name == "ibcmd.serverAccess.dataDir" and .status == "present")] | length == 1' "doctor-data-dir"
+assert_jq "$run_root/summary.json" '[.checks.required_profile_fields[] | select(.name == "ibcmd.dbmsInfobase.kind" and .status == "present")] | length == 1' "doctor-dbms-kind-field"
+assert_jq "$run_root/summary.json" '[.checks.required_profile_fields[] | select(.name == "ibcmd.dbmsInfobase.server" and .status == "present")] | length == 1' "doctor-dbms-server-field"
+assert_jq "$run_root/summary.json" '[.checks.required_profile_fields[] | select(.name == "ibcmd.dbmsInfobase.name" and .status == "present")] | length == 1' "doctor-dbms-name-field"
+assert_jq "$run_root/summary.json" '[.checks.required_profile_fields[] | select(.name == "ibcmd.dbmsInfobase.user" and .status == "present")] | length == 1' "doctor-dbms-user-field"
+assert_jq "$run_root/summary.json" '[.checks.required_profile_fields[] | select(.name == "ibcmd.dbmsInfobase.passwordEnv" and .status == "present")] | length == 1' "doctor-dbms-password-field"
+assert_jq "$run_root/summary.json" '[.checks.required_profile_fields[] | select(.name == "ibcmd.auth.user" and .status == "present")] | length == 1' "doctor-ibcmd-auth-user"
+assert_jq "$run_root/summary.json" '[.checks.required_profile_fields[] | select(.name == "ibcmd.auth.passwordEnv" and .status == "present")] | length == 1' "doctor-ibcmd-auth-password-env"
+assert_jq "$run_root/summary.json" '[.checks.required_env_refs[] | select(.name == "ONEC_DBMS_PASSWORD" and .status == "set")] | length == 1' "doctor-dbms-env-ref"
+assert_jq "$run_root/summary.json" '[.checks.required_env_refs[] | select(.name == "ONEC_IBCMD_PASSWORD" and .status == "set")] | length == 1' "doctor-ibcmd-env-ref"
 assert_jq "$run_root/summary.json" '[.checks.required_capabilities[] | select(.status != "present")] | length == 0' "doctor-required-capabilities"
 
 if [ ! -f "$run_root/stdout.log" ] || [ ! -f "$run_root/stderr.log" ]; then
@@ -121,7 +144,13 @@ if [ ! -f "$run_root/stdout.log" ] || [ ! -f "$run_root/stderr.log" ]; then
 fi
 
 if grep -Fq -- "doctor-ibcmd-secret" "$run_root/summary.json"; then
-  printf 'doctor summary.json must not contain resolved secrets\n' >&2
+  printf 'doctor summary.json must not contain resolved ibcmd secrets\n' >&2
+  cat "$run_root/summary.json" >&2
+  exit 1
+fi
+
+if grep -Fq -- "doctor-dbms-secret" "$run_root/summary.json"; then
+  printf 'doctor summary.json must not contain resolved dbms secrets\n' >&2
   cat "$run_root/summary.json" >&2
   exit 1
 fi
@@ -145,11 +174,20 @@ cat >"$invalid_profile_path" <<EOF
     }
   },
   "ibcmd": {
-    "connectionMode": "data-dir",
-    "databasePath": "$tmpdir/standalone/db-data",
+    "runtimeMode": "dbms-infobase",
+    "serverAccess": {
+      "mode": "data-dir",
+      "dataDir": "$tmpdir/dbms-server"
+    },
     "auth": {
       "user": "doctor-ibcmd-user",
       "passwordEnv": "ONEC_IBCMD_PASSWORD"
+    },
+    "dbmsInfobase": {
+      "kind": "PostgreSQL",
+      "server": "127.0.0.1 port=5432;",
+      "user": "doctor-db-admin",
+      "passwordEnv": "ONEC_DBMS_PASSWORD"
     }
   },
   "capabilities": {
@@ -183,6 +221,66 @@ if [ "$status" -eq 0 ]; then
 fi
 
 assert_jq "$invalid_run_root/summary.json" '.status == "failed"' "doctor-invalid-status"
-assert_jq "$invalid_run_root/summary.json" '[.checks.required_capabilities[] | select(.name == "dump-src" and .status == "missing" and .reason == "missing ibcmd.dataDir")] | length == 1' "doctor-invalid-dump-reason"
+assert_jq "$invalid_run_root/summary.json" '[.checks.required_capabilities[] | select(.name == "dump-src" and .status == "missing" and .reason == "missing ibcmd.dbmsInfobase.name")] | length == 1' "doctor-invalid-dump-reason"
 assert_jq "$invalid_run_root/summary.json" '.capability_drivers["dump-src"].status == "missing"' "doctor-invalid-driver-status"
-assert_jq "$invalid_run_root/summary.json" '.capability_drivers["dump-src"].reason == "missing ibcmd.dataDir"' "doctor-invalid-driver-reason"
+assert_jq "$invalid_run_root/summary.json" '.capability_drivers["dump-src"].reason == "missing ibcmd.dbmsInfobase.name"' "doctor-invalid-driver-reason"
+
+cat >"$create_only_profile_path" <<EOF
+{
+  "schemaVersion": 2,
+  "profileName": "doctor-ibcmd-create-only",
+  "runnerAdapter": "direct-platform",
+  "platform": {
+    "binaryPath": "$fake_designer",
+    "ibcmdPath": "$fake_ibcmd"
+  },
+  "infobase": {
+    "mode": "file",
+    "filePath": "/var/tmp/doctor-ibcmd-create-only",
+    "auth": {
+      "mode": "os",
+      "user": null,
+      "passwordEnv": null
+    }
+  },
+  "ibcmd": {
+    "runtimeMode": "dbms-infobase",
+    "serverAccess": {
+      "mode": "data-dir",
+      "dataDir": "$tmpdir/create-only-server"
+    },
+    "dbmsInfobase": {
+      "kind": "PostgreSQL",
+      "server": "127.0.0.1 port=5432;",
+      "name": "doctor_create_only",
+      "user": "doctor-db-admin",
+      "passwordEnv": "ONEC_DBMS_PASSWORD"
+    }
+  },
+  "capabilities": {
+    "createIb": {
+      "driver": "ibcmd"
+    },
+    "xunit": {
+      "command": ["bash", "-lc", "printf 'xunit-ok\\\\n'"]
+    },
+    "bdd": {
+      "command": ["bash", "-lc", "printf 'bdd-ok\\\\n'"]
+    },
+    "smoke": {
+      "command": ["bash", "-lc", "printf 'smoke-ok\\\\n'"]
+    }
+  }
+}
+EOF
+
+(
+  cd "$SOURCE_ROOT"
+  ./scripts/diag/doctor.sh --profile "$create_only_profile_path" --run-root "$create_only_run_root" >/dev/null
+)
+
+assert_jq "$create_only_run_root/summary.json" '.status == "success"' "doctor-create-only-status"
+assert_jq "$create_only_run_root/summary.json" '[.checks.required_profile_fields[] | select(.name == "ibcmd.auth.user")] | length == 0' "doctor-create-only-no-auth-user-field"
+assert_jq "$create_only_run_root/summary.json" '[.checks.required_profile_fields[] | select(.name == "ibcmd.auth.passwordEnv")] | length == 0' "doctor-create-only-no-auth-password-field"
+assert_jq "$create_only_run_root/summary.json" '[.checks.required_env_refs[] | select(.name == "ONEC_IBCMD_PASSWORD")] | length == 0' "doctor-create-only-no-ibcmd-env-ref"
+assert_jq "$create_only_run_root/summary.json" '[.checks.required_env_refs[] | select(.name == "ONEC_DBMS_PASSWORD" and .status == "set")] | length == 1' "doctor-create-only-dbms-env-ref"

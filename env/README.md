@@ -16,7 +16,8 @@ Versioned файлы `*.example.json` являются source of truth для ф
 `env/local.example.json` намеренно показывает mixed-profile contour:
 
 - `create-ib`, `dump-src`, `update-db` остаются на `designer`;
-- `load-src` переключен на `driver=ibcmd`, чтобы partial import был wired через checked-in preset.
+- `load-src` переключен на `driver=ibcmd`;
+- `ibcmd.runtimeMode=file-infobase`, чтобы partial import был wired через checked-in preset.
 
 `schemaVersion: 1` больше не поддерживается. Existing local profiles нужно мигрировать вручную:
 
@@ -41,14 +42,21 @@ Versioned файлы `*.example.json` являются source of truth для ф
 - `infobase.filePath` для `mode=file`
 - `infobase.server` и `infobase.ref` для `mode=client-server`
 
-Дополнительные поля для `ibcmd` driver в phase 1:
+Дополнительные поля для `ibcmd` driver:
 
 - `platform.ibcmdPath`
-- `ibcmd.connectionMode`
-- `ibcmd.dataDir`
-- `ibcmd.auth.user`
-- `ibcmd.auth.passwordEnv`
-- `ibcmd.databasePath` только если `createIb.driver = "ibcmd"`
+- `ibcmd.runtimeMode`
+- `ibcmd.serverAccess.mode`
+- `ibcmd.serverAccess.dataDir`
+- mode-specific block:
+  - `ibcmd.standalone.databasePath` для `runtimeMode=standalone-server`
+  - `ibcmd.fileInfobase.databasePath` для `runtimeMode=file-infobase`
+  - `ibcmd.dbmsInfobase.kind`
+  - `ibcmd.dbmsInfobase.server`
+  - `ibcmd.dbmsInfobase.name`
+  - `ibcmd.dbmsInfobase.user`
+  - `ibcmd.dbmsInfobase.passwordEnv`
+- `ibcmd.auth.user` и `ibcmd.auth.passwordEnv` для `dump-src`, `load-src`, `update-db`
 
 Дополнительные поля для WSL/Linux GUI isolation contour:
 
@@ -69,8 +77,8 @@ Versioned файлы `*.example.json` являются source of truth для ф
 Вместо literal values profile хранит ссылки на переменные окружения:
 
 - `infobase.auth.passwordEnv`
-- `dbms.passwordEnv`
-- `clusterAdmin.passwordEnv`
+- `ibcmd.auth.passwordEnv`
+- `ibcmd.dbmsInfobase.passwordEnv`
 
 Пример:
 
@@ -130,25 +138,45 @@ export ONEC_IB_PASSWORD='...'
 
 Если `platform.xvfb.enabled=true`, direct-platform adapter автоматически оборачивает только те `command`-массивы, где первый элемент указывает на локальный `1cv8` или `1cv8c`. Для `bash -lc ...` и других non-1C executables wrapper не включается.
 
-## Ibcmd Phase 1
+## Ibcmd Runtime Modes
 
-Поддерживаемая матрица phase 1:
+В текущем release поддерживаются три topology mode:
+
+- `standalone-server`
+- `file-infobase`
+- `dbms-infobase`
+
+Canonical examples:
+
+- `env/wsl.example.json` показывает `standalone-server`
+- `env/local.example.json` показывает `file-infobase`
+- `env/ci.example.json` показывает `dbms-infobase`
+
+Поддерживаемая support matrix:
 
 - `runnerAdapter=direct-platform`
-- `ibcmd.connectionMode=data-dir`
+- `ibcmd.serverAccess.mode=data-dir`
 - core capabilities `create-ib`, `dump-src`, `load-src`, `update-db`
 
 Неподдерживаемые комбинации launcher отклоняет fail-closed и не делает silent fallback на `designer`.
 
 Для XML source tree canonical format считается hierarchical.
 
-Partial import поддерживается только для `load-src` с `driver=ibcmd` и передаётся runtime input-ом:
+Partial import поддерживается для `load-src` с `driver=ibcmd` и передаётся runtime input-ом. В текущем release этот contour поддержан для `standalone-server`, `file-infobase` и `dbms-infobase`:
 
 ```bash
 ./scripts/platform/load-src.sh --profile env/local.json --files "Catalogs/Items.xml,Forms/List.xml"
 ```
 
 Если брать за основу `env/local.example.json`, дополнительная правка `loadSrc.driver` не нужна.
+
+## Safety Warning For DBMS-Backed Contour
+
+`dbms-infobase` является safety-sensitive contour.
+
+- Он подходит для operator-owned standalone/dbms topology.
+- Если целевая БД обычно принадлежит cluster-managed topology, template не считает такой contour автоматически безопасным.
+- Ответственность за operational isolation и корректную подготовку БД лежит на операторе проекта.
 
 ## WSL / Linux Xvfb Contour
 

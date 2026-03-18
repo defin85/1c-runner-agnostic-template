@@ -80,20 +80,41 @@ profile_field_status() {
     infobase.auth.passwordEnv)
       profile_has_nonnull '.infobase.auth.passwordEnv' && printf 'present\n' || printf 'missing\n'
       ;;
-    ibcmd.connectionMode)
-      profile_has_nonnull '.ibcmd.connectionMode' && printf 'present\n' || printf 'missing\n'
+    ibcmd.runtimeMode)
+      profile_has_nonnull '.ibcmd.runtimeMode' && printf 'present\n' || printf 'missing\n'
       ;;
-    ibcmd.dataDir)
-      profile_has_nonnull '.ibcmd.dataDir' && printf 'present\n' || printf 'missing\n'
+    ibcmd.serverAccess.mode)
+      profile_has_nonnull '.ibcmd.serverAccess.mode' && printf 'present\n' || printf 'missing\n'
       ;;
-    ibcmd.databasePath)
-      profile_has_nonnull '.ibcmd.databasePath' && printf 'present\n' || printf 'missing\n'
+    ibcmd.serverAccess.dataDir)
+      profile_has_nonnull '.ibcmd.serverAccess.dataDir' && printf 'present\n' || printf 'missing\n'
       ;;
     ibcmd.auth.user)
       profile_has_nonnull '.ibcmd.auth.user' && printf 'present\n' || printf 'missing\n'
       ;;
     ibcmd.auth.passwordEnv)
       profile_has_nonnull '.ibcmd.auth.passwordEnv' && printf 'present\n' || printf 'missing\n'
+      ;;
+    ibcmd.standalone.databasePath)
+      profile_has_nonnull '.ibcmd.standalone.databasePath' && printf 'present\n' || printf 'missing\n'
+      ;;
+    ibcmd.fileInfobase.databasePath)
+      profile_has_nonnull '.ibcmd.fileInfobase.databasePath' && printf 'present\n' || printf 'missing\n'
+      ;;
+    ibcmd.dbmsInfobase.kind)
+      profile_has_nonnull '.ibcmd.dbmsInfobase.kind' && printf 'present\n' || printf 'missing\n'
+      ;;
+    ibcmd.dbmsInfobase.server)
+      profile_has_nonnull '.ibcmd.dbmsInfobase.server' && printf 'present\n' || printf 'missing\n'
+      ;;
+    ibcmd.dbmsInfobase.name)
+      profile_has_nonnull '.ibcmd.dbmsInfobase.name' && printf 'present\n' || printf 'missing\n'
+      ;;
+    ibcmd.dbmsInfobase.user)
+      profile_has_nonnull '.ibcmd.dbmsInfobase.user' && printf 'present\n' || printf 'missing\n'
+      ;;
+    ibcmd.dbmsInfobase.passwordEnv)
+      profile_has_nonnull '.ibcmd.dbmsInfobase.passwordEnv' && printf 'present\n' || printf 'missing\n'
       ;;
     *)
       printf 'missing\n'

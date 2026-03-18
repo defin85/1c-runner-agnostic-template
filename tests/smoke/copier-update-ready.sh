@@ -180,8 +180,9 @@ assert_contains "$rendered_root/.github/workflows/ci.yml" "apt-get install -y ri
 assert_contains "$rendered_root/.github/workflows/ci.yml" "runtime-gate:"
 assert_contains "$rendered_root/.github/workflows/ci.yml" "needs.runtime-gate.outputs.ci_profile_present == 'true'"
 assert_contains "$rendered_root/env/local.example.json" "\"driver\": \"ibcmd\""
-assert_jq "$rendered_root/env/ci.example.json" '.runnerAdapter == "direct-platform" and .capabilities.loadSrc.driver == "designer"' "ci-example-driver"
-assert_jq "$rendered_root/env/wsl.example.json" '.runnerAdapter == "direct-platform" and .platform.xvfb.enabled == true and .platform.xvfb.serverArgs == ["-screen","0","1440x900x24","-noreset"] and .capabilities.loadSrc.driver == "designer"' "wsl-example-driver"
+assert_jq "$rendered_root/env/local.example.json" '.runnerAdapter == "direct-platform" and .ibcmd.runtimeMode == "file-infobase" and .ibcmd.serverAccess.mode == "data-dir" and .capabilities.loadSrc.driver == "ibcmd"' "local-example-driver"
+assert_jq "$rendered_root/env/ci.example.json" '.runnerAdapter == "direct-platform" and .ibcmd.runtimeMode == "dbms-infobase" and .ibcmd.dbmsInfobase.kind == "PostgreSQL" and .capabilities.loadSrc.driver == "designer"' "ci-example-driver"
+assert_jq "$rendered_root/env/wsl.example.json" '.runnerAdapter == "direct-platform" and .ibcmd.runtimeMode == "standalone-server" and .platform.xvfb.enabled == true and .platform.xvfb.serverArgs == ["-screen","0","1440x900x24","-noreset"] and .capabilities.loadSrc.driver == "designer"' "wsl-example-driver"
 assert_jq "$rendered_root/env/windows-executor.example.json" '.runnerAdapter == "remote-windows" and .capabilities.loadSrc.driver == "designer"' "windows-example-driver"
 assert_contains "$rendered_root/README.md" "partial import"
 assert_contains "$rendered_root/env/README.md" "driver=ibcmd"
@@ -342,8 +343,8 @@ jq \
   --arg database_path "$tmpdir/runtime-ibcmd-db" \
   '.platform.binaryPath = $binary_path
    | .platform.ibcmdPath = $ibcmd_path
-   | .ibcmd.dataDir = $data_dir
-   | .ibcmd.databasePath = $database_path' \
+   | .ibcmd.serverAccess.dataDir = $data_dir
+   | .ibcmd.fileInfobase.databasePath = $database_path' \
   "$rendered_root/env/local.example.json" >"$rendered_root/env/local.json"
 
 mkdir -p "$tmpdir/runtime-ibcmd-data"
@@ -357,6 +358,7 @@ assert_jq "$rendered_root/env/local.json" '.platform.ibcmdPath == $ARGS.position
 
 assert_jq "$runtime_doctor_run/summary.json" '.status == "success"' "runtime-doctor-status"
 assert_jq "$runtime_doctor_run/summary.json" '.capability_drivers["load-src"].driver == "ibcmd"' "runtime-doctor-load-driver"
+assert_jq "$runtime_doctor_run/summary.json" '.capability_drivers["load-src"].context.runtime_mode == "file-infobase"' "runtime-doctor-runtime-mode"
 assert_jq "$runtime_doctor_run/summary.json" '[.checks.required_env_refs[] | select(.name == "ONEC_IBCMD_PASSWORD" and .status == "set")] | length == 1' "runtime-doctor-env-ref"
 
 (
@@ -373,6 +375,7 @@ assert_jq "$runtime_load_run/summary.json" '.driver_context.partial_import == tr
 assert_contains "$runtime_load_run/stdout.log" "config"
 assert_contains "$runtime_load_run/stdout.log" "import"
 assert_contains "$runtime_load_run/stdout.log" "files"
+assert_contains "$runtime_load_run/stdout.log" "--database-path=$tmpdir/runtime-ibcmd-db"
 assert_contains "$runtime_load_run/stdout.log" "--base-dir=./src/cf"
 assert_contains "$runtime_load_run/stdout.log" "--partial"
 assert_contains "$runtime_load_run/stdout.log" "Catalogs/Items.xml"

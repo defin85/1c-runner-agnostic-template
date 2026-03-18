@@ -8,7 +8,7 @@
   "notes": [
     "Используйте этот профиль, если UI/TestClient лучше работают на Windows-хосте или в Windows VM.",
     "Стандартные операции create/load/dump/update будут собирать argv из structured profile и передавать их в scripts/adapters/remote-windows.sh.",
-    "Phase 1 ibcmd driver не поддерживается с runnerAdapter=remote-windows; для core capabilities оставляйте driver=designer."
+    "Ibcmd driver не поддерживается с runnerAdapter=remote-windows в текущем release; для core capabilities оставляйте driver=designer."
   ],
   "platform": {
     "binaryPath": "C:/Program Files/1cv8/8.3.27.1859/bin/1cv8.exe"

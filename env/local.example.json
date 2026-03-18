@@ -3,12 +3,13 @@
   "profileName": "local",
   "projectName": "{{ project_name }}",
   "projectSlug": "{{ project_slug }}",
-  "description": "Minimal direct-platform runtime profile example with mixed designer/ibcmd source sync",
+  "description": "Minimal direct-platform runtime profile example with mixed designer/file-infobase ibcmd source sync",
   "runnerAdapter": "direct-platform",
   "notes": [
     "Этот файл является примером structured runtime profile.",
     "Реальные секреты не храните в JSON; используйте passwordEnv и внешние env vars.",
     "Этот preset показывает per-capability driver selection: create/dump/update остаются на designer, а load-src переключен на ibcmd.",
+    "Для ibcmd здесь используется runtimeMode=file-infobase, чтобы partial import был привязан к явному file-infobase contour.",
     "Partial import через ./scripts/platform/load-src.sh --files уже готов к запуску без дополнительной правки driver."
   ],
   "platform": {
@@ -26,12 +27,17 @@
     }
   },
   "ibcmd": {
-    "connectionMode": "data-dir",
-    "dataDir": "/var/tmp/{{ project_slug }}-standalone",
-    "databasePath": "/var/tmp/{{ project_slug }}-standalone/db",
+    "runtimeMode": "file-infobase",
+    "serverAccess": {
+      "mode": "data-dir",
+      "dataDir": "/var/tmp/{{ project_slug }}-ibcmd"
+    },
     "auth": {
-      "user": "standalone-admin",
+      "user": "ibcmd-admin",
       "passwordEnv": "ONEC_IBCMD_PASSWORD"
+    },
+    "fileInfobase": {
+      "databasePath": "/var/tmp/{{ project_slug }}-file-ib"
     }
   },
   "capabilities": {

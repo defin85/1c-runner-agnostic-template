@@ -7,26 +7,25 @@ SOURCE_ROOT="$(cd -- "$SCRIPT_DIR/../.." && pwd)"
 tmpdir="$(mktemp -d)"
 trap 'rm -rf "$tmpdir"' EXIT
 
-profile_path="$tmpdir/ibcmd-profile.json"
-run_root_create="$tmpdir/run-create"
-run_root_dump="$tmpdir/run-dump"
-run_root_load_full="$tmpdir/run-load-full"
-run_root_load_partial="$tmpdir/run-load-partial"
-run_root_update="$tmpdir/run-update"
 fake_designer="$tmpdir/fake-1cv8"
 fake_ibcmd="$tmpdir/fake-ibcmd"
-mixed_profile_path="$tmpdir/mixed-profile.json"
-mixed_run_root_create="$tmpdir/mixed-run-create"
-mixed_run_root_dump="$tmpdir/mixed-run-dump"
-mixed_run_root_load="$tmpdir/mixed-run-load"
-mixed_run_root_update="$tmpdir/mixed-run-update"
-mixed_fake_designer="$tmpdir/mixed-fake-1cv8"
+standalone_profile="$tmpdir/standalone-profile.json"
+file_profile="$tmpdir/file-profile.json"
+dbms_profile="$tmpdir/dbms-profile.json"
+mixed_profile="$tmpdir/mixed-profile.json"
+
+export ONEC_IBCMD_PASSWORD="ibcmd-secret"
+export ONEC_DBMS_PASSWORD="dbms-secret"
 
 cat >"$fake_designer" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
-printf 'designer-must-not-run\n' >&2
-exit 99
+
+for arg in "$@"; do
+  printf '%s\n' "$arg"
+done
+
+printf 'fake-designer-stderr\n' >&2
 EOF
 
 cat >"$fake_ibcmd" <<'EOF'
@@ -42,76 +41,6 @@ EOF
 
 chmod +x "$fake_designer" "$fake_ibcmd"
 
-cat >"$mixed_fake_designer" <<'EOF'
-#!/usr/bin/env bash
-set -euo pipefail
-
-for arg in "$@"; do
-  printf '%s\n' "$arg"
-done
-
-printf 'mixed-fake-designer-stderr\n' >&2
-EOF
-
-chmod +x "$mixed_fake_designer"
-
-cat >"$profile_path" <<EOF
-{
-  "schemaVersion": 2,
-  "profileName": "ibcmd-fixture",
-  "runnerAdapter": "direct-platform",
-  "platform": {
-    "binaryPath": "$fake_designer",
-    "ibcmdPath": "$fake_ibcmd"
-  },
-  "infobase": {
-    "mode": "file",
-    "filePath": "/var/tmp/designer-fallback-should-not-run",
-    "auth": {
-      "mode": "os",
-      "user": null,
-      "passwordEnv": null
-    }
-  },
-  "ibcmd": {
-    "connectionMode": "data-dir",
-    "dataDir": "$tmpdir/standalone",
-    "databasePath": "$tmpdir/standalone/db-data",
-    "auth": {
-      "user": "ibcmd-user",
-      "passwordEnv": "ONEC_IBCMD_PASSWORD"
-    }
-  },
-  "capabilities": {
-    "createIb": {
-      "driver": "ibcmd"
-    },
-    "dumpSrc": {
-      "driver": "ibcmd",
-      "outputDir": "./src/cf"
-    },
-    "loadSrc": {
-      "driver": "ibcmd",
-      "sourceDir": "./src/cf"
-    },
-    "updateDb": {
-      "driver": "ibcmd"
-    },
-    "xunit": {
-      "command": ["bash", "-lc", "printf 'xunit-ok\\\\n'"]
-    },
-    "bdd": {
-      "command": ["bash", "-lc", "printf 'bdd-ok\\\\n'"]
-    },
-    "smoke": {
-      "command": ["bash", "-lc", "printf 'smoke-ok\\\\n'"]
-    }
-  }
-}
-EOF
-
-export ONEC_IBCMD_PASSWORD="ibcmd-secret"
-
 assert_contains() {
   local file="$1"
   local expected="$2"
@@ -124,169 +53,329 @@ assert_contains() {
   fi
 }
 
+assert_not_contains() {
+  local file="$1"
+  local text="$2"
+
+  if grep -Fq -- "$text" "$file"; then
+    printf 'unexpected text found: %s\n' "$text" >&2
+    printf 'actual file contents:\n' >&2
+    cat "$file" >&2
+    exit 1
+  fi
+}
+
 assert_jq() {
   local file="$1"
   local expr="$2"
   local label="$3"
+  shift 3
 
-  if ! jq -e "$expr" "$file" >/dev/null; then
+  if ! jq -e "$expr" "$file" "$@" >/dev/null; then
     printf 'jq assertion failed (%s): %s\n' "$label" "$expr" >&2
     cat "$file" >&2
     exit 1
   fi
 }
 
-(
-  cd "$SOURCE_ROOT"
-  ./scripts/platform/create-ib.sh --profile "$profile_path" --run-root "$run_root_create" >/dev/null
-)
+write_ibcmd_profile() {
+  local profile_path="$1"
+  local profile_name="$2"
+  local runtime_mode="$3"
+  local topology_json="$4"
+  local capabilities_json="$5"
+  local data_dir="$6"
+  local include_auth="$7"
 
-assert_jq "$run_root_create/summary.json" '.status == "success"' "create-status"
-assert_jq "$run_root_create/summary.json" '.driver == "ibcmd"' "create-driver"
-assert_jq "$run_root_create/summary.json" '.execution.source == "ibcmd-builder"' "create-source"
-assert_jq "$run_root_create/summary.json" '.driver_context.connection_mode == "data-dir"' "create-connection-mode"
-assert_contains "$run_root_create/stdout.log" "infobase"
-assert_contains "$run_root_create/stdout.log" "create"
-assert_contains "$run_root_create/stdout.log" "--data=$tmpdir/standalone"
-assert_contains "$run_root_create/stdout.log" "--database-path=$tmpdir/standalone/db-data"
-assert_contains "$run_root_create/stdout.log" "--create-database"
+  jq -n \
+    --arg profile_name "$profile_name" \
+    --arg fake_designer "$fake_designer" \
+    --arg fake_ibcmd "$fake_ibcmd" \
+    --arg data_dir "$data_dir" \
+    --arg runtime_mode "$runtime_mode" \
+    --argjson topology "$topology_json" \
+    --argjson capabilities "$capabilities_json" \
+    --argjson include_auth "$include_auth" \
+    '{
+      schemaVersion: 2,
+      profileName: $profile_name,
+      runnerAdapter: "direct-platform",
+      platform: {
+        binaryPath: $fake_designer,
+        ibcmdPath: $fake_ibcmd
+      },
+      infobase: {
+        mode: "file",
+        filePath: "/var/tmp/ibcmd-fixture",
+        auth: {
+          mode: "os",
+          user: null,
+          passwordEnv: null
+        }
+      },
+      ibcmd: (
+        {
+          runtimeMode: $runtime_mode,
+          serverAccess: {
+            mode: "data-dir",
+            dataDir: $data_dir
+          }
+        }
+        + (if $include_auth then {
+            auth: {
+              user: "ibcmd-user",
+              passwordEnv: "ONEC_IBCMD_PASSWORD"
+            }
+          } else {} end)
+        + $topology
+      ),
+      capabilities: $capabilities
+    }' >"$profile_path"
+}
 
-(
-  cd "$SOURCE_ROOT"
-  ./scripts/platform/dump-src.sh --profile "$profile_path" --run-root "$run_root_dump" >/dev/null
-)
+all_ibcmd_capabilities_json='{
+  "createIb": {"driver": "ibcmd"},
+  "dumpSrc": {"driver": "ibcmd", "outputDir": "./src/cf"},
+  "loadSrc": {"driver": "ibcmd", "sourceDir": "./src/cf"},
+  "updateDb": {"driver": "ibcmd"},
+  "xunit": {"command": ["bash", "-lc", "printf '\''xunit-ok\\n'\''"]},
+  "bdd": {"command": ["bash", "-lc", "printf '\''bdd-ok\\n'\''"]},
+  "smoke": {"command": ["bash", "-lc", "printf '\''smoke-ok\\n'\''"]}
+}'
 
-assert_jq "$run_root_dump/summary.json" '.status == "success"' "dump-status"
-assert_jq "$run_root_dump/summary.json" '.driver == "ibcmd"' "dump-driver"
-assert_jq "$run_root_dump/summary.json" '.execution.source == "ibcmd-builder"' "dump-source"
-assert_contains "$run_root_dump/stdout.log" "config"
-assert_contains "$run_root_dump/stdout.log" "export"
-assert_contains "$run_root_dump/stdout.log" "./src/cf"
-assert_contains "$run_root_dump/stdout.log" "--format=hierarchical"
-assert_contains "$run_root_dump/stdout.log" "--user=ibcmd-user"
-assert_contains "$run_root_dump/stdout.log" "--password=ibcmd-secret"
+mixed_capabilities_json='{
+  "loadSrc": {"driver": "ibcmd", "sourceDir": "./src/cf"},
+  "xunit": {"command": ["bash", "-lc", "printf '\''xunit-ok\\n'\''"]},
+  "bdd": {"command": ["bash", "-lc", "printf '\''bdd-ok\\n'\''"]},
+  "smoke": {"command": ["bash", "-lc", "printf '\''smoke-ok\\n'\''"]}
+}'
 
-(
-  cd "$SOURCE_ROOT"
-  ./scripts/platform/load-src.sh --profile "$profile_path" --run-root "$run_root_load_full" >/dev/null
-)
+write_ibcmd_profile \
+  "$standalone_profile" \
+  "standalone-fixture" \
+  "standalone-server" \
+  "{\"standalone\":{\"databasePath\":\"$tmpdir/standalone/db\"}}" \
+  "$all_ibcmd_capabilities_json" \
+  "$tmpdir/standalone" \
+  true
 
-assert_jq "$run_root_load_full/summary.json" '.status == "success"' "load-full-status"
-assert_jq "$run_root_load_full/summary.json" '.driver == "ibcmd"' "load-full-driver"
-assert_contains "$run_root_load_full/stdout.log" "config"
-assert_contains "$run_root_load_full/stdout.log" "import"
-assert_contains "$run_root_load_full/stdout.log" "./src/cf"
-assert_contains "$run_root_load_full/stdout.log" "--format=hierarchical"
+write_ibcmd_profile \
+  "$file_profile" \
+  "file-fixture" \
+  "file-infobase" \
+  "{\"fileInfobase\":{\"databasePath\":\"$tmpdir/file-ib/db\"}}" \
+  "$all_ibcmd_capabilities_json" \
+  "$tmpdir/file-server" \
+  true
+
+write_ibcmd_profile \
+  "$dbms_profile" \
+  "dbms-fixture" \
+  "dbms-infobase" \
+  "{\"dbmsInfobase\":{\"kind\":\"PostgreSQL\",\"server\":\"127.0.0.1 port=5432;\",\"name\":\"runtime_fixture\",\"user\":\"db-admin\",\"passwordEnv\":\"ONEC_DBMS_PASSWORD\"}}" \
+  "$all_ibcmd_capabilities_json" \
+  "$tmpdir/dbms-server" \
+  true
+
+write_ibcmd_profile \
+  "$mixed_profile" \
+  "mixed-fixture" \
+  "file-infobase" \
+  "{\"fileInfobase\":{\"databasePath\":\"$tmpdir/mixed-file-ib/db\"}}" \
+  "$mixed_capabilities_json" \
+  "$tmpdir/mixed-file-server" \
+  true
+
+run_capability() {
+  local profile_path="$1"
+  local run_root="$2"
+  shift 2
+
+  (
+    cd "$SOURCE_ROOT"
+    "$@" --profile "$profile_path" --run-root "$run_root" >/dev/null
+  )
+}
+
+assert_ibcmd_summary() {
+  local summary_path="$1"
+  local runtime_mode="$2"
+
+  assert_jq "$summary_path" '.status == "success"' "status"
+  assert_jq "$summary_path" '.driver == "ibcmd"' "driver"
+  assert_jq "$summary_path" '.execution.source == "ibcmd-builder"' "source"
+  assert_jq "$summary_path" '.driver_context.runtime_mode == $ARGS.positional[0]' "runtime-mode" --args "$runtime_mode"
+  assert_jq "$summary_path" '.driver_context.server_access.mode == "data-dir"' "server-access-mode"
+}
+
+standalone_create_run="$tmpdir/standalone-create"
+standalone_dump_run="$tmpdir/standalone-dump"
+standalone_load_full_run="$tmpdir/standalone-load-full"
+standalone_load_partial_run="$tmpdir/standalone-load-partial"
+standalone_update_run="$tmpdir/standalone-update"
+
+run_capability "$standalone_profile" "$standalone_create_run" ./scripts/platform/create-ib.sh
+assert_ibcmd_summary "$standalone_create_run/summary.json" "standalone-server"
+assert_jq "$standalone_create_run/summary.json" '.driver_context.topology.database_path == $ARGS.positional[0]' "standalone-db-path" --args "$tmpdir/standalone/db"
+assert_contains "$standalone_create_run/stdout.log" "infobase"
+assert_contains "$standalone_create_run/stdout.log" "create"
+assert_contains "$standalone_create_run/stdout.log" "--data=$tmpdir/standalone"
+assert_contains "$standalone_create_run/stdout.log" "--database-path=$tmpdir/standalone/db"
+assert_contains "$standalone_create_run/stdout.log" "--create-database"
+assert_not_contains "$standalone_create_run/stdout.log" "--user=ibcmd-user"
+assert_not_contains "$standalone_create_run/stdout.log" "--password=ibcmd-secret"
+
+run_capability "$standalone_profile" "$standalone_dump_run" ./scripts/platform/dump-src.sh
+assert_ibcmd_summary "$standalone_dump_run/summary.json" "standalone-server"
+assert_contains "$standalone_dump_run/stdout.log" "config"
+assert_contains "$standalone_dump_run/stdout.log" "export"
+assert_contains "$standalone_dump_run/stdout.log" "--data=$tmpdir/standalone"
+assert_contains "$standalone_dump_run/stdout.log" "--database-path=$tmpdir/standalone/db"
+assert_contains "$standalone_dump_run/stdout.log" "--user=ibcmd-user"
+assert_contains "$standalone_dump_run/stdout.log" "--password=ibcmd-secret"
+assert_contains "$standalone_dump_run/stdout.log" "./src/cf"
+assert_not_contains "$standalone_dump_run/stdout.log" "--dir=./src/cf"
+assert_not_contains "$standalone_dump_run/stdout.log" "--format=hierarchical"
+
+run_capability "$standalone_profile" "$standalone_load_full_run" ./scripts/platform/load-src.sh
+assert_ibcmd_summary "$standalone_load_full_run/summary.json" "standalone-server"
+assert_contains "$standalone_load_full_run/stdout.log" "config"
+assert_contains "$standalone_load_full_run/stdout.log" "import"
+assert_contains "$standalone_load_full_run/stdout.log" "--database-path=$tmpdir/standalone/db"
+assert_contains "$standalone_load_full_run/stdout.log" "--user=ibcmd-user"
+assert_contains "$standalone_load_full_run/stdout.log" "--password=ibcmd-secret"
+assert_contains "$standalone_load_full_run/stdout.log" "./src/cf"
+assert_not_contains "$standalone_load_full_run/stdout.log" "--dir=./src/cf"
+assert_not_contains "$standalone_load_full_run/stdout.log" "--format=hierarchical"
 
 (
   cd "$SOURCE_ROOT"
   ./scripts/platform/load-src.sh \
-    --profile "$profile_path" \
-    --run-root "$run_root_load_partial" \
+    --profile "$standalone_profile" \
+    --run-root "$standalone_load_partial_run" \
     --files "Catalogs/Items.xml,Forms/List.xml" >/dev/null
 )
+assert_ibcmd_summary "$standalone_load_partial_run/summary.json" "standalone-server"
+assert_jq "$standalone_load_partial_run/summary.json" '.driver_context.partial_import == true' "standalone-partial-import"
+assert_contains "$standalone_load_partial_run/stdout.log" "config"
+assert_contains "$standalone_load_partial_run/stdout.log" "import"
+assert_contains "$standalone_load_partial_run/stdout.log" "files"
+assert_contains "$standalone_load_partial_run/stdout.log" "--base-dir=./src/cf"
+assert_contains "$standalone_load_partial_run/stdout.log" "--partial"
+assert_contains "$standalone_load_partial_run/stdout.log" "Catalogs/Items.xml"
+assert_contains "$standalone_load_partial_run/stdout.log" "Forms/List.xml"
 
-assert_jq "$run_root_load_partial/summary.json" '.status == "success"' "load-partial-status"
-assert_jq "$run_root_load_partial/summary.json" '.driver == "ibcmd"' "load-partial-driver"
-assert_jq "$run_root_load_partial/summary.json" '.driver_context.partial_import == true' "load-partial-flag"
-assert_contains "$run_root_load_partial/stdout.log" "import"
-assert_contains "$run_root_load_partial/stdout.log" "files"
-assert_contains "$run_root_load_partial/stdout.log" "--partial"
-assert_contains "$run_root_load_partial/stdout.log" "--base-dir=./src/cf"
-assert_contains "$run_root_load_partial/stdout.log" "Catalogs/Items.xml"
-assert_contains "$run_root_load_partial/stdout.log" "Forms/List.xml"
+run_capability "$standalone_profile" "$standalone_update_run" ./scripts/platform/update-db.sh
+assert_ibcmd_summary "$standalone_update_run/summary.json" "standalone-server"
+assert_contains "$standalone_update_run/stdout.log" "config"
+assert_contains "$standalone_update_run/stdout.log" "apply"
+assert_contains "$standalone_update_run/stdout.log" "--database-path=$tmpdir/standalone/db"
+assert_contains "$standalone_update_run/stdout.log" "--force"
 
-(
-  cd "$SOURCE_ROOT"
-  ./scripts/platform/update-db.sh --profile "$profile_path" --run-root "$run_root_update" >/dev/null
-)
+file_create_run="$tmpdir/file-create"
+file_dump_run="$tmpdir/file-dump"
+file_load_run="$tmpdir/file-load"
+file_update_run="$tmpdir/file-update"
 
-assert_jq "$run_root_update/summary.json" '.status == "success"' "update-status"
-assert_jq "$run_root_update/summary.json" '.driver == "ibcmd"' "update-driver"
-assert_jq "$run_root_update/summary.json" '.execution.source == "ibcmd-builder"' "update-source"
-assert_contains "$run_root_update/stdout.log" "config"
-assert_contains "$run_root_update/stdout.log" "apply"
+run_capability "$file_profile" "$file_create_run" ./scripts/platform/create-ib.sh
+assert_ibcmd_summary "$file_create_run/summary.json" "file-infobase"
+assert_jq "$file_create_run/summary.json" '.driver_context.topology.database_path == $ARGS.positional[0]' "file-db-path" --args "$tmpdir/file-ib/db"
+assert_contains "$file_create_run/stdout.log" "--data=$tmpdir/file-server"
+assert_contains "$file_create_run/stdout.log" "--database-path=$tmpdir/file-ib/db"
+assert_not_contains "$file_create_run/stdout.log" "--user=ibcmd-user"
 
-if grep -Fq -- "ibcmd-secret" "$run_root_create/summary.json"; then
-  printf 'summary.json must not contain resolved secrets\n' >&2
-  cat "$run_root_create/summary.json" >&2
+run_capability "$file_profile" "$file_dump_run" ./scripts/platform/dump-src.sh
+assert_ibcmd_summary "$file_dump_run/summary.json" "file-infobase"
+assert_contains "$file_dump_run/stdout.log" "--database-path=$tmpdir/file-ib/db"
+assert_contains "$file_dump_run/stdout.log" "--user=ibcmd-user"
+assert_contains "$file_dump_run/stdout.log" "./src/cf"
+
+run_capability "$file_profile" "$file_load_run" ./scripts/platform/load-src.sh
+assert_ibcmd_summary "$file_load_run/summary.json" "file-infobase"
+assert_contains "$file_load_run/stdout.log" "--database-path=$tmpdir/file-ib/db"
+assert_contains "$file_load_run/stdout.log" "./src/cf"
+
+run_capability "$file_profile" "$file_update_run" ./scripts/platform/update-db.sh
+assert_ibcmd_summary "$file_update_run/summary.json" "file-infobase"
+assert_contains "$file_update_run/stdout.log" "--database-path=$tmpdir/file-ib/db"
+assert_contains "$file_update_run/stdout.log" "--force"
+
+dbms_create_run="$tmpdir/dbms-create"
+dbms_dump_run="$tmpdir/dbms-dump"
+dbms_load_run="$tmpdir/dbms-load"
+dbms_update_run="$tmpdir/dbms-update"
+
+run_capability "$dbms_profile" "$dbms_create_run" ./scripts/platform/create-ib.sh
+assert_ibcmd_summary "$dbms_create_run/summary.json" "dbms-infobase"
+assert_jq "$dbms_create_run/summary.json" '.driver_context.topology.dbms.kind == "PostgreSQL"' "dbms-kind"
+assert_jq "$dbms_create_run/summary.json" '.driver_context.topology.dbms.server == "127.0.0.1 port=5432;"' "dbms-server"
+assert_jq "$dbms_create_run/summary.json" '.driver_context.topology.dbms.name == "runtime_fixture"' "dbms-name"
+assert_jq "$dbms_create_run/summary.json" '.driver_context.topology.dbms.user == "db-admin"' "dbms-user"
+assert_jq "$dbms_create_run/summary.json" '.driver_context.topology.dbms.password_configured == true' "dbms-password-configured"
+assert_contains "$dbms_create_run/stdout.log" "--data=$tmpdir/dbms-server"
+assert_contains "$dbms_create_run/stdout.log" "--dbms=PostgreSQL"
+assert_contains "$dbms_create_run/stdout.log" "--db-server=127.0.0.1 port=5432;"
+assert_contains "$dbms_create_run/stdout.log" "--db-name=runtime_fixture"
+assert_contains "$dbms_create_run/stdout.log" "--db-user=db-admin"
+assert_contains "$dbms_create_run/stdout.log" "--db-pwd=dbms-secret"
+assert_not_contains "$dbms_create_run/stdout.log" "--user=ibcmd-user"
+assert_not_contains "$dbms_create_run/stdout.log" "--password=ibcmd-secret"
+
+run_capability "$dbms_profile" "$dbms_dump_run" ./scripts/platform/dump-src.sh
+assert_ibcmd_summary "$dbms_dump_run/summary.json" "dbms-infobase"
+assert_contains "$dbms_dump_run/stdout.log" "--dbms=PostgreSQL"
+assert_contains "$dbms_dump_run/stdout.log" "--db-server=127.0.0.1 port=5432;"
+assert_contains "$dbms_dump_run/stdout.log" "--db-name=runtime_fixture"
+assert_contains "$dbms_dump_run/stdout.log" "--db-user=db-admin"
+assert_contains "$dbms_dump_run/stdout.log" "--db-pwd=dbms-secret"
+assert_contains "$dbms_dump_run/stdout.log" "--user=ibcmd-user"
+assert_contains "$dbms_dump_run/stdout.log" "--password=ibcmd-secret"
+assert_contains "$dbms_dump_run/stdout.log" "./src/cf"
+
+run_capability "$dbms_profile" "$dbms_load_run" ./scripts/platform/load-src.sh
+assert_ibcmd_summary "$dbms_load_run/summary.json" "dbms-infobase"
+assert_contains "$dbms_load_run/stdout.log" "--dbms=PostgreSQL"
+assert_contains "$dbms_load_run/stdout.log" "--db-pwd=dbms-secret"
+assert_contains "$dbms_load_run/stdout.log" "--user=ibcmd-user"
+assert_contains "$dbms_load_run/stdout.log" "./src/cf"
+
+run_capability "$dbms_profile" "$dbms_update_run" ./scripts/platform/update-db.sh
+assert_ibcmd_summary "$dbms_update_run/summary.json" "dbms-infobase"
+assert_contains "$dbms_update_run/stdout.log" "--dbms=PostgreSQL"
+assert_contains "$dbms_update_run/stdout.log" "--db-pwd=dbms-secret"
+assert_contains "$dbms_update_run/stdout.log" "--force"
+
+if grep -Fq -- "ibcmd-secret" "$dbms_create_run/summary.json"; then
+  printf 'summary.json must not contain resolved infobase secrets\n' >&2
+  cat "$dbms_create_run/summary.json" >&2
   exit 1
 fi
 
-cat >"$mixed_profile_path" <<EOF
-{
-  "schemaVersion": 2,
-  "profileName": "mixed-fixture",
-  "runnerAdapter": "direct-platform",
-  "platform": {
-    "binaryPath": "$mixed_fake_designer",
-    "ibcmdPath": "$fake_ibcmd"
-  },
-  "infobase": {
-    "mode": "file",
-    "filePath": "/var/tmp/mixed-driver-fixture",
-    "auth": {
-      "mode": "os",
-      "user": null,
-      "passwordEnv": null
-    }
-  },
-  "ibcmd": {
-    "connectionMode": "data-dir",
-    "dataDir": "$tmpdir/mixed-standalone",
-    "databasePath": "$tmpdir/mixed-standalone/db-data",
-    "auth": {
-      "user": "ibcmd-user",
-      "passwordEnv": "ONEC_IBCMD_PASSWORD"
-    }
-  },
-  "capabilities": {
-    "loadSrc": {
-      "driver": "ibcmd",
-      "sourceDir": "./src/cf"
-    },
-    "xunit": {
-      "command": ["bash", "-lc", "printf 'xunit-ok\\\\n'"]
-    },
-    "bdd": {
-      "command": ["bash", "-lc", "printf 'bdd-ok\\\\n'"]
-    },
-    "smoke": {
-      "command": ["bash", "-lc", "printf 'smoke-ok\\\\n'"]
-    }
-  }
-}
-EOF
+if grep -Fq -- "dbms-secret" "$dbms_create_run/summary.json"; then
+  printf 'summary.json must not contain resolved dbms secrets\n' >&2
+  cat "$dbms_create_run/summary.json" >&2
+  exit 1
+fi
 
-(
-  cd "$SOURCE_ROOT"
-  ./scripts/platform/create-ib.sh --profile "$mixed_profile_path" --run-root "$mixed_run_root_create" >/dev/null
-)
+mixed_create_run="$tmpdir/mixed-create"
+mixed_dump_run="$tmpdir/mixed-dump"
+mixed_load_run="$tmpdir/mixed-load"
+mixed_update_run="$tmpdir/mixed-update"
 
-assert_jq "$mixed_run_root_create/summary.json" '.driver == "designer"' "mixed-create-driver"
-assert_contains "$mixed_run_root_create/stdout.log" "CREATEINFOBASE"
+run_capability "$mixed_profile" "$mixed_create_run" ./scripts/platform/create-ib.sh
+assert_jq "$mixed_create_run/summary.json" '.driver == "designer"' "mixed-create-driver"
+assert_contains "$mixed_create_run/stdout.log" "CREATEINFOBASE"
 
-(
-  cd "$SOURCE_ROOT"
-  ./scripts/platform/dump-src.sh --profile "$mixed_profile_path" --run-root "$mixed_run_root_dump" >/dev/null
-)
+run_capability "$mixed_profile" "$mixed_dump_run" ./scripts/platform/dump-src.sh
+assert_jq "$mixed_dump_run/summary.json" '.driver == "designer"' "mixed-dump-driver"
+assert_contains "$mixed_dump_run/stdout.log" "/DumpConfigToFiles"
 
-assert_jq "$mixed_run_root_dump/summary.json" '.driver == "designer"' "mixed-dump-driver"
-assert_contains "$mixed_run_root_dump/stdout.log" "/DumpConfigToFiles"
+run_capability "$mixed_profile" "$mixed_load_run" ./scripts/platform/load-src.sh
+assert_ibcmd_summary "$mixed_load_run/summary.json" "file-infobase"
+assert_contains "$mixed_load_run/stdout.log" "config"
+assert_contains "$mixed_load_run/stdout.log" "import"
+assert_contains "$mixed_load_run/stdout.log" "--database-path=$tmpdir/mixed-file-ib/db"
 
-(
-  cd "$SOURCE_ROOT"
-  ./scripts/platform/load-src.sh --profile "$mixed_profile_path" --run-root "$mixed_run_root_load" >/dev/null
-)
-
-assert_jq "$mixed_run_root_load/summary.json" '.driver == "ibcmd"' "mixed-load-driver"
-assert_contains "$mixed_run_root_load/stdout.log" "config"
-assert_contains "$mixed_run_root_load/stdout.log" "import"
-
-(
-  cd "$SOURCE_ROOT"
-  ./scripts/platform/update-db.sh --profile "$mixed_profile_path" --run-root "$mixed_run_root_update" >/dev/null
-)
-
-assert_jq "$mixed_run_root_update/summary.json" '.driver == "designer"' "mixed-update-driver"
-assert_contains "$mixed_run_root_update/stdout.log" "/UpdateDBCfg"
+run_capability "$mixed_profile" "$mixed_update_run" ./scripts/platform/update-db.sh
+assert_jq "$mixed_update_run/summary.json" '.driver == "designer"' "mixed-update-driver"
+assert_contains "$mixed_update_run/stdout.log" "/UpdateDBCfg"

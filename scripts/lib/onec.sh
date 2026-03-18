@@ -386,10 +386,7 @@ build_doctor_driver_context_json() {
       ;;
     ibcmd)
       ibcmd_context="$(jq -c '.driver_context' <<<"$(build_ibcmd_capability_context_json false)")"
-      jq -cn \
-        --arg capability_id "$capability_id" \
-        --argjson context "$ibcmd_context" \
-        '$context + (if $capability_id == "load-src" then {partial_import_supported: true} else {} end)'
+      printf '%s\n' "$ibcmd_context"
       ;;
     *)
       die "unsupported driver resolution for doctor context: $driver"
@@ -718,7 +715,7 @@ prepare_load_src_command() {
   driver="$(resolve_capability_driver "$capability_id")"
   source_dir="$(capability_string_or_default "$capability_id" "sourceDir" "./src/cf")"
   if capability_selected_files_requested && [ "$driver" != "ibcmd" ]; then
-    die "partial load-src is supported only for ibcmd driver in phase 1"
+    die "partial load-src is supported only for ibcmd driver"
   fi
 
   case "$driver" in
@@ -841,10 +838,7 @@ collect_required_env_refs() {
         fi
         ;;
       ibcmd)
-        ref="$(profile_string '.ibcmd.auth.passwordEnv // empty')"
-        if [ -n "$ref" ]; then
-          append_unique_field env_refs "$ref"
-        fi
+        collect_ibcmd_required_env_refs_for_capability "$capability_id" env_refs
         ;;
     esac
   done
@@ -896,29 +890,11 @@ collect_direct_platform_xvfb_required_profile_fields() {
   append_unique_field "$array_name" platform.xvfb.serverArgs
 }
 
-collect_ibcmd_required_profile_fields() {
-  local array_name="$1"
-  local create_driver=""
-
-  append_unique_field "$array_name" platform.ibcmdPath
-  append_unique_field "$array_name" ibcmd.connectionMode
-  append_unique_field "$array_name" ibcmd.dataDir
-  append_unique_field "$array_name" ibcmd.auth.user
-  append_unique_field "$array_name" ibcmd.auth.passwordEnv
-
-  create_driver="$(resolve_capability_driver "create-ib")"
-  if [ "$create_driver" = "ibcmd" ]; then
-    append_unique_field "$array_name" ibcmd.databasePath
-  fi
-}
-
 collect_required_profile_fields() {
   local adapter="$1"
   local array_name="$2"
   local capability_id=""
   local driver=""
-  local designer_required=1
-  local ibcmd_required=1
   local -n out_ref="$array_name"
 
   out_ref=(runnerAdapter)
@@ -939,21 +915,13 @@ collect_required_profile_fields() {
     driver="$(resolve_capability_driver "$capability_id")"
     case "$driver" in
       designer)
-        designer_required=0
+        collect_designer_required_profile_fields out_ref
         ;;
       ibcmd)
-        ibcmd_required=0
+        collect_ibcmd_required_profile_fields_for_capability "$capability_id" out_ref
         ;;
     esac
   done
-
-  if [ "$designer_required" -eq 0 ]; then
-    collect_designer_required_profile_fields out_ref
-  fi
-
-  if [ "$ibcmd_required" -eq 0 ]; then
-    collect_ibcmd_required_profile_fields out_ref
-  fi
 
   if [ "$adapter" = "direct-platform" ] && direct_platform_xvfb_enabled; then
     collect_direct_platform_xvfb_required_profile_fields out_ref
@@ -967,7 +935,6 @@ doctor_capability_failure_reason() {
   local binary_path=""
   local infobase_mode=""
   local infobase_auth_mode=""
-  local connection_mode=""
   local command_reason=""
   local -a profile_command=()
 
@@ -1060,43 +1027,8 @@ doctor_capability_failure_reason() {
           fi
           ;;
         ibcmd)
-          if [ "$adapter" != "direct-platform" ]; then
-            printf 'ibcmd driver is supported only with runnerAdapter=direct-platform in phase 1\n'
-            return 0
-          fi
-
-          profile_has_nonnull '.platform.ibcmdPath' || {
-            printf 'missing platform.ibcmdPath\n'
-            return 0
-          }
-
-          connection_mode="$(profile_string '.ibcmd.connectionMode // empty')"
-          if [ -z "$connection_mode" ]; then
-            printf 'missing ibcmd.connectionMode\n'
-            return 0
-          fi
-          if [ "$connection_mode" != "data-dir" ]; then
-            printf 'ibcmd.connectionMode=%s is not supported in phase 1; use data-dir\n' "$connection_mode"
-            return 0
-          fi
-
-          profile_has_nonnull '.ibcmd.dataDir' || {
-            printf 'missing ibcmd.dataDir\n'
-            return 0
-          }
-          profile_has_nonnull '.ibcmd.auth.user' || {
-            printf 'missing ibcmd.auth.user\n'
-            return 0
-          }
-          profile_has_nonnull '.ibcmd.auth.passwordEnv' || {
-            printf 'missing ibcmd.auth.passwordEnv\n'
-            return 0
-          }
-
-          if [ "$capability_id" = "create-ib" ] && ! profile_has_nonnull '.ibcmd.databasePath'; then
-            printf 'missing ibcmd.databasePath for create-ib with driver=ibcmd\n'
-            return 0
-          fi
+          printf '%s\n' "$(ibcmd_capability_failure_reason "$capability_id" "$adapter")"
+          return 0
           ;;
         *)
           printf 'unsupported driver=%s for capability %s\n' "$driver" "$capability_id"

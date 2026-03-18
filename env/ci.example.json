@@ -3,7 +3,12 @@
   "profileName": "ci",
   "projectName": "{{ project_name }}",
   "projectSlug": "{{ project_slug }}",
-  "description": "Example CI runtime profile for self-hosted 1C contour",
+  "description": "Example CI runtime profile for self-hosted 1C contour with canonical dbms-infobase ibcmd block",
+  "notes": [
+    "Этот preset показывает shape для dbms-infobase contour.",
+    "DBMS-backed contour является safety-sensitive, если целевая БД обычно принадлежит cluster-managed topology.",
+    "По умолчанию core capabilities оставлены на designer; перевод на ibcmd делайте осознанно и только при operator-owned isolation."
+  ],
   "runnerAdapter": "direct-platform",
   "platform": {
     "binaryPath": "/opt/1cv8/x86_64/8.3.27.1859/1cv8",
@@ -21,12 +26,21 @@
     }
   },
   "ibcmd": {
-    "connectionMode": "data-dir",
-    "dataDir": "/var/lib/onec/{{ project_slug }}-standalone",
-    "databasePath": "/var/lib/onec/{{ project_slug }}-standalone/db",
+    "runtimeMode": "dbms-infobase",
+    "serverAccess": {
+      "mode": "data-dir",
+      "dataDir": "/var/lib/onec/{{ project_slug }}-standalone"
+    },
     "auth": {
       "user": "standalone-admin",
       "passwordEnv": "ONEC_IBCMD_PASSWORD"
+    },
+    "dbmsInfobase": {
+      "kind": "PostgreSQL",
+      "server": "127.0.0.1 port=5432;",
+      "name": "{{ project_slug }}_ci",
+      "user": "postgres",
+      "passwordEnv": "ONEC_DBMS_PASSWORD"
     }
   },
   "capabilities": {
