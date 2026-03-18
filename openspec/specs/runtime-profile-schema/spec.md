@@ -14,6 +14,13 @@ The template SHALL define runtime profiles in `schemaVersion: 2` as structured, 
 - **AND** the profile MUST store infobase topology, authentication model and platform paths in explicit structured fields
 - **AND** the canonical source of truth for infobase connection MUST NOT be an embedded full shell command
 
+#### Scenario: Direct-platform profile enables GUI isolation in WSL or Linux
+
+- **WHEN** a generated project wants repo-owned GUI isolation for local `1cv8` or `1cv8c` launches through `runnerAdapter=direct-platform`
+- **THEN** the runtime profile MUST support a structured `platform.xvfb` block rather than require a raw shell wrapper around launcher scripts
+- **AND** the block MUST include `platform.xvfb.enabled` as a boolean and `platform.xvfb.serverArgs` as an array of strings
+- **AND** the profile MUST allow the contour to stay disabled by default when the block is omitted or explicitly turned off
+
 ### Requirement: Secret Indirection Through Environment Variables
 
 The template SHALL reference secrets through environment-variable indirection rather than literal secret values inside versioned runtime profiles.
@@ -55,4 +62,72 @@ Launcher-authored machine-readable artifacts SHALL avoid storing resolved secret
 - **THEN** those artifacts MUST contain only redacted connection metadata needed for diagnosis
 - **AND** the launcher itself MUST NOT log resolved secret values
 - **AND** the launcher itself MUST NOT emit a fully assembled secret-bearing connection string into its own summary output
+
+#### Scenario: Xvfb wrapper is enabled for direct-platform runtime
+
+- **WHEN** a direct-platform capability runs with `platform.xvfb.enabled=true`
+- **THEN** the machine-readable artifacts MUST reflect that an `Xvfb` wrapper was selected in a structured adapter-context field shared by capability summaries and doctor diagnostics
+- **AND** the artifacts MAY include non-secret `serverArgs` needed for diagnosis
+- **AND** the artifacts MUST NOT store unrelated host-specific secret or session data
+
+### Requirement: Canonical Local Runtime Profile Layout
+
+The template SHALL keep the root `env/` layout predictable by reserving root-level runtime profile names for canonical profiles and moving ad-hoc local profiles into a dedicated sandbox directory.
+
+#### Scenario: Generated project receives canonical runtime profile layout
+
+- **WHEN** a project is created from the template or receives a template update
+- **THEN** the root `env/` directory MUST reserve runtime profile filenames for:
+  - versioned `*.example.json` files;
+  - `env/local.json`;
+  - `env/wsl.json`;
+  - `env/ci.json`;
+  - `env/windows-executor.json`
+- **AND** the project MUST provide a dedicated local sandbox such as `env/.local/` for ad-hoc or machine-specific runtime profiles
+- **AND** the sandbox location MUST be documented and ignored by Git
+
+#### Scenario: Launcher resolves default runtime profile
+
+- **WHEN** a launcher script starts without explicit `--profile`
+- **THEN** it MUST keep the existing explicit resolution order
+- **AND** it MUST NOT implicitly scan or auto-select profiles from `env/.local/`
+- **AND** ad-hoc profile storage under `env/.local/` MUST NOT change the canonical default path `env/local.json`
+
+### Requirement: Mode-Specific Ibcmd Profile Blocks
+
+Runtime profiles SHALL encode the selected `ibcmd` topology as an explicit structured mode rather than as an implicit set of loosely related fields.
+
+#### Scenario: Profile uses standalone server topology
+
+- **WHEN** a runtime profile selects `ibcmd.runtimeMode=standalone-server`
+- **THEN** the profile MUST provide the structured fields required for the standalone topology
+- **AND** the profile MUST NOT rely on file-infobase or DBMS-backed fields to infer the mode implicitly
+
+#### Scenario: Profile uses file infobase topology
+
+- **WHEN** a runtime profile selects `ibcmd.runtimeMode=file-infobase`
+- **THEN** the profile MUST provide a structured file-infobase block with the database path
+- **AND** the profile MUST keep that topology distinct from the standalone-server block
+
+#### Scenario: Profile uses DBMS-backed topology
+
+- **WHEN** a runtime profile selects `ibcmd.runtimeMode=dbms-infobase`
+- **THEN** the profile MUST provide a structured DBMS block with:
+  - DBMS kind
+  - database server
+  - database name
+  - DBMS user
+  - DBMS password env-var reference
+- **AND** the profile MUST keep those fields separate from generic infobase user-password auth
+
+### Requirement: Ibcmd Server-Access Contract
+
+Runtime profiles SHALL represent the way `ibcmd` reaches the target standalone server as an explicit structured block.
+
+#### Scenario: Current release supports local data-dir access
+
+- **WHEN** a runtime profile selects `driver=ibcmd`
+- **THEN** the profile MUST describe the `ibcmd` server-access mode explicitly
+- **AND** the documentation MUST state that the current release supports only the documented subset of server-access modes
+- **AND** unsupported access modes MUST remain invalid until a later change expands the support matrix
 
