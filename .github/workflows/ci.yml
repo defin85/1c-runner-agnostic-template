@@ -12,9 +12,9 @@ jobs:
     name: static
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: "22"
 
@@ -45,7 +45,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: static
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - uses: actions/setup-python@v5
         with:
@@ -95,7 +95,7 @@ jobs:
     outputs:
       ci_profile_present: ${{ steps.detect.outputs.present }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - id: detect
         name: Detect env/ci.json
@@ -117,7 +117,7 @@ jobs:
       - static
       - runtime-gate
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Runtime doctor
         run: ./scripts/diag/doctor.sh --profile env/ci.json --run-root ./.artifacts/runtime/doctor
