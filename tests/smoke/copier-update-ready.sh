@@ -136,7 +136,7 @@ PATH="$bindir:$PATH" COMMAND_LOG="$command_log" copier copy --trust --defaults \
   >/dev/null
 
 assert_exists "$rendered_root/.copier-answers.yml"
-assert_not_exists "$rendered_root/{{ _copier_conf.answers_file }}"
+assert_not_exists "$rendered_root/{{ '{{ _copier_conf.answers_file }}' }}"
 assert_exists "$rendered_root/.codex/.gitkeep"
 assert_exists "$rendered_root/.codex/config.toml"
 assert_exists "$rendered_root/.claude/settings.json"
