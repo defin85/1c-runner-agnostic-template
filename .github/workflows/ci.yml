@@ -84,7 +84,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: static
     outputs:
-      ci_profile_present: {% raw %}${{ steps.detect.outputs.present }}{% endraw %}
+      ci_profile_present: ${{ steps.detect.outputs.present }}
     steps:
       - uses: actions/checkout@v4
 

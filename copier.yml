@@ -4,6 +4,7 @@ _templates_suffix: ""
 _exclude:
   - .git
   - .git/**
+  - .github/workflows/ci.yml
   - AGENTS.md
   - CLAUDE.md
   - openspec
@@ -20,6 +21,7 @@ _message_before_update: |-
 _tasks:
   - command: >-
       bash ./scripts/bootstrap/copier-post-copy.sh
+      "{{ _src_path }}"
       "{{ project_name }}"
       "{{ project_slug }}"
       "{{ preferred_adapter }}"
@@ -30,6 +32,7 @@ _tasks:
     when: "{{ _copier_operation == 'copy' }}"
   - command: >-
       bash ./scripts/bootstrap/copier-post-update.sh
+      "{{ _src_path }}"
       "{{ 'yes' if init_beads else 'no' }}"
     when: "{{ _copier_operation == 'update' }}"
 

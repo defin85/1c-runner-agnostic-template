@@ -7,13 +7,14 @@ source "$SCRIPT_DIR/../lib/common.sh"
 # shellcheck source=./agents-overlay.sh
 source "$SCRIPT_DIR/agents-overlay.sh"
 
-project_name="${1:-}"
-project_slug="${2:-}"
-preferred_adapter="${3:-direct-platform}"
-openspec_tools="${4:-none}"
-init_git_repository="${5:-yes}"
-init_beads="${6:-yes}"
-beads_prefix="${7:-}"
+template_src_path="${1:-}"
+project_name="${2:-}"
+project_slug="${3:-}"
+preferred_adapter="${4:-direct-platform}"
+openspec_tools="${5:-none}"
+init_git_repository="${6:-yes}"
+init_beads="${7:-yes}"
+beads_prefix="${8:-}"
 
 root="$(project_root)"
 
@@ -28,6 +29,7 @@ log "project_slug=$project_slug"
 log "preferred_adapter=$preferred_adapter"
 
 require_command openspec
+require_command install
 
 if [ "$init_beads" = "yes" ]; then
   require_command bd
@@ -76,4 +78,12 @@ fi
 
 if [ "${DRY_RUN:-0}" != "1" ]; then
   append_project_agents_overlay "$root/AGENTS.md" "$init_beads"
+fi
+
+if [ -z "$template_src_path" ] || [ ! -f "$template_src_path/.github/workflows/ci.yml" ]; then
+  die "template source path does not contain .github/workflows/ci.yml"
+fi
+
+if [ "${DRY_RUN:-0}" != "1" ]; then
+  install -D -m 0644 "$template_src_path/.github/workflows/ci.yml" "$root/.github/workflows/ci.yml"
 fi
