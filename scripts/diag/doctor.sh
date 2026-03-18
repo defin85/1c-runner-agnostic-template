@@ -62,6 +62,12 @@ profile_field_status() {
     platform.xvfb.serverArgs)
       [ "$(profile_string '(.platform.xvfb.serverArgs // null) | if . == null then "null" else type end')" = "array" ] && printf 'present\n' || printf 'missing\n'
       ;;
+    platform.ldPreload.enabled)
+      [ "$(profile_string '(.platform.ldPreload.enabled // null) | if . == null then "null" else type end')" = "boolean" ] && printf 'present\n' || printf 'missing\n'
+      ;;
+    platform.ldPreload.libraries)
+      [ "$(profile_string '(.platform.ldPreload.libraries // null) | if . == null then "null" else type end')" = "array" ] && printf 'present\n' || printf 'missing\n'
+      ;;
     infobase.mode)
       profile_has_nonnull '.infobase.mode' && printf 'present\n' || printf 'missing\n'
       ;;

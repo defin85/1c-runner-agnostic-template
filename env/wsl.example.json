@@ -3,15 +3,20 @@
   "profileName": "wsl",
   "projectName": "{{ project_name }}",
   "projectSlug": "{{ project_slug }}",
-  "description": "Linux/WSL-first profile for direct platform execution with Xvfb GUI isolation",
+  "description": "Linux/WSL-first profile for direct platform execution with Xvfb GUI isolation and LD_PRELOAD linker compatibility contour",
   "notes": [
     "Этот preset показывает canonical standalone-server contour для ibcmd, но core capabilities по умолчанию остаются на designer.",
-    "Если проекту нужен ibcmd на WSL/Linux, переключайте driver на нужной capability явно."
+    "Если проекту нужен ibcmd на WSL/Linux, переключайте driver на нужной capability явно.",
+    "Для Arch/WSL этот preset также показывает repo-owned LD_PRELOAD contour для локального запуска 1С через direct-platform."
   ],
   "runnerAdapter": "direct-platform",
   "platform": {
     "binaryPath": "/opt/1cv8/x86_64/8.3.27.1859/1cv8",
     "ibcmdPath": "/opt/1cv8/x86_64/8.3.27.1859/ibcmd",
+    "ldPreload": {
+      "enabled": true,
+      "libraries": ["/usr/lib/libstdc++.so.6", "/usr/lib/libgcc_s.so.1"]
+    },
     "xvfb": {
       "enabled": true,
       "serverArgs": ["-screen", "0", "1440x900x24", "-noreset"]

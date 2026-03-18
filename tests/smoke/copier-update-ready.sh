@@ -153,6 +153,7 @@ assert_exists "$rendered_root/scripts/template/migrate-runtime-profile-v2.sh"
 assert_exists "$rendered_root/tests/smoke/runtime-capability-contract.sh"
 assert_exists "$rendered_root/tests/smoke/runtime-doctor-contract.sh"
 assert_exists "$rendered_root/tests/smoke/runtime-direct-platform-xvfb-contract.sh"
+assert_exists "$rendered_root/tests/smoke/runtime-direct-platform-ld-preload-contract.sh"
 assert_exists "$rendered_root/tests/smoke/runtime-ibcmd-capability-contract.sh"
 assert_exists "$rendered_root/tests/smoke/runtime-ibcmd-doctor-contract.sh"
 assert_exists "$rendered_root/tests/smoke/runtime-ibcmd-validation-contract.sh"
@@ -179,14 +180,16 @@ assert_contains "$rendered_root/.github/workflows/ci.yml" "openspec validate --a
 assert_contains "$rendered_root/.github/workflows/ci.yml" "apt-get install -y ripgrep"
 assert_contains "$rendered_root/.github/workflows/ci.yml" "runtime-gate:"
 assert_contains "$rendered_root/.github/workflows/ci.yml" "needs.runtime-gate.outputs.ci_profile_present == 'true'"
+assert_contains "$rendered_root/.github/workflows/ci.yml" "runtime-direct-platform-ld-preload-contract.sh"
 assert_contains "$rendered_root/env/local.example.json" "\"driver\": \"ibcmd\""
 assert_jq "$rendered_root/env/local.example.json" '.runnerAdapter == "direct-platform" and .ibcmd.runtimeMode == "file-infobase" and .ibcmd.serverAccess.mode == "data-dir" and .capabilities.loadSrc.driver == "ibcmd"' "local-example-driver"
 assert_jq "$rendered_root/env/ci.example.json" '.runnerAdapter == "direct-platform" and .ibcmd.runtimeMode == "dbms-infobase" and .ibcmd.dbmsInfobase.kind == "PostgreSQL" and .capabilities.loadSrc.driver == "designer"' "ci-example-driver"
-assert_jq "$rendered_root/env/wsl.example.json" '.runnerAdapter == "direct-platform" and .ibcmd.runtimeMode == "standalone-server" and .platform.xvfb.enabled == true and .platform.xvfb.serverArgs == ["-screen","0","1440x900x24","-noreset"] and .capabilities.loadSrc.driver == "designer"' "wsl-example-driver"
+assert_jq "$rendered_root/env/wsl.example.json" '.runnerAdapter == "direct-platform" and .ibcmd.runtimeMode == "standalone-server" and .platform.xvfb.enabled == true and .platform.xvfb.serverArgs == ["-screen","0","1440x900x24","-noreset"] and .platform.ldPreload.enabled == true and .platform.ldPreload.libraries == ["/usr/lib/libstdc++.so.6","/usr/lib/libgcc_s.so.1"] and .capabilities.loadSrc.driver == "designer"' "wsl-example-driver"
 assert_jq "$rendered_root/env/windows-executor.example.json" '.runnerAdapter == "remote-windows" and .capabilities.loadSrc.driver == "designer"' "windows-example-driver"
 assert_contains "$rendered_root/README.md" "partial import"
 assert_contains "$rendered_root/env/README.md" "driver=ibcmd"
 assert_contains "$rendered_root/env/README.md" "xvfb-run"
+assert_contains "$rendered_root/env/README.md" "LD_PRELOAD"
 
 assert_count "$command_log" "openspec init --tools none" "1"
 assert_count "$command_log" "bd init --stealth -p smoke-project" "1"
@@ -238,6 +241,7 @@ assert_exists "$rendered_root/tests/smoke/runtime-ibcmd-capability-contract.sh"
 assert_exists "$rendered_root/tests/smoke/runtime-ibcmd-doctor-contract.sh"
 assert_exists "$rendered_root/tests/smoke/runtime-ibcmd-validation-contract.sh"
 assert_exists "$rendered_root/tests/smoke/runtime-direct-platform-xvfb-contract.sh"
+assert_exists "$rendered_root/tests/smoke/runtime-direct-platform-ld-preload-contract.sh"
 assert_not_exists "$rendered_root/PROJECT_RULES.md"
 assert_not_exists "$rendered_root/openspec"
 assert_not_exists "$rendered_root/CLAUDE.md"
@@ -249,6 +253,7 @@ assert_contains "$rendered_root/.github/workflows/ci.yml" "openspec validate --a
 assert_contains "$rendered_root/.github/workflows/ci.yml" "apt-get install -y ripgrep"
 assert_contains "$rendered_root/.github/workflows/ci.yml" "runtime-gate:"
 assert_contains "$rendered_root/.github/workflows/ci.yml" "needs.runtime-gate.outputs.ci_profile_present == 'true'"
+assert_contains "$rendered_root/.github/workflows/ci.yml" "runtime-direct-platform-ld-preload-contract.sh"
 assert_contains "$rendered_root/env/local.example.json" "\"driver\": \"ibcmd\""
 assert_count "$command_log" "openspec init --tools none" "1"
 assert_count "$command_log" "bd init --stealth -p smoke-project" "1"
@@ -287,6 +292,7 @@ cat >"$runtime_fake_wsl_designer" <<'EOF'
 set -euo pipefail
 
 printf 'fake-wsl-1cv8\n'
+printf 'ld-preload=%s\n' "${LD_PRELOAD:-}"
 for arg in "$@"; do
   printf '%s\n' "$arg"
 done
@@ -393,6 +399,8 @@ jq \
 
 assert_jq "$runtime_wsl_doctor_run/summary.json" '.status == "success"' "runtime-wsl-doctor-status"
 assert_jq "$runtime_wsl_doctor_run/summary.json" '.adapter_context.wrapper == "xvfb-run"' "runtime-wsl-doctor-wrapper"
+assert_jq "$runtime_wsl_doctor_run/summary.json" '.adapter_context.ld_preload.enabled == true' "runtime-wsl-doctor-ldpreload"
+assert_jq "$runtime_wsl_doctor_run/summary.json" '.adapter_context.ld_preload.libraries == ["/usr/lib/libstdc++.so.6","/usr/lib/libgcc_s.so.1"]' "runtime-wsl-doctor-ldpreload-libraries"
 assert_jq "$runtime_wsl_doctor_run/summary.json" '[.checks.required_tools[] | select(.name == "xvfb-run" and .status == "present")] | length == 1' "runtime-wsl-doctor-xvfb"
 assert_jq "$runtime_wsl_doctor_run/summary.json" '[.checks.required_tools[] | select(.name == "xauth" and .status == "present")] | length == 1' "runtime-wsl-doctor-xauth"
 
@@ -403,5 +411,7 @@ assert_jq "$runtime_wsl_doctor_run/summary.json" '[.checks.required_tools[] | se
 
 assert_jq "$runtime_wsl_create_run/summary.json" '.status == "success"' "runtime-wsl-create-status"
 assert_jq "$runtime_wsl_create_run/summary.json" '.adapter_context.wrapper == "xvfb-run"' "runtime-wsl-create-wrapper"
+assert_jq "$runtime_wsl_create_run/summary.json" '.adapter_context.ld_preload.enabled == true' "runtime-wsl-create-ldpreload"
 assert_contains "$runtime_wsl_create_run/stdout.log" "fake-xvfb-run"
 assert_contains "$runtime_wsl_create_run/stdout.log" "fake-wsl-1cv8"
+assert_contains "$runtime_wsl_create_run/stdout.log" "ld-preload=/usr/lib/libstdc++.so.6:/usr/lib/libgcc_s.so.1"

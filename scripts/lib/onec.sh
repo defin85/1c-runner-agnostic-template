@@ -97,6 +97,26 @@ direct_platform_xvfb_enabled() {
   [ "$enabled_value" = "true" ]
 }
 
+direct_platform_ld_preload_enabled() {
+  local enabled_type=""
+  local enabled_value=""
+
+  enabled_type="$(profile_string '(.platform.ldPreload.enabled // null) | if . == null then "null" else type end')"
+  case "$enabled_type" in
+    null)
+      return 1
+      ;;
+    boolean)
+      ;;
+    *)
+      die "runtime profile field must be a boolean: .platform.ldPreload.enabled"
+      ;;
+  esac
+
+  enabled_value="$(profile_string '.platform.ldPreload.enabled // false')"
+  [ "$enabled_value" = "true" ]
+}
+
 load_direct_platform_xvfb_server_args() {
   local array_name="$1"
   local server_args_type=""
@@ -113,6 +133,24 @@ load_direct_platform_xvfb_server_args() {
   fi
 
   profile_array_to_named_array '.platform.xvfb.serverArgs' "$array_name"
+}
+
+load_direct_platform_ld_preload_libraries() {
+  local array_name="$1"
+  local libraries_type=""
+  local -n out_ref="$array_name"
+
+  out_ref=()
+  if ! direct_platform_ld_preload_enabled; then
+    return 0
+  fi
+
+  libraries_type="$(profile_string '(.platform.ldPreload.libraries // null) | if . == null then "null" else type end')"
+  if [ "$libraries_type" != "array" ]; then
+    die "runtime profile field must be an array: .platform.ldPreload.libraries"
+  fi
+
+  profile_array_to_named_array '.platform.ldPreload.libraries' "$array_name"
 }
 
 build_json_array_from_named_array() {
@@ -147,6 +185,24 @@ join_named_array_with_spaces() {
   printf '%s\n' "$result"
 }
 
+join_named_array_with_colons() {
+  local array_name="$1"
+  local result=""
+  local value=""
+  local first=1
+  local -n array_ref="$array_name"
+
+  for value in "${array_ref[@]}"; do
+    if [ "$first" -eq 0 ]; then
+      result+=":"
+    fi
+    result+="$value"
+    first=0
+  done
+
+  printf '%s\n' "$result"
+}
+
 direct_platform_xvfb_wrapper_selected_for_command() {
   local adapter="$1"
   local command_path="${2:-}"
@@ -160,6 +216,36 @@ direct_platform_xvfb_wrapper_selected_for_command() {
   fi
 
   command_targets_local_platform_gui "$command_path"
+}
+
+direct_platform_ld_preload_selected_for_command() {
+  local adapter="$1"
+  local command_path="${2:-}"
+
+  if [ "$adapter" != "direct-platform" ]; then
+    return 1
+  fi
+
+  if ! direct_platform_ld_preload_enabled; then
+    return 1
+  fi
+
+  command_targets_local_platform_gui "$command_path"
+}
+
+direct_platform_adapter_contour_selected_for_command() {
+  local adapter="$1"
+  local command_path="${2:-}"
+
+  if direct_platform_xvfb_wrapper_selected_for_command "$adapter" "$command_path"; then
+    return 0
+  fi
+
+  if direct_platform_ld_preload_selected_for_command "$adapter" "$command_path"; then
+    return 0
+  fi
+
+  return 1
 }
 
 direct_platform_xvfb_failure_reason_for_command_path() {
@@ -184,32 +270,108 @@ direct_platform_xvfb_failure_reason_for_command_path() {
   printf '\n'
 }
 
+direct_platform_ld_preload_failure_reason_for_command_path() {
+  local adapter="$1"
+  local command_path="${2:-}"
+  local library_path=""
+  local -a libraries=()
+
+  if ! direct_platform_ld_preload_selected_for_command "$adapter" "$command_path"; then
+    printf '\n'
+    return 0
+  fi
+
+  load_direct_platform_ld_preload_libraries libraries
+  set -- "${libraries[@]}"
+  if [ "$#" -eq 0 ]; then
+    printf 'platform.ldPreload.libraries must not be empty for direct-platform ld-preload contour\n'
+    return 0
+  fi
+
+  for library_path in "${libraries[@]}"; do
+    case "$library_path" in
+      /*)
+        ;;
+      *)
+        printf 'direct-platform ld-preload library path must be absolute: %s\n' "$library_path"
+        return 0
+        ;;
+    esac
+
+    if [ ! -e "$library_path" ]; then
+      printf 'missing direct-platform ld-preload library: %s\n' "$library_path"
+      return 0
+    fi
+  done
+
+  printf '\n'
+}
+
+direct_platform_adapter_failure_reason_for_command_path() {
+  local adapter="$1"
+  local command_path="${2:-}"
+  local reason=""
+
+  reason="$(direct_platform_xvfb_failure_reason_for_command_path "$adapter" "$command_path")"
+  if [ -n "$reason" ]; then
+    printf '%s\n' "$reason"
+    return 0
+  fi
+
+  reason="$(direct_platform_ld_preload_failure_reason_for_command_path "$adapter" "$command_path")"
+  printf '%s\n' "$reason"
+}
+
 build_direct_platform_adapter_context_json() {
   local -a server_args=()
+  local -a libraries=()
   local server_args_json="[]"
+  local libraries_json="[]"
+  local has_xvfb=false
+  local has_ld_preload=false
 
   if [ "${RUNTIME_PROFILE_RUNNER_ADAPTER:-}" != "direct-platform" ]; then
     printf '{}\n'
     return 0
   fi
 
-  if ! direct_platform_xvfb_enabled; then
+  if direct_platform_xvfb_enabled; then
+    has_xvfb=true
+    load_direct_platform_xvfb_server_args server_args
+    server_args_json="$(build_json_array_from_named_array server_args)"
+  fi
+
+  if direct_platform_ld_preload_enabled; then
+    has_ld_preload=true
+    load_direct_platform_ld_preload_libraries libraries
+    libraries_json="$(build_json_array_from_named_array libraries)"
+  fi
+
+  if [ "$has_xvfb" = false ] && [ "$has_ld_preload" = false ]; then
     printf '{}\n'
     return 0
   fi
 
-  load_direct_platform_xvfb_server_args server_args
-  server_args_json="$(build_json_array_from_named_array server_args)"
   jq -cn \
+    --argjson has_xvfb "$has_xvfb" \
+    --argjson has_ld_preload "$has_ld_preload" \
     --argjson server_args "$server_args_json" \
+    --argjson libraries "$libraries_json" \
     '{
-      adapter_context: {
-        wrapper: "xvfb-run",
-        xvfb: {
-          enabled: true,
-          server_args: $server_args
-        }
-      }
+      adapter_context:
+        ((if $has_xvfb then {
+          wrapper: "xvfb-run",
+          xvfb: {
+            enabled: true,
+            server_args: $server_args
+          }
+        } else {} end)
+        + (if $has_ld_preload then {
+          ld_preload: {
+            enabled: true,
+            libraries: $libraries
+          }
+        } else {} end))
     }'
 }
 
@@ -217,7 +379,7 @@ build_capability_adapter_context_json() {
   local adapter="$1"
   local command_path="${2:-}"
 
-  if ! direct_platform_xvfb_wrapper_selected_for_command "$adapter" "$command_path"; then
+  if ! direct_platform_adapter_contour_selected_for_command "$adapter" "$command_path"; then
     printf '{}\n'
     return 0
   fi
@@ -248,7 +410,7 @@ build_doctor_context_json() {
   local adapter_json="{}"
 
   base_json="$(build_redacted_context_json)"
-  if [ "$adapter" = "direct-platform" ] && direct_platform_xvfb_enabled; then
+  if [ "$adapter" = "direct-platform" ] && { direct_platform_xvfb_enabled || direct_platform_ld_preload_enabled; }; then
     adapter_json="$(build_direct_platform_adapter_context_json)"
   fi
 
@@ -268,7 +430,7 @@ profile_command_uses_direct_platform_wrapper() {
     return 1
   fi
 
-  direct_platform_xvfb_wrapper_selected_for_command "$adapter" "${command_ref[0]}"
+  direct_platform_adapter_contour_selected_for_command "$adapter" "${command_ref[0]}"
 }
 
 doctor_requires_direct_platform_xvfb_tools() {
@@ -890,6 +1052,13 @@ collect_direct_platform_xvfb_required_profile_fields() {
   append_unique_field "$array_name" platform.xvfb.serverArgs
 }
 
+collect_direct_platform_ld_preload_required_profile_fields() {
+  local array_name="$1"
+
+  append_unique_field "$array_name" platform.ldPreload.enabled
+  append_unique_field "$array_name" platform.ldPreload.libraries
+}
+
 collect_required_profile_fields() {
   local adapter="$1"
   local array_name="$2"
@@ -926,6 +1095,10 @@ collect_required_profile_fields() {
   if [ "$adapter" = "direct-platform" ] && direct_platform_xvfb_enabled; then
     collect_direct_platform_xvfb_required_profile_fields out_ref
   fi
+
+  if [ "$adapter" = "direct-platform" ] && direct_platform_ld_preload_enabled; then
+    collect_direct_platform_ld_preload_required_profile_fields out_ref
+  fi
 }
 
 doctor_capability_failure_reason() {
@@ -947,7 +1120,7 @@ doctor_capability_failure_reason() {
       return 0
     fi
 
-    command_reason="$(direct_platform_xvfb_failure_reason_for_command_path "$adapter" "${profile_command[0]}")"
+    command_reason="$(direct_platform_adapter_failure_reason_for_command_path "$adapter" "${profile_command[0]}")"
     printf '%s\n' "$command_reason"
     return 0
   fi
@@ -1020,7 +1193,7 @@ doctor_capability_failure_reason() {
               ;;
           esac
 
-          command_reason="$(direct_platform_xvfb_failure_reason_for_command_path "$adapter" "$binary_path")"
+          command_reason="$(direct_platform_adapter_failure_reason_for_command_path "$adapter" "$binary_path")"
           if [ -n "$command_reason" ]; then
             printf '%s\n' "$command_reason"
             return 0
@@ -1045,7 +1218,7 @@ doctor_capability_failure_reason() {
           return 0
         fi
 
-        command_reason="$(direct_platform_xvfb_failure_reason_for_command_path "$adapter" "${profile_command[0]}")"
+        command_reason="$(direct_platform_adapter_failure_reason_for_command_path "$adapter" "${profile_command[0]}")"
         printf '%s\n' "$command_reason"
         return 0
       fi
@@ -1063,7 +1236,7 @@ doctor_capability_failure_reason() {
         return 0
       fi
 
-      command_reason="$(direct_platform_xvfb_failure_reason_for_command_path "$adapter" "${profile_command[0]}")"
+      command_reason="$(direct_platform_adapter_failure_reason_for_command_path "$adapter" "${profile_command[0]}")"
       printf '%s\n' "$command_reason"
       return 0
       ;;
@@ -1141,15 +1314,26 @@ prepare_adapter_wrapper_env() {
   local array_name="$2"
   local server_args_string=""
   local -a server_args=()
+  local ld_preload_string=""
+  local -a ld_preload_libraries=()
   local -n out_ref="$array_name"
 
   out_ref=()
-  if [ "$adapter" != "direct-platform" ] || ! direct_platform_xvfb_enabled; then
+  if [ "$adapter" != "direct-platform" ]; then
     return 0
   fi
 
-  load_direct_platform_xvfb_server_args server_args
-  server_args_string="$(join_named_array_with_spaces server_args)"
-  out_ref+=("ONEC_DIRECT_PLATFORM_XVFB_ENABLED=1")
-  out_ref+=("ONEC_DIRECT_PLATFORM_XVFB_SERVER_ARGS=$server_args_string")
+  if direct_platform_xvfb_enabled; then
+    load_direct_platform_xvfb_server_args server_args
+    server_args_string="$(join_named_array_with_spaces server_args)"
+    out_ref+=("ONEC_DIRECT_PLATFORM_XVFB_ENABLED=1")
+    out_ref+=("ONEC_DIRECT_PLATFORM_XVFB_SERVER_ARGS=$server_args_string")
+  fi
+
+  if direct_platform_ld_preload_enabled; then
+    load_direct_platform_ld_preload_libraries ld_preload_libraries
+    ld_preload_string="$(join_named_array_with_colons ld_preload_libraries)"
+    out_ref+=("ONEC_DIRECT_PLATFORM_LD_PRELOAD_ENABLED=1")
+    out_ref+=("ONEC_DIRECT_PLATFORM_LD_PRELOAD=$ld_preload_string")
+  fi
 }

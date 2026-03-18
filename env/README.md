@@ -70,6 +70,20 @@ Versioned файлы `*.example.json` являются source of truth для ф
 - применяется к standard-builder launches и к `command`-массивам, если basename исполняемого файла это `1cv8` или `1cv8c`;
 - не меняет default behavior, если блок `platform.xvfb` отсутствует или выключен.
 
+Дополнительные поля для WSL/Arch Linux linker compatibility contour:
+
+- `platform.ldPreload.enabled`
+- `platform.ldPreload.libraries`
+
+Этот contour тоже является opt-in:
+
+- включается только при `runnerAdapter=direct-platform`;
+- применяется к standard-builder launches и к `command`-массивам, если basename исполняемого файла это `1cv8` или `1cv8c`;
+- launcher сам собирает `LD_PRELOAD` из массива `libraries`, а не требует raw shell prefix;
+- каждая запись должна быть абсолютным путём к локальной библиотеке;
+- contour fail-closed завершается в `doctor` и runtime execution, если библиотека отсутствует или путь невалиден;
+- не меняет default behavior, если блок `platform.ldPreload` отсутствует или выключен.
+
 ## Secrets
 
 Секреты не хранятся в versioned JSON.
@@ -111,6 +125,8 @@ export ONEC_IB_PASSWORD='...'
 
 Если direct-platform contour запускается через `Xvfb`, capability `summary.json` и `doctor` summary добавляют structured `adapter_context` с выбранным wrapper и redacted `serverArgs`.
 
+Если direct-platform contour запускается через structured `LD_PRELOAD`, capability `summary.json` и `doctor` summary добавляют `adapter_context.ld_preload` с redacted массивом library paths. В summary не должен появляться сырой shell prefix вида `env LD_PRELOAD=... ./scripts/...`.
+
 ## Capabilities Block
 
 В `schemaVersion: 2` есть два пути конфигурации capability:
@@ -137,6 +153,8 @@ export ONEC_IB_PASSWORD='...'
 `diffSrc.command` тоже можно задать явно, но по умолчанию script использует `git diff -- ./src`.
 
 Если `platform.xvfb.enabled=true`, direct-platform adapter автоматически оборачивает только те `command`-массивы, где первый элемент указывает на локальный `1cv8` или `1cv8c`. Для `bash -lc ...` и других non-1C executables wrapper не включается.
+
+Если `platform.ldPreload.enabled=true`, direct-platform adapter применяет тот же scope: contour касается только локальных `1cv8`/`1cv8c`, а не `bash`, `git` или других non-1C executables.
 
 ## Ibcmd Runtime Modes
 
@@ -178,14 +196,18 @@ Partial import поддерживается для `load-src` с `driver=ibcmd` 
 - Если целевая БД обычно принадлежит cluster-managed topology, template не считает такой contour автоматически безопасным.
 - Ответственность за operational isolation и корректную подготовку БД лежит на операторе проекта.
 
-## WSL / Linux Xvfb Contour
+## WSL / Linux Direct-Platform Contours
 
 `env/wsl.example.json` является canonical preset для isolated GUI launches:
 
 - `runnerAdapter=direct-platform`
+- `platform.ldPreload.enabled=true`
+- `platform.ldPreload.libraries=["/usr/lib/libstdc++.so.6","/usr/lib/libgcc_s.so.1"]`
 - `platform.xvfb.enabled=true`
 - `platform.xvfb.serverArgs=["-screen","0","1440x900x24","-noreset"]`
 - core capabilities остаются на `designer`
+
+Для Arch/WSL этот preset также показывает repo-owned linker compatibility contour. На других Linux-дистрибутивах absolute library paths могут отличаться, поэтому локальный профиль может потребовать ручной правки.
 
 Типовой запуск:
 

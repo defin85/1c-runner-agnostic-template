@@ -11,7 +11,11 @@ profile_path="$tmpdir/doctor-profile.json"
 run_root="$tmpdir/doctor-run"
 command_override_profile_path="$tmpdir/doctor-command-profile.json"
 command_override_run_root="$tmpdir/doctor-command-run"
+ld_preload_profile_path="$tmpdir/doctor-ld-preload-profile.json"
+ld_preload_run_root="$tmpdir/doctor-ld-preload-run"
 fake_binary="$tmpdir/fake-1cv8"
+fake_libstdcpp="$tmpdir/libstdc++.so.6"
+fake_libgcc="$tmpdir/libgcc_s.so.1"
 
 cat >"$fake_binary" <<'EOF'
 #!/usr/bin/env bash
@@ -20,6 +24,8 @@ exit 0
 EOF
 
 chmod +x "$fake_binary"
+: >"$fake_libstdcpp"
+: >"$fake_libgcc"
 
 cat >"$profile_path" <<EOF
 {
@@ -144,3 +150,57 @@ assert_jq "$command_override_run_root/summary.json" '.capability_drivers["create
 assert_jq "$command_override_run_root/summary.json" '.capability_drivers["create-ib"].driver == null' "doctor-command-create-driver"
 assert_jq "$command_override_run_root/summary.json" '.capability_drivers["load-src"].source == "profile-command"' "doctor-command-load-source"
 assert_jq "$command_override_run_root/summary.json" '.capability_drivers["load-src"].driver == null' "doctor-command-load-driver"
+
+cat >"$ld_preload_profile_path" <<EOF
+{
+  "schemaVersion": 2,
+  "profileName": "doctor-ld-preload-fixture",
+  "runnerAdapter": "direct-platform",
+  "platform": {
+    "binaryPath": "$fake_binary",
+    "ldPreload": {
+      "enabled": true,
+      "libraries": ["$fake_libstdcpp", "$fake_libgcc"]
+    }
+  },
+  "infobase": {
+    "mode": "file",
+    "filePath": "/var/tmp/doctor-ld-preload-fixture",
+    "auth": {
+      "mode": "os",
+      "user": null,
+      "passwordEnv": null
+    }
+  },
+  "capabilities": {
+    "xunit": {
+      "command": ["$fake_binary", "ENTERPRISE", "/F", "/tmp/doctor-ld-preload-fixture"]
+    },
+    "bdd": {
+      "command": ["bash", "-lc", "printf 'bdd-ok\\\\n'"]
+    },
+    "smoke": {
+      "command": ["bash", "-lc", "printf 'smoke-ok\\\\n'"]
+    }
+  }
+}
+EOF
+
+(
+  cd "$SOURCE_ROOT"
+  ./scripts/diag/doctor.sh --profile "$ld_preload_profile_path" --run-root "$ld_preload_run_root" >/dev/null
+)
+
+assert_jq "$ld_preload_run_root/summary.json" '.status == "success"' "doctor-ld-preload-status"
+assert_jq "$ld_preload_run_root/summary.json" '.adapter_context.ld_preload.enabled == true' "doctor-ld-preload-enabled"
+assert_jq "$ld_preload_run_root/summary.json" '.adapter_context.ld_preload.libraries == $ARGS.positional' "doctor-ld-preload-libraries" \
+  --args "$fake_libstdcpp" "$fake_libgcc"
+assert_jq "$ld_preload_run_root/summary.json" '[.checks.required_profile_fields[] | select(.name == "platform.ldPreload.enabled" and .status == "present")] | length == 1' "doctor-ld-preload-required-enabled"
+assert_jq "$ld_preload_run_root/summary.json" '[.checks.required_profile_fields[] | select(.name == "platform.ldPreload.libraries" and .status == "present")] | length == 1' "doctor-ld-preload-required-libraries"
+assert_jq "$ld_preload_run_root/summary.json" '[.checks.required_capabilities[] | select(.name == "run-xunit" and .status == "present")] | length == 1' "doctor-ld-preload-capability"
+
+if grep -Fq -- "LD_PRELOAD=" "$ld_preload_run_root/summary.json"; then
+  printf 'doctor summary.json must not contain raw LD_PRELOAD prefixes\n' >&2
+  cat "$ld_preload_run_root/summary.json" >&2
+  exit 1
+fi
