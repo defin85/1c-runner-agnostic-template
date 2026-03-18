@@ -9,6 +9,8 @@ trap 'rm -rf "$tmpdir"' EXIT
 
 profile_path="$tmpdir/doctor-ibcmd-profile.json"
 run_root="$tmpdir/doctor-ibcmd-run"
+invalid_profile_path="$tmpdir/doctor-ibcmd-invalid-profile.json"
+invalid_run_root="$tmpdir/doctor-ibcmd-invalid-run"
 fake_designer="$tmpdir/fake-1cv8"
 fake_ibcmd="$tmpdir/fake-ibcmd"
 
@@ -123,3 +125,64 @@ if grep -Fq -- "doctor-ibcmd-secret" "$run_root/summary.json"; then
   cat "$run_root/summary.json" >&2
   exit 1
 fi
+
+cat >"$invalid_profile_path" <<EOF
+{
+  "schemaVersion": 2,
+  "profileName": "doctor-ibcmd-invalid-fixture",
+  "runnerAdapter": "direct-platform",
+  "platform": {
+    "binaryPath": "$fake_designer",
+    "ibcmdPath": "$fake_ibcmd"
+  },
+  "infobase": {
+    "mode": "file",
+    "filePath": "/var/tmp/doctor-ibcmd-invalid-fixture",
+    "auth": {
+      "mode": "os",
+      "user": null,
+      "passwordEnv": null
+    }
+  },
+  "ibcmd": {
+    "connectionMode": "data-dir",
+    "databasePath": "$tmpdir/standalone/db-data",
+    "auth": {
+      "user": "doctor-ibcmd-user",
+      "passwordEnv": "ONEC_IBCMD_PASSWORD"
+    }
+  },
+  "capabilities": {
+    "dumpSrc": {
+      "driver": "ibcmd"
+    },
+    "xunit": {
+      "command": ["bash", "-lc", "printf 'xunit-ok\\\\n'"]
+    },
+    "bdd": {
+      "command": ["bash", "-lc", "printf 'bdd-ok\\\\n'"]
+    },
+    "smoke": {
+      "command": ["bash", "-lc", "printf 'smoke-ok\\\\n'"]
+    }
+  }
+}
+EOF
+
+set +e
+(
+  cd "$SOURCE_ROOT"
+  ./scripts/diag/doctor.sh --profile "$invalid_profile_path" --run-root "$invalid_run_root" >/dev/null
+)
+status=$?
+set -e
+
+if [ "$status" -eq 0 ]; then
+  printf 'doctor unexpectedly succeeded for invalid ibcmd profile\n' >&2
+  exit 1
+fi
+
+assert_jq "$invalid_run_root/summary.json" '.status == "failed"' "doctor-invalid-status"
+assert_jq "$invalid_run_root/summary.json" '[.checks.required_capabilities[] | select(.name == "dump-src" and .status == "missing" and .reason == "missing ibcmd.dataDir")] | length == 1' "doctor-invalid-dump-reason"
+assert_jq "$invalid_run_root/summary.json" '.capability_drivers["dump-src"].status == "missing"' "doctor-invalid-driver-status"
+assert_jq "$invalid_run_root/summary.json" '.capability_drivers["dump-src"].reason == "missing ibcmd.dataDir"' "doctor-invalid-driver-reason"

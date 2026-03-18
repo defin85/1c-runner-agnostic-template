@@ -255,6 +255,161 @@ run_expect_failure \
   ./scripts/platform/dump-src.sh --profile "$profile_missing_ibcmd_path"
 assert_stderr_contains "$stderr_missing_ibcmd_path" "platform.ibcmdPath"
 
+profile_missing_ibcmd_data_dir="$tmpdir/profile-missing-ibcmd-data-dir.json"
+cat >"$profile_missing_ibcmd_data_dir" <<EOF
+{
+  "schemaVersion": 2,
+  "profileName": "missing-ibcmd-data-dir",
+  "runnerAdapter": "direct-platform",
+  "platform": {
+    "binaryPath": "$fake_designer",
+    "ibcmdPath": "$fake_ibcmd"
+  },
+  "infobase": {
+    "mode": "file",
+    "filePath": "/var/tmp/missing-ibcmd-data-dir",
+    "auth": {
+      "mode": "os",
+      "user": null,
+      "passwordEnv": null
+    }
+  },
+  "ibcmd": {
+    "connectionMode": "data-dir",
+    "databasePath": "$tmpdir/standalone/db-data",
+    "auth": {
+      "user": "ibcmd-user",
+      "passwordEnv": "ONEC_IBCMD_PASSWORD"
+    }
+  },
+  "capabilities": {
+    "dumpSrc": {
+      "driver": "ibcmd"
+    },
+    "xunit": {
+      "command": ["bash", "-lc", "printf 'xunit-ok\\\\n'"]
+    },
+    "bdd": {
+      "command": ["bash", "-lc", "printf 'bdd-ok\\\\n'"]
+    },
+    "smoke": {
+      "command": ["bash", "-lc", "printf 'smoke-ok\\\\n'"]
+    }
+  }
+}
+EOF
+
+stderr_missing_ibcmd_data_dir="$tmpdir/missing-ibcmd-data-dir.stderr"
+run_expect_failure \
+  "$profile_missing_ibcmd_data_dir" \
+  "$stderr_missing_ibcmd_data_dir" \
+  ./scripts/platform/dump-src.sh --profile "$profile_missing_ibcmd_data_dir"
+assert_stderr_contains "$stderr_missing_ibcmd_data_dir" "ibcmd.dataDir"
+
+profile_missing_ibcmd_auth_user="$tmpdir/profile-missing-ibcmd-auth-user.json"
+cat >"$profile_missing_ibcmd_auth_user" <<EOF
+{
+  "schemaVersion": 2,
+  "profileName": "missing-ibcmd-auth-user",
+  "runnerAdapter": "direct-platform",
+  "platform": {
+    "binaryPath": "$fake_designer",
+    "ibcmdPath": "$fake_ibcmd"
+  },
+  "infobase": {
+    "mode": "file",
+    "filePath": "/var/tmp/missing-ibcmd-auth-user",
+    "auth": {
+      "mode": "os",
+      "user": null,
+      "passwordEnv": null
+    }
+  },
+  "ibcmd": {
+    "connectionMode": "data-dir",
+    "dataDir": "$tmpdir/standalone",
+    "databasePath": "$tmpdir/standalone/db-data",
+    "auth": {
+      "user": null,
+      "passwordEnv": "ONEC_IBCMD_PASSWORD"
+    }
+  },
+  "capabilities": {
+    "dumpSrc": {
+      "driver": "ibcmd"
+    },
+    "xunit": {
+      "command": ["bash", "-lc", "printf 'xunit-ok\\\\n'"]
+    },
+    "bdd": {
+      "command": ["bash", "-lc", "printf 'bdd-ok\\\\n'"]
+    },
+    "smoke": {
+      "command": ["bash", "-lc", "printf 'smoke-ok\\\\n'"]
+    }
+  }
+}
+EOF
+
+stderr_missing_ibcmd_auth_user="$tmpdir/missing-ibcmd-auth-user.stderr"
+run_expect_failure \
+  "$profile_missing_ibcmd_auth_user" \
+  "$stderr_missing_ibcmd_auth_user" \
+  ./scripts/platform/dump-src.sh --profile "$profile_missing_ibcmd_auth_user"
+assert_stderr_contains "$stderr_missing_ibcmd_auth_user" "ibcmd.auth.user"
+
+profile_missing_ibcmd_auth_password_env="$tmpdir/profile-missing-ibcmd-auth-password-env.json"
+cat >"$profile_missing_ibcmd_auth_password_env" <<EOF
+{
+  "schemaVersion": 2,
+  "profileName": "missing-ibcmd-auth-password-env",
+  "runnerAdapter": "direct-platform",
+  "platform": {
+    "binaryPath": "$fake_designer",
+    "ibcmdPath": "$fake_ibcmd"
+  },
+  "infobase": {
+    "mode": "file",
+    "filePath": "/var/tmp/missing-ibcmd-auth-password-env",
+    "auth": {
+      "mode": "os",
+      "user": null,
+      "passwordEnv": null
+    }
+  },
+  "ibcmd": {
+    "connectionMode": "data-dir",
+    "dataDir": "$tmpdir/standalone",
+    "databasePath": "$tmpdir/standalone/db-data",
+    "auth": {
+      "user": "ibcmd-user",
+      "passwordEnv": null
+    }
+  },
+  "capabilities": {
+    "dumpSrc": {
+      "driver": "ibcmd"
+    },
+    "xunit": {
+      "command": ["bash", "-lc", "printf 'xunit-ok\\\\n'"]
+    },
+    "bdd": {
+      "command": ["bash", "-lc", "printf 'bdd-ok\\\\n'"]
+    },
+    "smoke": {
+      "command": ["bash", "-lc", "printf 'smoke-ok\\\\n'"]
+    }
+  }
+}
+EOF
+
+stderr_missing_ibcmd_auth_password_env="$tmpdir/missing-ibcmd-auth-password-env.stderr"
+run_expect_failure \
+  "$profile_missing_ibcmd_auth_password_env" \
+  "$stderr_missing_ibcmd_auth_password_env" \
+  ./scripts/platform/dump-src.sh --profile "$profile_missing_ibcmd_auth_password_env"
+assert_stderr_contains "$stderr_missing_ibcmd_auth_password_env" "ibcmd.auth.passwordEnv"
+
 profile_bad_connection_mode="$tmpdir/profile-bad-connection-mode.json"
 cat >"$profile_bad_connection_mode" <<EOF
 {
@@ -306,6 +461,58 @@ run_expect_failure \
   "$stderr_bad_connection_mode" \
   ./scripts/platform/dump-src.sh --profile "$profile_bad_connection_mode"
 assert_stderr_contains "$stderr_bad_connection_mode" "ibcmd.connectionMode=remote is not supported in phase 1; use data-dir"
+
+profile_vrunner_adapter="$tmpdir/profile-vrunner-adapter.json"
+cat >"$profile_vrunner_adapter" <<EOF
+{
+  "schemaVersion": 2,
+  "profileName": "vrunner-adapter",
+  "runnerAdapter": "vrunner",
+  "platform": {
+    "binaryPath": "$fake_designer",
+    "ibcmdPath": "$fake_ibcmd"
+  },
+  "infobase": {
+    "mode": "file",
+    "filePath": "/var/tmp/vrunner-adapter",
+    "auth": {
+      "mode": "os",
+      "user": null,
+      "passwordEnv": null
+    }
+  },
+  "ibcmd": {
+    "connectionMode": "data-dir",
+    "dataDir": "$tmpdir/standalone",
+    "databasePath": "$tmpdir/standalone/db-data",
+    "auth": {
+      "user": "ibcmd-user",
+      "passwordEnv": "ONEC_IBCMD_PASSWORD"
+    }
+  },
+  "capabilities": {
+    "dumpSrc": {
+      "driver": "ibcmd"
+    },
+    "xunit": {
+      "command": ["bash", "-lc", "printf 'xunit-ok\\\\n'"]
+    },
+    "bdd": {
+      "command": ["bash", "-lc", "printf 'bdd-ok\\\\n'"]
+    },
+    "smoke": {
+      "command": ["bash", "-lc", "printf 'smoke-ok\\\\n'"]
+    }
+  }
+}
+EOF
+
+stderr_vrunner_adapter="$tmpdir/vrunner-adapter.stderr"
+run_expect_failure \
+  "$profile_vrunner_adapter" \
+  "$stderr_vrunner_adapter" \
+  ./scripts/platform/dump-src.sh --profile "$profile_vrunner_adapter"
+assert_stderr_contains "$stderr_vrunner_adapter" "ibcmd driver is supported only with runnerAdapter=direct-platform in phase 1"
 
 profile_ibcmd_partial="$tmpdir/profile-ibcmd-partial.json"
 cat >"$profile_ibcmd_partial" <<EOF
@@ -359,3 +566,54 @@ run_expect_failure \
   "$stderr_path_escape" \
   ./scripts/platform/load-src.sh --profile "$profile_ibcmd_partial" --files "../Catalogs/Items.xml"
 assert_stderr_contains "$stderr_path_escape" "must stay within the configured source tree"
+
+profile_missing_ibcmd_database_path="$tmpdir/profile-missing-ibcmd-database-path.json"
+cat >"$profile_missing_ibcmd_database_path" <<EOF
+{
+  "schemaVersion": 2,
+  "profileName": "missing-ibcmd-database-path",
+  "runnerAdapter": "direct-platform",
+  "platform": {
+    "binaryPath": "$fake_designer",
+    "ibcmdPath": "$fake_ibcmd"
+  },
+  "infobase": {
+    "mode": "file",
+    "filePath": "/var/tmp/missing-ibcmd-database-path",
+    "auth": {
+      "mode": "os",
+      "user": null,
+      "passwordEnv": null
+    }
+  },
+  "ibcmd": {
+    "connectionMode": "data-dir",
+    "dataDir": "$tmpdir/standalone",
+    "auth": {
+      "user": "ibcmd-user",
+      "passwordEnv": "ONEC_IBCMD_PASSWORD"
+    }
+  },
+  "capabilities": {
+    "createIb": {
+      "driver": "ibcmd"
+    },
+    "xunit": {
+      "command": ["bash", "-lc", "printf 'xunit-ok\\\\n'"]
+    },
+    "bdd": {
+      "command": ["bash", "-lc", "printf 'bdd-ok\\\\n'"]
+    },
+    "smoke": {
+      "command": ["bash", "-lc", "printf 'smoke-ok\\\\n'"]
+    }
+  }
+}
+EOF
+
+stderr_missing_ibcmd_database_path="$tmpdir/missing-ibcmd-database-path.stderr"
+run_expect_failure \
+  "$profile_missing_ibcmd_database_path" \
+  "$stderr_missing_ibcmd_database_path" \
+  ./scripts/platform/create-ib.sh --profile "$profile_missing_ibcmd_database_path"
+assert_stderr_contains "$stderr_missing_ibcmd_database_path" "ibcmd.databasePath"

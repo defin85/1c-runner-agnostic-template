@@ -596,6 +596,10 @@ collect_required_env_refs() {
   done
 
   for capability_id in create-ib dump-src load-src update-db; do
+    if capability_has_profile_command "$capability_id"; then
+      continue
+    fi
+
     driver="$(resolve_capability_driver "$capability_id")"
     case "$driver" in
       designer)
@@ -691,6 +695,10 @@ collect_required_profile_fields() {
   esac
 
   for capability_id in create-ib dump-src load-src update-db; do
+    if capability_has_profile_command "$capability_id"; then
+      continue
+    fi
+
     driver="$(resolve_capability_driver "$capability_id")"
     case "$driver" in
       designer)

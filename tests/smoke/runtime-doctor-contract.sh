@@ -9,6 +9,8 @@ trap 'rm -rf "$tmpdir"' EXIT
 
 profile_path="$tmpdir/doctor-profile.json"
 run_root="$tmpdir/doctor-run"
+command_override_profile_path="$tmpdir/doctor-command-profile.json"
+command_override_run_root="$tmpdir/doctor-command-run"
 fake_binary="$tmpdir/fake-1cv8"
 
 cat >"$fake_binary" <<'EOF'
@@ -98,3 +100,47 @@ if grep -Fq -- "doctor-secret" "$run_root/summary.json"; then
   cat "$run_root/summary.json" >&2
   exit 1
 fi
+
+cat >"$command_override_profile_path" <<EOF
+{
+  "schemaVersion": 2,
+  "profileName": "doctor-command-override-fixture",
+  "runnerAdapter": "direct-platform",
+  "capabilities": {
+    "createIb": {
+      "command": ["bash", "-lc", "printf 'create-command-ok\\\\n'"]
+    },
+    "dumpSrc": {
+      "command": ["bash", "-lc", "printf 'dump-command-ok\\\\n'"]
+    },
+    "loadSrc": {
+      "command": ["bash", "-lc", "printf 'load-command-ok\\\\n'"]
+    },
+    "updateDb": {
+      "command": ["bash", "-lc", "printf 'update-command-ok\\\\n'"]
+    },
+    "xunit": {
+      "command": ["bash", "-lc", "printf 'xunit-ok\\\\n'"]
+    },
+    "bdd": {
+      "command": ["bash", "-lc", "printf 'bdd-ok\\\\n'"]
+    },
+    "smoke": {
+      "command": ["bash", "-lc", "printf 'smoke-ok\\\\n'"]
+    }
+  }
+}
+EOF
+
+(
+  cd "$SOURCE_ROOT"
+  ./scripts/diag/doctor.sh --profile "$command_override_profile_path" --run-root "$command_override_run_root" >/dev/null
+)
+
+assert_jq "$command_override_run_root/summary.json" '.status == "success"' "doctor-command-status"
+assert_jq "$command_override_run_root/summary.json" '.checks.required_profile_fields == [{"name":"runnerAdapter","status":"present","required":true,"reason":null}]' "doctor-command-required-fields"
+assert_jq "$command_override_run_root/summary.json" '.checks.required_env_refs == []' "doctor-command-required-env-refs"
+assert_jq "$command_override_run_root/summary.json" '.capability_drivers["create-ib"].source == "profile-command"' "doctor-command-create-source"
+assert_jq "$command_override_run_root/summary.json" '.capability_drivers["create-ib"].driver == null' "doctor-command-create-driver"
+assert_jq "$command_override_run_root/summary.json" '.capability_drivers["load-src"].source == "profile-command"' "doctor-command-load-source"
+assert_jq "$command_override_run_root/summary.json" '.capability_drivers["load-src"].driver == null' "doctor-command-load-driver"

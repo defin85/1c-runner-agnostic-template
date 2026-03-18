@@ -80,6 +80,20 @@ assert_count() {
   fi
 }
 
+assert_jq() {
+  local file="$1"
+  local expr="$2"
+  local label="$3"
+  shift 3
+
+  if ! jq -e "$expr" "$file" "$@" >/dev/null; then
+    printf 'jq assertion failed (%s): %s\n' "$label" "$expr" >&2
+    printf 'actual file contents:\n' >&2
+    cat "$file" >&2
+    exit 1
+  fi
+}
+
 copy_template_repo
 
 cat >"$bindir/openspec" <<'EOF'
@@ -158,6 +172,9 @@ assert_contains "$rendered_root/.codex/config.toml" "mcp_servers.chrome-devtools
 assert_contains "$rendered_root/.github/workflows/ci.yml" "name: CI"
 assert_contains "$rendered_root/.github/workflows/ci.yml" "name: Runtime doctor"
 assert_contains "$rendered_root/env/local.example.json" "\"driver\": \"ibcmd\""
+assert_jq "$rendered_root/env/ci.example.json" '.runnerAdapter == "direct-platform" and .capabilities.loadSrc.driver == "designer"' "ci-example-driver"
+assert_jq "$rendered_root/env/wsl.example.json" '.runnerAdapter == "direct-platform" and .capabilities.loadSrc.driver == "designer"' "wsl-example-driver"
+assert_jq "$rendered_root/env/windows-executor.example.json" '.runnerAdapter == "remote-windows" and .capabilities.loadSrc.driver == "designer"' "windows-example-driver"
 assert_contains "$rendered_root/README.md" "partial import"
 assert_contains "$rendered_root/env/README.md" "driver=ibcmd"
 
@@ -217,3 +234,69 @@ assert_not_exists "$rendered_root/.claude/commands/openspec"
 assert_contains "$rendered_root/env/local.example.json" "\"driver\": \"ibcmd\""
 assert_count "$command_log" "openspec init --tools none" "1"
 assert_count "$command_log" "bd init --stealth -p smoke-project" "1"
+
+runtime_fake_designer="$bindir/fake-1cv8"
+runtime_fake_ibcmd="$bindir/fake-ibcmd"
+runtime_doctor_run="$tmpdir/runtime-doctor"
+runtime_load_run="$tmpdir/runtime-load"
+
+cat >"$runtime_fake_designer" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+printf 'fake-1cv8 should not be invoked\n' >&2
+exit 99
+EOF
+
+cat >"$runtime_fake_ibcmd" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+
+for arg in "$@"; do
+  printf '%s\n' "$arg"
+done
+EOF
+
+chmod +x "$runtime_fake_designer" "$runtime_fake_ibcmd"
+
+jq \
+  --arg binary_path "$runtime_fake_designer" \
+  --arg ibcmd_path "$runtime_fake_ibcmd" \
+  --arg data_dir "$tmpdir/runtime-ibcmd-data" \
+  --arg database_path "$tmpdir/runtime-ibcmd-db" \
+  '.platform.binaryPath = $binary_path
+   | .platform.ibcmdPath = $ibcmd_path
+   | .ibcmd.dataDir = $data_dir
+   | .ibcmd.databasePath = $database_path' \
+  "$rendered_root/env/local.example.json" >"$rendered_root/env/local.json"
+
+mkdir -p "$tmpdir/runtime-ibcmd-data"
+assert_jq "$rendered_root/env/local.json" '.platform.binaryPath == $ARGS.positional[0]' "runtime-local-binary-path" --args "$runtime_fake_designer"
+assert_jq "$rendered_root/env/local.json" '.platform.ibcmdPath == $ARGS.positional[0]' "runtime-local-ibcmd-path" --args "$runtime_fake_ibcmd"
+
+(
+  cd "$rendered_root"
+  PATH="$bindir:$PATH" ONEC_IBCMD_PASSWORD="copier-smoke-ibcmd-secret" ./scripts/diag/doctor.sh --profile env/local.json --run-root "$runtime_doctor_run" >/dev/null
+)
+
+assert_jq "$runtime_doctor_run/summary.json" '.status == "success"' "runtime-doctor-status"
+assert_jq "$runtime_doctor_run/summary.json" '.capability_drivers["load-src"].driver == "ibcmd"' "runtime-doctor-load-driver"
+assert_jq "$runtime_doctor_run/summary.json" '[.checks.required_env_refs[] | select(.name == "ONEC_IBCMD_PASSWORD" and .status == "set")] | length == 1' "runtime-doctor-env-ref"
+
+(
+  cd "$rendered_root"
+  PATH="$bindir:$PATH" ONEC_IBCMD_PASSWORD="copier-smoke-ibcmd-secret" ./scripts/platform/load-src.sh \
+    --profile env/local.json \
+    --run-root "$runtime_load_run" \
+    --files "Catalogs/Items.xml,Forms/List.xml" >/dev/null
+)
+
+assert_jq "$runtime_load_run/summary.json" '.status == "success"' "runtime-load-status"
+assert_jq "$runtime_load_run/summary.json" '.driver == "ibcmd"' "runtime-load-driver"
+assert_jq "$runtime_load_run/summary.json" '.driver_context.partial_import == true' "runtime-load-partial"
+assert_contains "$runtime_load_run/stdout.log" "config"
+assert_contains "$runtime_load_run/stdout.log" "import"
+assert_contains "$runtime_load_run/stdout.log" "files"
+assert_contains "$runtime_load_run/stdout.log" "--base-dir=./src/cf"
+assert_contains "$runtime_load_run/stdout.log" "--partial"
+assert_contains "$runtime_load_run/stdout.log" "Catalogs/Items.xml"
+assert_contains "$runtime_load_run/stdout.log" "Forms/List.xml"
