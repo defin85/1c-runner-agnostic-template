@@ -4,6 +4,7 @@ _templates_suffix: ""
 _exclude:
   - .git
   - .git/**
+  - copier.yml
   - .github/workflows/ci.yml
   - AGENTS.md
   - CLAUDE.md

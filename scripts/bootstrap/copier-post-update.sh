@@ -13,12 +13,19 @@ init_beads="${2:-yes}"
 root="$(project_root)"
 cd "$root"
 
-if [ -z "$template_src_path" ] || [ ! -f "$template_src_path/.github/workflows/ci.yml" ]; then
-  printf 'error: template source path does not contain .github/workflows/ci.yml\n' >&2
+if [ -z "$template_src_path" ]; then
+  printf 'error: template source path is empty\n' >&2
   exit 1
 fi
 
-install -D -m 0644 "$template_src_path/.github/workflows/ci.yml" "$root/.github/workflows/ci.yml"
+for asset in copier.yml .github/workflows/ci.yml; do
+  if [ ! -f "$template_src_path/$asset" ]; then
+    printf 'error: template source path does not contain %s\n' "$asset" >&2
+    exit 1
+  fi
+
+  install -D -m 0644 "$template_src_path/$asset" "$root/$asset"
+done
 
 if [ ! -f "$root/AGENTS.md" ]; then
   log "Skip AGENTS.md overlay refresh because AGENTS.md is absent"

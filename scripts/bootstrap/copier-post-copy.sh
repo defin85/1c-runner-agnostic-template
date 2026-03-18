@@ -80,10 +80,16 @@ if [ "${DRY_RUN:-0}" != "1" ]; then
   append_project_agents_overlay "$root/AGENTS.md" "$init_beads"
 fi
 
-if [ -z "$template_src_path" ] || [ ! -f "$template_src_path/.github/workflows/ci.yml" ]; then
-  die "template source path does not contain .github/workflows/ci.yml"
+if [ -z "$template_src_path" ]; then
+  die "template source path is empty"
 fi
 
-if [ "${DRY_RUN:-0}" != "1" ]; then
-  install -D -m 0644 "$template_src_path/.github/workflows/ci.yml" "$root/.github/workflows/ci.yml"
-fi
+for asset in copier.yml .github/workflows/ci.yml; do
+  if [ ! -f "$template_src_path/$asset" ]; then
+    die "template source path does not contain $asset"
+  fi
+
+  if [ "${DRY_RUN:-0}" != "1" ]; then
+    install -D -m 0644 "$template_src_path/$asset" "$root/$asset"
+  fi
+done
