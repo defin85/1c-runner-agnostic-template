@@ -48,6 +48,7 @@ run_bootstrap() {
   (
     cd "$project_root"
     PATH="$bindir:$PATH" BD_LOG="$bd_log" bash ./scripts/bootstrap/copier-post-copy.sh \
+      "$SOURCE_ROOT" \
       "Sample Project" \
       "sample-project" \
       "direct-platform" \
