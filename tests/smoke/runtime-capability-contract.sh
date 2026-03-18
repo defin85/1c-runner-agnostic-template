@@ -10,6 +10,8 @@ trap 'rm -rf "$tmpdir"' EXIT
 profile_path="$tmpdir/profile.json"
 run_root_success="$tmpdir/run-success"
 run_root_failure="$tmpdir/run-failure"
+run_root_load="$tmpdir/run-load"
+run_root_update="$tmpdir/run-update"
 run_root_xunit="$tmpdir/run-xunit"
 fake_binary="$tmpdir/fake-1cv8"
 
@@ -105,6 +107,7 @@ assert_jq() {
 assert_jq "$run_root_success/summary.json" '.status == "success"' "success-status"
 assert_jq "$run_root_success/summary.json" '.capability.id == "create-ib"' "success-capability"
 assert_jq "$run_root_success/summary.json" '.adapter == "direct-platform"' "success-adapter"
+assert_jq "$run_root_success/summary.json" '.driver == "designer"' "success-driver"
 assert_jq "$run_root_success/summary.json" '.execution.source == "standard-builder"' "success-execution-source"
 assert_jq "$run_root_success/summary.json" '.infobase.mode == "client-server"' "success-ib-mode"
 assert_jq "$run_root_success/summary.json" '.infobase.auth_mode == "user-password"' "success-auth-mode"
@@ -137,8 +140,30 @@ fi
 
 assert_jq "$run_root_failure/summary.json" '.status == "failed"' "failure-status"
 assert_jq "$run_root_failure/summary.json" '.exit_code == 17' "failure-exit-code"
+assert_jq "$run_root_failure/summary.json" '.driver == "designer"' "failure-driver"
 assert_jq "$run_root_failure/summary.json" '.execution.source == "standard-builder"' "failure-execution-source"
 assert_contains "$run_root_failure/stderr.log" "dump failed"
+
+(
+  cd "$SOURCE_ROOT"
+  ./scripts/platform/load-src.sh --profile "$profile_path" --run-root "$run_root_load" >/dev/null
+)
+
+assert_jq "$run_root_load/summary.json" '.status == "success"' "load-status"
+assert_jq "$run_root_load/summary.json" '.driver == "designer"' "load-driver"
+assert_jq "$run_root_load/summary.json" '.execution.source == "standard-builder"' "load-execution-source"
+assert_contains "$run_root_load/stdout.log" "/LoadConfigFromFiles"
+assert_contains "$run_root_load/stdout.log" "./src/cf"
+
+(
+  cd "$SOURCE_ROOT"
+  ./scripts/platform/update-db.sh --profile "$profile_path" --run-root "$run_root_update" >/dev/null
+)
+
+assert_jq "$run_root_update/summary.json" '.status == "success"' "update-status"
+assert_jq "$run_root_update/summary.json" '.driver == "designer"' "update-driver"
+assert_jq "$run_root_update/summary.json" '.execution.source == "standard-builder"' "update-execution-source"
+assert_contains "$run_root_update/stdout.log" "/UpdateDBCfg"
 
 (
   cd "$SOURCE_ROOT"

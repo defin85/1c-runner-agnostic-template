@@ -56,8 +56,9 @@ assert_jq() {
   local file="$1"
   local expr="$2"
   local label="$3"
+  shift 3
 
-  if ! jq -e "$expr" "$file" >/dev/null; then
+  if ! jq -e "$expr" "$file" "$@" >/dev/null; then
     printf 'jq assertion failed (%s): %s\n' "$label" "$expr" >&2
     cat "$file" >&2
     exit 1
@@ -72,10 +73,25 @@ assert_jq() {
 assert_jq "$run_root/summary.json" '.status == "success"' "doctor-status"
 assert_jq "$run_root/summary.json" '.capability.id == "doctor"' "doctor-capability"
 assert_jq "$run_root/summary.json" '.adapter == "direct-platform"' "doctor-adapter"
+assert_jq "$run_root/summary.json" '.artifacts.stdout_log == ($ARGS.positional[0])' "doctor-stdout-log" --args "$run_root/stdout.log"
+assert_jq "$run_root/summary.json" '.artifacts.stderr_log == ($ARGS.positional[0])' "doctor-stderr-log" --args "$run_root/stderr.log"
+assert_jq "$run_root/summary.json" '.capability_drivers["create-ib"].driver == "designer"' "doctor-create-driver"
+assert_jq "$run_root/summary.json" '.capability_drivers["load-src"].driver == "designer"' "doctor-load-driver"
 assert_jq "$run_root/summary.json" '[.checks.required_profile_fields[] | select(.status != "present")] | length == 0' "doctor-required-fields"
 assert_jq "$run_root/summary.json" '[.checks.required_env_refs[] | select(.status != "set")] | length == 0' "doctor-required-env-refs"
 assert_jq "$run_root/summary.json" '[.checks.required_capabilities[] | select(.status != "present")] | length == 0' "doctor-required-capabilities"
 assert_jq "$run_root/summary.json" '[.checks.required_tools[] | select(.status != "present")] | length == 0' "doctor-required-tools"
+
+if [ ! -f "$run_root/stdout.log" ] || [ ! -f "$run_root/stderr.log" ]; then
+  printf 'doctor run must create stdout.log and stderr.log\n' >&2
+  exit 1
+fi
+
+if ! grep -Fq -- "Run 1C runtime doctor" "$run_root/stdout.log"; then
+  printf 'doctor stdout.log must contain execution log\n' >&2
+  cat "$run_root/stdout.log" >&2
+  exit 1
+fi
 
 if grep -Fq -- "doctor-secret" "$run_root/summary.json"; then
   printf 'doctor summary.json must not contain resolved secrets\n' >&2

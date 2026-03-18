@@ -14,6 +14,7 @@ Usage: ./scripts/platform/load-src.sh [options]
 Options:
   --profile <file>   Runtime profile JSON (defaults to env/local.json if present)
   --run-root <dir>   Directory for summary.json and command logs
+  --files <list>     Comma-separated XML paths relative to sourceDir for partial ibcmd import
   --dry-run          Resolve adapter/profile and write dry-run summary only
   -h, --help         Show this help
 EOF

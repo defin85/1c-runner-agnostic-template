@@ -13,6 +13,11 @@ Launcher-скрипты могут загрузить runtime profile напря
 Versioned файлы `*.example.json` являются source of truth для формата профиля.
 Рабочие профили `env/local.json`, `env/ci.json`, `env/windows-executor.json` не коммитятся.
 
+`env/local.example.json` намеренно показывает mixed-profile contour:
+
+- `create-ib`, `dump-src`, `update-db` остаются на `designer`;
+- `load-src` переключен на `driver=ibcmd`, чтобы partial import был wired через checked-in preset.
+
 `schemaVersion: 1` больше не поддерживается. Existing local profiles нужно мигрировать вручную:
 
 - helper: `./scripts/template/migrate-runtime-profile-v2.sh <legacy-profile>`
@@ -29,12 +34,21 @@ Versioned файлы `*.example.json` являются source of truth для ф
 - `infobase`
 - `capabilities`
 
-Минимальные обязательные поля для standard direct-platform / remote-windows path:
+Минимальные обязательные поля для default `designer` path:
 
 - `platform.binaryPath`
 - `infobase.mode`
 - `infobase.filePath` для `mode=file`
 - `infobase.server` и `infobase.ref` для `mode=client-server`
+
+Дополнительные поля для `ibcmd` driver в phase 1:
+
+- `platform.ibcmdPath`
+- `ibcmd.connectionMode`
+- `ibcmd.dataDir`
+- `ibcmd.auth.user`
+- `ibcmd.auth.passwordEnv`
+- `ibcmd.databasePath` только если `createIb.driver = "ibcmd"`
 
 ## Secrets
 
@@ -80,7 +94,8 @@ export ONEC_IB_PASSWORD='...'
 В `schemaVersion: 2` есть два пути конфигурации capability:
 
 1. standard builder
-   Для `create-ib`, `dump-src`, `load-src`, `update-db` launcher строит argv сам из `platform` и `infobase`.
+   Для `create-ib`, `dump-src`, `load-src`, `update-db` launcher строит argv сам и выбирает backend по `capabilities.<id>.driver`.
+   Если `driver` опущен, используется `designer`.
 
 2. profile-defined command array
    Для project-specific contour вроде `xunit`, `bdd`, `smoke`, `publishHttp` profile задаёт `command` как массив строк:
@@ -95,4 +110,26 @@ export ONEC_IB_PASSWORD='...'
 }
 ```
 
+`driver` и `command` взаимоисключающие для одной capability.
+
 `diffSrc.command` тоже можно задать явно, но по умолчанию script использует `git diff -- ./src`.
+
+## Ibcmd Phase 1
+
+Поддерживаемая матрица phase 1:
+
+- `runnerAdapter=direct-platform`
+- `ibcmd.connectionMode=data-dir`
+- core capabilities `create-ib`, `dump-src`, `load-src`, `update-db`
+
+Неподдерживаемые комбинации launcher отклоняет fail-closed и не делает silent fallback на `designer`.
+
+Для XML source tree canonical format считается hierarchical.
+
+Partial import поддерживается только для `load-src` с `driver=ibcmd` и передаётся runtime input-ом:
+
+```bash
+./scripts/platform/load-src.sh --profile env/local.json --files "Catalogs/Items.xml,Forms/List.xml"
+```
+
+Если брать за основу `env/local.example.json`, дополнительная правка `loadSrc.driver` не нужна.

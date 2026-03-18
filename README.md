@@ -83,7 +83,13 @@ Backend выбирается через `RUNNER_ADAPTER`:
 - `remote-windows`
 - `vrunner`
 
-Параметры подключения к ИБ и platform paths задаются через structured runtime profile. Для project-specific contour допускаются `command`-массивы в секции `capabilities`.
+Для core runtime capabilities backend 1C toolchain дополнительно выбирается через per-capability `driver`:
+
+- default: `designer`
+- phase 1 opt-in: `ibcmd` только вместе с `RUNNER_ADAPTER=direct-platform`
+- `env/local.example.json` показывает mixed-profile: `load-src` уже переключен на `driver=ibcmd`, чтобы partial import был готов из checked-in preset
+
+Параметры подключения к ИБ, `ibcmd` coordinates и platform paths задаются через structured runtime profile. Для project-specific contour допускаются `command`-массивы в секции `capabilities`.
 
 ### Runtime Profile Contract
 
@@ -104,6 +110,8 @@ Backend выбирается через `RUNNER_ADAPTER`:
 - `platform`
 - `infobase`
 - `capabilities`
+
+Если хотя бы один core capability использует `driver=ibcmd`, profile также задаёт `platform.ibcmdPath` и блок `ibcmd` с phase-1 connection model.
 
 Для password-based auth profile хранит не secret value, а имя env var, например `passwordEnv: "ONEC_IB_PASSWORD"`.
 
@@ -131,10 +139,18 @@ Backend выбирается через `RUNNER_ADAPTER`:
 
 ```bash
 cp env/local.example.json env/local.json
-export ONEC_IB_PASSWORD='...'
+export ONEC_IBCMD_PASSWORD='...'
 ./scripts/diag/doctor.sh --profile env/local.json
 ./scripts/platform/load-src.sh --profile env/local.json --run-root /tmp/load-src-run
+./scripts/platform/load-src.sh --profile env/local.json --files "Catalogs/Items.xml,Forms/List.xml"
 ```
+
+Важно:
+
+- `driver` и `command` нельзя смешивать в одной capability;
+- checked-in `env/local.example.json` уже wired для partial import через `loadSrc.driver=ibcmd`;
+- `summary.json` для `create-ib`, `dump-src`, `load-src`, `update-db` теперь отражает выбранный `driver`;
+- canonical XML source-tree format для `ibcmd` это hierarchical.
 
 ### Project-Scoped Skills
 

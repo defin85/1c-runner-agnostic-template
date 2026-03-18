@@ -10,6 +10,8 @@ CAPABILITY_PROFILE_INPUT=""
 CAPABILITY_RUN_ROOT_INPUT=""
 CAPABILITY_DRY_RUN="${DRY_RUN:-0}"
 CAPABILITY_SHOW_HELP=0
+CAPABILITY_SELECTED_FILES_INPUT=""
+CAPABILITY_DRIVER=""
 CAPABILITY_COMMAND_SOURCE=""
 CAPABILITY_COMMAND_EXECUTOR="direct"
 CAPABILITY_CONTEXT_JSON="{}"
@@ -20,9 +22,11 @@ reset_capability_cli_state() {
   CAPABILITY_RUN_ROOT_INPUT=""
   CAPABILITY_DRY_RUN="${DRY_RUN:-0}"
   CAPABILITY_SHOW_HELP=0
+  CAPABILITY_SELECTED_FILES_INPUT=""
 }
 
 reset_prepared_capability_command() {
+  CAPABILITY_DRIVER=""
   CAPABILITY_COMMAND_SOURCE=""
   CAPABILITY_COMMAND_EXECUTOR="direct"
   CAPABILITY_CONTEXT_JSON="{}"
@@ -47,6 +51,11 @@ parse_capability_cli_args() {
       --dry-run)
         CAPABILITY_DRY_RUN=1
         shift
+        ;;
+      --files)
+        [ "$#" -ge 2 ] || die "--files requires a value"
+        CAPABILITY_SELECTED_FILES_INPUT="$2"
+        shift 2
         ;;
       -h|--help)
         CAPABILITY_SHOW_HELP=1
@@ -93,10 +102,12 @@ capability_summary_path() {
 }
 
 set_prepared_capability_command() {
-  local source="$1"
-  local executor="$2"
-  shift 2
+  local driver="$1"
+  local source="$2"
+  local executor="$3"
+  shift 3
 
+  CAPABILITY_DRIVER="$driver"
   CAPABILITY_COMMAND_SOURCE="$source"
   CAPABILITY_COMMAND_EXECUTOR="$executor"
   CAPABILITY_COMMAND=("$@")
@@ -113,23 +124,110 @@ set_capability_context_json() {
   CAPABILITY_CONTEXT_JSON="$(jq -c '.' <<<"$json")"
 }
 
+trim_capability_csv_item() {
+  local value="$1"
+
+  value="${value#"${value%%[![:space:]]*}"}"
+  value="${value%"${value##*[![:space:]]}"}"
+  printf '%s\n' "$value"
+}
+
+normalize_capability_selected_file() {
+  local value="$1"
+  local segment=""
+  local normalized=""
+  local -a segments=()
+  local -a stack=()
+
+  if [[ "$value" = /* ]]; then
+    die "--files entries must be relative to the configured source tree: $value"
+  fi
+
+  IFS='/' read -r -a segments <<<"$value"
+  for segment in "${segments[@]}"; do
+    case "$segment" in
+      ""|".")
+        continue
+        ;;
+      "..")
+        set -- "${stack[@]}"
+        if [ "$#" -eq 0 ]; then
+          die "--files entries must stay within the configured source tree: $value"
+        fi
+        unset "stack[$(( $# - 1 ))]"
+        stack=("${stack[@]}")
+        ;;
+      *)
+        stack+=("$segment")
+        ;;
+    esac
+  done
+
+  set -- "${stack[@]}"
+  if [ "$#" -eq 0 ]; then
+    die "--files entries must point to files within the configured source tree: $value"
+  fi
+
+  normalized="${stack[0]}"
+  for segment in "${stack[@]:1}"; do
+    normalized+="/$segment"
+  done
+
+  printf '%s\n' "$normalized"
+}
+
+capability_selected_files_requested() {
+  [ -n "$CAPABILITY_SELECTED_FILES_INPUT" ]
+}
+
+load_capability_selected_files() {
+  local array_name="$1"
+  local item=""
+  local trimmed=""
+  local -a raw_items=()
+  local -n out_ref="$array_name"
+
+  out_ref=()
+  if ! capability_selected_files_requested; then
+    return 0
+  fi
+
+  IFS=',' read -r -a raw_items <<<"$CAPABILITY_SELECTED_FILES_INPUT"
+  for item in "${raw_items[@]}"; do
+    trimmed="$(trim_capability_csv_item "$item")"
+    if [ -z "$trimmed" ]; then
+      die "--files must not contain empty entries"
+    fi
+    out_ref+=("$(normalize_capability_selected_file "$trimmed")")
+  done
+}
+
+reject_capability_selected_files() {
+  local capability_id="$1"
+
+  if capability_selected_files_requested; then
+    die "capability $capability_id does not support --files"
+  fi
+}
+
 write_capability_summary() {
   local summary_path="$1"
   local status="$2"
   local capability_id="$3"
   local capability_label="$4"
   local adapter="$5"
-  local profile_path="$6"
-  local run_root="$7"
-  local exit_code="$8"
-  local started_at="$9"
-  local finished_at="${10}"
-  local stdout_log="${11}"
-  local stderr_log="${12}"
-  local dry_run="${13}"
-  local command_source="${14}"
-  local executor="${15}"
-  local context_json="${16}"
+  local driver="$6"
+  local profile_path="$7"
+  local run_root="$8"
+  local exit_code="$9"
+  local started_at="${10}"
+  local finished_at="${11}"
+  local stdout_log="${12}"
+  local stderr_log="${13}"
+  local dry_run="${14}"
+  local command_source="${15}"
+  local executor="${16}"
+  local context_json="${17}"
 
   require_command jq
 
@@ -138,6 +236,7 @@ write_capability_summary() {
     --arg capability_id "$capability_id" \
     --arg capability_label "$capability_label" \
     --arg adapter "$adapter" \
+    --arg driver "$driver" \
     --arg profile_path "$profile_path" \
     --arg run_root "$run_root" \
     --arg summary_json "$summary_path" \
@@ -157,6 +256,7 @@ write_capability_summary() {
         label: $capability_label
       },
       adapter: $adapter,
+      driver: (if $driver == "" then null else $driver end),
       profile_path: (if $profile_path == "" then null else $profile_path end),
       run_root: $run_root,
       started_at: $started_at,
@@ -275,6 +375,9 @@ run_profile_capability() {
 
   log "$capability_label"
   log "adapter=$adapter"
+  if [ -n "$CAPABILITY_DRIVER" ]; then
+    log "driver=$CAPABILITY_DRIVER"
+  fi
   log "command_source=$CAPABILITY_COMMAND_SOURCE"
   log "executor=$CAPABILITY_COMMAND_EXECUTOR"
   if [ -n "$profile_path" ]; then
@@ -302,6 +405,7 @@ run_profile_capability() {
     "$capability_id" \
     "$capability_label" \
     "$adapter" \
+    "$CAPABILITY_DRIVER" \
     "$profile_path" \
     "$run_root" \
     "$exit_code" \

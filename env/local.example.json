@@ -3,14 +3,17 @@
   "profileName": "local",
   "projectName": "{{ project_name }}",
   "projectSlug": "{{ project_slug }}",
-  "description": "Minimal direct-platform runtime profile example",
+  "description": "Minimal direct-platform runtime profile example with mixed designer/ibcmd source sync",
   "runnerAdapter": "direct-platform",
   "notes": [
     "Этот файл является примером structured runtime profile.",
-    "Реальные секреты не храните в JSON; используйте passwordEnv и внешние env vars."
+    "Реальные секреты не храните в JSON; используйте passwordEnv и внешние env vars.",
+    "Этот preset показывает per-capability driver selection: create/dump/update остаются на designer, а load-src переключен на ibcmd.",
+    "Partial import через ./scripts/platform/load-src.sh --files уже готов к запуску без дополнительной правки driver."
   ],
   "platform": {
-    "binaryPath": "/opt/1cv8/x86_64/8.3.27.1859/1cv8"
+    "binaryPath": "/opt/1cv8/x86_64/8.3.27.1859/1cv8",
+    "ibcmdPath": "/opt/1cv8/x86_64/8.3.27.1859/ibcmd"
   },
   "infobase": {
     "mode": "file",
@@ -22,12 +25,29 @@
       "passwordEnv": null
     }
   },
+  "ibcmd": {
+    "connectionMode": "data-dir",
+    "dataDir": "/var/tmp/{{ project_slug }}-standalone",
+    "databasePath": "/var/tmp/{{ project_slug }}-standalone/db",
+    "auth": {
+      "user": "standalone-admin",
+      "passwordEnv": "ONEC_IBCMD_PASSWORD"
+    }
+  },
   "capabilities": {
+    "createIb": {
+      "driver": "designer"
+    },
     "dumpSrc": {
+      "driver": "designer",
       "outputDir": "./src/cf"
     },
     "loadSrc": {
+      "driver": "ibcmd",
       "sourceDir": "./src/cf"
+    },
+    "updateDb": {
+      "driver": "designer"
     },
     "diffSrc": {
       "command": ["git", "diff", "--", "./src"]

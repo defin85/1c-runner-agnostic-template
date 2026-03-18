@@ -28,12 +28,19 @@ append_json_check() {
   local name="$2"
   local status="$3"
   local required="$4"
+  local reason="${5-}"
 
   jq -cn \
     --arg name "$name" \
     --arg status "$status" \
+    --arg reason "$reason" \
     --argjson required "$required" \
-    '{name: $name, status: $status, required: $required}' >>"$jsonl_path"
+    '{
+      name: $name,
+      status: $status,
+      required: $required,
+      reason: (if $reason == "" then null else $reason end)
+    }' >>"$jsonl_path"
 }
 
 profile_field_status() {
@@ -45,6 +52,9 @@ profile_field_status() {
       ;;
     platform.binaryPath)
       profile_has_nonnull '.platform.binaryPath' && printf 'present\n' || printf 'missing\n'
+      ;;
+    platform.ibcmdPath)
+      profile_has_nonnull '.platform.ibcmdPath' && printf 'present\n' || printf 'missing\n'
       ;;
     infobase.mode)
       profile_has_nonnull '.infobase.mode' && printf 'present\n' || printf 'missing\n'
@@ -63,6 +73,21 @@ profile_field_status() {
       ;;
     infobase.auth.passwordEnv)
       profile_has_nonnull '.infobase.auth.passwordEnv' && printf 'present\n' || printf 'missing\n'
+      ;;
+    ibcmd.connectionMode)
+      profile_has_nonnull '.ibcmd.connectionMode' && printf 'present\n' || printf 'missing\n'
+      ;;
+    ibcmd.dataDir)
+      profile_has_nonnull '.ibcmd.dataDir' && printf 'present\n' || printf 'missing\n'
+      ;;
+    ibcmd.databasePath)
+      profile_has_nonnull '.ibcmd.databasePath' && printf 'present\n' || printf 'missing\n'
+      ;;
+    ibcmd.auth.user)
+      profile_has_nonnull '.ibcmd.auth.user' && printf 'present\n' || printf 'missing\n'
+      ;;
+    ibcmd.auth.passwordEnv)
+      profile_has_nonnull '.ibcmd.auth.passwordEnv' && printf 'present\n' || printf 'missing\n'
       ;;
     *)
       printf 'missing\n'
@@ -87,12 +112,15 @@ main() {
   local adapter=""
   local run_root=""
   local summary_path=""
+  local stdout_log=""
+  local stderr_log=""
   local required_tools_jsonl=""
   local optional_tools_jsonl=""
   local required_fields_jsonl=""
   local required_env_refs_jsonl=""
   local required_capabilities_jsonl=""
   local optional_capabilities_jsonl=""
+  local capability_drivers_json="{}"
   local required_tools_json="[]"
   local optional_tools_json="[]"
   local required_fields_json="[]"
@@ -105,6 +133,7 @@ main() {
   local env_name=""
   local capability_id=""
   local check_status=""
+  local check_reason=""
   local -a required_tools=(git jq rg)
   local -a optional_tools=(openspec bd)
   local -a required_fields=()
@@ -126,18 +155,25 @@ main() {
   adapter="${RUNNER_ADAPTER:-${RUNTIME_PROFILE_RUNNER_ADAPTER:-direct-platform}}"
   run_root="$(prepare_capability_run_root "doctor" "$CAPABILITY_RUN_ROOT_INPUT")"
   summary_path="$(capability_summary_path "$run_root")"
+  stdout_log="$run_root/stdout.log"
+  stderr_log="$run_root/stderr.log"
   required_tools_jsonl="$run_root/required-tools.jsonl"
   optional_tools_jsonl="$run_root/optional-tools.jsonl"
   required_fields_jsonl="$run_root/required-profile-fields.jsonl"
   required_env_refs_jsonl="$run_root/required-env-refs.jsonl"
   required_capabilities_jsonl="$run_root/required-capabilities.jsonl"
   optional_capabilities_jsonl="$run_root/optional-capabilities.jsonl"
+  : >"$stdout_log"
+  : >"$stderr_log"
   : >"$required_tools_jsonl"
   : >"$optional_tools_jsonl"
   : >"$required_fields_jsonl"
   : >"$required_env_refs_jsonl"
   : >"$required_capabilities_jsonl"
   : >"$optional_capabilities_jsonl"
+
+  exec 3>&1 4>&2
+  exec > >(tee -a "$stdout_log" >&3) 2> >(tee -a "$stderr_log" >&4)
 
   collect_required_profile_fields "$adapter" required_fields
   collect_required_env_refs required_env_refs
@@ -185,11 +221,16 @@ main() {
   done
 
   for capability_id in "${required_capabilities[@]}"; do
-    check_status="$(capability_status "$capability_id" "$adapter")"
+    check_reason="$(doctor_capability_failure_reason "$capability_id" "$adapter")"
+    check_status="present"
+    if [ -n "$check_reason" ]; then
+      check_status="missing"
+    fi
     if [ "$check_status" != "present" ]; then
       status="failed"
+      log "missing capability precondition: $capability_id ($check_reason)"
     fi
-    append_json_check "$required_capabilities_jsonl" "$capability_id" "$check_status" true
+    append_json_check "$required_capabilities_jsonl" "$capability_id" "$check_status" true "$check_reason"
   done
 
   for capability_id in "${optional_capabilities[@]}"; do
@@ -203,6 +244,7 @@ main() {
   required_env_refs_json="$(jq -s '.' "$required_env_refs_jsonl")"
   required_capabilities_json="$(jq -s '.' "$required_capabilities_jsonl")"
   optional_capabilities_json="$(jq -s '.' "$optional_capabilities_jsonl")"
+  capability_drivers_json="$(build_doctor_capability_drivers_json "$adapter")"
 
   jq -n \
     --arg status "$status" \
@@ -210,12 +252,15 @@ main() {
     --arg profile_path "$profile_path" \
     --arg run_root "$run_root" \
     --arg summary_path "$summary_path" \
+    --arg stdout_log "$stdout_log" \
+    --arg stderr_log "$stderr_log" \
     --argjson required_tools "$required_tools_json" \
     --argjson optional_tools "$optional_tools_json" \
     --argjson required_profile_fields "$required_fields_json" \
     --argjson required_env_refs "$required_env_refs_json" \
     --argjson required_capabilities "$required_capabilities_json" \
     --argjson optional_capabilities "$optional_capabilities_json" \
+    --argjson capability_drivers "$capability_drivers_json" \
     --argjson context "$(build_redacted_context_json)" \
     '{
       status: $status,
@@ -227,8 +272,11 @@ main() {
       profile_path: $profile_path,
       run_root: $run_root,
       artifacts: {
-        summary_json: $summary_path
+        summary_json: $summary_path,
+        stdout_log: $stdout_log,
+        stderr_log: $stderr_log
       },
+      capability_drivers: $capability_drivers,
       checks: {
         required_tools: $required_tools,
         optional_tools: $optional_tools,
