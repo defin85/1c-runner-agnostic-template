@@ -1,7 +1,9 @@
 # Project-scoped Codex configuration.
 # Codex loads this file only when the repository is trusted.
 # Start with:
-#   - docs/agent/index.md
+#   - root AGENTS.md
+#   - docs/agent/index.md in the template source repo
+#   - docs/agent/generated-project-index.md in generated repositories
 #   - make agent-verify
 # Shared repo-local skills live in .agents/skills/.
 # The optional MCP examples below stay commented so a fresh environment does not

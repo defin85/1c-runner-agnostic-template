@@ -11,6 +11,7 @@ template_root="$tmpdir/template"
 rendered_root="$tmpdir/rendered"
 bindir="$tmpdir/bin"
 command_log="$tmpdir/commands.log"
+real_copier="$(command -v copier)"
 
 mkdir -p "$template_root" "$bindir"
 
@@ -41,6 +42,18 @@ assert_contains() {
 
   if ! grep -Fq -- "$expected" "$file"; then
     printf 'expected text not found: %s\n' "$expected" >&2
+    printf 'actual file contents:\n' >&2
+    cat "$file" >&2
+    exit 1
+  fi
+}
+
+assert_not_contains() {
+  local file="$1"
+  local unexpected="$2"
+
+  if grep -Fq -- "$unexpected" "$file"; then
+    printf 'unexpected text found: %s\n' "$unexpected" >&2
     printf 'actual file contents:\n' >&2
     cat "$file" >&2
     exit 1
@@ -96,6 +109,21 @@ assert_jq() {
 
 copy_template_repo
 
+mkdir -p "$template_root/src/cf/DataProcessors/TestProcessor/Ext"
+cat >"$template_root/src/cf/DataProcessors/TestProcessor/Ext/ObjectModule.bsl" <<'EOF'
+// Smoke fixture to ensure Copier does not treat raw BSL braces as Jinja syntax.
+Procedure Test()
+	Сообщить("{{ raw_bsl_expression }}");
+EndProcedure
+EOF
+
+cat >"$bindir/copier" <<EOF
+#!/usr/bin/env bash
+set -euo pipefail
+printf 'copier %s\n' "\$*" >>"\$COMMAND_LOG"
+exec "$real_copier" "\$@"
+EOF
+
 cat >"$bindir/openspec" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
@@ -133,6 +161,7 @@ fi
 EOF
 
 chmod +x "$bindir/openspec" "$bindir/bd"
+chmod +x "$bindir/copier"
 
 init_git_repo "$template_root" "template v0.1.0"
 git -C "$template_root" tag v0.1.0
@@ -145,7 +174,7 @@ PATH="$bindir:$PATH" COMMAND_LOG="$command_log" copier copy --trust --defaults \
   >/dev/null
 
 assert_exists "$rendered_root/.copier-answers.yml"
-assert_not_exists "$rendered_root/{{ '{{ _copier_conf.answers_file }}' }}"
+assert_not_exists "$rendered_root/[[[ _copier_conf.answers_file ]]]"
 assert_exists "$rendered_root/.codex/.gitkeep"
 assert_exists "$rendered_root/.codex/config.toml"
 assert_exists "$rendered_root/.codex/README.md"
@@ -157,9 +186,12 @@ assert_exists "$rendered_root/.claude/skills/1c-doctor/SKILL.md"
 assert_exists "$rendered_root/.github/workflows/ci.yml"
 assert_exists "$rendered_root/docs/agent/index.md"
 assert_exists "$rendered_root/docs/agent/architecture.md"
+assert_exists "$rendered_root/docs/agent/generated-project-index.md"
+assert_exists "$rendered_root/docs/agent/generated-project-verification.md"
 assert_exists "$rendered_root/docs/agent/source-vs-generated.md"
 assert_exists "$rendered_root/docs/agent/verify.md"
 assert_exists "$rendered_root/docs/agent/review.md"
+assert_exists "$rendered_root/docs/template-maintenance.md"
 assert_exists "$rendered_root/docs/exec-plans/README.md"
 assert_exists "$rendered_root/docs/migrations/runtime-profile-v2.md"
 assert_exists "$rendered_root/env/.local/README.md"
@@ -170,7 +202,11 @@ assert_exists "$rendered_root/scripts/qa/check-agent-docs.sh"
 assert_exists "$rendered_root/scripts/platform/dump-src.sh"
 assert_exists "$rendered_root/scripts/platform/diff-src.sh"
 assert_exists "$rendered_root/scripts/diag/doctor.sh"
+assert_exists "$rendered_root/scripts/llm/export-context.sh"
 assert_exists "$rendered_root/scripts/template/migrate-runtime-profile-v2.sh"
+assert_exists "$rendered_root/automation/context/project-map.md"
+assert_exists "$rendered_root/automation/context/source-tree.generated.txt"
+assert_exists "$rendered_root/automation/context/metadata-index.generated.json"
 assert_exists "$rendered_root/automation/context/templates/generated-project-project-map.md"
 assert_exists "$rendered_root/automation/context/templates/generated-project-metadata-index.json"
 assert_exists "$rendered_root/tests/smoke/runtime-capability-contract.sh"
@@ -196,6 +232,9 @@ assert_exists "$rendered_root/scripts/template/check-update.sh"
 assert_contains "$rendered_root/Makefile" "template-update:"
 assert_contains "$rendered_root/Makefile" "agent-verify:"
 assert_contains "$rendered_root/Makefile" "check-agent-docs:"
+assert_contains "$rendered_root/Makefile" "export-context-preview:"
+assert_contains "$rendered_root/Makefile" "export-context-check:"
+assert_contains "$rendered_root/Makefile" "export-context-write:"
 assert_contains "$rendered_root/.gitignore" ".codex/*"
 assert_contains "$rendered_root/.gitignore" "!.codex/.gitkeep"
 assert_contains "$rendered_root/.gitignore" "!.codex/config.toml"
@@ -206,6 +245,7 @@ assert_contains "$rendered_root/.gitignore" "env/.local/*.json"
 assert_contains "$rendered_root/.codex/config.toml" "mcp_servers.claude-context"
 assert_contains "$rendered_root/.codex/config.toml" "mcp_servers.chrome-devtools"
 assert_contains "$rendered_root/.codex/README.md" "[docs/agent/index.md](../docs/agent/index.md)"
+assert_contains "$rendered_root/.codex/README.md" "[docs/agent/generated-project-index.md](../docs/agent/generated-project-index.md)"
 assert_contains "$rendered_root/.agents/skills/README.md" "repo-agent-verify"
 assert_contains "$rendered_root/.github/workflows/ci.yml" "name: CI"
 assert_contains "$rendered_root/.github/workflows/ci.yml" "name: Runtime doctor"
@@ -224,23 +264,65 @@ assert_jq "$rendered_root/env/local.example.json" '.runnerAdapter == "direct-pla
 assert_jq "$rendered_root/env/ci.example.json" '.runnerAdapter == "direct-platform" and .ibcmd.runtimeMode == "dbms-infobase" and .ibcmd.dbmsInfobase.kind == "PostgreSQL" and .capabilities.loadSrc.driver == "designer"' "ci-example-driver"
 assert_jq "$rendered_root/env/wsl.example.json" '.runnerAdapter == "direct-platform" and .ibcmd.runtimeMode == "standalone-server" and .platform.xvfb.enabled == true and .platform.xvfb.serverArgs == ["-screen","0","1440x900x24","-noreset"] and .platform.ldPreload.enabled == true and .platform.ldPreload.libraries == ["/usr/lib/libstdc++.so.6","/usr/lib/libgcc_s.so.1"] and .capabilities.loadSrc.driver == "designer"' "wsl-example-driver"
 assert_jq "$rendered_root/env/windows-executor.example.json" '.runnerAdapter == "remote-windows" and .capabilities.loadSrc.driver == "designer"' "windows-example-driver"
-assert_contains "$rendered_root/README.md" "partial import"
-assert_contains "$rendered_root/README.md" "env/.local/"
-assert_contains "$rendered_root/README.md" "[docs/agent/index.md](docs/agent/index.md)"
+assert_contains "$rendered_root/README.md" "generated 1С-проект"
+assert_contains "$rendered_root/README.md" "[docs/agent/generated-project-index.md](docs/agent/generated-project-index.md)"
+assert_contains "$rendered_root/README.md" "[automation/context/project-map.md](automation/context/project-map.md)"
+assert_contains "$rendered_root/README.md" "[docs/agent/generated-project-verification.md](docs/agent/generated-project-verification.md)"
+assert_contains "$rendered_root/README.md" "[docs/template-maintenance.md](docs/template-maintenance.md)"
 assert_contains "$rendered_root/README.md" "make agent-verify"
-assert_contains "$rendered_root/README.md" "automation/context/templates/"
+assert_contains "$rendered_root/README.md" "Ownership Classes"
 assert_contains "$rendered_root/env/README.md" "driver=ibcmd"
 assert_contains "$rendered_root/env/README.md" "xvfb-run"
 assert_contains "$rendered_root/env/README.md" "LD_PRELOAD"
 assert_contains "$rendered_root/env/README.md" "env/.local/"
-assert_contains "$rendered_root/AGENTS.md" 'Start with [docs/agent/index.md](docs/agent/index.md) for the authoritative documentation map.'
-assert_contains "$rendered_root/AGENTS.md" 'Use [docs/agent/architecture.md](docs/agent/architecture.md) as the repo map.'
-assert_contains "$rendered_root/AGENTS.md" 'Use [docs/agent/verify.md](docs/agent/verify.md) and `make agent-verify` as the first lightweight verification path for repo/doc/tooling changes.'
+assert_contains "$rendered_root/AGENTS.md" 'Start with [docs/agent/generated-project-index.md](docs/agent/generated-project-index.md) for the generated-project-first onboarding path.'
+assert_contains "$rendered_root/AGENTS.md" 'Use [automation/context/project-map.md](automation/context/project-map.md) as the project-owned repo map.'
+assert_contains "$rendered_root/AGENTS.md" 'Use [docs/agent/generated-project-verification.md](docs/agent/generated-project-verification.md) and `make agent-verify` as the first no-1C verification path.'
+assert_contains "$rendered_root/AGENTS.md" 'Use [docs/template-maintenance.md](docs/template-maintenance.md) only for template refresh and maintenance work.'
+assert_contains "$rendered_root/automation/context/project-map.md" "role: generated 1С-проект"
+assert_contains "$rendered_root/automation/context/project-map.md" "generated-derived"
+assert_contains "$rendered_root/automation/context/source-tree.generated.txt" "# Generated Project Tree"
+assert_jq "$rendered_root/automation/context/metadata-index.generated.json" '.inventoryRole == "generated-derived" and .authoritativeDocs.projectMap == "automation/context/project-map.md"' "generated-metadata-index"
+assert_contains "$rendered_root/src/cf/DataProcessors/TestProcessor/Ext/ObjectModule.bsl" "{{ raw_bsl_expression }}"
 
 (
   cd "$rendered_root"
   PATH="$bindir:$PATH" COMMAND_LOG="$command_log" make agent-verify >/dev/null
 )
+
+(
+  cd "$rendered_root"
+  PATH="$bindir:$PATH" COMMAND_LOG="$command_log" make export-context-check >/dev/null
+)
+
+status_before_preview="$(git -C "$rendered_root" status --short)"
+preview_output="$tmpdir/export-context-preview.txt"
+(
+  cd "$rendered_root"
+  PATH="$bindir:$PATH" COMMAND_LOG="$command_log" make export-context-preview >"$preview_output"
+)
+status_after_preview="$(git -C "$rendered_root" status --short)"
+if [ "$status_before_preview" != "$status_after_preview" ]; then
+  printf 'preview export-context path must not change the worktree\n' >&2
+  printf 'before:\n%s\n' "$status_before_preview" >&2
+  printf 'after:\n%s\n' "$status_after_preview" >&2
+  exit 1
+fi
+assert_contains "$preview_output" "=== automation/context/source-tree.generated.txt ==="
+assert_contains "$preview_output" "=== automation/context/metadata-index.generated.json ==="
+
+status_before_export="$(git -C "$rendered_root" status --short)"
+(
+  cd "$rendered_root"
+  PATH="$bindir:$PATH" COMMAND_LOG="$command_log" make export-context >/dev/null
+)
+status_after_export="$(git -C "$rendered_root" status --short)"
+if [ "$status_before_export" != "$status_after_export" ]; then
+  printf 'default export-context path must not change the worktree\n' >&2
+  printf 'before:\n%s\n' "$status_before_export" >&2
+  printf 'after:\n%s\n' "$status_after_export" >&2
+  exit 1
+fi
 
 assert_count "$command_log" "openspec init --tools none" "1"
 assert_count "$command_log" "bd init --stealth -p smoke-project" "1"
@@ -249,6 +331,34 @@ git -C "$rendered_root" config user.name "Smoke Test"
 git -C "$rendered_root" config user.email "smoke@example.com"
 git -C "$rendered_root" add -A
 git -C "$rendered_root" commit -qm "generated v0.1.0"
+
+cat >>"$rendered_root/README.md" <<'EOF'
+
+## Project-Owned Smoke Marker
+
+- README marker must survive copier update.
+EOF
+
+cat >>"$rendered_root/automation/context/project-map.md" <<'EOF'
+
+## Project-Owned Smoke Marker
+
+- project-map marker must survive copier update.
+EOF
+
+cat >>"$rendered_root/openspec/project.md" <<'EOF'
+
+## Project-Owned Smoke Marker
+
+- openspec marker must survive copier update.
+EOF
+
+git -C "$rendered_root" add README.md automation/context/project-map.md openspec/project.md
+git -C "$rendered_root" commit -qm "project-owned edits"
+
+rm -f "$rendered_root/AGENTS.md"
+git -C "$rendered_root" add AGENTS.md
+git -C "$rendered_root" commit -qm "remove agents"
 
 cat >"$template_root/docs/template-update-note.txt" <<'EOF'
 This file is added in template v0.2.0 to verify copier update.
@@ -266,16 +376,46 @@ if old not in text:
 path.write_text(text.replace(old, new, 1))
 PY
 
+python - <<PY
+from pathlib import Path
+
+path = Path("$template_root/scripts/bootstrap/generated-project-surface.sh")
+old = "- Template maintenance path вынесен в [docs/template-maintenance.md](docs/template-maintenance.md) и не является primary feature-delivery workflow.\\n"
+new = "- Template maintenance path вынесен в [docs/template-maintenance.md](docs/template-maintenance.md) и не является primary feature-delivery workflow.\\n- Generated-derived inventory refresh-ится отдельной explicit write-командой.\\n"
+text = path.read_text()
+if old not in text:
+    raise SystemExit("generated README router marker not found")
+path.write_text(text.replace(old, new, 1))
+PY
+
 git -C "$template_root" add -A
 git -C "$template_root" commit -qm "template v0.2.0"
 git -C "$template_root" tag v0.2.0
 
+status_before_template_check="$(git -C "$rendered_root" status --short)"
+template_check_output="$tmpdir/template-check-update.txt"
 (
   cd "$rendered_root"
-  PATH="$bindir:$PATH" COMMAND_LOG="$command_log" ./scripts/template/update-template.sh >/dev/null
+  PATH="$bindir:$PATH" COMMAND_LOG="$command_log" make template-check-update >"$template_check_output"
 )
+status_after_template_check="$(git -C "$rendered_root" status --short)"
+if [ "$status_before_template_check" != "$status_after_template_check" ]; then
+  printf 'template-check-update must not change the worktree\n' >&2
+  printf 'before:\n%s\n' "$status_before_template_check" >&2
+  printf 'after:\n%s\n' "$status_after_template_check" >&2
+  exit 1
+fi
+assert_contains "$template_check_output" "copier check-update"
+
+template_update_output="$tmpdir/template-update-v0.2.0.txt"
+(
+  cd "$rendered_root"
+  PATH="$bindir:$PATH" COMMAND_LOG="$command_log" make template-update >"$template_update_output"
+)
+assert_contains "$template_update_output" "copier update --trust --defaults"
 
 assert_exists "$rendered_root/docs/template-update-note.txt"
+assert_exists "$rendered_root/AGENTS.md"
 assert_contains "$rendered_root/AGENTS.md" "Refresh managed AGENTS overlays during template updates."
 assert_contains "$rendered_root/.gitignore" ".codex/*"
 assert_contains "$rendered_root/.gitignore" "!.codex/README.md"
@@ -286,11 +426,17 @@ assert_exists "$rendered_root/.claude/settings.json"
 assert_exists "$rendered_root/.claude/skills/1c-doctor/SKILL.md"
 assert_exists "$rendered_root/.github/workflows/ci.yml"
 assert_exists "$rendered_root/docs/agent/index.md"
+assert_exists "$rendered_root/docs/agent/generated-project-index.md"
+assert_exists "$rendered_root/docs/agent/generated-project-verification.md"
+assert_exists "$rendered_root/docs/template-maintenance.md"
 assert_exists "$rendered_root/docs/exec-plans/README.md"
 assert_exists "$rendered_root/docs/migrations/runtime-profile-v2.md"
 assert_exists "$rendered_root/env/.local/README.md"
 assert_exists "$rendered_root/scripts/qa/agent-verify.sh"
 assert_exists "$rendered_root/scripts/qa/check-agent-docs.sh"
+assert_exists "$rendered_root/automation/context/project-map.md"
+assert_exists "$rendered_root/automation/context/source-tree.generated.txt"
+assert_exists "$rendered_root/automation/context/metadata-index.generated.json"
 assert_exists "$rendered_root/automation/context/templates/generated-project-project-map.md"
 assert_exists "$rendered_root/tests/smoke/agent-docs-contract.sh"
 assert_exists "$rendered_root/scripts/lib/capability.sh"
@@ -323,8 +469,54 @@ assert_contains "$rendered_root/.github/workflows/ci.yml" "runtime-gate:"
 assert_contains "$rendered_root/.github/workflows/ci.yml" "needs.runtime-gate.outputs.ci_profile_present == 'true'"
 assert_contains "$rendered_root/.github/workflows/ci.yml" "runtime-direct-platform-ld-preload-contract.sh"
 assert_contains "$rendered_root/env/local.example.json" "\"driver\": \"ibcmd\""
+assert_contains "$rendered_root/README.md" "Generated-derived inventory refresh-ится отдельной explicit write-командой."
+assert_contains "$rendered_root/README.md" "README marker must survive copier update."
+assert_contains "$rendered_root/automation/context/project-map.md" "project-map marker must survive copier update."
+assert_contains "$rendered_root/openspec/project.md" "openspec marker must survive copier update."
 assert_count "$command_log" "openspec init --tools none" "1"
 assert_count "$command_log" "bd init --stealth -p smoke-project" "1"
+assert_count "$command_log" "copier check-update" "1"
+assert_count "$command_log" "copier update --trust --defaults" "1"
+
+git -C "$rendered_root" add -A
+git -C "$rendered_root" commit -qm "generated v0.2.0"
+
+rm -f "$rendered_root/README.md"
+git -C "$rendered_root" add README.md
+git -C "$rendered_root" commit -qm "remove readme"
+
+cat >"$template_root/docs/template-update-v3-note.txt" <<'EOF'
+This file is added in template v0.3.0 to verify README recovery.
+EOF
+
+python - "$template_root/scripts/bootstrap/generated-project-surface.sh" <<'PY'
+from pathlib import Path
+import sys
+
+path = Path(sys.argv[1])
+old = "## Agent Entry Point\n\n"
+new = "## Agent Entry Point\n\n- README recovery during template update must restore generated-project identity instead of the source-template overview.\n\n"
+text = path.read_text()
+if old not in text:
+    raise SystemExit("generated README recovery marker not found")
+path.write_text(text.replace(old, new, 1))
+PY
+
+git -C "$template_root" add -A
+git -C "$template_root" commit -qm "template v0.3.0"
+git -C "$template_root" tag v0.3.0
+
+template_update_recovery_output="$tmpdir/template-update-v0.3.0.txt"
+(
+  cd "$rendered_root"
+  PATH="$bindir:$PATH" COMMAND_LOG="$command_log" make template-update >"$template_update_recovery_output"
+)
+
+assert_contains "$template_update_recovery_output" "copier update --trust --defaults"
+assert_exists "$rendered_root/README.md"
+assert_exists "$rendered_root/docs/template-update-v3-note.txt"
+assert_contains "$rendered_root/README.md" "# Smoke Project"
+assert_not_contains "$rendered_root/README.md" "# 1c-runner-agnostic-template"
 
 (
   cd "$rendered_root"

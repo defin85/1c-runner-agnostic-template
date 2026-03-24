@@ -1,4 +1,21 @@
-# {{ project_name }}
+# 1c-runner-agnostic-template
+
+Исходный репозиторий шаблона для 1С-проектов.
+Здесь живут reusable runtime/test/QA contract, bootstrap/update hooks, agent-facing docs и smoke-контуры поставки шаблона.
+
+Если вам нужен authoritative onboarding для текущего репозитория, начинайте с [docs/agent/index.md](docs/agent/index.md).
+Этот маршрут отвечает на три базовых вопроса:
+
+- что это за репозиторий;
+- чем source repo отличается от generated project;
+- какой verify contour запускать первым.
+
+Generated projects получают собственные root entrypoint-ы при `copier copy`:
+
+- project-first `README.md`;
+- bootstrap overlay в `AGENTS.md`;
+- project-owned `automation/context/project-map.md` и `openspec/project.md`;
+- generated-project docs вроде `docs/agent/generated-project-index.md` и `docs/agent/generated-project-verification.md`.
 
 Шаблон проекта для разработки на 1С по принципам:
 
@@ -24,7 +41,7 @@
 - держать в репозитории явные точки входа для спецификаций, тестов, запуска и локального трекинга.
 
 Для agent-facing navigation используйте [docs/agent/index.md](docs/agent/index.md).
-В template source repo корневой [AGENTS.md](AGENTS.md) остаётся коротким entrypoint; в generated project этот слой дополняется bootstrap overlay.
+В source repo корневой [AGENTS.md](AGENTS.md) остаётся коротким entrypoint; в generated project этот слой дополняется bootstrap overlay.
 
 ## Структура
 
@@ -66,7 +83,8 @@
 System of record для нового агента находится в [docs/agent/index.md](docs/agent/index.md).
 
 В template source repo этот индекс объясняет устройство самого шаблона.
-В generated project тот же слой остаётся стартовой картой уже для конкретного репозитория.
+Generated projects получают отдельный стартовый слой в [docs/agent/generated-project-index.md](docs/agent/generated-project-index.md) и verification matrix в [docs/agent/generated-project-verification.md](docs/agent/generated-project-verification.md).
+Если high-level overview из `README.md` и `openspec/project.md` кажется недостаточным или частично дублирующимся, приоритет для onboarding у `docs/agent/`.
 
 Минимальный маршрут discovery такой:
 
@@ -75,6 +93,7 @@ System of record для нового агента находится в [docs/ag
 - [docs/agent/source-vs-generated.md](docs/agent/source-vs-generated.md) — граница между template source repo и generated project;
 - [docs/agent/verify.md](docs/agent/verify.md) — baseline/fixture/runtime контуры проверки;
 - [docs/agent/review.md](docs/agent/review.md) — repo-specific review expectations;
+- [docs/template-maintenance.md](docs/template-maintenance.md) — isolated guide для `copier update` и template maintenance;
 - [docs/exec-plans/README.md](docs/exec-plans/README.md) — versioned место для long-running execution plans.
 
 ## Принцип запуска
@@ -321,7 +340,7 @@ copier update --trust --defaults
 update-1c-project /path/to/generated-project --vcs-ref v0.1.1
 ```
 
-`template-update` обновляет файлы шаблона и refresh-ит managed-блок в `AGENTS.md`, не переинициализируя `openspec`, `git` и `bd`.
+`template-update` обновляет template-managed assets, refresh-ит generated README router и managed-блок в `AGENTS.md`, при необходимости восстанавливает missing root entrypoint files и не переинициализирует `openspec`, `git` и `bd`.
 
 ## Make targets
 
@@ -342,6 +361,9 @@ update-1c-project /path/to/generated-project --vcs-ref v0.1.1
 - `make test-bdd`
 - `make smoke`
 - `make export-context`
+- `make export-context-preview`
+- `make export-context-check`
+- `make export-context-write`
 - `make verify-traceability`
 - `make template-check-update`
 - `make template-update`

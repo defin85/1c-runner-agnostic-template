@@ -6,15 +6,18 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/../lib/common.sh"
 # shellcheck source=./agents-overlay.sh
 source "$SCRIPT_DIR/agents-overlay.sh"
+# shellcheck source=./generated-project-surface.sh
+source "$SCRIPT_DIR/generated-project-surface.sh"
 
 template_src_path="${1:-}"
 project_name="${2:-}"
 project_slug="${3:-}"
-preferred_adapter="${4:-direct-platform}"
-openspec_tools="${5:-none}"
-init_git_repository="${6:-yes}"
-init_beads="${7:-yes}"
-beads_prefix="${8:-}"
+project_description="${4:-}"
+preferred_adapter="${5:-direct-platform}"
+openspec_tools="${6:-none}"
+init_git_repository="${7:-yes}"
+init_beads="${8:-yes}"
+beads_prefix="${9:-}"
 
 root="$(project_root)"
 
@@ -93,3 +96,9 @@ for asset in copier.yml .github/workflows/ci.yml; do
     install -D -m 0644 "$template_src_path/$asset" "$root/$asset"
   fi
 done
+
+if [ "${DRY_RUN:-0}" != "1" ]; then
+  sync_template_nested_readmes "$template_src_path" "$root"
+  seed_generated_project_surface_on_copy "$root" "$project_name" "$project_slug" "$project_description"
+  "$root/scripts/llm/export-context.sh" --write >/dev/null
+fi

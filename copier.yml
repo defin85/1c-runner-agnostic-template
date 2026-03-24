@@ -1,6 +1,11 @@
 _min_copier_version: "9.6.0"
 _answers_file: .copier-answers.yml
 _templates_suffix: ""
+_envops:
+  autoescape: false
+  keep_trailing_newline: true
+  variable_start_string: "[[["
+  variable_end_string: "]]]"
 _exclude:
   - .git
   - .git/**
@@ -26,20 +31,24 @@ _message_before_update: |-
 _tasks:
   - command: >-
       bash ./scripts/bootstrap/copier-post-copy.sh
-      "{{ _src_path }}"
-      "{{ project_name }}"
-      "{{ project_slug }}"
-      "{{ preferred_adapter }}"
-      "{{ openspec_tools }}"
-      "{{ 'yes' if init_git_repository else 'no' }}"
-      "{{ 'yes' if init_beads else 'no' }}"
-      "{{ beads_prefix }}"
-    when: "{{ _copier_operation == 'copy' }}"
+      "[[[ _src_path ]]]"
+      "[[[ project_name ]]]"
+      "[[[ project_slug ]]]"
+      "[[[ project_description ]]]"
+      "[[[ preferred_adapter ]]]"
+      "[[[ openspec_tools ]]]"
+      "[[[ 'yes' if init_git_repository else 'no' ]]]"
+      "[[[ 'yes' if init_beads else 'no' ]]]"
+      "[[[ beads_prefix ]]]"
+    when: "[[[ _copier_operation == 'copy' ]]]"
   - command: >-
       bash ./scripts/bootstrap/copier-post-update.sh
-      "{{ _src_path }}"
-      "{{ 'yes' if init_beads else 'no' }}"
-    when: "{{ _copier_operation == 'update' }}"
+      "[[[ _src_path ]]]"
+      "[[[ project_name ]]]"
+      "[[[ project_slug ]]]"
+      "[[[ project_description ]]]"
+      "[[[ 'yes' if init_beads else 'no' ]]]"
+    when: "[[[ _copier_operation == 'update' ]]]"
 
 project_name:
   type: str
@@ -78,11 +87,11 @@ init_git_repository:
 init_beads:
   type: bool
   help: Инициализировать beads в stealth-режиме. Требует git-репозиторий.
-  when: "{{ init_git_repository }}"
-  default: "{{ init_git_repository }}"
+  when: "[[[ init_git_repository ]]]"
+  default: "[[[ init_git_repository ]]]"
 
 beads_prefix:
   type: str
   help: Префикс задач beads; если пусто, используется project_slug
-  when: "{{ init_beads }}"
+  when: "[[[ init_beads ]]]"
   default: ""

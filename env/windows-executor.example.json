@@ -1,8 +1,8 @@
 {
   "schemaVersion": 2,
   "profileName": "windows-executor",
-  "projectName": "{{ project_name }}",
-  "projectSlug": "{{ project_slug }}",
+  "projectName": "[[[ project_name ]]]",
+  "projectSlug": "[[[ project_slug ]]]",
   "description": "Remote Windows execution profile for UI-heavy or TestClient flows",
   "runnerAdapter": "remote-windows",
   "notes": [
@@ -16,7 +16,7 @@
   "infobase": {
     "mode": "client-server",
     "server": "win-1c:1541",
-    "ref": "{{ project_slug|replace('-', '_') }}",
+    "ref": "[[[ project_slug|replace('-', '_') ]]]",
     "connectionStringOverride": null,
     "auth": {
       "mode": "user-password",

@@ -47,6 +47,8 @@
 ./copier.yml
 ./docs/README.md
 ./docs/agent/architecture.md
+./docs/agent/generated-project-index.md
+./docs/agent/generated-project-verification.md
 ./docs/agent/index.md
 ./docs/agent/review.md
 ./docs/agent/source-vs-generated.md
@@ -55,6 +57,7 @@
 ./docs/exec-plans/active/.gitkeep
 ./docs/exec-plans/completed/.gitkeep
 ./docs/migrations/runtime-profile-v2.md
+./docs/template-maintenance.md
 ./env/.local/README.md
 ./env/README.md
 ./env/ci.example.json
@@ -71,6 +74,12 @@
 ./openspec/changes/add-codex-productivity-surface/specs/template-ci-contours/spec.md
 ./openspec/changes/add-codex-productivity-surface/tasks.md
 ./openspec/changes/add-codex-productivity-surface/traceability.md
+./openspec/changes/add-generated-project-agent-ownership-model/design.md
+./openspec/changes/add-generated-project-agent-ownership-model/proposal.md
+./openspec/changes/add-generated-project-agent-ownership-model/specs/generated-project-agent-guidance/spec.md
+./openspec/changes/add-generated-project-agent-ownership-model/specs/template-ci-contours/spec.md
+./openspec/changes/add-generated-project-agent-ownership-model/tasks.md
+./openspec/changes/add-generated-project-agent-ownership-model/traceability.md
 ./openspec/changes/archive/2026-03-18-add-agent-toolkit-and-ci-contours/design.md
 ./openspec/changes/archive/2026-03-18-add-agent-toolkit-and-ci-contours/proposal.md
 ./openspec/changes/archive/2026-03-18-add-agent-toolkit-and-ci-contours/specs/agent-runtime-toolkit/spec.md
@@ -123,6 +132,7 @@
 ./scripts/bootstrap/agents-overlay.sh
 ./scripts/bootstrap/copier-post-copy.sh
 ./scripts/bootstrap/copier-post-update.sh
+./scripts/bootstrap/generated-project-surface.sh
 ./scripts/diag/doctor.sh
 ./scripts/lib/capability.sh
 ./scripts/lib/common.sh

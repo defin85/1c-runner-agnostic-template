@@ -11,12 +11,14 @@ project_root="$tmpdir/project"
 bindir="$tmpdir/bin"
 bd_log="$tmpdir/bd.log"
 
-mkdir -p "$project_root/scripts/bootstrap" "$project_root/scripts/lib" "$bindir"
+mkdir -p "$project_root/scripts/bootstrap" "$project_root/scripts/lib" "$project_root/scripts/llm" "$bindir"
 git init -q "$project_root" >/dev/null 2>&1
 
 cp "$SOURCE_ROOT/scripts/bootstrap/agents-overlay.sh" "$project_root/scripts/bootstrap/agents-overlay.sh"
 cp "$SOURCE_ROOT/scripts/bootstrap/copier-post-copy.sh" "$project_root/scripts/bootstrap/copier-post-copy.sh"
+cp "$SOURCE_ROOT/scripts/bootstrap/generated-project-surface.sh" "$project_root/scripts/bootstrap/generated-project-surface.sh"
 cp "$SOURCE_ROOT/scripts/lib/common.sh" "$project_root/scripts/lib/common.sh"
+cp "$SOURCE_ROOT/scripts/llm/export-context.sh" "$project_root/scripts/llm/export-context.sh"
 
 cat >"$bindir/openspec" <<'EOF'
 #!/usr/bin/env bash
@@ -51,6 +53,7 @@ run_bootstrap() {
       "$SOURCE_ROOT" \
       "Sample Project" \
       "sample-project" \
+      "Тестовый generated проект" \
       "direct-platform" \
       "none" \
       "no" \
@@ -118,11 +121,18 @@ run_bootstrap
 run_bootstrap
 
 agents_file="$project_root/AGENTS.md"
+readme_file="$project_root/README.md"
+project_map_file="$project_root/automation/context/project-map.md"
+metadata_index_file="$project_root/automation/context/metadata-index.generated.json"
+source_tree_file="$project_root/automation/context/source-tree.generated.txt"
+openspec_project_file="$project_root/openspec/project.md"
 
 assert_contains "$agents_file" "We operate in a cycle: **OpenSpec (What) -> Beads (How) -> Code (Implementation)**."
-assert_contains "$agents_file" 'Start with [docs/agent/index.md](docs/agent/index.md) for the authoritative documentation map.'
-assert_contains "$agents_file" 'Use [docs/agent/architecture.md](docs/agent/architecture.md) as the repo map.'
-assert_contains "$agents_file" 'Use [docs/agent/verify.md](docs/agent/verify.md) and `make agent-verify` as the first lightweight verification path for repo/doc/tooling changes.'
+assert_contains "$agents_file" 'This repository is a generated 1С-project created from `1c-runner-agnostic-template`.'
+assert_contains "$agents_file" 'Start with [docs/agent/generated-project-index.md](docs/agent/generated-project-index.md) for the generated-project-first onboarding path.'
+assert_contains "$agents_file" 'Use [automation/context/project-map.md](automation/context/project-map.md) as the project-owned repo map.'
+assert_contains "$agents_file" 'Use [docs/agent/generated-project-verification.md](docs/agent/generated-project-verification.md) and `make agent-verify` as the first no-1C verification path.'
+assert_contains "$agents_file" 'Use [docs/template-maintenance.md](docs/template-maintenance.md) only for template refresh and maintenance work.'
 assert_contains "$agents_file" 'Use [docs/exec-plans/README.md](docs/exec-plans/README.md) for long-running or multi-session work.'
 assert_contains "$agents_file" 'Do not move to production code for new or major changes without explicit approval. Canonical signal: `Go!`.'
 assert_contains "$agents_file" 'Use `bd` as the source of truth for code-change tracking.'
@@ -131,3 +141,14 @@ assert_contains "$agents_file" '1. `mcp__claude-context__search_code`, if availa
 assert_contains "$agents_file" 'A session with code changes is not complete until `git push` succeeds.'
 assert_count "$agents_file" "<!-- RUNNER_AGNOSTIC_TEMPLATE:START -->" "1"
 assert_next_line "$agents_file" "<!-- OPENSPEC:END -->" "<!-- RUNNER_AGNOSTIC_TEMPLATE:START -->"
+
+assert_contains "$readme_file" "<!-- RUNNER_AGNOSTIC_PROJECT:START -->"
+assert_contains "$readme_file" "generated 1С-проект"
+assert_contains "$readme_file" "[automation/context/project-map.md](automation/context/project-map.md)"
+assert_contains "$readme_file" "[docs/agent/generated-project-verification.md](docs/agent/generated-project-verification.md)"
+assert_contains "$readme_file" "[docs/template-maintenance.md](docs/template-maintenance.md)"
+assert_contains "$project_map_file" "Ownership Model"
+assert_contains "$project_map_file" "generated-derived"
+assert_contains "$openspec_project_file" "generated 1С-проект"
+assert_contains "$metadata_index_file" "\"inventoryRole\": \"generated-derived\""
+assert_contains "$source_tree_file" "# Generated Project Tree"

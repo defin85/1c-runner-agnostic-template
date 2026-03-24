@@ -19,7 +19,8 @@
 - runtime capabilities: `./scripts/platform/*.sh`
 - tests: `./scripts/test/*.sh`
 - QA and agent checks: `./scripts/qa/*.sh`
-- context export: `./scripts/llm/export-context.sh`
+- context export preview: `./scripts/llm/export-context.sh --preview`
+- context export refresh: `./scripts/llm/export-context.sh --write`
 
 ## Canonical Checks
 

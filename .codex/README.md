@@ -1,11 +1,12 @@
 # Codex Repo Guide
 
-Используйте этот каталог как project-scoped companion к [docs/agent/index.md](../docs/agent/index.md).
+Используйте этот каталог как project-scoped companion к root `AGENTS.md`.
 
 ## С чего начинать
 
 - Доверьте репозиторий, чтобы Codex подхватил `.codex/config.toml`.
-- Начните с [docs/agent/index.md](../docs/agent/index.md).
+- В source repo начните с [docs/agent/index.md](../docs/agent/index.md).
+- В generated project начните с [docs/agent/generated-project-index.md](../docs/agent/generated-project-index.md).
 - Для первого прогона используйте `make agent-verify`.
 - Repeatable workflows лежат в [.agents/skills/README.md](../.agents/skills/README.md).
 

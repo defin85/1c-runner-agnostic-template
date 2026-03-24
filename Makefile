@@ -1,6 +1,6 @@
 SHELL := bash
 
-.PHONY: help agent-verify qa analyze-bsl format-bsl check-agent-docs check-skill-bindings create-ib dump-src load-src update-db diff-src doctor test-xunit test-bdd smoke export-context verify-traceability template-check-update template-update
+.PHONY: help agent-verify qa analyze-bsl format-bsl check-agent-docs check-skill-bindings create-ib dump-src load-src update-db diff-src doctor test-xunit test-bdd smoke export-context export-context-preview export-context-check export-context-write verify-traceability template-check-update template-update
 
 help:
 	@printf '%s\n' \
@@ -21,6 +21,9 @@ help:
 		'  make test-bdd' \
 		'  make smoke' \
 		'  make export-context' \
+		'  make export-context-preview' \
+		'  make export-context-check' \
+		'  make export-context-write' \
 		'  make verify-traceability' \
 		'  make template-check-update' \
 		'  make template-update'
@@ -70,7 +73,16 @@ smoke:
 	@./scripts/test/run-smoke.sh
 
 export-context:
-	@./scripts/llm/export-context.sh
+	@./scripts/llm/export-context.sh --help
+
+export-context-preview:
+	@./scripts/llm/export-context.sh --preview
+
+export-context-check:
+	@./scripts/llm/export-context.sh --check
+
+export-context-write:
+	@./scripts/llm/export-context.sh --write
 
 verify-traceability:
 	@./scripts/llm/verify-traceability.sh

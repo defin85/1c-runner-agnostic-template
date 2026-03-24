@@ -1,36 +1,25 @@
-# Generated Project Map Template
+# Generated Project Map Starter
 
-Скопируйте этот файл в live project context и замените подсказки на фактические данные проекта.
+Этот файл показывает структуру project-owned карты generated repo.
+Живой curated контекст должен храниться в `automation/context/project-map.md`.
 
-## Бизнес-домен
+## Обязательные секции
 
-- <описание домена>
+- repository identity;
+- known source roots;
+- ownership model;
+- canonical entrypoints;
+- next enrichment steps.
 
-## Главные bounded contexts
+## Что уточнять в project-owned карте
 
-- <context-1>
-- <context-2>
+- бизнес-домен и ключевые bounded contexts;
+- реальные metadata entrypoint-ы;
+- HTTP services, scheduled jobs, forms, external processors и extensions;
+- ограничения проекта, которые не принадлежат template-managed слою.
 
-## Главные точки входа
+## Что не смешивать с этим файлом
 
-- HTTP services:
-- Scheduled jobs:
-- Forms:
-- External processors:
-- Extensions:
-
-## Ключевые артефакты
-
-- Основная конфигурация: `src/cf`
-- Расширения: `src/cfe`
-- Внешние обработки: `src/epf`
-- Внешние отчеты: `src/erf`
-- OpenSpec workspace: `openspec/`
-
-## Канонические проверки
-
-- baseline agent verify: `make agent-verify`
-- BSL static analysis: `./scripts/qa/analyze-bsl.sh`
-- xUnit: `./scripts/test/run-xunit.sh`
-- BDD: `./scripts/test/run-bdd.sh`
-- Smoke: `./scripts/test/run-smoke.sh`
+- machine-generated inventory из `automation/context/metadata-index.generated.json`;
+- машинно-зависимые настройки из `env/local.json`, `env/wsl.json`, `env/.local/*.json`;
+- template maintenance notes, которые уже живут в `docs/template-maintenance.md`.

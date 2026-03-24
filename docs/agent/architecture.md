@@ -39,7 +39,7 @@ Agent and repository checks:
 - `./scripts/qa/agent-verify.sh`
 - `./scripts/qa/check-agent-docs.sh`
 - `./scripts/qa/check-skill-bindings.sh`
-- `./scripts/llm/export-context.sh`
+- `./scripts/llm/export-context.sh --preview|--check|--write`
 - `./scripts/llm/verify-traceability.sh`
 
 Template lifecycle:

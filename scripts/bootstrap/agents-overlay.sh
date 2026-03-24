@@ -4,12 +4,35 @@ set -euo pipefail
 project_agents_block_start="<!-- RUNNER_AGNOSTIC_TEMPLATE:START -->"
 project_agents_block_end="<!-- RUNNER_AGNOSTIC_TEMPLATE:END -->"
 
+write_generated_agents_scaffold() {
+  cat <<'EOF'
+<!-- OPENSPEC:START -->
+# OpenSpec Instructions
+
+These instructions are for AI assistants working in this project.
+
+Always open `@/openspec/AGENTS.md` when the request:
+- Mentions planning or proposals (words like proposal, spec, change, plan)
+- Introduces new capabilities, breaking changes, architecture shifts, or big performance/security work
+- Sounds ambiguous and you need the authoritative spec before coding
+
+Use `@/openspec/AGENTS.md` to learn:
+- How to create and apply change proposals
+- Spec format and conventions
+- Project structure and guidelines
+
+Keep this managed block so 'openspec update' can refresh the instructions.
+
+<!-- OPENSPEC:END -->
+EOF
+}
+
 ensure_agents_file() {
   local agents_file="$1"
 
   if [ ! -f "$agents_file" ]; then
-    printf 'error: AGENTS.md not found: %s\n' "$agents_file" >&2
-    exit 1
+    mkdir -p "$(dirname "$agents_file")"
+    write_generated_agents_scaffold >"$agents_file"
   fi
 }
 
@@ -79,9 +102,12 @@ append_project_agents_overlay() {
 
 # Project Docs
 
-- Start with [docs/agent/index.md](docs/agent/index.md) for the authoritative documentation map.
-- Use [docs/agent/architecture.md](docs/agent/architecture.md) as the repo map.
-- Use [docs/agent/verify.md](docs/agent/verify.md) and `make agent-verify` as the first lightweight verification path for repo/doc/tooling changes.
+- This repository is a generated 1С-project created from `1c-runner-agnostic-template`.
+- Start with [docs/agent/generated-project-index.md](docs/agent/generated-project-index.md) for the generated-project-first onboarding path.
+- Use [automation/context/project-map.md](automation/context/project-map.md) as the project-owned repo map.
+- Use [docs/agent/generated-project-verification.md](docs/agent/generated-project-verification.md) and `make agent-verify` as the first no-1C verification path.
+- Use [docs/template-maintenance.md](docs/template-maintenance.md) only for template refresh and maintenance work.
+- Ownership boundaries between template-managed and project-owned artifacts are described in [docs/agent/source-vs-generated.md](docs/agent/source-vs-generated.md).
 - Use [docs/exec-plans/README.md](docs/exec-plans/README.md) for long-running or multi-session work.
 
 # Unified Workflow

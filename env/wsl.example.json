@@ -1,8 +1,8 @@
 {
   "schemaVersion": 2,
   "profileName": "wsl",
-  "projectName": "{{ project_name }}",
-  "projectSlug": "{{ project_slug }}",
+  "projectName": "[[[ project_name ]]]",
+  "projectSlug": "[[[ project_slug ]]]",
   "description": "Linux/WSL-first profile for direct platform execution with Xvfb GUI isolation and LD_PRELOAD linker compatibility contour",
   "notes": [
     "Этот preset показывает canonical standalone-server contour для ibcmd, но core capabilities по умолчанию остаются на designer.",
@@ -25,7 +25,7 @@
   "infobase": {
     "mode": "client-server",
     "server": "127.0.0.1:1541",
-    "ref": "{{ project_slug|replace('-', '_') }}",
+    "ref": "[[[ project_slug|replace('-', '_') ]]]",
     "connectionStringOverride": null,
     "auth": {
       "mode": "os",
@@ -37,14 +37,14 @@
     "runtimeMode": "standalone-server",
     "serverAccess": {
       "mode": "data-dir",
-      "dataDir": "/var/lib/onec/{{ project_slug }}-standalone"
+      "dataDir": "/var/lib/onec/[[[ project_slug ]]]-standalone"
     },
     "auth": {
       "user": "standalone-admin",
       "passwordEnv": "ONEC_IBCMD_PASSWORD"
     },
     "standalone": {
-      "databasePath": "/var/lib/onec/{{ project_slug }}-standalone/db"
+      "databasePath": "/var/lib/onec/[[[ project_slug ]]]-standalone/db"
     }
   },
   "capabilities": {

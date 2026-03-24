@@ -1,8 +1,8 @@
 {
   "schemaVersion": 2,
   "profileName": "local",
-  "projectName": "{{ project_name }}",
-  "projectSlug": "{{ project_slug }}",
+  "projectName": "[[[ project_name ]]]",
+  "projectSlug": "[[[ project_slug ]]]",
   "description": "Minimal direct-platform runtime profile example with mixed designer/file-infobase ibcmd source sync",
   "runnerAdapter": "direct-platform",
   "notes": [
@@ -18,7 +18,7 @@
   },
   "infobase": {
     "mode": "file",
-    "filePath": "/var/tmp/{{ project_slug }}",
+    "filePath": "/var/tmp/[[[ project_slug ]]]",
     "connectionStringOverride": null,
     "auth": {
       "mode": "os",
@@ -30,14 +30,14 @@
     "runtimeMode": "file-infobase",
     "serverAccess": {
       "mode": "data-dir",
-      "dataDir": "/var/tmp/{{ project_slug }}-ibcmd"
+      "dataDir": "/var/tmp/[[[ project_slug ]]]-ibcmd"
     },
     "auth": {
       "user": "ibcmd-admin",
       "passwordEnv": "ONEC_IBCMD_PASSWORD"
     },
     "fileInfobase": {
-      "databasePath": "/var/tmp/{{ project_slug }}-file-ib"
+      "databasePath": "/var/tmp/[[[ project_slug ]]]-file-ib"
     }
   },
   "capabilities": {

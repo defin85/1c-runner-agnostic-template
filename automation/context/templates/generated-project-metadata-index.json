@@ -1,13 +1,21 @@
 {
   "projectRole": "generated-project-template",
-  "copyInstructions": "Create a live project-specific metadata index from this template and replace placeholder values.",
-  "configuration": {
-    "name": "<project-name>",
-    "srcDir": "src/cf"
+  "inventoryRole": "generated-derived-reference",
+  "liveInventoryPath": "automation/context/metadata-index.generated.json",
+  "sourceRoots": {
+    "configuration": "src/cf",
+    "extensions": "src/cfe",
+    "externalProcessors": "src/epf",
+    "reports": "src/erf"
   },
-  "extensions": [],
-  "httpServices": [],
-  "scheduledJobs": [],
-  "externalProcessors": [],
-  "reports": []
+  "expectedSections": [
+    "configuration",
+    "sourceRoots",
+    "topLevelEntries",
+    "counts"
+  ],
+  "notes": [
+    "Refresh the live generated-derived inventory with ./scripts/llm/export-context.sh --write.",
+    "Keep curated business/domain context in automation/context/project-map.md."
+  ]
 }

@@ -49,6 +49,7 @@
 ./openspec
 ./openspec/changes
 ./openspec/changes/add-codex-productivity-surface
+./openspec/changes/add-generated-project-agent-ownership-model
 ./openspec/changes/archive
 ./openspec/specs
 ./openspec/specs/agent-runtime-toolkit

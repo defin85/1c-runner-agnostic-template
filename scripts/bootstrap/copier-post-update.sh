@@ -6,9 +6,14 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/../lib/common.sh"
 # shellcheck source=./agents-overlay.sh
 source "$SCRIPT_DIR/agents-overlay.sh"
+# shellcheck source=./generated-project-surface.sh
+source "$SCRIPT_DIR/generated-project-surface.sh"
 
 template_src_path="${1:-}"
-init_beads="${2:-yes}"
+project_name="${2:-}"
+project_slug="${3:-}"
+project_description="${4:-}"
+init_beads="${5:-yes}"
 
 root="$(project_root)"
 cd "$root"
@@ -27,9 +32,7 @@ for asset in copier.yml .github/workflows/ci.yml; do
   install -D -m 0644 "$template_src_path/$asset" "$root/$asset"
 done
 
-if [ ! -f "$root/AGENTS.md" ]; then
-  log "Skip AGENTS.md overlay refresh because AGENTS.md is absent"
-  exit 0
-fi
-
+sync_template_nested_readmes "$template_src_path" "$root"
 append_project_agents_overlay "$root/AGENTS.md" "$init_beads"
+refresh_generated_project_surface_on_update "$root" "$project_name" "$project_slug" "$project_description"
+"$root/scripts/llm/export-context.sh" --write >/dev/null
