@@ -1,0 +1,44 @@
+{
+  "repositoryRole": "template-source",
+  "repositorySlug": "1c-runner-agnostic-template",
+  "authoritativeDocs": {
+    "agentIndex": "docs/agent/index.md",
+    "architecture": "docs/agent/architecture.md",
+    "sourceVsGenerated": "docs/agent/source-vs-generated.md",
+    "verify": "docs/agent/verify.md",
+    "review": "docs/agent/review.md",
+    "executionPlans": "docs/exec-plans/README.md"
+  },
+  "entrypoints": {
+    "bootstrap": [
+      "./scripts/bootstrap/copier-post-copy.sh",
+      "./scripts/bootstrap/copier-post-update.sh"
+    ],
+    "platform": [
+      "./scripts/platform/create-ib.sh",
+      "./scripts/platform/dump-src.sh",
+      "./scripts/platform/load-src.sh",
+      "./scripts/platform/update-db.sh",
+      "./scripts/platform/diff-src.sh",
+      "./scripts/platform/publish-http.sh"
+    ],
+    "diagnostics": [
+      "./scripts/diag/doctor.sh"
+    ],
+    "tests": [
+      "./scripts/test/run-xunit.sh",
+      "./scripts/test/run-bdd.sh",
+      "./scripts/test/run-smoke.sh"
+    ],
+    "qa": [
+      "./scripts/qa/agent-verify.sh",
+      "./scripts/qa/check-agent-docs.sh",
+      "./scripts/qa/check-skill-bindings.sh"
+    ]
+  },
+  "agentSurfaces": {
+    "codexSkills": ".agents/skills/README.md",
+    "claudeSkills": ".claude/skills/README.md",
+    "codexConfig": ".codex/README.md"
+  }
+}

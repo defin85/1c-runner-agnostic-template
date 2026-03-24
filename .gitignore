@@ -18,6 +18,7 @@ tmp/
 .codex/*
 !.codex/.gitkeep
 !.codex/config.toml
+!.codex/README.md
 
 .env
 .env.*
@@ -31,6 +32,3 @@ env/ci.json
 env/windows-executor.json
 env/.local/*.json
 env/.local/**/*.json
-
-automation/context/generated-project-tree.txt
-automation/context/generated-source-files.txt

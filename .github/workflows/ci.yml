@@ -37,8 +37,12 @@ jobs:
         run: ./scripts/llm/verify-traceability.sh
 
       - name: Check skill bindings
-        if: hashFiles('.claude/skills/**') != ''
+        if: hashFiles('.claude/skills/**', '.agents/skills/**') != ''
         run: ./scripts/qa/check-skill-bindings.sh
+
+      - name: Check agent docs
+        if: hashFiles('docs/agent/**', 'docs/exec-plans/**', 'automation/context/**', '.codex/**') != ''
+        run: ./scripts/qa/check-agent-docs.sh
 
   fixture:
     name: fixture
@@ -86,6 +90,10 @@ jobs:
       - name: Bootstrap AGENTS overlay
         if: hashFiles('tests/smoke/bootstrap-agents-overlay.sh') != ''
         run: bash tests/smoke/bootstrap-agents-overlay.sh
+
+      - name: Agent docs contract
+        if: hashFiles('tests/smoke/agent-docs-contract.sh') != ''
+        run: bash tests/smoke/agent-docs-contract.sh
 
       - name: Copier update-ready smoke
         if: hashFiles('tests/smoke/copier-update-ready.sh') != ''

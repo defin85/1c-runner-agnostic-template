@@ -101,16 +101,25 @@ cat >"$bindir/openspec" <<'EOF'
 set -euo pipefail
 printf 'openspec %s\n' "$*" >>"$COMMAND_LOG"
 
-if [ "$#" -ne 3 ] || [ "$1" != "init" ] || [ "$2" != "--tools" ]; then
-  printf 'unexpected openspec args: %s\n' "$*" >&2
-  exit 1
-fi
-
-cat >AGENTS.md <<'EOT'
+if [ "$1" = "init" ] && [ "$#" -eq 3 ] && [ "$2" = "--tools" ]; then
+  mkdir -p openspec/changes openspec/specs
+  cat >openspec/project.md <<'EOT'
+# OpenSpec Project
+EOT
+  cat >AGENTS.md <<'EOT'
 <!-- OPENSPEC:START -->
 # OpenSpec Instructions
 <!-- OPENSPEC:END -->
 EOT
+  exit 0
+fi
+
+if [ "$1" = "validate" ] && [ "$2" = "--all" ]; then
+  exit 0
+fi
+
+printf 'unexpected openspec args: %s\n' "$*" >&2
+exit 1
 EOF
 
 cat >"$bindir/bd" <<'EOF'
@@ -139,18 +148,31 @@ assert_exists "$rendered_root/.copier-answers.yml"
 assert_not_exists "$rendered_root/{{ '{{ _copier_conf.answers_file }}' }}"
 assert_exists "$rendered_root/.codex/.gitkeep"
 assert_exists "$rendered_root/.codex/config.toml"
+assert_exists "$rendered_root/.codex/README.md"
+assert_exists "$rendered_root/.agents/skills/README.md"
+assert_exists "$rendered_root/.agents/skills/repo-agent-verify/SKILL.md"
 assert_exists "$rendered_root/.claude/settings.json"
 assert_exists "$rendered_root/.claude/skills/README.md"
 assert_exists "$rendered_root/.claude/skills/1c-doctor/SKILL.md"
 assert_exists "$rendered_root/.github/workflows/ci.yml"
+assert_exists "$rendered_root/docs/agent/index.md"
+assert_exists "$rendered_root/docs/agent/architecture.md"
+assert_exists "$rendered_root/docs/agent/source-vs-generated.md"
+assert_exists "$rendered_root/docs/agent/verify.md"
+assert_exists "$rendered_root/docs/agent/review.md"
+assert_exists "$rendered_root/docs/exec-plans/README.md"
 assert_exists "$rendered_root/docs/migrations/runtime-profile-v2.md"
 assert_exists "$rendered_root/env/.local/README.md"
 assert_exists "$rendered_root/scripts/lib/capability.sh"
 assert_exists "$rendered_root/scripts/lib/ibcmd.sh"
+assert_exists "$rendered_root/scripts/qa/agent-verify.sh"
+assert_exists "$rendered_root/scripts/qa/check-agent-docs.sh"
 assert_exists "$rendered_root/scripts/platform/dump-src.sh"
 assert_exists "$rendered_root/scripts/platform/diff-src.sh"
 assert_exists "$rendered_root/scripts/diag/doctor.sh"
 assert_exists "$rendered_root/scripts/template/migrate-runtime-profile-v2.sh"
+assert_exists "$rendered_root/automation/context/templates/generated-project-project-map.md"
+assert_exists "$rendered_root/automation/context/templates/generated-project-metadata-index.json"
 assert_exists "$rendered_root/tests/smoke/runtime-capability-contract.sh"
 assert_exists "$rendered_root/tests/smoke/runtime-doctor-contract.sh"
 assert_exists "$rendered_root/tests/smoke/runtime-direct-platform-xvfb-contract.sh"
@@ -160,23 +182,35 @@ assert_exists "$rendered_root/tests/smoke/runtime-ibcmd-doctor-contract.sh"
 assert_exists "$rendered_root/tests/smoke/runtime-ibcmd-validation-contract.sh"
 assert_exists "$rendered_root/tests/smoke/runtime-profile-legacy-rejection.sh"
 assert_exists "$rendered_root/tests/smoke/runtime-profile-migration-helper.sh"
+assert_exists "$rendered_root/tests/smoke/agent-docs-contract.sh"
+assert_exists "$rendered_root/openspec/changes"
 assert_not_exists "$rendered_root/PROJECT_RULES.md"
-assert_not_exists "$rendered_root/openspec"
 assert_not_exists "$rendered_root/CLAUDE.md"
 assert_not_exists "$rendered_root/.claude/commands/openspec"
+assert_not_exists "$rendered_root/automation/context/template-source-project-map.md"
+assert_not_exists "$rendered_root/automation/context/template-source-metadata-index.json"
+assert_not_exists "$rendered_root/automation/context/template-source-tree.txt"
+assert_not_exists "$rendered_root/automation/context/template-source-source-files.txt"
 assert_exists "$rendered_root/scripts/template/update-template.sh"
 assert_exists "$rendered_root/scripts/template/check-update.sh"
 assert_contains "$rendered_root/Makefile" "template-update:"
+assert_contains "$rendered_root/Makefile" "agent-verify:"
+assert_contains "$rendered_root/Makefile" "check-agent-docs:"
 assert_contains "$rendered_root/.gitignore" ".codex/*"
 assert_contains "$rendered_root/.gitignore" "!.codex/.gitkeep"
 assert_contains "$rendered_root/.gitignore" "!.codex/config.toml"
+assert_contains "$rendered_root/.gitignore" "!.codex/README.md"
 assert_contains "$rendered_root/.gitignore" "env/local.json"
 assert_contains "$rendered_root/.gitignore" "env/wsl.json"
 assert_contains "$rendered_root/.gitignore" "env/.local/*.json"
 assert_contains "$rendered_root/.codex/config.toml" "mcp_servers.claude-context"
 assert_contains "$rendered_root/.codex/config.toml" "mcp_servers.chrome-devtools"
+assert_contains "$rendered_root/.codex/README.md" "[docs/agent/index.md](../docs/agent/index.md)"
+assert_contains "$rendered_root/.agents/skills/README.md" "repo-agent-verify"
 assert_contains "$rendered_root/.github/workflows/ci.yml" "name: CI"
 assert_contains "$rendered_root/.github/workflows/ci.yml" "name: Runtime doctor"
+assert_contains "$rendered_root/.github/workflows/ci.yml" "name: Check agent docs"
+assert_contains "$rendered_root/.github/workflows/ci.yml" "name: Agent docs contract"
 assert_contains "$rendered_root/.github/workflows/ci.yml" "actions/checkout@v5"
 assert_contains "$rendered_root/.github/workflows/ci.yml" "actions/setup-node@v5"
 assert_contains "$rendered_root/.github/workflows/ci.yml" "actions/setup-python@v6"
@@ -192,10 +226,21 @@ assert_jq "$rendered_root/env/wsl.example.json" '.runnerAdapter == "direct-platf
 assert_jq "$rendered_root/env/windows-executor.example.json" '.runnerAdapter == "remote-windows" and .capabilities.loadSrc.driver == "designer"' "windows-example-driver"
 assert_contains "$rendered_root/README.md" "partial import"
 assert_contains "$rendered_root/README.md" "env/.local/"
+assert_contains "$rendered_root/README.md" "[docs/agent/index.md](docs/agent/index.md)"
+assert_contains "$rendered_root/README.md" "make agent-verify"
+assert_contains "$rendered_root/README.md" "automation/context/templates/"
 assert_contains "$rendered_root/env/README.md" "driver=ibcmd"
 assert_contains "$rendered_root/env/README.md" "xvfb-run"
 assert_contains "$rendered_root/env/README.md" "LD_PRELOAD"
 assert_contains "$rendered_root/env/README.md" "env/.local/"
+assert_contains "$rendered_root/AGENTS.md" 'Start with [docs/agent/index.md](docs/agent/index.md) for the authoritative documentation map.'
+assert_contains "$rendered_root/AGENTS.md" 'Use [docs/agent/architecture.md](docs/agent/architecture.md) as the repo map.'
+assert_contains "$rendered_root/AGENTS.md" 'Use [docs/agent/verify.md](docs/agent/verify.md) and `make agent-verify` as the first lightweight verification path for repo/doc/tooling changes.'
+
+(
+  cd "$rendered_root"
+  PATH="$bindir:$PATH" COMMAND_LOG="$command_log" make agent-verify >/dev/null
+)
 
 assert_count "$command_log" "openspec init --tools none" "1"
 assert_count "$command_log" "bd init --stealth -p smoke-project" "1"
@@ -233,37 +278,58 @@ git -C "$template_root" tag v0.2.0
 assert_exists "$rendered_root/docs/template-update-note.txt"
 assert_contains "$rendered_root/AGENTS.md" "Refresh managed AGENTS overlays during template updates."
 assert_contains "$rendered_root/.gitignore" ".codex/*"
+assert_contains "$rendered_root/.gitignore" "!.codex/README.md"
+assert_exists "$rendered_root/.codex/README.md"
+assert_exists "$rendered_root/.agents/skills/README.md"
+assert_exists "$rendered_root/.agents/skills/repo-agent-verify/SKILL.md"
 assert_exists "$rendered_root/.claude/settings.json"
 assert_exists "$rendered_root/.claude/skills/1c-doctor/SKILL.md"
 assert_exists "$rendered_root/.github/workflows/ci.yml"
+assert_exists "$rendered_root/docs/agent/index.md"
+assert_exists "$rendered_root/docs/exec-plans/README.md"
 assert_exists "$rendered_root/docs/migrations/runtime-profile-v2.md"
 assert_exists "$rendered_root/env/.local/README.md"
+assert_exists "$rendered_root/scripts/qa/agent-verify.sh"
+assert_exists "$rendered_root/scripts/qa/check-agent-docs.sh"
+assert_exists "$rendered_root/automation/context/templates/generated-project-project-map.md"
+assert_exists "$rendered_root/tests/smoke/agent-docs-contract.sh"
 assert_exists "$rendered_root/scripts/lib/capability.sh"
 assert_exists "$rendered_root/scripts/lib/ibcmd.sh"
 assert_exists "$rendered_root/scripts/platform/dump-src.sh"
 assert_exists "$rendered_root/scripts/platform/diff-src.sh"
 assert_exists "$rendered_root/scripts/diag/doctor.sh"
 assert_exists "$rendered_root/scripts/template/migrate-runtime-profile-v2.sh"
+assert_exists "$rendered_root/openspec/changes"
 assert_exists "$rendered_root/tests/smoke/runtime-ibcmd-capability-contract.sh"
 assert_exists "$rendered_root/tests/smoke/runtime-ibcmd-doctor-contract.sh"
 assert_exists "$rendered_root/tests/smoke/runtime-ibcmd-validation-contract.sh"
 assert_exists "$rendered_root/tests/smoke/runtime-direct-platform-xvfb-contract.sh"
 assert_exists "$rendered_root/tests/smoke/runtime-direct-platform-ld-preload-contract.sh"
 assert_not_exists "$rendered_root/PROJECT_RULES.md"
-assert_not_exists "$rendered_root/openspec"
 assert_not_exists "$rendered_root/CLAUDE.md"
 assert_not_exists "$rendered_root/.claude/commands/openspec"
+assert_not_exists "$rendered_root/automation/context/template-source-project-map.md"
+assert_not_exists "$rendered_root/automation/context/template-source-metadata-index.json"
+assert_not_exists "$rendered_root/automation/context/template-source-tree.txt"
+assert_not_exists "$rendered_root/automation/context/template-source-source-files.txt"
 assert_contains "$rendered_root/.github/workflows/ci.yml" "actions/checkout@v5"
 assert_contains "$rendered_root/.github/workflows/ci.yml" "actions/setup-node@v5"
 assert_contains "$rendered_root/.github/workflows/ci.yml" "actions/setup-python@v6"
 assert_contains "$rendered_root/.github/workflows/ci.yml" "openspec validate --all --strict --no-interactive"
 assert_contains "$rendered_root/.github/workflows/ci.yml" "apt-get install -y ripgrep"
+assert_contains "$rendered_root/.github/workflows/ci.yml" "name: Check agent docs"
+assert_contains "$rendered_root/.github/workflows/ci.yml" "name: Agent docs contract"
 assert_contains "$rendered_root/.github/workflows/ci.yml" "runtime-gate:"
 assert_contains "$rendered_root/.github/workflows/ci.yml" "needs.runtime-gate.outputs.ci_profile_present == 'true'"
 assert_contains "$rendered_root/.github/workflows/ci.yml" "runtime-direct-platform-ld-preload-contract.sh"
 assert_contains "$rendered_root/env/local.example.json" "\"driver\": \"ibcmd\""
 assert_count "$command_log" "openspec init --tools none" "1"
 assert_count "$command_log" "bd init --stealth -p smoke-project" "1"
+
+(
+  cd "$rendered_root"
+  PATH="$bindir:$PATH" COMMAND_LOG="$command_log" make agent-verify >/dev/null
+)
 
 printf '{"fixture":true}\n' >"$rendered_root/env/.local/drift.json"
 ignored_status="$(git -C "$rendered_root" status --short --ignored -- env/.local/drift.json)"

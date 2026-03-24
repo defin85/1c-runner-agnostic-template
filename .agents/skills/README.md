@@ -1,7 +1,7 @@
-# Project-Scoped 1C Skills
+# Project-Scoped Codex Skills
 
-Эти skills являются project-scoped фасадом над versioned repo scripts.
-Codex-facing equivalents лежат в [.agents/skills/README.md](../../.agents/skills/README.md).
+Эти skills являются Codex-discoverable фасадом над versioned repo scripts.
+Claude-facing equivalents лежат в [.claude/skills/README.md](../../.claude/skills/README.md).
 
 ## Mapping
 
@@ -22,6 +22,5 @@ Codex-facing equivalents лежат в [.agents/skills/README.md](../../.agents/
 ## Rules
 
 - Source of truth для выполнения находится в `scripts/`, а не в `SKILL.md`.
-- Если нужно поменять flags, artifact contract или adapter behavior, сначала меняйте repo script.
-- Каждая automation-сессия должна использовать `summary.json`, `stdout.log` и `stderr.log` из `run-root`.
-- Для явного выбора runtime profile используйте `--profile env/<name>.json`.
+- Если меняется runtime behavior, сначала меняйте repo script, а не skill.
+- Для baseline repo/doc/tooling changes начинайте с `repo-agent-verify`.

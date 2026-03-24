@@ -77,6 +77,13 @@ append_project_agents_overlay() {
 - Plans, specs, and change descriptions should be written in Russian by default.
 - Common technical terms, API names, setting keys, and code identifiers may stay in English.
 
+# Project Docs
+
+- Start with [docs/agent/index.md](docs/agent/index.md) for the authoritative documentation map.
+- Use [docs/agent/architecture.md](docs/agent/architecture.md) as the repo map.
+- Use [docs/agent/verify.md](docs/agent/verify.md) and `make agent-verify` as the first lightweight verification path for repo/doc/tooling changes.
+- Use [docs/exec-plans/README.md](docs/exec-plans/README.md) for long-running or multi-session work.
+
 # Unified Workflow
 
 We operate in a cycle: **OpenSpec (What) -> Beads (How) -> Code (Implementation)**.

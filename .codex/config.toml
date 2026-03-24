@@ -1,7 +1,11 @@
-# Project-local Codex MCP examples.
-# Uncomment and adapt paths, ports, and env values for your machine.
-# The examples below are intentionally commented out so a freshly generated
-# project does not fail on hosts where the local MCP binaries are absent.
+# Project-scoped Codex configuration.
+# Codex loads this file only when the repository is trusted.
+# Start with:
+#   - docs/agent/index.md
+#   - make agent-verify
+# Shared repo-local skills live in .agents/skills/.
+# The optional MCP examples below stay commented so a fresh environment does not
+# break on hosts where local MCP binaries are absent.
 
 # [mcp_servers.claude-context]
 # command = "bash"

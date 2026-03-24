@@ -1,6 +1,6 @@
-# Project Map
+# Generated Project Map Template
 
-Обновите этот файл после создания реального проекта.
+Скопируйте этот файл в live project context и замените подсказки на фактические данные проекта.
 
 ## Бизнес-домен
 
@@ -29,6 +29,7 @@
 
 ## Канонические проверки
 
+- baseline agent verify: `make agent-verify`
 - BSL static analysis: `./scripts/qa/analyze-bsl.sh`
 - xUnit: `./scripts/test/run-xunit.sh`
 - BDD: `./scripts/test/run-bdd.sh`

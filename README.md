@@ -23,13 +23,15 @@
 - менять механизм запуска без перестройки репозитория;
 - держать в репозитории явные точки входа для спецификаций, тестов, запуска и локального трекинга.
 
-Правила работы, workflow агента и operational contract находятся в `AGENTS.md`.
+Для agent-facing navigation используйте [docs/agent/index.md](docs/agent/index.md).
+В template source repo корневой [AGENTS.md](AGENTS.md) остаётся коротким entrypoint; в generated project этот слой дополняется bootstrap overlay.
 
 ## Структура
 
 ```text
 .
 ├── .claude/
+├── .agents/
 ├── .github/
 ├── Makefile
 ├── automation/
@@ -52,11 +54,28 @@
 - `scripts/` — канонические входные точки для людей, CI и агентов.
 - `env/` — примеры конфигурации окружений.
 - `automation/` — контекст и правила для LLM/агентов.
+- `.agents/` — project-scoped Codex skills для повторяемых workflow.
 - `.claude/` — project-scoped Claude settings и skills.
 - `.github/` — CI workflows, поставляемые шаблоном.
 - `.codex/` — project-local Codex config template, включая пример `config.toml` для MCP servers.
 - `docs/` — ADR, архитектурные заметки, эксплуатационная документация.
 - `.beads/` — локальная issue-база beads, создается bootstrap-скриптом и скрывается из Git.
+
+## Agent Docs
+
+System of record для нового агента находится в [docs/agent/index.md](docs/agent/index.md).
+
+В template source repo этот индекс объясняет устройство самого шаблона.
+В generated project тот же слой остаётся стартовой картой уже для конкретного репозитория.
+
+Минимальный маршрут discovery такой:
+
+- [docs/agent/index.md](docs/agent/index.md) — куда идти за authoritative guidance;
+- [docs/agent/architecture.md](docs/agent/architecture.md) — карта top-level зон repo;
+- [docs/agent/source-vs-generated.md](docs/agent/source-vs-generated.md) — граница между template source repo и generated project;
+- [docs/agent/verify.md](docs/agent/verify.md) — baseline/fixture/runtime контуры проверки;
+- [docs/agent/review.md](docs/agent/review.md) — repo-specific review expectations;
+- [docs/exec-plans/README.md](docs/exec-plans/README.md) — versioned место для long-running execution plans.
 
 ## Принцип запуска
 
@@ -184,11 +203,16 @@ cp env/local.example.json env/.local/develop.json
 
 ### Project-Scoped Skills
 
-Шаблон поставляет project-scoped Claude skills в `.claude/skills/`.
+Шаблон поставляет project-scoped skills в двух packaging surfaces:
+
+- `.agents/skills/` для Codex;
+- `.claude/skills/` для Claude.
 
 - Skills являются thin-wrapper над repo-owned scripts и не должны дублировать runtime logic.
-- Таблица соответствия `intent -> skill -> script` лежит в `.claude/skills/README.md`.
+- Каноническая таблица соответствия `intent -> Codex skill -> Claude skill -> repo entrypoint` лежит в `.agents/skills/README.md`.
+- `.claude/skills/README.md` повторяет тот же mapping для Claude-facing navigation.
 - Базовая project policy для Claude находится в `.claude/settings.json`.
+- Первый lightweight verification path для repo/doc/tooling changes: `make agent-verify`.
 
 Проверка связки skills:
 
@@ -228,7 +252,7 @@ npm install -g @fission-ai/openspec@latest
 3. Если в вопросах Copier выбрать `git init = no`, beads в интерактивном сценарии будет автоматически отключен. Для уже существующего git-репозитория beads можно явно включить через `-d init_beads=true`.
 4. Настройте команды окружения на базе `env/wsl.example.json`, `env/local.example.json` или `env/windows-executor.example.json`.
 5. При необходимости добавьте свой adapter в `scripts/adapters/`.
-6. Обновите `automation/context/project-map.md` под предметную область проекта.
+6. Если нужен live project context, возьмите skeleton files из `automation/context/templates/` и создайте на их основе свои project-specific context artifacts.
 7. Создайте первый change в `openspec/changes/`.
 
 ### Команда `new-1c-project`
@@ -302,9 +326,11 @@ update-1c-project /path/to/generated-project --vcs-ref v0.1.1
 ## Make targets
 
 - `make help`
+- `make agent-verify`
 - `make qa`
 - `make analyze-bsl`
 - `make format-bsl`
+- `make check-agent-docs`
 - `make check-skill-bindings`
 - `make create-ib`
 - `make dump-src`

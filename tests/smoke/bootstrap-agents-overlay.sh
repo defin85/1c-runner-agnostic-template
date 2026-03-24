@@ -120,6 +120,10 @@ run_bootstrap
 agents_file="$project_root/AGENTS.md"
 
 assert_contains "$agents_file" "We operate in a cycle: **OpenSpec (What) -> Beads (How) -> Code (Implementation)**."
+assert_contains "$agents_file" 'Start with [docs/agent/index.md](docs/agent/index.md) for the authoritative documentation map.'
+assert_contains "$agents_file" 'Use [docs/agent/architecture.md](docs/agent/architecture.md) as the repo map.'
+assert_contains "$agents_file" 'Use [docs/agent/verify.md](docs/agent/verify.md) and `make agent-verify` as the first lightweight verification path for repo/doc/tooling changes.'
+assert_contains "$agents_file" 'Use [docs/exec-plans/README.md](docs/exec-plans/README.md) for long-running or multi-session work.'
 assert_contains "$agents_file" 'Do not move to production code for new or major changes without explicit approval. Canonical signal: `Go!`.'
 assert_contains "$agents_file" 'Use `bd` as the source of truth for code-change tracking.'
 assert_contains "$agents_file" 'Final delivery must include explicit `Requirement -> Code -> Test` evidence with concrete file paths.'

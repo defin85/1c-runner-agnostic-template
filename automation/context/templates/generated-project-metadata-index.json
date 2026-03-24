@@ -1,0 +1,13 @@
+{
+  "projectRole": "generated-project-template",
+  "copyInstructions": "Create a live project-specific metadata index from this template and replace placeholder values.",
+  "configuration": {
+    "name": "<project-name>",
+    "srcDir": "src/cf"
+  },
+  "extensions": [],
+  "httpServices": [],
+  "scheduledJobs": [],
+  "externalProcessors": [],
+  "reports": []
+}

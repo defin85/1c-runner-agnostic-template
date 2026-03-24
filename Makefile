@@ -1,13 +1,15 @@
 SHELL := bash
 
-.PHONY: help qa analyze-bsl format-bsl check-skill-bindings create-ib dump-src load-src update-db diff-src doctor test-xunit test-bdd smoke export-context verify-traceability template-check-update template-update
+.PHONY: help agent-verify qa analyze-bsl format-bsl check-agent-docs check-skill-bindings create-ib dump-src load-src update-db diff-src doctor test-xunit test-bdd smoke export-context verify-traceability template-check-update template-update
 
 help:
 	@printf '%s\n' \
 		'Available targets:' \
+		'  make agent-verify' \
 		'  make qa' \
 		'  make analyze-bsl' \
 		'  make format-bsl' \
+		'  make check-agent-docs' \
 		'  make check-skill-bindings' \
 		'  make create-ib' \
 		'  make dump-src' \
@@ -23,13 +25,19 @@ help:
 		'  make template-check-update' \
 		'  make template-update'
 
-qa: analyze-bsl check-skill-bindings verify-traceability
+agent-verify:
+	@./scripts/qa/agent-verify.sh
+
+qa: analyze-bsl check-agent-docs check-skill-bindings verify-traceability
 
 analyze-bsl:
 	@./scripts/qa/analyze-bsl.sh
 
 format-bsl:
 	@./scripts/qa/format-bsl.sh
+
+check-agent-docs:
+	@./scripts/qa/check-agent-docs.sh
 
 check-skill-bindings:
 	@./scripts/qa/check-skill-bindings.sh
