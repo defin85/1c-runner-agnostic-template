@@ -509,6 +509,11 @@ assert_count "$command_log" "openspec init --tools none" "1"
 assert_count "$command_log" "bd init --stealth -p smoke-project" "1"
 assert_count "$command_log" "copier copy --trust --defaults" "1"
 
+(
+  cd "$rendered_root"
+  PATH="$bindir:$PATH" COMMAND_LOG="$command_log" make export-context-check >/dev/null
+)
+
 git -C "$rendered_root" add -A
 git -C "$rendered_root" commit -qm "generated v0.2.0"
 
@@ -550,6 +555,11 @@ assert_exists "$rendered_root/docs/template-update-v3-note.txt"
 assert_contains "$rendered_root/README.md" "# Smoke Project"
 assert_not_contains "$rendered_root/README.md" "# 1c-runner-agnostic-template"
 assert_contains "$rendered_root/.template-overlay-version" "v0.3.0"
+
+(
+  cd "$rendered_root"
+  PATH="$bindir:$PATH" COMMAND_LOG="$command_log" make export-context-check >/dev/null
+)
 
 (
   cd "$rendered_root"

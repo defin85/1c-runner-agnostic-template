@@ -107,11 +107,11 @@ sync_overlay_manifests \
   "$(overlay_manifest_file "$root")" \
   "$(overlay_manifest_file "$release_root")"
 
+write_overlay_version "$root" "$target_ref"
+
 bash "$root/scripts/bootstrap/overlay-post-apply.sh" \
   "$release_root" \
   "$project_name" \
   "$project_slug" \
   "$project_description" \
   "$init_beads"
-
-write_overlay_version "$root" "$target_ref"
