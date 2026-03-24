@@ -27,9 +27,10 @@
 - `generated-derived`: `automation/context/source-tree.generated.txt`, `automation/context/metadata-index.generated.json`.
 - `local-private`: `env/local.json`, `env/wsl.json`, `env/ci.json`, `env/windows-executor.json`, `env/.local/*.json`, machine-specific Codex/MCP overrides и секреты.
 
-## Ожидаемое поведение template update
+## Ожидаемое поведение template maintenance
 
-- `copier update` может обновлять только `template-managed` слой и managed blocks.
+- `make template-update` может обновлять только `template-managed` слой и managed blocks.
+- `make template-check-update` сверяет `.template-overlay-version` с доступным release ref без записи в репозиторий.
 - Если root `AGENTS.md` или `README.md` отсутствует, template update должен восстановить generated-project entry surface перед refresh managed overlay/router.
 - Project-owned identity и доменная карта не должны silently перетираться шаблоном.
 - Generated-derived inventory refresh-ится явной командой `./scripts/llm/export-context.sh --write`.

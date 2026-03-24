@@ -11,7 +11,7 @@ project_root="$tmpdir/project"
 bindir="$tmpdir/bin"
 bd_log="$tmpdir/bd.log"
 
-mkdir -p "$project_root/scripts/bootstrap" "$project_root/scripts/lib" "$project_root/scripts/llm" "$bindir"
+mkdir -p "$project_root/scripts/bootstrap" "$project_root/scripts/lib" "$project_root/scripts/llm" "$project_root/scripts/template" "$bindir"
 git init -q "$project_root" >/dev/null 2>&1
 
 cp "$SOURCE_ROOT/scripts/bootstrap/agents-overlay.sh" "$project_root/scripts/bootstrap/agents-overlay.sh"
@@ -19,6 +19,7 @@ cp "$SOURCE_ROOT/scripts/bootstrap/copier-post-copy.sh" "$project_root/scripts/b
 cp "$SOURCE_ROOT/scripts/bootstrap/generated-project-surface.sh" "$project_root/scripts/bootstrap/generated-project-surface.sh"
 cp "$SOURCE_ROOT/scripts/lib/common.sh" "$project_root/scripts/lib/common.sh"
 cp "$SOURCE_ROOT/scripts/llm/export-context.sh" "$project_root/scripts/llm/export-context.sh"
+cp "$SOURCE_ROOT/scripts/template/lib-overlay.sh" "$project_root/scripts/template/lib-overlay.sh"
 
 cat >"$bindir/openspec" <<'EOF'
 #!/usr/bin/env bash
@@ -126,6 +127,8 @@ project_map_file="$project_root/automation/context/project-map.md"
 metadata_index_file="$project_root/automation/context/metadata-index.generated.json"
 source_tree_file="$project_root/automation/context/source-tree.generated.txt"
 openspec_project_file="$project_root/openspec/project.md"
+overlay_version_file="$project_root/.template-overlay-version"
+manifest_file="$project_root/automation/context/template-managed-paths.txt"
 
 assert_contains "$agents_file" "We operate in a cycle: **OpenSpec (What) -> Beads (How) -> Code (Implementation)**."
 assert_contains "$agents_file" 'This repository is a generated 1С-project created from `1c-runner-agnostic-template`.'
@@ -152,3 +155,5 @@ assert_contains "$project_map_file" "generated-derived"
 assert_contains "$openspec_project_file" "generated 1С-проект"
 assert_contains "$metadata_index_file" "\"inventoryRole\": \"generated-derived\""
 assert_contains "$source_tree_file" "# Generated Project Tree"
+assert_contains "$overlay_version_file" "$(git -C "$SOURCE_ROOT" describe --tags --always)"
+assert_contains "$manifest_file" "scripts/template/update-template.sh"

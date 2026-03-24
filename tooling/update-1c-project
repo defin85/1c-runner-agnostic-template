@@ -8,14 +8,8 @@ Usage:
 
 Options:
   -h, --help                 Show this help
-  -a, --answers-file PATH    Override answers file path relative to destination
   -r, --vcs-ref REF          Update to a specific template git ref/tag/commit
-  -o, --conflict MODE        Conflict mode: inline or rej
-      --defaults             Use default answers without interactive prompts
-      --pretend              Run copier update in dry-run mode
-      --skip-answered        Skip questions already answered
-      --skip-tasks           Skip template tasks on update
-      --prereleases          Allow prerelease tags when selecting template version
+      --pretend              Run overlay apply in dry-run mode
 
 Examples:
   update-1c-project
@@ -25,7 +19,7 @@ Examples:
 
 Notes:
   - If destination is omitted, current directory is used.
-  - The destination must be a git repository with a valid .copier-answers.yml file.
+  - The destination must be a generated project that ships scripts/template/update-template.sh.
 EOF
 }
 
@@ -38,28 +32,10 @@ require_command() {
   command -v "$1" >/dev/null 2>&1 || die "command not found: $1"
 }
 
-require_clean_git_worktree() {
-  local root="$1"
-
-  if ! git -C "$root" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-    die "copier update requires a git repository: $root"
-  fi
-
-  if [ -n "$(git -C "$root" status --porcelain)" ]; then
-    die "git working tree is dirty; commit or stash changes before copier update"
-  fi
-}
-
 destination="."
 destination_set=0
-answers_file=""
 vcs_ref=""
-conflict_mode=""
-use_defaults=1
 pretend=0
-skip_answered=0
-skip_tasks=0
-allow_prereleases=0
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
@@ -67,39 +43,17 @@ while [ "$#" -gt 0 ]; do
       usage
       exit 0
       ;;
-    -a|--answers-file)
-      [ "$#" -ge 2 ] || die "--answers-file requires a value"
-      answers_file="$2"
-      shift 2
-      ;;
     -r|--vcs-ref)
       [ "$#" -ge 2 ] || die "--vcs-ref requires a value"
       vcs_ref="$2"
       shift 2
       ;;
-    -o|--conflict)
-      [ "$#" -ge 2 ] || die "--conflict requires a value"
-      conflict_mode="$2"
-      shift 2
-      ;;
-    --defaults)
-      use_defaults=1
+    --vcs-ref=*)
+      vcs_ref="${1#*=}"
       shift
       ;;
     --pretend)
       pretend=1
-      shift
-      ;;
-    --skip-answered)
-      skip_answered=1
-      shift
-      ;;
-    --skip-tasks)
-      skip_tasks=1
-      shift
-      ;;
-    --prereleases)
-      allow_prereleases=1
       shift
       ;;
     -*)
@@ -117,67 +71,25 @@ while [ "$#" -gt 0 ]; do
   esac
 done
 
-require_command copier
-
 if [ ! -d "$destination" ]; then
   die "destination is not a directory: $destination"
 fi
 
-require_clean_git_worktree "$destination"
+update_script="$destination/scripts/template/update-template.sh"
+[ -x "$update_script" ] || die "generated project does not provide $update_script"
 
-if [ -n "$answers_file" ]; then
-  answers_path="$destination/$answers_file"
-else
-  answers_path="$destination/.copier-answers.yml"
-fi
-
-[ -f "$answers_path" ] || die "answers file not found: $answers_path"
-
-cmd=(copier update --trust)
-
-if [ "$use_defaults" -eq 1 ]; then
-  cmd+=(--defaults)
-fi
-
-if [ -n "$answers_file" ]; then
-  cmd+=(--answers-file "$answers_file")
-fi
+cmd=(./scripts/template/update-template.sh)
 
 if [ -n "$vcs_ref" ]; then
   cmd+=(--vcs-ref "$vcs_ref")
-fi
-
-if [ -n "$conflict_mode" ]; then
-  case "$conflict_mode" in
-    inline|rej)
-      ;;
-    *)
-      die "unsupported conflict mode: $conflict_mode"
-      ;;
-  esac
-  cmd+=(--conflict "$conflict_mode")
 fi
 
 if [ "$pretend" -eq 1 ]; then
   cmd+=(--pretend)
 fi
 
-if [ "$skip_answered" -eq 1 ]; then
-  cmd+=(--skip-answered)
-fi
-
-if [ "$skip_tasks" -eq 1 ]; then
-  cmd+=(--skip-tasks)
-fi
-
-if [ "$allow_prereleases" -eq 1 ]; then
-  cmd+=(--prereleases)
-fi
-
-cmd+=("$destination")
-
 printf 'Running: '
 printf '%q ' "${cmd[@]}"
 printf '\n'
 
-"${cmd[@]}"
+(cd "$destination" && "${cmd[@]}")

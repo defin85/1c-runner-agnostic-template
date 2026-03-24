@@ -45,6 +45,7 @@ Agent and repository checks:
 Template lifecycle:
 
 - `./scripts/bootstrap/copier-post-copy.sh`
+- `./scripts/bootstrap/overlay-post-apply.sh`
 - `./scripts/bootstrap/copier-post-update.sh`
 - `./scripts/template/check-update.sh`
 - `./scripts/template/update-template.sh`

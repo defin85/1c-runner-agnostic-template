@@ -1,13 +1,13 @@
 # Template Maintenance
 
-Этот документ описывает template maintenance path для generated repos.
+Этот документ описывает ongoing template maintenance path для generated repos.
 Он не является primary onboarding или feature-delivery workflow.
 
 ## Когда сюда идти
 
-- нужно проверить, есть ли обновления шаблона;
+- нужно проверить, есть ли новый wrapper overlay release;
 - нужно подтянуть `template-managed` слой в generated repo;
-- нужно понять, какие части репозитория template update может менять автоматически.
+- нужно понять, какие части репозитория overlay apply может менять автоматически.
 
 ## Канонические команды
 
@@ -23,19 +23,31 @@ make template-update
 ./scripts/template/update-template.sh
 ```
 
+`template-check-update` сверяет текущую checked-in версию wrapper overlay в `.template-overlay-version`
+с latest tagged release шаблона или с явно переданным `--vcs-ref`.
+`template-update` materialize-ит выбранный template ref и применяет только manifest template-managed paths из `automation/context/template-managed-paths.txt`.
+
 ## Ownership Boundary
 
-- `template-managed` слой может обновляться через `copier update` и post-update hooks;
-- если root `AGENTS.md` или `README.md` отсутствует, template update восстанавливает generated-project entry surface перед refresh managed overlay/router;
+- `.copier-answers.yml` остаётся bootstrap provenance и хранит source location шаблона;
+- `.template-overlay-version` хранит текущий applied wrapper overlay release;
+- `template-managed` слой обновляется через versioned overlay apply, а не через reconciliation product source tree;
+- если root `AGENTS.md` или `README.md` отсутствует, `template-update` восстанавливает generated-project entry surface перед refresh managed overlay/router;
 - `seed-once / project-owned` артефакты вроде root `README.md`, `openspec/project.md` и `automation/context/project-map.md` должны оставаться под контролем команды проекта;
 - `generated-derived` артефакты refresh-ятся отдельной repo-owned командой `./scripts/llm/export-context.sh --write`;
 - `local-private` machine-specific настройки не входят в checked-in template contract.
 
+## Compatibility Note
+
+- `copier copy` остаётся bootstrap-механизмом для новых generated repos;
+- `copier update` допустим только как migration bridge для старых generated repos, которые ещё не получили overlay-aware scripts;
+- после миграции ongoing maintenance path должен идти через `make template-check-update` и `make template-update`.
+
 ## Перед обновлением
 
-1. Закоммитьте или хотя бы осознайте локальные project-owned изменения.
+1. Закоммитьте или хотя бы осознайте локальные project-owned изменения и держите git worktree чистым.
 2. Прогоните `make agent-verify`.
-3. Если меняется bootstrap/copier surface, добавьте fixture smoke:
+3. Если меняется bootstrap/overlay surface, добавьте fixture smoke:
 
 ```bash
 bash tests/smoke/bootstrap-agents-overlay.sh
@@ -45,13 +57,14 @@ bash tests/smoke/copier-update-ready.sh
 ## После обновления
 
 1. Проверьте root `README.md`, `AGENTS.md` и project-owned context.
-2. При необходимости refresh-ните generated-derived inventory:
+2. Убедитесь, что `.template-overlay-version` обновился до ожидаемого release ref.
+3. При необходимости refresh-ните generated-derived inventory:
 
 ```bash
 ./scripts/llm/export-context.sh --write
 ```
 
-3. Повторно прогоните baseline verify:
+4. Повторно прогоните baseline verify:
 
 ```bash
 make agent-verify

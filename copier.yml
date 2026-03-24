@@ -26,8 +26,8 @@ _exclude:
 _message_before_update: |-
   Перед `copier update`:
     - убедитесь, что конечный проект находится в Git и рабочее дерево чистое;
-    - сохраните `.copier-answers.yml` в репозитории;
-    - запускайте update через `./scripts/template/update-template.sh` или `copier update --trust --defaults`.
+    - используйте этот путь только как migration bridge для старых generated repos;
+    - после миграции ongoing maintenance должен идти через `./scripts/template/update-template.sh`.
 _tasks:
   - command: >-
       bash ./scripts/bootstrap/copier-post-copy.sh

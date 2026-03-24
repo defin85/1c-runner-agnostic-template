@@ -132,6 +132,13 @@ assert_fails_with "$generated_missing_link_root" \
   "missing required markdown link in README.md: docs/agent/generated-project-verification.md" \
   "$generated_bindir"
 
+generated_missing_overlay_version_root="$tmpdir/generated-missing-overlay-version"
+cp -R "$generated_root" "$generated_missing_overlay_version_root"
+rm -f "$generated_missing_overlay_version_root/.template-overlay-version"
+assert_fails_with "$generated_missing_overlay_version_root" \
+  "missing agent-facing path: .template-overlay-version" \
+  "$generated_bindir"
+
 generated_placeholder_root="$tmpdir/generated-placeholder"
 cp -R "$generated_root" "$generated_placeholder_root"
 printf '\n<context-entry>\n' >>"$generated_placeholder_root/automation/context/project-map.md"

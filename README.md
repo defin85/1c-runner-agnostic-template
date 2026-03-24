@@ -93,7 +93,7 @@ Generated projects получают отдельный стартовый сло
 - [docs/agent/source-vs-generated.md](docs/agent/source-vs-generated.md) — граница между template source repo и generated project;
 - [docs/agent/verify.md](docs/agent/verify.md) — baseline/fixture/runtime контуры проверки;
 - [docs/agent/review.md](docs/agent/review.md) — repo-specific review expectations;
-- [docs/template-maintenance.md](docs/template-maintenance.md) — isolated guide для `copier update` и template maintenance;
+- [docs/template-maintenance.md](docs/template-maintenance.md) — isolated guide для versioned overlay maintenance;
 - [docs/exec-plans/README.md](docs/exec-plans/README.md) — versioned место для long-running execution plans.
 
 ## Принцип запуска
@@ -259,8 +259,8 @@ new-1c-project ~/code/my-project --defaults --beads-prefix docflow
 `new-1c-project` это не часть сгенерированного проекта, а локальный helper-скрипт поверх `copier copy`.
 Если `destination` не указан или равен `.`, helper берёт `project_name` и `project_slug` из имени текущей папки.
 Post-copy bootstrap создаёт базовый `AGENTS.md` через `openspec init` и дополняет его типовым project overlay с workflow, rules для `bd` и playbook поиска по коду.
-OpenSpec-артефакты самого репозитория шаблона (`openspec/`, корневые `AGENTS.md`/`CLAUDE.md`, `.claude/commands/openspec`) не рендерятся в конечный проект и не должны перетирать его собственный OpenSpec при `copier update`.
-Шаблон также сохраняет `.copier-answers.yml`, чтобы сгенерированный проект можно было обновлять через `copier update`.
+OpenSpec-артефакты самого репозитория шаблона (`openspec/`, корневые `AGENTS.md`/`CLAUDE.md`, `.claude/commands/openspec`) не рендерятся в конечный проект и не должны перетирать его собственный OpenSpec ни при bootstrap, ни при compatibility-migration через `copier update`.
+Шаблон сохраняет `.copier-answers.yml` как bootstrap provenance, а ongoing updates после первой миграции идут через versioned overlay path.
 
 2. Убедитесь, что установлены `openspec` и `bd`, потому что post-copy bootstrap вызывает `openspec init` и по умолчанию `bd init --stealth`.
 
@@ -300,7 +300,7 @@ new-1c-project --help
 - Versioned source helper-скрипта лежит в `tooling/update-1c-project` репозитория шаблона
 - Рекомендуемое место установки: `~/.local/bin/update-1c-project`
 - В `~/.local/bin/update-1c-project` достаточно держать thin-wrapper или symlink на versioned source
-- Helper ожидает, что конечный проект уже является git-репозиторием и содержит `.copier-answers.yml`
+- Helper ожидает, что конечный проект уже является generated repo и содержит `scripts/template/update-template.sh`
 
 Простейший сценарий установки через symlink из корня репозитория шаблона:
 
@@ -321,7 +321,7 @@ update-1c-project --help
 
 - создавайте проект из Git-репозитория шаблона или из локального template-repo, который тоже находится в Git;
 - публикуйте изменения шаблона через commit/tag, а не только через незакоммиченные локальные файлы;
-- храните `.copier-answers.yml` в конечном репозитории;
+- храните `.copier-answers.yml` и `.template-overlay-version` в конечном репозитории;
 - запускайте update из чистого git worktree.
 
 Канонические entrypoint-скрипты в сгенерированном проекте:
@@ -336,11 +336,11 @@ make template-update
 ```bash
 ./scripts/template/check-update.sh
 ./scripts/template/update-template.sh
-copier update --trust --defaults
 update-1c-project /path/to/generated-project --vcs-ref v0.1.1
 ```
 
-`template-update` обновляет template-managed assets, refresh-ит generated README router и managed-блок в `AGENTS.md`, при необходимости восстанавливает missing root entrypoint files и не переинициализирует `openspec`, `git` и `bd`.
+`template-check-update` сверяет `.template-overlay-version` с latest tagged release шаблона или с явно переданным `--vcs-ref`.
+`template-update` materialize-ит выбранный template ref, обновляет только manifest-declared template-managed assets, refresh-ит generated README router и managed-блок в `AGENTS.md`, при необходимости восстанавливает missing root entrypoint files и не переинициализирует `openspec`, `git` и `bd`.
 
 ## Make targets
 
@@ -351,6 +351,7 @@ update-1c-project /path/to/generated-project --vcs-ref v0.1.1
 - `make format-bsl`
 - `make check-agent-docs`
 - `make check-skill-bindings`
+- `make check-overlay-manifest`
 - `make create-ib`
 - `make dump-src`
 - `make load-src`

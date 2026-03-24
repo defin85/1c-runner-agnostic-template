@@ -19,6 +19,9 @@ log "Verify traceability"
 log "Check skill bindings"
 "$root/scripts/qa/check-skill-bindings.sh"
 
+log "Check overlay manifest"
+"$root/scripts/qa/check-overlay-manifest.sh"
+
 log "Check agent-facing docs and context"
 "$root/scripts/qa/check-agent-docs.sh"
 

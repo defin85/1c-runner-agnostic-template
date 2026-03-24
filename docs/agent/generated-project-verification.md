@@ -9,6 +9,7 @@
 | Command | Purpose | Prerequisites | Side effects | Artifacts |
 | --- | --- | --- | --- | --- |
 | `make agent-verify` | Базовая проверка docs, OpenSpec, skills и context contract | shell + repo tooling | нет | stdout/stderr процесса |
+| `make template-check-update` | Проверить, доступен ли новый wrapper overlay release | shell + git access к template source | нет | stdout/stderr процесса |
 | `make export-context-preview` | Посмотреть generated-derived inventory без записи | shell-only | нет | preview в stdout |
 | `make export-context-check` | Проверить свежесть generated-derived/context files | shell-only | нет | exit code |
 

@@ -26,7 +26,7 @@ Generated project не должен воспринимать source-repo artifac
 
 ## Ownership Classes
 
-- `template-managed`: reusable scripts, shared docs, shared skills, CI contours, managed blocks.
+- `template-managed`: reusable scripts, shared docs, shared skills, CI contours, managed blocks, `.template-overlay-version`.
 - `seed-once / project-owned`: root `README.md`, `openspec/project.md`, `automation/context/project-map.md`.
 - `generated-derived`: `automation/context/source-tree.generated.txt`, `automation/context/metadata-index.generated.json`.
 - `local-private`: local runtime profiles, secrets, machine-specific Codex/MCP config.

@@ -8,6 +8,8 @@ source "$SCRIPT_DIR/../lib/common.sh"
 source "$SCRIPT_DIR/agents-overlay.sh"
 # shellcheck source=./generated-project-surface.sh
 source "$SCRIPT_DIR/generated-project-surface.sh"
+# shellcheck source=../template/lib-overlay.sh
+source "$SCRIPT_DIR/../template/lib-overlay.sh"
 
 template_src_path="${1:-}"
 project_name="${2:-}"
@@ -79,26 +81,18 @@ if [ "$init_beads" = "yes" ]; then
   fi
 fi
 
-if [ "${DRY_RUN:-0}" != "1" ]; then
-  append_project_agents_overlay "$root/AGENTS.md" "$init_beads"
-fi
-
 if [ -z "$template_src_path" ]; then
   die "template source path is empty"
 fi
 
-for asset in copier.yml .github/workflows/ci.yml; do
-  if [ ! -f "$template_src_path/$asset" ]; then
-    die "template source path does not contain $asset"
-  fi
-
-  if [ "${DRY_RUN:-0}" != "1" ]; then
-    install -D -m 0644 "$template_src_path/$asset" "$root/$asset"
-  fi
-done
-
 if [ "${DRY_RUN:-0}" != "1" ]; then
-  sync_template_nested_readmes "$template_src_path" "$root"
+  sync_overlay_manifests \
+    "$template_src_path" \
+    "$root" \
+    "$(overlay_manifest_file "$root")" \
+    "$(overlay_manifest_file "$template_src_path")"
+  append_project_agents_overlay "$root/AGENTS.md" "$init_beads"
   seed_generated_project_surface_on_copy "$root" "$project_name" "$project_slug" "$project_description"
+  write_overlay_version "$root" "$(bootstrap_template_ref_or_fallback "$root" "$template_src_path")"
   "$root/scripts/llm/export-context.sh" --write >/dev/null
 fi

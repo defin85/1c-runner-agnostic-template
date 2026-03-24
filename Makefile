@@ -1,6 +1,6 @@
 SHELL := bash
 
-.PHONY: help agent-verify qa analyze-bsl format-bsl check-agent-docs check-skill-bindings create-ib dump-src load-src update-db diff-src doctor test-xunit test-bdd smoke export-context export-context-preview export-context-check export-context-write verify-traceability template-check-update template-update
+.PHONY: help agent-verify qa analyze-bsl format-bsl check-agent-docs check-skill-bindings check-overlay-manifest create-ib dump-src load-src update-db diff-src doctor test-xunit test-bdd smoke export-context export-context-preview export-context-check export-context-write verify-traceability template-check-update template-update
 
 help:
 	@printf '%s\n' \
@@ -11,6 +11,7 @@ help:
 		'  make format-bsl' \
 		'  make check-agent-docs' \
 		'  make check-skill-bindings' \
+		'  make check-overlay-manifest' \
 		'  make create-ib' \
 		'  make dump-src' \
 		'  make load-src' \
@@ -31,7 +32,7 @@ help:
 agent-verify:
 	@./scripts/qa/agent-verify.sh
 
-qa: analyze-bsl check-agent-docs check-skill-bindings verify-traceability
+qa: analyze-bsl check-agent-docs check-skill-bindings check-overlay-manifest verify-traceability
 
 analyze-bsl:
 	@./scripts/qa/analyze-bsl.sh
@@ -44,6 +45,9 @@ check-agent-docs:
 
 check-skill-bindings:
 	@./scripts/qa/check-skill-bindings.sh
+
+check-overlay-manifest:
+	@./scripts/qa/check-overlay-manifest.sh
 
 create-ib:
 	@./scripts/platform/create-ib.sh

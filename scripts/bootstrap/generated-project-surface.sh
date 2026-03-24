@@ -138,7 +138,7 @@ write_generated_readme_starter() {
 
 ## Ownership Classes
 
-- \`template-managed\`: \`scripts/\`, template docs, shared skills, CI contours, managed blocks.
+- \`template-managed\`: \`scripts/\`, template docs, shared skills, CI contours, managed blocks, \`.template-overlay-version\`.
 - \`seed-once / project-owned\`: \`README.md\`, \`openspec/project.md\`, \`automation/context/project-map.md\`.
 - \`generated-derived\`: \`automation/context/source-tree.generated.txt\`, \`automation/context/metadata-index.generated.json\`.
 - \`local-private\`: \`env/local.json\`, \`env/wsl.json\`, \`env/.local/*.json\`, machine-specific MCP/Codex overrides.
@@ -238,11 +238,11 @@ openspec_project_is_bootstrap_stub() {
     {
       count++
       if ($0 != "# OpenSpec Project") {
-        exit 1
+        mismatch = 1
       }
     }
     END {
-      exit !(count == 1)
+      exit !(!mismatch && count == 1)
     }
   ' "$target_file"
 }
@@ -302,7 +302,7 @@ Project-specific business context, bounded contexts и metadata entrypoint-ы к
 
 - Имя проекта: \`$project_name\`
 - Slug проекта: \`$project_slug\`
-- Project-owned truth не должна перетираться template updates вне managed blocks.
+- Project-owned truth не должна перетираться template overlay applies вне managed blocks.
 - Generated-derived inventories нужно refresh-ить через explicit repo-owned commands.
 EOF
 }

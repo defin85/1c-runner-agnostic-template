@@ -154,7 +154,8 @@ for rel in \
   .agents/skills/README.md \
   .claude/skills/README.md \
   automation/context/templates/generated-project-project-map.md \
-  automation/context/templates/generated-project-metadata-index.json; do
+  automation/context/templates/generated-project-metadata-index.json \
+  automation/context/template-managed-paths.txt; do
   require_path "$rel"
 done
 
@@ -182,8 +183,10 @@ require_contains "docs/agent/index.md" "docs/agent/review.md"
 require_contains "docs/agent/index.md" "docs/exec-plans/README.md"
 require_contains "docs/agent/generated-project-index.md" "seed-once / project-owned"
 require_contains "docs/agent/generated-project-index.md" "generated-derived"
-require_contains "docs/agent/generated-project-index.md" "copier update"
+require_contains "docs/agent/generated-project-index.md" "make template-update"
+require_contains "docs/agent/generated-project-index.md" ".template-overlay-version"
 require_contains "docs/agent/source-vs-generated.md" "template-managed"
+require_contains "docs/agent/source-vs-generated.md" ".template-overlay-version"
 require_contains "docs/agent/source-vs-generated.md" "generated-derived"
 require_contains "docs/agent/verify.md" "make agent-verify"
 require_contains "docs/agent/generated-project-verification.md" "Safe Local"
@@ -197,6 +200,8 @@ require_contains "docs/template-maintenance.md" "make template-check-update"
 require_contains "docs/template-maintenance.md" "make template-update"
 require_contains "docs/template-maintenance.md" "./scripts/template/check-update.sh"
 require_contains "docs/template-maintenance.md" "./scripts/template/update-template.sh"
+require_contains "docs/template-maintenance.md" ".template-overlay-version"
+require_contains "docs/template-maintenance.md" "automation/context/template-managed-paths.txt"
 require_contains "docs/template-maintenance.md" "./scripts/llm/export-context.sh --write"
 require_contains "docs/template-maintenance.md" "tests/smoke/copier-update-ready.sh"
 require_contains ".agents/skills/README.md" ".claude/skills/"
@@ -255,9 +260,11 @@ if is_source_repo; then
 else
   for rel in \
     automation/context/project-map.md \
+    automation/context/template-managed-paths.txt \
     automation/context/source-tree.generated.txt \
     automation/context/metadata-index.generated.json \
-    openspec/project.md; do
+    openspec/project.md \
+    .template-overlay-version; do
     require_path "$rel"
   done
 
@@ -274,6 +281,7 @@ else
   require_contains "AGENTS.md" "generated-project-first onboarding path"
   require_contains "README.md" "generated 1С-проект"
   require_contains "README.md" "Ownership Classes"
+  require_contains "README.md" ".template-overlay-version"
   require_contains "automation/context/project-map.md" "Ownership Model"
   require_contains "automation/context/project-map.md" "generated-derived"
   require_contains "openspec/project.md" "generated 1С-проект"

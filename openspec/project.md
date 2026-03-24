@@ -6,14 +6,14 @@
 
 - задавать каноническую структуру проекта вокруг `OpenSpec -> Beads -> Code`;
 - поставлять стабильные entrypoint-скрипты для запуска, тестов и QA без жесткой привязки к одному runner;
-- упрощать bootstrap новых 1С-репозиториев и их последующее обновление через `copier update`;
+- упрощать bootstrap новых 1С-репозиториев через `copier copy` и их последующее обновление через versioned wrapper overlays;
 - давать агентам и людям единый contract-first workflow для работы с требованиями, задачами, кодом и проверками.
 
 Этот репозиторий является исходником шаблона, а не готовым прикладным 1С-решением.
 
 ## Tech Stack
 - Bash shell scripts
-- Copier template (`copier.yml`, post-copy/post-update hooks)
+- Copier template (`copier.yml`, post-copy compatibility hooks)
 - OpenSpec for spec-driven development
 - Beads (`bd`) for local issue tracking in generated projects
 - Markdown documentation and operational checklists
@@ -37,8 +37,8 @@
   - `src/` для deployable source tree;
   - `scripts/` для канонических entrypoint’ов людей, CI и агентов.
 - Шаблон следует `runner-agnostic` модели: публичный интерфейс задается shell entrypoint’ами, а конкретный backend выбирается через adapter.
-- Для generated projects update path должен проходить через `copier update`, а не через ручное копирование файлов из шаблона.
-- AGENT instructions строятся как managed overlay поверх `openspec init`, чтобы template updates могли refresh-ить правила без ручного merge.
+- Для generated projects bootstrap идёт через `copier copy`, а ongoing template maintenance должен проходить через repo-owned overlay apply path.
+- AGENT instructions строятся как managed overlay поверх `openspec init`, чтобы template maintenance мог refresh-ить правила без ручного merge.
 
 ### Testing Strategy
 - Для behavior-changing задач обязателен explicit execution matrix `Requirement/Scenario -> Code -> Test`.
@@ -51,8 +51,8 @@
   - при необходимости integration smoke через локальный `copier copy/update`.
 
 ### Git Workflow
-- Шаблон версионируется в Git и публикует update-ready версии через теги.
-- Generated projects должны хранить `.copier-answers.yml` и обновляться от tagged versions шаблона.
+- Шаблон версионируется в Git и публикует overlay-ready версии через теги.
+- Generated projects должны хранить `.copier-answers.yml` как bootstrap provenance и `.template-overlay-version` как applied overlay state.
 - Сессия с кодовыми изменениями не считается завершенной, пока `git push` не выполнен успешно, если нет внешнего блокера.
 - Для крупных и новых изменений сначала оформляется OpenSpec change proposal; production code начинается только после явного согласования (`Go!`).
 
@@ -68,7 +68,7 @@
 - Важная цель следующего этапа развития: дать агентам project-scoped skills и стабильные repo-owned скрипты для взаимодействия с 1С-runtime.
 
 ## Important Constraints
-- Репозиторий должен оставаться пригодным как template source и как источник безопасных `copier update`.
+- Репозиторий должен оставаться пригодным как template source и как источник безопасных versioned overlay releases.
 - Bootstrap и update hooks нельзя смешивать: одноразовая инициализация (`openspec`, `git`, `bd`) не должна повторяться на update.
 - Шаблон не должен содержать секреты, реальные строки подключения и machine-specific credentials.
 - Решения должны работать без обязательной зависимости на Windows-only tooling.

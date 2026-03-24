@@ -8,7 +8,7 @@
 - не потерялась ли связка `Requirement -> Code -> Test`;
 - не стали ли agent-facing docs противоречить реальному repo contract;
 - не добавились ли machine-specific или secret-bearing артефакты в template;
-- не ухудшился ли `copier update` path.
+- не ухудшился ли versioned overlay maintenance path.
 
 ## Для Doc And Agent-Tooling Changes
 

@@ -229,9 +229,15 @@ assert_not_exists "$rendered_root/automation/context/template-source-tree.txt"
 assert_not_exists "$rendered_root/automation/context/template-source-source-files.txt"
 assert_exists "$rendered_root/scripts/template/update-template.sh"
 assert_exists "$rendered_root/scripts/template/check-update.sh"
+assert_exists "$rendered_root/scripts/template/lib-overlay.sh"
+assert_exists "$rendered_root/scripts/bootstrap/overlay-post-apply.sh"
+assert_exists "$rendered_root/scripts/qa/check-overlay-manifest.sh"
+assert_exists "$rendered_root/automation/context/template-managed-paths.txt"
+assert_exists "$rendered_root/.template-overlay-version"
 assert_contains "$rendered_root/Makefile" "template-update:"
 assert_contains "$rendered_root/Makefile" "agent-verify:"
 assert_contains "$rendered_root/Makefile" "check-agent-docs:"
+assert_contains "$rendered_root/Makefile" "check-overlay-manifest:"
 assert_contains "$rendered_root/Makefile" "export-context-preview:"
 assert_contains "$rendered_root/Makefile" "export-context-check:"
 assert_contains "$rendered_root/Makefile" "export-context-write:"
@@ -271,6 +277,7 @@ assert_contains "$rendered_root/README.md" "[docs/agent/generated-project-verifi
 assert_contains "$rendered_root/README.md" "[docs/template-maintenance.md](docs/template-maintenance.md)"
 assert_contains "$rendered_root/README.md" "make agent-verify"
 assert_contains "$rendered_root/README.md" "Ownership Classes"
+assert_contains "$rendered_root/README.md" ".template-overlay-version"
 assert_contains "$rendered_root/env/README.md" "driver=ibcmd"
 assert_contains "$rendered_root/env/README.md" "xvfb-run"
 assert_contains "$rendered_root/env/README.md" "LD_PRELOAD"
@@ -283,6 +290,8 @@ assert_contains "$rendered_root/automation/context/project-map.md" "role: genera
 assert_contains "$rendered_root/automation/context/project-map.md" "generated-derived"
 assert_contains "$rendered_root/automation/context/source-tree.generated.txt" "# Generated Project Tree"
 assert_jq "$rendered_root/automation/context/metadata-index.generated.json" '.inventoryRole == "generated-derived" and .authoritativeDocs.projectMap == "automation/context/project-map.md"' "generated-metadata-index"
+assert_contains "$rendered_root/automation/context/template-managed-paths.txt" "scripts/template/update-template.sh"
+assert_contains "$rendered_root/.template-overlay-version" "v0.1.0"
 assert_contains "$rendered_root/src/cf/DataProcessors/TestProcessor/Ext/ObjectModule.bsl" "{{ raw_bsl_expression }}"
 
 (
@@ -293,6 +302,11 @@ assert_contains "$rendered_root/src/cf/DataProcessors/TestProcessor/Ext/ObjectMo
 (
   cd "$rendered_root"
   PATH="$bindir:$PATH" COMMAND_LOG="$command_log" make export-context-check >/dev/null
+)
+
+(
+  cd "$rendered_root"
+  PATH="$bindir:$PATH" COMMAND_LOG="$command_log" make check-overlay-manifest >/dev/null
 )
 
 status_before_preview="$(git -C "$rendered_root" status --short)"
@@ -336,25 +350,36 @@ cat >>"$rendered_root/README.md" <<'EOF'
 
 ## Project-Owned Smoke Marker
 
-- README marker must survive copier update.
+- README marker must survive template overlay apply.
 EOF
 
 cat >>"$rendered_root/automation/context/project-map.md" <<'EOF'
 
 ## Project-Owned Smoke Marker
 
-- project-map marker must survive copier update.
+- project-map marker must survive template overlay apply.
 EOF
 
 cat >>"$rendered_root/openspec/project.md" <<'EOF'
 
 ## Project-Owned Smoke Marker
 
-- openspec marker must survive copier update.
+- openspec marker must survive template overlay apply.
 EOF
 
 git -C "$rendered_root" add README.md automation/context/project-map.md openspec/project.md
 git -C "$rendered_root" commit -qm "project-owned edits"
+
+rm -f "$rendered_root/src/cf/DataProcessors/TestProcessor/Ext/ObjectModule.bsl"
+mkdir -p "$rendered_root/src/cf/DataProcessors/ReimportedProcessor/Ext"
+cat >"$rendered_root/src/cf/DataProcessors/ReimportedProcessor/Ext/ObjectModule.bsl" <<'EOF'
+// Smoke fixture to prove overlay updates ignore product source churn.
+Procedure Reimported()
+	Сообщить("src tree churn must survive overlay apply");
+EndProcedure
+EOF
+git -C "$rendered_root" add -A src/cf
+git -C "$rendered_root" commit -qm "simulate src reimport churn"
 
 rm -f "$rendered_root/AGENTS.md"
 git -C "$rendered_root" add AGENTS.md
@@ -363,6 +388,7 @@ git -C "$rendered_root" commit -qm "remove agents"
 cat >"$template_root/docs/template-update-note.txt" <<'EOF'
 This file is added in template v0.2.0 to verify copier update.
 EOF
+printf '%s\n' "docs/template-update-note.txt" >>"$template_root/automation/context/template-managed-paths.txt"
 
 python - <<PY
 from pathlib import Path
@@ -405,14 +431,17 @@ if [ "$status_before_template_check" != "$status_after_template_check" ]; then
   printf 'after:\n%s\n' "$status_after_template_check" >&2
   exit 1
 fi
-assert_contains "$template_check_output" "copier check-update"
+assert_contains "$template_check_output" "Current overlay version: v0.1.0"
+assert_contains "$template_check_output" "Available overlay release: v0.2.0"
+assert_contains "$template_check_output" "Overlay update available."
 
 template_update_output="$tmpdir/template-update-v0.2.0.txt"
 (
   cd "$rendered_root"
   PATH="$bindir:$PATH" COMMAND_LOG="$command_log" make template-update >"$template_update_output"
 )
-assert_contains "$template_update_output" "copier update --trust --defaults"
+assert_contains "$template_update_output" "Current overlay version: v0.1.0"
+assert_contains "$template_update_output" "Target overlay release: v0.2.0"
 
 assert_exists "$rendered_root/docs/template-update-note.txt"
 assert_exists "$rendered_root/AGENTS.md"
@@ -470,13 +499,15 @@ assert_contains "$rendered_root/.github/workflows/ci.yml" "needs.runtime-gate.ou
 assert_contains "$rendered_root/.github/workflows/ci.yml" "runtime-direct-platform-ld-preload-contract.sh"
 assert_contains "$rendered_root/env/local.example.json" "\"driver\": \"ibcmd\""
 assert_contains "$rendered_root/README.md" "Generated-derived inventory refresh-ится отдельной explicit write-командой."
-assert_contains "$rendered_root/README.md" "README marker must survive copier update."
-assert_contains "$rendered_root/automation/context/project-map.md" "project-map marker must survive copier update."
-assert_contains "$rendered_root/openspec/project.md" "openspec marker must survive copier update."
+assert_contains "$rendered_root/README.md" "README marker must survive template overlay apply."
+assert_contains "$rendered_root/automation/context/project-map.md" "project-map marker must survive template overlay apply."
+assert_contains "$rendered_root/openspec/project.md" "openspec marker must survive template overlay apply."
+assert_exists "$rendered_root/src/cf/DataProcessors/ReimportedProcessor/Ext/ObjectModule.bsl"
+assert_not_exists "$rendered_root/src/cf/DataProcessors/TestProcessor/Ext/ObjectModule.bsl"
+assert_contains "$rendered_root/.template-overlay-version" "v0.2.0"
 assert_count "$command_log" "openspec init --tools none" "1"
 assert_count "$command_log" "bd init --stealth -p smoke-project" "1"
-assert_count "$command_log" "copier check-update" "1"
-assert_count "$command_log" "copier update --trust --defaults" "1"
+assert_count "$command_log" "copier copy --trust --defaults" "1"
 
 git -C "$rendered_root" add -A
 git -C "$rendered_root" commit -qm "generated v0.2.0"
@@ -488,6 +519,7 @@ git -C "$rendered_root" commit -qm "remove readme"
 cat >"$template_root/docs/template-update-v3-note.txt" <<'EOF'
 This file is added in template v0.3.0 to verify README recovery.
 EOF
+printf '%s\n' "docs/template-update-v3-note.txt" >>"$template_root/automation/context/template-managed-paths.txt"
 
 python - "$template_root/scripts/bootstrap/generated-project-surface.sh" <<'PY'
 from pathlib import Path
@@ -512,11 +544,12 @@ template_update_recovery_output="$tmpdir/template-update-v0.3.0.txt"
   PATH="$bindir:$PATH" COMMAND_LOG="$command_log" make template-update >"$template_update_recovery_output"
 )
 
-assert_contains "$template_update_recovery_output" "copier update --trust --defaults"
+assert_contains "$template_update_recovery_output" "Target overlay release: v0.3.0"
 assert_exists "$rendered_root/README.md"
 assert_exists "$rendered_root/docs/template-update-v3-note.txt"
 assert_contains "$rendered_root/README.md" "# Smoke Project"
 assert_not_contains "$rendered_root/README.md" "# 1c-runner-agnostic-template"
+assert_contains "$rendered_root/.template-overlay-version" "v0.3.0"
 
 (
   cd "$rendered_root"
