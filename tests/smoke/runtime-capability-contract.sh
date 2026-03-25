@@ -62,7 +62,7 @@ cat >"$profile_path" <<EOF
       "sourceDir": "./src/cf"
     },
     "xunit": {
-      "command": ["bash", "-lc", "printf 'xunit-ok\\\\n'"]
+      "command": ["bash", "-lc", "printf 'xunit-ok\\\\ncapability=%s\\\\nrun-root=%s\\\\nprofile=%s\\\\n' \"\$ONEC_CAPABILITY_ID\" \"\$ONEC_CAPABILITY_RUN_ROOT\" \"\$ONEC_PROFILE_PATH\""]
     },
     "bdd": {
       "command": ["bash", "-lc", "printf 'bdd-ok\\\\n'"]
@@ -174,6 +174,9 @@ assert_contains "$run_root_update/stdout.log" "/UpdateDBCfg"
 assert_jq "$run_root_xunit/summary.json" '.status == "success"' "xunit-status"
 assert_jq "$run_root_xunit/summary.json" '.execution.source == "profile-command"' "xunit-execution-source"
 assert_contains "$run_root_xunit/stdout.log" "xunit-ok"
+assert_contains "$run_root_xunit/stdout.log" "capability=run-xunit"
+assert_contains "$run_root_xunit/stdout.log" "run-root=$run_root_xunit"
+assert_contains "$run_root_xunit/stdout.log" "profile=$profile_path"
 
 unsupported_profile_path="$tmpdir/unsupported-profile.json"
 cat >"$unsupported_profile_path" <<EOF

@@ -361,6 +361,8 @@ assert_contains "$rendered_root/env/README.md" "xvfb-run"
 assert_contains "$rendered_root/env/README.md" "LD_PRELOAD"
 assert_contains "$rendered_root/env/README.md" "env/.local/"
 assert_contains "$rendered_root/env/README.md" "unsupportedReason"
+assert_contains "$rendered_root/env/README.md" "ONEC_PROJECT_ROOT"
+assert_contains "$rendered_root/env/README.md" "ONEC_CAPABILITY_RUN_ROOT"
 assert_contains "$rendered_root/AGENTS.md" 'Start with [docs/agent/generated-project-index.md](docs/agent/generated-project-index.md) for the generated-project-first onboarding path.'
 assert_contains "$rendered_root/AGENTS.md" 'Use [automation/context/project-map.md](automation/context/project-map.md) as the project-owned repo map.'
 assert_contains "$rendered_root/AGENTS.md" 'Use [automation/context/hotspots-summary.generated.md](automation/context/hotspots-summary.generated.md) as the compact generated-derived map for the first hour.'

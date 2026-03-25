@@ -37,6 +37,7 @@ make export-context-check
 
 - если sanctioned checked-in profile ещё не wired project-specific contour, используйте `unsupportedReason`, а не `echo TODO`;
 - если sanctioned checked-in profile всё же использует `command`, он должен запускать прямой repo-owned entrypoint вроде `./scripts/...` или `make <target>`, а не shell-wrapper / inline / no-op success command;
+- repo-owned entrypoint может опираться на launcher-provided `ONEC_*` env contract из [env/README.md](../../env/README.md), чтобы использовать `--run-root`, profile path и capability metadata без повторной обвязки launcher-а;
 - такой contour завершится fail-closed и должен считаться `unsupported`, а не зелёной проверкой;
 - baseline onboarding не должен рекламировать unsupported contour как safe first pass.
 

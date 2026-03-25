@@ -193,6 +193,31 @@ export ONEC_IB_PASSWORD='...'
 Для checked-in example profiles и sanctioned additional presets в `smoke` / `xunit` / `bdd` используйте либо `unsupportedReason`, либо прямой repo-owned entrypoint в `command[0]` вроде `./scripts/...` / `scripts/...`, либо `make <target>`.
 Inline shell snippets и trivial success commands вроде `true`, `echo ...` или `bash -lc "./scripts/... || true"` semantic baseline должен отклонять. Repo-owned path внутри shell-wrapper не считается допустимым checked-in contract.
 
+Profile-defined `command` запускается с repo-owned launcher env contract:
+
+- `ONEC_PROJECT_ROOT`
+- `ONEC_PROFILE_PATH`
+- `ONEC_RUNNER_ADAPTER`
+- `ONEC_CAPABILITY_ID`
+- `ONEC_CAPABILITY_LABEL`
+- `ONEC_CAPABILITY_RUN_ROOT`
+
+Это позволяет project-owned runner-ам использовать уже подготовленный `--run-root`, знать активный profile/adapter и не переизобретать outer launcher только ради этих metadata.
+
+Минимальный generic пример:
+
+```json
+{
+  "capabilities": {
+    "xunit": {
+      "command": ["./scripts/test/run-xunit-project.sh"]
+    }
+  }
+}
+```
+
+Такой repo-owned entrypoint может читать `ONEC_*` переменные из окружения и, если contour пишет временные артефакты, по умолчанию складывать их в `ONEC_CAPABILITY_RUN_ROOT`.
+
 `diffSrc.command` тоже можно задать явно, но по умолчанию script использует `git diff -- ./src`.
 
 Если `platform.xvfb.enabled=true`, direct-platform adapter автоматически оборачивает только те `command`-массивы, где первый элемент указывает на локальный `1cv8` или `1cv8c`. Для `bash -lc ...` и других non-1C executables wrapper не включается.

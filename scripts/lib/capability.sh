@@ -312,6 +312,11 @@ execute_prepared_capability_command() {
   local adapter="$2"
   local stdout_log="$3"
   local stderr_log="$4"
+  local run_root="$5"
+  local profile_path="$6"
+  local capability_id="$7"
+  local capability_label="$8"
+  local -a command_env=()
   local -a adapter_env=()
   local -a wrapped_command=()
   local exit_code=0
@@ -320,19 +325,28 @@ execute_prepared_capability_command() {
     die "capability command was not prepared"
   fi
 
+  command_env=(
+    "ONEC_PROJECT_ROOT=$root"
+    "ONEC_PROFILE_PATH=$profile_path"
+    "ONEC_RUNNER_ADAPTER=$adapter"
+    "ONEC_CAPABILITY_ID=$capability_id"
+    "ONEC_CAPABILITY_LABEL=$capability_label"
+    "ONEC_CAPABILITY_RUN_ROOT=$run_root"
+  )
+
   set +e
   case "$CAPABILITY_COMMAND_EXECUTOR" in
     direct)
-      "${CAPABILITY_COMMAND[@]}" >"$stdout_log" 2>"$stderr_log"
+      env "${command_env[@]}" "${CAPABILITY_COMMAND[@]}" >"$stdout_log" 2>"$stderr_log"
       exit_code=$?
       ;;
     adapter-wrapper)
       resolve_adapter_wrapper "$adapter" "$root" wrapped_command
       wrapped_command+=("${CAPABILITY_COMMAND[@]}")
       prepare_adapter_wrapper_env "$adapter" adapter_env
-      set -- "${adapter_env[@]}"
+      set -- "${command_env[@]}" "${adapter_env[@]}"
       if [ "$#" -gt 0 ]; then
-        env "${adapter_env[@]}" "${wrapped_command[@]}" >"$stdout_log" 2>"$stderr_log"
+        env "${command_env[@]}" "${adapter_env[@]}" "${wrapped_command[@]}" >"$stdout_log" 2>"$stderr_log"
       else
         "${wrapped_command[@]}" >"$stdout_log" 2>"$stderr_log"
       fi
@@ -411,7 +425,15 @@ run_profile_capability() {
   if [ "$CAPABILITY_DRY_RUN" = "1" ]; then
     status="dry-run"
   else
-    if execute_prepared_capability_command "$root" "$adapter" "$stdout_log" "$stderr_log"; then
+    if execute_prepared_capability_command \
+      "$root" \
+      "$adapter" \
+      "$stdout_log" \
+      "$stderr_log" \
+      "$run_root" \
+      "$profile_path" \
+      "$capability_id" \
+      "$capability_label"; then
       exit_code=0
     else
       exit_code=$?
