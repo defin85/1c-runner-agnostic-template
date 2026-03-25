@@ -417,9 +417,6 @@ else
   require_contains "automation/context/project-map.md" "Ownership Model"
   require_contains "automation/context/project-map.md" "generated-derived"
   require_contains "openspec/project.md" "generated 1С-проект"
-  require_contains "automation/context/project-map.md" "docs/agent/review.md"
-  require_contains "automation/context/project-map.md" "env/README.md"
-  require_contains "automation/context/project-map.md" "docs/exec-plans/README.md"
 
   require_no_placeholder_pattern "README.md" '<[[:alnum:]_][^>]*>'
   require_no_placeholder_pattern "automation/context/project-map.md" '<[[:alnum:]_][^>]*>'

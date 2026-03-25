@@ -10,13 +10,23 @@ trap 'rm -rf "$tmpdir"' EXIT
 copy_repo() {
   local target="$1"
   mkdir -p "$target"
-  (
-    cd "$SOURCE_ROOT"
-    tar --exclude=.git -cf - .
-  ) | (
-    cd "$target"
-    tar xf -
-  )
+  if git -C "$SOURCE_ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    (
+      cd "$SOURCE_ROOT"
+      git ls-files -z | tar --null -T - -cf -
+    ) | (
+      cd "$target"
+      tar xf -
+    )
+  else
+    (
+      cd "$SOURCE_ROOT"
+      tar --exclude=.git -cf - .
+    ) | (
+      cd "$target"
+      tar xf -
+    )
+  fi
 }
 
 assert_fails_with() {
@@ -129,6 +139,27 @@ render_generated_repo "$generated_template_root" "$generated_root" "$generated_b
   PATH="$generated_bindir:$PATH" ./scripts/qa/check-agent-docs.sh >/dev/null
 )
 
+generated_curated_project_map_root="$tmpdir/generated-curated-project-map"
+cp -R "$generated_root" "$generated_curated_project_map_root"
+python - <<'PY' "$generated_curated_project_map_root/automation/context/project-map.md"
+from pathlib import Path
+import sys
+
+path = Path(sys.argv[1])
+lines = path.read_text().splitlines()
+filtered = [
+    line for line in lines
+    if "docs/agent/review.md" not in line
+    and "env/README.md" not in line
+    and "docs/exec-plans/README.md" not in line
+]
+path.write_text("\n".join(filtered) + "\n")
+PY
+(
+  cd "$generated_curated_project_map_root"
+  PATH="$generated_bindir:$PATH" ./scripts/qa/check-agent-docs.sh >/dev/null
+)
+
 generated_missing_runbook_root="$tmpdir/generated-missing-runbook"
 cp -R "$generated_root" "$generated_missing_runbook_root"
 sed -i 's/make template-check-update/template-check-update/' \
@@ -182,7 +213,12 @@ cp -R "$generated_root" "$generated_empty_identity_root"
 mkdir -p "$generated_empty_identity_root/src/cf"
 cat >"$generated_empty_identity_root/src/cf/Configuration.xml" <<'EOF'
 <?xml version="1.0" encoding="UTF-8"?>
-<MetaDataObject name="GeneratedCfg">
+<MetaDataObject xmlns="http://v8.1c.ru/8.3/MDClasses">
+  <Configuration uuid="22222222-2222-2222-2222-222222222222">
+    <Properties>
+      <Name>GeneratedCfg</Name>
+    </Properties>
+  </Configuration>
 </MetaDataObject>
 EOF
 python - <<'PY' "$generated_empty_identity_root/automation/context/metadata-index.generated.json"

@@ -16,13 +16,23 @@ real_copier="$(command -v copier)"
 mkdir -p "$template_root" "$bindir"
 
 copy_template_repo() {
-  (
-    cd "$SOURCE_ROOT"
-    tar --exclude=.git -cf - .
-  ) | (
-    cd "$template_root"
-    tar xf -
-  )
+  if git -C "$SOURCE_ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    (
+      cd "$SOURCE_ROOT"
+      git ls-files -z | tar --null -T - -cf -
+    ) | (
+      cd "$template_root"
+      tar xf -
+    )
+  else
+    (
+      cd "$SOURCE_ROOT"
+      tar --exclude=.git -cf - .
+    ) | (
+      cd "$template_root"
+      tar xf -
+    )
+  fi
 }
 
 init_git_repo() {

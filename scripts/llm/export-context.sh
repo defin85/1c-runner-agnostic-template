@@ -184,12 +184,19 @@ write_json_array_from_stdin() {
 
 configuration_name() {
   local config_xml="$root/src/cf/Configuration.xml"
+  local attr_name=""
 
   if [ ! -f "$config_xml" ]; then
     return 0
   fi
 
-  sed -n 's/.*name="\([^"]*\)".*/\1/p' "$config_xml" | head -n 1
+  attr_name="$(sed -n 's/.*name="\([^"]*\)".*/\1/p' "$config_xml" | head -n 1)"
+  if [ -n "$attr_name" ]; then
+    printf '%s' "$attr_name"
+    return 0
+  fi
+
+  sed -n 's/.*<Name>\([^<]*\)<\/Name>.*/\1/p' "$config_xml" | head -n 1
 }
 
 configuration_attr() {
@@ -227,7 +234,7 @@ render_generated_metadata() {
     has_config_xml="true"
   fi
 
-  config_name="$(configuration_attr name)"
+  config_name="$(configuration_name)"
   config_uuid="$(configuration_attr uuid)"
 
   {

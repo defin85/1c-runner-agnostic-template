@@ -190,7 +190,12 @@ mkdir -p \
 
 cat >"$project_root/src/cf/Configuration.xml" <<'EOF'
 <?xml version="1.0" encoding="UTF-8"?>
-<MetaDataObject name="SmokeConfiguration" uuid="11111111-1111-1111-1111-111111111111">
+<MetaDataObject xmlns="http://v8.1c.ru/8.3/MDClasses">
+  <Configuration uuid="11111111-1111-1111-1111-111111111111">
+    <Properties>
+      <Name>SmokeConfiguration</Name>
+    </Properties>
+  </Configuration>
 </MetaDataObject>
 EOF
 
