@@ -337,6 +337,7 @@ assert_jq "$rendered_root/env/windows-executor.example.json" '.runnerAdapter == 
 assert_jq "$rendered_root/env/local.example.json" '.capabilities.smoke.unsupportedReason != null and .capabilities.xunit.unsupportedReason != null and .capabilities.bdd.unsupportedReason != null' "local-example-unsupported"
 assert_jq "$rendered_root/env/ci.example.json" '.capabilities.smoke.unsupportedReason != null and .capabilities.xunit.unsupportedReason != null and .capabilities.bdd.unsupportedReason != null' "ci-example-unsupported"
 assert_jq "$rendered_root/env/wsl.example.json" '.capabilities.smoke.unsupportedReason != null and .capabilities.xunit.unsupportedReason != null and .capabilities.bdd.unsupportedReason != null' "wsl-example-unsupported"
+assert_jq "$rendered_root/env/windows-executor.example.json" '.capabilities.smoke.unsupportedReason != null and .capabilities.xunit.unsupportedReason != null and .capabilities.bdd.unsupportedReason != null and .capabilities.publishHttp.unsupportedReason != null' "windows-example-unsupported"
 assert_contains "$rendered_root/README.md" "generated 1С-проект"
 assert_contains "$rendered_root/README.md" "[docs/agent/generated-project-index.md](docs/agent/generated-project-index.md)"
 assert_contains "$rendered_root/README.md" "[automation/context/project-map.md](automation/context/project-map.md)"

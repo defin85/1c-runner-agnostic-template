@@ -190,6 +190,9 @@ export ONEC_IB_PASSWORD='...'
 - будет считаться `unsupported` capability в `doctor`;
 - не должен объявляться baseline-ready в sanctioned checked-in profile.
 
+Для checked-in example profiles и sanctioned additional presets в `smoke` / `xunit` / `bdd` используйте либо `unsupportedReason`, либо repo-owned entrypoint вроде `./scripts/...` или `make <target>`.
+Inline shell snippets и trivial success commands вроде `true`, `echo ...` или `bash -lc "..."` без repo-owned entrypoint semantic baseline должен отклонять.
+
 `diffSrc.command` тоже можно задать явно, но по умолчанию script использует `git diff -- ./src`.
 
 Если `platform.xvfb.enabled=true`, direct-platform adapter автоматически оборачивает только те `command`-массивы, где первый элемент указывает на локальный `1cv8` или `1cv8c`. Для `bash -lc ...` и других non-1C executables wrapper не включается.

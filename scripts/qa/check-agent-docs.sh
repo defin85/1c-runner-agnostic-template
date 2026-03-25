@@ -162,6 +162,79 @@ require_jq_expr() {
   fi
 }
 
+profile_capability_command_expr() {
+  local capability="$1"
+
+  printf '.capabilities.%s.command\n' "$capability"
+}
+
+checked_in_command_token_references_repo_path() {
+  local token="$1"
+  local candidate=""
+
+  candidate="${token%%[[:space:];|&()]*}"
+  [ -n "$candidate" ] || return 1
+
+  case "$candidate" in
+    ./*)
+      [ -e "$root/${candidate#./}" ]
+      ;;
+    scripts/*|tests/*|features/*|src/*|automation/*|docs/*|env/*|.agents/*|.codex/*|.claude/*|Makefile)
+      [ -e "$root/$candidate" ]
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+checked_in_verification_command_is_repo_owned() {
+  local -a command=("$@")
+  local token=""
+
+  [ "$#" -gt 0 ] || return 1
+
+  if [ "${command[0]}" = "make" ] && [ "$#" -ge 2 ] && [[ "${command[1]}" != -* ]]; then
+    return 0
+  fi
+
+  for token in "${command[@]}"; do
+    if checked_in_command_token_references_repo_path "$token"; then
+      return 0
+    fi
+  done
+
+  return 1
+}
+
+check_checked_in_verification_command_shape() {
+  local rel="$1"
+  local capability="$2"
+  local command_expr=""
+  local -a profile_command=()
+
+  command_expr="$(profile_capability_command_expr "$capability")"
+  if ! jq -e "$command_expr != null" "$root/$rel" >/dev/null 2>&1; then
+    return 0
+  fi
+
+  mapfile -t profile_command < <(jq -r "$command_expr | if type == \"array\" then .[] else empty end" "$root/$rel")
+  if ! checked_in_verification_command_is_repo_owned "${profile_command[@]}"; then
+    printf 'checked-in verification contour must use unsupportedReason or a repo-owned entrypoint: %s (%s)\n' \
+      "$rel" "$capability" >&2
+    status=1
+  fi
+}
+
+check_checked_in_verification_contract() {
+  local rel="$1"
+  local capability=""
+
+  for capability in smoke xunit bdd; do
+    check_checked_in_verification_command_shape "$rel" "$capability"
+  done
+}
+
 has_git_remote() {
   git -C "$root" rev-parse --is-inside-work-tree >/dev/null 2>&1 || return 1
   git -C "$root" remote | grep -q .
@@ -286,6 +359,7 @@ check_generated_runtime_profile_policy_contract() {
       status=1
     fi
 
+    check_checked_in_verification_contract "$sanctioned_rel"
   done
 }
 
@@ -501,6 +575,7 @@ if is_source_repo; then
 
   for rel in env/local.example.json env/ci.example.json env/wsl.example.json env/windows-executor.example.json; do
     require_absent_regex "$rel" 'TODO:' "placeholder verification command remains in example profile"
+    check_checked_in_verification_contract "$rel"
   done
 
   if ! "$root/scripts/llm/export-context.sh" --check; then

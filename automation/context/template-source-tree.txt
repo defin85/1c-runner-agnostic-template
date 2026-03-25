@@ -51,10 +51,13 @@
 ./openspec/changes/add-codex-productivity-surface
 ./openspec/changes/add-generated-project-agent-ownership-model
 ./openspec/changes/archive
+./openspec/changes/harden-generated-project-agent-contract
 ./openspec/changes/replace-copier-updates-with-overlay-releases
 ./openspec/changes/tighten-generated-project-agent-surface
 ./openspec/specs
 ./openspec/specs/agent-runtime-toolkit
+./openspec/specs/generated-context-artifacts
+./openspec/specs/generated-project-agent-guidance
 ./openspec/specs/ibcmd-capability-drivers
 ./openspec/specs/project-scoped-skills
 ./openspec/specs/runtime-profile-schema

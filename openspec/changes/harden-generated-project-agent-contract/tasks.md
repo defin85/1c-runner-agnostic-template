@@ -36,3 +36,4 @@
 - [x] 7.2 Выровнять semantics `unsupportedReason` между `doctor`, runtime-profile policy docs и semantic QA gates, включая optional `publish-http`.
 - [x] 7.3 Довести summary-first onboarding до default generated-docs path без raw-inventory-first шага.
 - [x] 7.4 Перепрогнать acceptance verification после post-review fixes и обновить трассировку `Requirement -> Code -> Test`.
+- [x] 7.5 Закрыть gap на `equivalent no-op success path` в checked-in `smoke` / `xunit` / `bdd` contours, чтобы semantic baseline отклонял trivial success commands, а shipped examples оставались fail-closed.

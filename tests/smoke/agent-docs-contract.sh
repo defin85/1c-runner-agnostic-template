@@ -166,6 +166,22 @@ PY
 assert_fails_with "$source_placeholder_profile_root" \
   "placeholder verification command remains in example profile: env/ci.example.json"
 
+source_noop_profile_root="$tmpdir/source-noop-profile"
+copy_repo "$source_noop_profile_root"
+refresh_source_context "$source_noop_profile_root"
+python - <<'PY' "$source_noop_profile_root/env/ci.example.json"
+from pathlib import Path
+import json
+import sys
+
+path = Path(sys.argv[1])
+data = json.loads(path.read_text())
+data["capabilities"]["smoke"] = {"command": ["true"]}
+path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n")
+PY
+assert_fails_with "$source_noop_profile_root" \
+  "checked-in verification contour must use unsupportedReason or a repo-owned entrypoint: env/ci.example.json (smoke)"
+
 generated_template_root="$tmpdir/generated-template"
 generated_root="$tmpdir/generated"
 generated_bindir="$tmpdir/generated-bin"
@@ -307,6 +323,45 @@ refresh_source_context "$generated_sanctioned_placeholder_root"
   cd "$generated_sanctioned_placeholder_root"
   PATH="$generated_bindir:$PATH" ./scripts/qa/check-agent-docs.sh >/dev/null
 )
+
+generated_sanctioned_noop_root="$tmpdir/generated-sanctioned-noop"
+cp -R "$generated_root" "$generated_sanctioned_noop_root"
+cat >"$generated_sanctioned_noop_root/env/develop.json" <<'EOF'
+{
+  "profileName": "develop",
+  "capabilities": {
+    "smoke": {
+      "command": ["true"]
+    }
+  }
+}
+EOF
+cat >"$generated_sanctioned_noop_root/automation/context/runtime-profile-policy.json" <<'EOF'
+{
+  "rootEnvProfiles": {
+    "canonicalExamples": [
+      "env/local.example.json",
+      "env/wsl.example.json",
+      "env/ci.example.json",
+      "env/windows-executor.example.json"
+    ],
+    "canonicalLocalPrivate": [
+      "env/local.json",
+      "env/wsl.json",
+      "env/ci.json",
+      "env/windows-executor.json"
+    ],
+    "sanctionedAdditionalProfiles": [
+      "env/develop.json"
+    ],
+    "localSandbox": "env/.local/"
+  }
+}
+EOF
+refresh_source_context "$generated_sanctioned_noop_root"
+assert_fails_with "$generated_sanctioned_noop_root" \
+  "checked-in verification contour must use unsupportedReason or a repo-owned entrypoint: env/develop.json (smoke)" \
+  "$generated_bindir"
 
 generated_empty_identity_root="$tmpdir/generated-empty-identity"
 cp -R "$generated_root" "$generated_empty_identity_root"

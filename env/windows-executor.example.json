@@ -43,16 +43,16 @@
       "command": ["git", "diff", "--", "./src"]
     },
     "xunit": {
-      "command": ["powershell", "-File", "C:/1c/run-xunit.ps1"]
+      "unsupportedReason": "Windows xUnit contour is project-specific; wire a real command before treating this profile as green."
     },
     "bdd": {
-      "command": ["powershell", "-File", "C:/1c/run-bdd.ps1"]
+      "unsupportedReason": "Windows BDD contour is project-specific; wire a real command before treating this profile as green."
     },
     "smoke": {
-      "command": ["powershell", "-File", "C:/1c/run-smoke.ps1"]
+      "unsupportedReason": "Windows smoke contour is project-specific; wire a real command before treating this profile as green."
     },
     "publishHttp": {
-      "command": ["powershell", "-File", "C:/1c/publish-http.ps1"]
+      "unsupportedReason": "Windows publish contour is project-specific; wire a real command before treating this profile as green."
     }
   }
 }

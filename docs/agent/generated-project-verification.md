@@ -36,6 +36,7 @@ make export-context-check
 Важно:
 
 - если sanctioned checked-in profile ещё не wired project-specific contour, используйте `unsupportedReason`, а не `echo TODO`;
+- если sanctioned checked-in profile всё же использует `command`, он должен ссылаться на repo-owned entrypoint вроде `./scripts/...` или `make <target>`, а не на inline/no-op success command;
 - такой contour завершится fail-closed и должен считаться `unsupported`, а не зелёной проверкой;
 - baseline onboarding не должен рекламировать unsupported contour как safe first pass.
 

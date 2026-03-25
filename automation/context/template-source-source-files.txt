@@ -41,8 +41,10 @@
 ./automation/context/template-source-project-map.md
 ./automation/context/template-source-source-files.txt
 ./automation/context/template-source-tree.txt
+./automation/context/templates/generated-project-hotspots-summary.md
 ./automation/context/templates/generated-project-metadata-index.json
 ./automation/context/templates/generated-project-project-map.md
+./automation/context/templates/generated-project-runtime-profile-policy.json
 ./automation/prompts/README.md
 ./copier.yml
 ./docs/AGENTS.md
@@ -60,6 +62,7 @@
 ./docs/migrations/runtime-profile-v2.md
 ./docs/template-maintenance.md
 ./env/.local/README.md
+./env/AGENTS.md
 ./env/README.md
 ./env/ci.example.json
 ./env/local.example.json
@@ -121,6 +124,14 @@
 ./openspec/changes/archive/2026-03-18-migrate-runtime-profiles-to-schema-v2/specs/runtime-profile-schema/spec.md
 ./openspec/changes/archive/2026-03-18-migrate-runtime-profiles-to-schema-v2/tasks.md
 ./openspec/changes/archive/2026-03-18-migrate-runtime-profiles-to-schema-v2/traceability.md
+./openspec/changes/harden-generated-project-agent-contract/design.md
+./openspec/changes/harden-generated-project-agent-contract/proposal.md
+./openspec/changes/harden-generated-project-agent-contract/specs/generated-context-artifacts/spec.md
+./openspec/changes/harden-generated-project-agent-contract/specs/generated-project-agent-guidance/spec.md
+./openspec/changes/harden-generated-project-agent-contract/specs/runtime-profile-schema/spec.md
+./openspec/changes/harden-generated-project-agent-contract/specs/template-ci-contours/spec.md
+./openspec/changes/harden-generated-project-agent-contract/tasks.md
+./openspec/changes/harden-generated-project-agent-contract/traceability.md
 ./openspec/changes/replace-copier-updates-with-overlay-releases/design.md
 ./openspec/changes/replace-copier-updates-with-overlay-releases/proposal.md
 ./openspec/changes/replace-copier-updates-with-overlay-releases/specs/template-overlay-delivery/spec.md
@@ -134,10 +145,13 @@
 ./openspec/changes/tighten-generated-project-agent-surface/traceability.md
 ./openspec/project.md
 ./openspec/specs/agent-runtime-toolkit/spec.md
+./openspec/specs/generated-context-artifacts/spec.md
+./openspec/specs/generated-project-agent-guidance/spec.md
 ./openspec/specs/ibcmd-capability-drivers/spec.md
 ./openspec/specs/project-scoped-skills/spec.md
 ./openspec/specs/runtime-profile-schema/spec.md
 ./openspec/specs/template-ci-contours/spec.md
+./scripts/AGENTS.md
 ./scripts/adapters/direct-platform.sh
 ./scripts/adapters/remote-windows.sh
 ./scripts/adapters/vrunner.sh
@@ -179,6 +193,7 @@
 ./src/cfe/README.md
 ./src/epf/README.md
 ./src/erf/README.md
+./tests/AGENTS.md
 ./tests/README.md
 ./tests/fixtures/README.md
 ./tests/shell-fixtures/README.md
