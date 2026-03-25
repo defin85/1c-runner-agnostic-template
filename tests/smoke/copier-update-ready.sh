@@ -117,6 +117,20 @@ assert_jq() {
   fi
 }
 
+resolve_existing_path() {
+  local candidate=""
+
+  for candidate in "$@"; do
+    if [ -e "$candidate" ]; then
+      printf '%s\n' "$candidate"
+      return 0
+    fi
+  done
+
+  printf 'none of the expected paths exist: %s\n' "$*" >&2
+  exit 1
+}
+
 copy_template_repo
 
 mkdir -p "$template_root/src/cf/DataProcessors/TestProcessor/Ext"
@@ -624,6 +638,8 @@ runtime_layout_warning_run="$tmpdir/runtime-layout-warning"
 runtime_load_run="$tmpdir/runtime-load"
 runtime_wsl_doctor_run="$tmpdir/runtime-wsl-doctor"
 runtime_wsl_create_run="$tmpdir/runtime-wsl-create"
+wsl_libstdcpp_path=""
+wsl_libgcc_path=""
 
 mkdir -p "$runtime_wsl_bindir"
 
@@ -768,8 +784,14 @@ assert_contains "$runtime_load_run/stdout.log" "Forms/List.xml"
 
 jq \
   --arg binary_path "$runtime_fake_wsl_designer" \
-  '.platform.binaryPath = $binary_path' \
+  --arg wsl_libstdcpp_path "$(resolve_existing_path /usr/lib/libstdc++.so.6 /usr/lib/x86_64-linux-gnu/libstdc++.so.6)" \
+  --arg wsl_libgcc_path "$(resolve_existing_path /usr/lib/libgcc_s.so.1 /lib/x86_64-linux-gnu/libgcc_s.so.1 /usr/lib/x86_64-linux-gnu/libgcc_s.so.1)" \
+  '.platform.binaryPath = $binary_path
+   | .platform.ldPreload.libraries = [$wsl_libstdcpp_path, $wsl_libgcc_path]' \
   "$rendered_root/env/wsl.example.json" >"$rendered_root/env/wsl.json"
+
+wsl_libstdcpp_path="$(jq -r '.platform.ldPreload.libraries[0]' "$rendered_root/env/wsl.json")"
+wsl_libgcc_path="$(jq -r '.platform.ldPreload.libraries[1]' "$rendered_root/env/wsl.json")"
 
 ignored_status="$(git -C "$rendered_root" status --short --ignored -- env/wsl.json)"
 if ! grep -Fq -- "!! env/wsl.json" <<<"$ignored_status"; then
@@ -786,7 +808,8 @@ fi
 assert_jq "$runtime_wsl_doctor_run/summary.json" '.status == "success"' "runtime-wsl-doctor-status"
 assert_jq "$runtime_wsl_doctor_run/summary.json" '.adapter_context.wrapper == "xvfb-run"' "runtime-wsl-doctor-wrapper"
 assert_jq "$runtime_wsl_doctor_run/summary.json" '.adapter_context.ld_preload.enabled == true' "runtime-wsl-doctor-ldpreload"
-assert_jq "$runtime_wsl_doctor_run/summary.json" '.adapter_context.ld_preload.libraries == ["/usr/lib/libstdc++.so.6","/usr/lib/libgcc_s.so.1"]' "runtime-wsl-doctor-ldpreload-libraries"
+assert_jq "$runtime_wsl_doctor_run/summary.json" '.adapter_context.ld_preload.libraries == $ARGS.positional' "runtime-wsl-doctor-ldpreload-libraries" \
+  --args "$wsl_libstdcpp_path" "$wsl_libgcc_path"
 assert_jq "$runtime_wsl_doctor_run/summary.json" '[.checks.required_tools[] | select(.name == "xvfb-run" and .status == "present")] | length == 1' "runtime-wsl-doctor-xvfb"
 assert_jq "$runtime_wsl_doctor_run/summary.json" '[.checks.required_tools[] | select(.name == "xauth" and .status == "present")] | length == 1' "runtime-wsl-doctor-xauth"
 
@@ -800,4 +823,4 @@ assert_jq "$runtime_wsl_create_run/summary.json" '.adapter_context.wrapper == "x
 assert_jq "$runtime_wsl_create_run/summary.json" '.adapter_context.ld_preload.enabled == true' "runtime-wsl-create-ldpreload"
 assert_contains "$runtime_wsl_create_run/stdout.log" "fake-xvfb-run"
 assert_contains "$runtime_wsl_create_run/stdout.log" "fake-wsl-1cv8"
-assert_contains "$runtime_wsl_create_run/stdout.log" "ld-preload=/usr/lib/libstdc++.so.6:/usr/lib/libgcc_s.so.1"
+assert_contains "$runtime_wsl_create_run/stdout.log" "ld-preload=$wsl_libstdcpp_path:$wsl_libgcc_path"
