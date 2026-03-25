@@ -95,6 +95,19 @@ copy_repo "$healthy_root"
   ./scripts/qa/check-agent-docs.sh >/dev/null
 )
 
+tracked_source_root="$tmpdir/tracked-source"
+copy_repo "$tracked_source_root"
+(
+  cd "$tracked_source_root"
+  git init -q
+  git config user.name "Smoke Test"
+  git config user.email "smoke@example.com"
+  git add -A
+  git commit -qm "source snapshot"
+  printf 'ci noise\n' > docs/.ci-noise.tmp
+  ./scripts/qa/check-agent-docs.sh >/dev/null
+)
+
 missing_link_root="$tmpdir/missing-link"
 copy_repo "$missing_link_root"
 sed -i 's#\[docs/agent/architecture.md\](docs/agent/architecture.md)#docs/agent/architecture.md#' \

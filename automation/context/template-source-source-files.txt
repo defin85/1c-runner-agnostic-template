@@ -16,7 +16,6 @@
 ./.claude/commands/openspec/archive.md
 ./.claude/commands/openspec/proposal.md
 ./.claude/settings.json
-./.claude/settings.local.json
 ./.claude/skills/1c-create-ib/SKILL.md
 ./.claude/skills/1c-diff-src/SKILL.md
 ./.claude/skills/1c-doctor/SKILL.md

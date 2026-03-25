@@ -59,13 +59,19 @@ render_source_tree() {
 render_source_files() {
   {
     printf '# Template Source Files\n\n'
-    for path in AGENTS.md README.md Makefile copier.yml .agents .claude .codex .github automation docs env features openspec scripts src tests; do
-      if [ -d "$root/$path" ]; then
-        find "$root/$path" -type f
-      elif [ -f "$root/$path" ]; then
-        printf '%s\n' "$root/$path"
-      fi
-    done | sed "s|^$root/|./|" | LC_ALL=C sort -u
+    if git -C "$root" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+      for path in AGENTS.md README.md Makefile copier.yml .agents .claude .codex .github automation docs env features openspec scripts src tests; do
+        git -C "$root" ls-files -- "$path"
+      done | sed 's|^|./|' | LC_ALL=C sort -u
+    else
+      for path in AGENTS.md README.md Makefile copier.yml .agents .claude .codex .github automation docs env features openspec scripts src tests; do
+        if [ -d "$root/$path" ]; then
+          find "$root/$path" -type f
+        elif [ -f "$root/$path" ]; then
+          printf '%s\n' "$root/$path"
+        fi
+      done | sed "s|^$root/|./|" | LC_ALL=C sort -u
+    fi
   } >"$1"
 }
 
