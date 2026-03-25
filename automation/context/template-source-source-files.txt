@@ -46,6 +46,7 @@
 ./automation/context/templates/generated-project-project-map.md
 ./automation/prompts/README.md
 ./copier.yml
+./docs/AGENTS.md
 ./docs/README.md
 ./docs/agent/architecture.md
 ./docs/agent/generated-project-index.md
@@ -126,6 +127,12 @@
 ./openspec/changes/replace-copier-updates-with-overlay-releases/specs/template-overlay-delivery/spec.md
 ./openspec/changes/replace-copier-updates-with-overlay-releases/tasks.md
 ./openspec/changes/replace-copier-updates-with-overlay-releases/traceability.md
+./openspec/changes/tighten-generated-project-agent-surface/design.md
+./openspec/changes/tighten-generated-project-agent-surface/proposal.md
+./openspec/changes/tighten-generated-project-agent-surface/specs/generated-context-artifacts/spec.md
+./openspec/changes/tighten-generated-project-agent-surface/specs/generated-project-agent-guidance/spec.md
+./openspec/changes/tighten-generated-project-agent-surface/tasks.md
+./openspec/changes/tighten-generated-project-agent-surface/traceability.md
 ./openspec/project.md
 ./openspec/specs/agent-runtime-toolkit/spec.md
 ./openspec/specs/ibcmd-capability-drivers/spec.md
@@ -167,6 +174,7 @@
 ./scripts/test/run-bdd.sh
 ./scripts/test/run-smoke.sh
 ./scripts/test/run-xunit.sh
+./src/AGENTS.md
 ./src/README.md
 ./src/cf/README.md
 ./src/cfe/README.md

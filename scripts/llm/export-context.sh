@@ -69,9 +69,43 @@ render_source_files() {
   } >"$1"
 }
 
-render_generated_tree() {
-  {
-    printf '# Generated Project Tree\n\n'
+is_generated_local_private_relpath() {
+  local relpath="$1"
+
+  case "$relpath" in
+    ./env/local.json|./env/wsl.json|./env/ci.json|./env/windows-executor.json)
+      return 0
+      ;;
+    ./env/.local|./env/.local/*)
+      return 0
+      ;;
+    ./.codex/*)
+      case "$relpath" in
+        ./.codex/.gitkeep|./.codex/README.md|./.codex/config.toml)
+          return 1
+          ;;
+        *)
+          return 0
+          ;;
+      esac
+      ;;
+  esac
+
+  return 1
+}
+
+emit_generated_tree_entries() {
+  local relpath
+
+  while IFS= read -r relpath; do
+    [ -n "$relpath" ] || continue
+
+    if is_generated_local_private_relpath "$relpath"; then
+      continue
+    fi
+
+    printf '%s\n' "$relpath"
+  done < <(
     find "$root" -maxdepth 4 \( -type d -o -type f \) \
       ! -path "$root/.git" \
       ! -path "$root/.git/*" \
@@ -81,10 +115,15 @@ render_generated_tree() {
       ! -path "$root/.agent-browser/*" \
       ! -path "$root/automation/context/source-tree.generated.txt" \
       ! -path "$root/automation/context/metadata-index.generated.json" \
-      ! -path "$root/env/.local" \
-      ! -path "$root/env/.local/*" \
       | sed "s|^$root|.|" \
       | LC_ALL=C sort
+  )
+}
+
+render_generated_tree() {
+  {
+    printf '# Generated Project Tree\n\n'
+    emit_generated_tree_entries
   } >"$1"
 }
 
@@ -147,11 +186,43 @@ configuration_name() {
   sed -n 's/.*name="\([^"]*\)".*/\1/p' "$config_xml" | head -n 1
 }
 
+configuration_attr() {
+  local attr="$1"
+  local config_xml="$root/src/cf/Configuration.xml"
+
+  if [ ! -f "$config_xml" ]; then
+    return 0
+  fi
+
+  {
+    grep -o "${attr}=\"[^\"]*\"" "$config_xml" || true
+  } | head -n 1 | sed -e "s/^${attr}=\"//" -e 's/\"$//'
+}
+
+list_inventory_entries() {
+  local rel="$1"
+
+  if [ ! -d "$root/$rel" ]; then
+    return 0
+  fi
+
+  find "$root/$rel" -mindepth 1 -maxdepth 1 \( -type d -o -type f \) \
+    | sed "s|^$root/||" \
+    | LC_ALL=C sort
+}
+
 render_generated_metadata() {
   local target_file="$1"
   local config_name
+  local config_uuid
+  local has_config_xml="false"
 
-  config_name="$(configuration_name)"
+  if [ -f "$root/src/cf/Configuration.xml" ]; then
+    has_config_xml="true"
+  fi
+
+  config_name="$(configuration_attr name)"
+  config_uuid="$(configuration_attr uuid)"
 
   {
     printf '{\n'
@@ -161,17 +232,51 @@ render_generated_metadata() {
     printf '    "generatedProjectIndex": "docs/agent/generated-project-index.md",\n'
     printf '    "projectMap": "automation/context/project-map.md",\n'
     printf '    "verification": "docs/agent/generated-project-verification.md",\n'
+    printf '    "review": "docs/agent/review.md",\n'
+    printf '    "envReadme": "env/README.md",\n'
+    printf '    "skills": ".agents/skills/README.md",\n'
+    printf '    "codexGuide": ".codex/README.md",\n'
+    printf '    "executionPlans": "docs/exec-plans/README.md",\n'
     printf '    "templateMaintenance": "docs/template-maintenance.md"\n'
     printf '  },\n'
     printf '  "configuration": {\n'
     printf '    "xmlPath": "src/cf/Configuration.xml",\n'
-    printf '    "name": "%s"\n' "$(json_escape "$config_name")"
+    printf '    "present": %s,\n' "$has_config_xml"
+    printf '    "name": "%s",\n' "$(json_escape "$config_name")"
+    printf '    "uuid": "%s"\n' "$(json_escape "$config_uuid")"
     printf '  },\n'
     printf '  "sourceRoots": {\n'
     printf '    "configuration": "src/cf",\n'
     printf '    "extensions": "src/cfe",\n'
     printf '    "externalProcessors": "src/epf",\n'
     printf '    "reports": "src/erf"\n'
+    printf '  },\n'
+    printf '  "entrypointInventory": {\n'
+    printf '    "configurationRoots": ["src/cf", "src/cfe", "src/epf", "src/erf"],\n'
+    printf '    "httpServices": '
+    list_inventory_entries "src/cf/HTTPServices" | write_json_array_from_stdin
+    printf ',\n'
+    printf '    "webServices": '
+    list_inventory_entries "src/cf/WebServices" | write_json_array_from_stdin
+    printf ',\n'
+    printf '    "scheduledJobs": '
+    list_inventory_entries "src/cf/ScheduledJobs" | write_json_array_from_stdin
+    printf ',\n'
+    printf '    "commonModules": '
+    list_inventory_entries "src/cf/CommonModules" | write_json_array_from_stdin
+    printf ',\n'
+    printf '    "subsystems": '
+    list_inventory_entries "src/cf/Subsystems" | write_json_array_from_stdin
+    printf ',\n'
+    printf '    "extensions": '
+    list_inventory_entries "src/cfe" | write_json_array_from_stdin
+    printf ',\n'
+    printf '    "externalProcessors": '
+    list_inventory_entries "src/epf" | write_json_array_from_stdin
+    printf ',\n'
+    printf '    "reports": '
+    list_inventory_entries "src/erf" | write_json_array_from_stdin
+    printf '\n'
     printf '  },\n'
     printf '  "topLevelEntries": {\n'
     printf '    "cf": '

@@ -14,7 +14,11 @@ trap 'rm -f "$expected_file" "$actual_file"' EXIT
 [ -f "$manifest" ] || die "overlay manifest is missing: $manifest"
 
 if [ ! -f "$root/automation/context/template-source-project-map.md" ]; then
-  if grep -Eq '^(src/|openspec/|tooling/|AGENTS\.md$|README\.md$|copier\.yml$)' "$manifest"; then
+  if awk '
+    /^(openspec\/|tooling\/|AGENTS\.md$|README\.md$|copier\.yml$)/ { exit 0 }
+    /^src\// && $0 != "src/AGENTS.md" { exit 0 }
+    END { exit 1 }
+  ' "$manifest"; then
     printf 'generated-project overlay manifest must not manage source-only or project-owned paths\n' >&2
     exit 1
   fi
@@ -24,7 +28,19 @@ if [ ! -f "$root/automation/context/template-source-project-map.md" ]; then
 fi
 
 git -C "$root" ls-files --cached --others --exclude-standard \
-  | grep -vE '^(\[\[\[ _copier_conf\.answers_file \]\]\]|AGENTS\.md|CLAUDE\.md|README\.md|copier\.yml|openspec/|\.claude/commands/|tooling/|automation/context/template-source-(metadata-index\.json|project-map\.md|source-files\.txt|tree\.txt)|src/)' \
+  | awk '
+      /^\[\[\[ _copier_conf\.answers_file \]\]\]$/ { next }
+      /^AGENTS\.md$/ { next }
+      /^CLAUDE\.md$/ { next }
+      /^README\.md$/ { next }
+      /^copier\.yml$/ { next }
+      /^openspec\// { next }
+      /^\.claude\/commands\// { next }
+      /^tooling\// { next }
+      /^automation\/context\/template-source-(metadata-index\.json|project-map\.md|source-files\.txt|tree\.txt)$/ { next }
+      /^src\// && $0 != "src/AGENTS.md" { next }
+      { print }
+    ' \
   | LC_ALL=C sort >"$expected_file"
 
 sed \

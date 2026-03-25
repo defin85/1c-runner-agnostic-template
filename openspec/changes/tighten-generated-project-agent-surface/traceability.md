@@ -1,0 +1,12 @@
+# Матрица трассируемости
+
+## Requirement -> Code -> Test
+
+| Требование | Код / артефакты | Проверка |
+| --- | --- | --- |
+| `generated-project-agent-guidance.generated-project-instruction-routing` | `automation/AGENTS.md`, `docs/README.md`, `docs/AGENTS.md`, `src/AGENTS.md`, `docs/agent/generated-project-index.md`, `scripts/bootstrap/agents-overlay.sh`, `scripts/bootstrap/generated-project-surface.sh` | `openspec validate tighten-generated-project-agent-surface --strict --no-interactive`, `bash tests/smoke/agent-docs-contract.sh`, `bash tests/smoke/bootstrap-agents-overlay.sh`, `bash tests/smoke/copier-update-ready.sh` |
+| `generated-project-agent-guidance.root-generated-guidance-acts-as-a-router` | `docs/agent/generated-project-index.md`, `.codex/README.md`, `docs/agent/generated-project-verification.md`, `docs/agent/review.md`, `scripts/bootstrap/agents-overlay.sh`, `scripts/bootstrap/generated-project-surface.sh` | `make agent-verify`, `bash tests/smoke/bootstrap-agents-overlay.sh`, `bash tests/smoke/copier-update-ready.sh` |
+| `generated-project-agent-guidance.codex-first-generated-runbook` | `docs/agent/generated-project-index.md`, `.codex/README.md`, `docs/README.md`, `scripts/bootstrap/generated-project-surface.sh` | `make agent-verify`, `bash tests/smoke/bootstrap-agents-overlay.sh`, `bash tests/smoke/copier-update-ready.sh` |
+| `generated-context-artifacts.privacy-safe-generated-context-artifacts` | `scripts/llm/export-context.sh`, `scripts/qa/check-agent-docs.sh`, `automation/context/templates/generated-project-metadata-index.json`, `automation/context/templates/generated-project-project-map.md` | `bash tests/smoke/bootstrap-agents-overlay.sh`, `bash tests/smoke/agent-docs-contract.sh`, `make agent-verify` |
+| `generated-context-artifacts.generated-metadata-captures-critical-identity-and-entrypoints` | `scripts/llm/export-context.sh`, `scripts/bootstrap/generated-project-surface.sh`, `automation/context/templates/generated-project-metadata-index.json`, `tests/smoke/bootstrap-agents-overlay.sh` | `bash tests/smoke/bootstrap-agents-overlay.sh`, `bash tests/smoke/copier-update-ready.sh`, `make agent-verify` |
+| `generated-context-artifacts.semantic-agent-surface-verification` | `scripts/qa/check-agent-docs.sh`, `tests/smoke/agent-docs-contract.sh`, `tests/smoke/bootstrap-agents-overlay.sh`, `tests/smoke/copier-update-ready.sh` | `make agent-verify`, `bash tests/smoke/agent-docs-contract.sh`, `bash tests/smoke/bootstrap-agents-overlay.sh`, `bash tests/smoke/copier-update-ready.sh` |

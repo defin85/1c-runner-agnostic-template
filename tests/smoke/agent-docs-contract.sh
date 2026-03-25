@@ -145,3 +145,63 @@ printf '\n<context-entry>\n' >>"$generated_placeholder_root/automation/context/p
 assert_fails_with "$generated_placeholder_root" \
   "unexpected placeholder or template note in automation/context/project-map.md: <[[:alnum:]_][^>]*>" \
   "$generated_bindir"
+
+generated_source_centric_docs_root="$tmpdir/generated-source-centric-docs"
+cp -R "$generated_root" "$generated_source_centric_docs_root"
+cat >"$generated_source_centric_docs_root/docs/README.md" <<'EOF'
+# Документация
+
+Если вы новый агент в этом репозитории, начните с [docs/agent/index.md](agent/index.md).
+EOF
+assert_fails_with "$generated_source_centric_docs_root" \
+  "missing expected text in docs/README.md: docs/agent/generated-project-index.md" \
+  "$generated_bindir"
+
+generated_local_private_leak_root="$tmpdir/generated-local-private-leak"
+cp -R "$generated_root" "$generated_local_private_leak_root"
+printf './env/local.json\n' >>"$generated_local_private_leak_root/automation/context/source-tree.generated.txt"
+assert_fails_with "$generated_local_private_leak_root" \
+  "local-private path leaked into generated context: env/local.json" \
+  "$generated_bindir"
+
+generated_empty_identity_root="$tmpdir/generated-empty-identity"
+cp -R "$generated_root" "$generated_empty_identity_root"
+mkdir -p "$generated_empty_identity_root/src/cf"
+cat >"$generated_empty_identity_root/src/cf/Configuration.xml" <<'EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<MetaDataObject name="GeneratedCfg">
+</MetaDataObject>
+EOF
+python - <<'PY' "$generated_empty_identity_root/automation/context/metadata-index.generated.json"
+from pathlib import Path
+import sys
+
+path = Path(sys.argv[1])
+text = path.read_text()
+text = text.replace('"name": ""', '"name": ""', 1)
+if '"name": "GeneratedCfg"' in text:
+    text = text.replace('"name": "GeneratedCfg"', '"name": ""', 1)
+path.write_text(text)
+PY
+assert_fails_with "$generated_empty_identity_root" \
+  "generated metadata leaves configuration.name empty despite src/cf/Configuration.xml" \
+  "$generated_bindir"
+
+generated_bad_closeout_root="$tmpdir/generated-bad-closeout"
+cp -R "$generated_root" "$generated_bad_closeout_root"
+python - <<'PY' "$generated_bad_closeout_root/AGENTS.md"
+from pathlib import Path
+import sys
+
+path = Path(sys.argv[1])
+text = path.read_text()
+text = text.replace(
+    "For remote-backed repos with a writable Git remote, a code-change session is not complete until the verified branch state is pushed.\n- For local-only repos or repos without a writable remote, do not invent a push-only closeout path.\n",
+    "A session with code changes is not complete until `git push` succeeds.\n",
+    1,
+)
+path.write_text(text)
+PY
+assert_fails_with "$generated_bad_closeout_root" \
+  "generated closeout guidance must distinguish local-only and remote-backed repos: AGENTS.md" \
+  "$generated_bindir"

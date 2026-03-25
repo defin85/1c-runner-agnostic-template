@@ -9,13 +9,17 @@
     "reports": "src/erf"
   },
   "expectedSections": [
+    "authoritativeDocs",
     "configuration",
+    "entrypointInventory",
     "sourceRoots",
     "topLevelEntries",
     "counts"
   ],
   "notes": [
     "Refresh the live generated-derived inventory with ./scripts/llm/export-context.sh --write.",
-    "Keep curated business/domain context in automation/context/project-map.md."
+    "Keep curated business/domain context in automation/context/project-map.md.",
+    "When src/cf/Configuration.xml exists, configuration.name must not stay empty.",
+    "Generated-derived artifacts must exclude local-private runtime profiles and machine-specific Codex overrides."
   ]
 }

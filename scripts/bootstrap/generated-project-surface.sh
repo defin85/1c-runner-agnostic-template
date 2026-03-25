@@ -94,9 +94,15 @@ write_generated_readme_router() {
 
 - Начните с [docs/agent/generated-project-index.md](docs/agent/generated-project-index.md).
 - Карта проекта и project-owned truth лежат в [automation/context/project-map.md](automation/context/project-map.md).
+- Быстрый generated-derived inventory лежит в [automation/context/metadata-index.generated.json](automation/context/metadata-index.generated.json).
 - Матрица проверок лежит в [docs/agent/generated-project-verification.md](docs/agent/generated-project-verification.md).
+- Runtime profile contract и local-only profiles описаны в [env/README.md](env/README.md).
+- Review expectations лежат в [docs/agent/review.md](docs/agent/review.md).
+- Repeatable workflows и Codex-first onboarding лежат в [.agents/skills/README.md](.agents/skills/README.md) и [.codex/README.md](.codex/README.md).
+- Для long-running work используйте [docs/exec-plans/README.md](docs/exec-plans/README.md).
 - Template maintenance path вынесен в [docs/template-maintenance.md](docs/template-maintenance.md) и не является primary feature-delivery workflow.
 - Ownership model и граница `template-managed / project-owned / generated-derived / local-private` описаны в [docs/agent/source-vs-generated.md](docs/agent/source-vs-generated.md).
+- Closeout semantics различаются: `local-only` handoff не должен обещать обязательный push, а `remote-backed` handoff может требовать sync/push после зелёных quality gates.
 <!-- RUNNER_AGNOSTIC_PROJECT:END -->
 EOF
 }
@@ -126,6 +132,7 @@ write_generated_readme_starter() {
 - \`src/\` — основная конфигурация, расширения, обработки и отчеты;
 - \`scripts/\` — канонические entrypoint-скрипты для запуска, тестов и QA;
 - \`automation/context/project-map.md\` — project-owned карта системы;
+- \`automation/context/metadata-index.generated.json\` — generated-derived inventory для narrowing search;
 - \`openspec/\` — contract-first workspace для требований и изменений;
 - \`tests/\` и \`features/\` — automated checks разных слоёв.
 
@@ -133,8 +140,11 @@ write_generated_readme_starter() {
 
 1. Прочитайте [docs/agent/generated-project-index.md](docs/agent/generated-project-index.md).
 2. Сверьтесь с [automation/context/project-map.md](automation/context/project-map.md).
-3. Запустите \`make agent-verify\`.
-4. Если нужен template maintenance path, отдельно откройте [docs/template-maintenance.md](docs/template-maintenance.md).
+3. Посмотрите [automation/context/metadata-index.generated.json](automation/context/metadata-index.generated.json), чтобы сузить поиск по \`src/\`.
+4. Запустите \`make agent-verify\`.
+5. Сверьтесь с [env/README.md](env/README.md), [docs/agent/review.md](docs/agent/review.md), [.agents/skills/README.md](.agents/skills/README.md) и [.codex/README.md](.codex/README.md).
+6. Если работа становится длинной, откройте [docs/exec-plans/README.md](docs/exec-plans/README.md).
+7. Если нужен template maintenance path, отдельно откройте [docs/template-maintenance.md](docs/template-maintenance.md).
 
 ## Ownership Classes
 
@@ -142,6 +152,11 @@ write_generated_readme_starter() {
 - \`seed-once / project-owned\`: \`README.md\`, \`openspec/project.md\`, \`automation/context/project-map.md\`.
 - \`generated-derived\`: \`automation/context/source-tree.generated.txt\`, \`automation/context/metadata-index.generated.json\`.
 - \`local-private\`: \`env/local.json\`, \`env/wsl.json\`, \`env/.local/*.json\`, machine-specific MCP/Codex overrides.
+
+## Closeout Semantics
+
+- \`local-only\`: если writable remote нет или handoff остаётся локальным, сдавайте diff и verification state без выдуманного push-only шага.
+- \`remote-backed\`: если проект работает через remote, sync/push делаются только после зелёного локального verification set.
 
 ## Repository Identity
 
@@ -217,6 +232,14 @@ write_project_map_starter() {
 - BDD: \`./scripts/test/run-bdd.sh --profile env/local.json --run-root /tmp/bdd-run\`
 - smoke: \`./scripts/test/run-smoke.sh --profile env/local.json --run-root /tmp/smoke-run\`
 - context refresh: \`./scripts/llm/export-context.sh --write\`
+
+## Immediate Routers
+
+- onboarding: \`docs/agent/generated-project-index.md\`
+- review: \`docs/agent/review.md\`
+- env contract: \`env/README.md\`
+- repeatable workflows: \`.agents/skills/README.md\`, \`.codex/README.md\`
+- long-running plans: \`docs/exec-plans/README.md\`
 
 ## Next Enrichment Steps
 

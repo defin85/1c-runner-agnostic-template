@@ -105,10 +105,11 @@ append_project_agents_overlay() {
 - This repository is a generated 1С-project created from `1c-runner-agnostic-template`.
 - Start with [docs/agent/generated-project-index.md](docs/agent/generated-project-index.md) for the generated-project-first onboarding path.
 - Use [automation/context/project-map.md](automation/context/project-map.md) as the project-owned repo map.
+- Use [automation/context/metadata-index.generated.json](automation/context/metadata-index.generated.json) as the generated-derived inventory for narrowing the `src/` search space.
 - Use [docs/agent/generated-project-verification.md](docs/agent/generated-project-verification.md) and `make agent-verify` as the first no-1C verification path.
+- Use [docs/agent/review.md](docs/agent/review.md), [env/README.md](env/README.md), [.agents/skills/README.md](.agents/skills/README.md), [.codex/README.md](.codex/README.md), and [docs/exec-plans/README.md](docs/exec-plans/README.md) as the main follow-up routers.
 - Use [docs/template-maintenance.md](docs/template-maintenance.md) only for template refresh and maintenance work.
 - Ownership boundaries between template-managed and project-owned artifacts are described in [docs/agent/source-vs-generated.md](docs/agent/source-vs-generated.md).
-- Use [docs/exec-plans/README.md](docs/exec-plans/README.md) for long-running or multi-session work.
 
 # Unified Workflow
 
@@ -187,9 +188,9 @@ Checklist:
 
 ## Landing the Plane
 
-- A session with code changes is not complete until `git push` succeeds.
-- Before handoff, update task status, run relevant quality gates, use `git pull --rebase` if needed, then `git push`.
-- If `git push` is blocked by an external constraint or an explicit user restriction, report the blocker explicitly in the handoff.
+- For remote-backed repos with a writable Git remote, a code-change session is not complete until the verified branch state is pushed.
+- For local-only repos or repos without a writable remote, do not invent a push-only closeout path.
+- Before handoff, update task status and run the relevant quality gates. If remote sync is expected, rebase or push only after the local verification set is green.
 EOF
 
   printf '\n%s\n' "$project_agents_block_end" >>"$agents_file"

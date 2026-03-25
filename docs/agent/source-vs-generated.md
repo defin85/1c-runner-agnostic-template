@@ -43,3 +43,4 @@ Generated project не должен воспринимать source-repo artifac
 - В generated project `AGENTS.md` создаётся bootstrap-скриптом и получает managed overlay из [scripts/bootstrap/agents-overlay.sh](../../scripts/bootstrap/agents-overlay.sh).
 - В source repo первой долговременной точкой навигации остаётся [docs/agent/index.md](index.md).
 - В generated project primary onboarding route должен начинаться с [generated-project-index.md](generated-project-index.md), а template maintenance path должен оставаться отдельным.
+- Generated-project closeout contract должен различать `local-only` и `remote-backed` handoff, а не навязывать безусловный push-only путь.

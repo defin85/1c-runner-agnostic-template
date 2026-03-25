@@ -18,6 +18,7 @@
 - не появились ли placeholders в live context;
 - нет ли line-specific links в durable docs;
 - остаются ли skills thin wrappers, а не вторым источником логики;
+- не обещает ли generated-project guidance обязательный `git push`, если repo local-only или remote ещё не настроен;
 - проходит ли `make agent-verify`.
 
 ## Для Template Delivery Changes

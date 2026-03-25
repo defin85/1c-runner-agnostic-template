@@ -1,6 +1,7 @@
 # Generated Project Verification
 
 Этот документ делит проверки generated project на три слоя: `safe local`, `profile-required`, `provisioned/self-hosted 1C`.
+Runtime profile contract, canonical local profile paths и `local-private` правила описаны в [env/README.md](../../env/README.md).
 
 ## Safe Local
 

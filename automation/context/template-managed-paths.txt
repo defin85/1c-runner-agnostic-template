@@ -34,6 +34,7 @@ automation/context/template-managed-paths.txt
 automation/context/templates/generated-project-metadata-index.json
 automation/context/templates/generated-project-project-map.md
 automation/prompts/README.md
+docs/AGENTS.md
 docs/README.md
 docs/agent/architecture.md
 docs/agent/generated-project-index.md
@@ -55,6 +56,7 @@ env/windows-executor.example.json
 env/wsl.example.json
 features/README.md
 features/examples/tdd-starter.feature
+src/AGENTS.md
 scripts/adapters/direct-platform.sh
 scripts/adapters/remote-windows.sh
 scripts/adapters/vrunner.sh
