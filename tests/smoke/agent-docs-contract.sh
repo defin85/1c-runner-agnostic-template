@@ -9,11 +9,18 @@ trap 'rm -rf "$tmpdir"' EXIT
 
 copy_repo() {
   local target="$1"
+  local manifest=""
   mkdir -p "$target"
   if git -C "$SOURCE_ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
     (
       cd "$SOURCE_ROOT"
-      git ls-files -z | tar --null -T - -cf -
+      manifest="$(mktemp)"
+      while IFS= read -r -d '' relpath; do
+        [ -e "$relpath" ] || continue
+        printf '%s\0' "$relpath" >>"$manifest"
+      done < <(git ls-files -z --cached --others --exclude-standard)
+      tar --null -T "$manifest" -cf -
+      rm -f "$manifest"
     ) | (
       cd "$target"
       tar xf -
@@ -48,6 +55,15 @@ assert_fails_with() {
     cat "$stderr_file" >&2
     exit 1
   fi
+}
+
+refresh_source_context() {
+  local root="$1"
+
+  (
+    cd "$root"
+    ./scripts/llm/export-context.sh --write >/dev/null
+  )
 }
 
 render_generated_repo() {
@@ -100,6 +116,7 @@ EOF
 
 healthy_root="$tmpdir/healthy"
 copy_repo "$healthy_root"
+refresh_source_context "$healthy_root"
 (
   cd "$healthy_root"
   ./scripts/qa/check-agent-docs.sh >/dev/null
@@ -114,21 +131,40 @@ copy_repo "$tracked_source_root"
   git config user.email "smoke@example.com"
   git add -A
   git commit -qm "source snapshot"
+  ./scripts/llm/export-context.sh --write >/dev/null
   printf 'ci noise\n' > docs/.ci-noise.tmp
   ./scripts/qa/check-agent-docs.sh >/dev/null
 )
 
 missing_link_root="$tmpdir/missing-link"
 copy_repo "$missing_link_root"
+refresh_source_context "$missing_link_root"
 sed -i 's#\[docs/agent/architecture.md\](docs/agent/architecture.md)#docs/agent/architecture.md#' \
   "$missing_link_root/AGENTS.md"
 assert_fails_with "$missing_link_root" "missing required markdown link in AGENTS.md: docs/agent/architecture.md"
 
 broken_link_root="$tmpdir/broken-link"
 copy_repo "$broken_link_root"
+refresh_source_context "$broken_link_root"
 sed -i 's#(../../openspec/project.md)#(../../openspec/missing-project.md)#' \
   "$broken_link_root/docs/agent/architecture.md"
 assert_fails_with "$broken_link_root" "broken markdown link in docs/agent/architecture.md:"
+
+source_placeholder_profile_root="$tmpdir/source-placeholder-profile"
+copy_repo "$source_placeholder_profile_root"
+refresh_source_context "$source_placeholder_profile_root"
+python - <<'PY' "$source_placeholder_profile_root/env/ci.example.json"
+from pathlib import Path
+import json
+import sys
+
+path = Path(sys.argv[1])
+data = json.loads(path.read_text())
+data["capabilities"]["smoke"] = {"command": ["bash", "-lc", "echo TODO: placeholder smoke"]}
+path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n")
+PY
+assert_fails_with "$source_placeholder_profile_root" \
+  "placeholder verification command remains in example profile: env/ci.example.json"
 
 generated_template_root="$tmpdir/generated-template"
 generated_root="$tmpdir/generated"
@@ -159,6 +195,13 @@ PY
   cd "$generated_curated_project_map_root"
   PATH="$generated_bindir:$PATH" ./scripts/qa/check-agent-docs.sh >/dev/null
 )
+
+generated_stale_summary_root="$tmpdir/generated-stale-summary"
+cp -R "$generated_root" "$generated_stale_summary_root"
+printf '\n- drift\n' >>"$generated_stale_summary_root/automation/context/hotspots-summary.generated.md"
+assert_fails_with "$generated_stale_summary_root" \
+  "stale context file: $generated_stale_summary_root/automation/context/hotspots-summary.generated.md" \
+  "$generated_bindir"
 
 generated_missing_runbook_root="$tmpdir/generated-missing-runbook"
 cp -R "$generated_root" "$generated_missing_runbook_root"
@@ -207,6 +250,63 @@ printf './env/local.json\n' >>"$generated_local_private_leak_root/automation/con
 assert_fails_with "$generated_local_private_leak_root" \
   "local-private path leaked into generated context: env/local.json" \
   "$generated_bindir"
+
+generated_unsanctioned_profile_root="$tmpdir/generated-unsanctioned-profile"
+cp -R "$generated_root" "$generated_unsanctioned_profile_root"
+cat >"$generated_unsanctioned_profile_root/env/develop.json" <<'EOF'
+{
+  "profileName": "develop"
+}
+EOF
+assert_fails_with "$generated_unsanctioned_profile_root" \
+  "generated runtime profile policy leaves unsanctioned checked-in root profiles: env/develop.json" \
+  "$generated_bindir"
+
+generated_sanctioned_placeholder_root="$tmpdir/generated-sanctioned-placeholder"
+cp -R "$generated_root" "$generated_sanctioned_placeholder_root"
+cat >"$generated_sanctioned_placeholder_root/env/develop.json" <<'EOF'
+{
+  "profileName": "develop",
+  "capabilities": {
+    "smoke": {
+      "unsupportedReason": "Contour is not wired yet"
+    },
+    "xunit": {
+      "unsupportedReason": "Contour is not wired yet"
+    },
+    "bdd": {
+      "unsupportedReason": "Contour is not wired yet"
+    }
+  }
+}
+EOF
+cat >"$generated_sanctioned_placeholder_root/automation/context/runtime-profile-policy.json" <<'EOF'
+{
+  "rootEnvProfiles": {
+    "canonicalExamples": [
+      "env/local.example.json",
+      "env/wsl.example.json",
+      "env/ci.example.json",
+      "env/windows-executor.example.json"
+    ],
+    "canonicalLocalPrivate": [
+      "env/local.json",
+      "env/wsl.json",
+      "env/ci.json",
+      "env/windows-executor.json"
+    ],
+    "sanctionedAdditionalProfiles": [
+      "env/develop.json"
+    ],
+    "localSandbox": "env/.local/"
+  }
+}
+EOF
+refresh_source_context "$generated_sanctioned_placeholder_root"
+(
+  cd "$generated_sanctioned_placeholder_root"
+  PATH="$generated_bindir:$PATH" ./scripts/qa/check-agent-docs.sh >/dev/null
+)
 
 generated_empty_identity_root="$tmpdir/generated-empty-identity"
 cp -R "$generated_root" "$generated_empty_identity_root"

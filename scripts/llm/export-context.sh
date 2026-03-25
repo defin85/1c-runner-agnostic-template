@@ -29,7 +29,8 @@ Repo behavior:
   - Template source repo refreshes automation/context/template-source-tree.txt
     and automation/context/template-source-source-files.txt.
   - Generated repo refreshes automation/context/source-tree.generated.txt
-    and automation/context/metadata-index.generated.json.
+    automation/context/metadata-index.generated.json,
+    and automation/context/hotspots-summary.generated.md.
 EOF
 }
 
@@ -121,6 +122,7 @@ emit_generated_tree_entries() {
       ! -path "$root/.agent-browser/*" \
       ! -path "$root/automation/context/source-tree.generated.txt" \
       ! -path "$root/automation/context/metadata-index.generated.json" \
+      ! -path "$root/automation/context/hotspots-summary.generated.md" \
       | sed "s|^$root|.|" \
       | LC_ALL=C sort
   )
@@ -224,6 +226,39 @@ list_inventory_entries() {
     | LC_ALL=C sort
 }
 
+count_inventory_entries() {
+  local rel="$1"
+
+  list_inventory_entries "$rel" | awk 'END { print NR + 0 }'
+}
+
+file_checksum() {
+  local path="$1"
+
+  require_command cksum
+  cksum "$path" | awk '{printf "%s/%s", $1, $2}'
+}
+
+emit_markdown_examples() {
+  local rel="$1"
+  local limit="${2:-3}"
+  local entry=""
+  local count=0
+
+  while IFS= read -r entry; do
+    [ -n "$entry" ] || continue
+    printf -- '- `%s`\n' "$entry"
+    count=$((count + 1))
+    if [ "$count" -ge "$limit" ]; then
+      return 0
+    fi
+  done < <(list_inventory_entries "$rel")
+
+  if [ "$count" -eq 0 ]; then
+    printf -- '- none\n'
+  fi
+}
+
 render_generated_metadata() {
   local target_file="$1"
   local config_name
@@ -247,6 +282,8 @@ render_generated_metadata() {
     printf '    "verification": "docs/agent/generated-project-verification.md",\n'
     printf '    "review": "docs/agent/review.md",\n'
     printf '    "envReadme": "env/README.md",\n'
+    printf '    "runtimeProfilePolicy": "automation/context/runtime-profile-policy.json",\n'
+    printf '    "hotspotsSummary": "automation/context/hotspots-summary.generated.md",\n'
     printf '    "skills": ".agents/skills/README.md",\n'
     printf '    "codexGuide": ".codex/README.md",\n'
     printf '    "executionPlans": "docs/exec-plans/README.md",\n'
@@ -312,6 +349,83 @@ render_generated_metadata() {
     printf '    "erf": { "files": %s, "dirs": %s }\n' "$(count_files "src/erf")" "$(count_dirs "src/erf")"
     printf '  }\n'
     printf '}\n'
+  } >"$target_file"
+}
+
+render_generated_hotspots_summary() {
+  local target_file="$1"
+  local metadata_file="$2"
+  local tree_file="$3"
+  local config_name=""
+  local config_uuid=""
+  local metadata_checksum=""
+  local tree_checksum=""
+
+  config_name="$(configuration_name)"
+  config_uuid="$(configuration_attr uuid)"
+  metadata_checksum="$(file_checksum "$metadata_file")"
+  tree_checksum="$(file_checksum "$tree_file")"
+
+  if [ -z "$config_name" ]; then
+    config_name="(unknown)"
+  fi
+
+  {
+    printf '# Generated Hotspots Summary\n\n'
+    printf 'Этот файл является generated-derived summary-first картой для первого часа работы агента.\n'
+    printf 'Raw inventory остаётся в `automation/context/metadata-index.generated.json`, а curated truth — в `automation/context/project-map.md`.\n\n'
+
+    printf '## Identity\n\n'
+    printf -- '- Repository role: `generated-project`\n'
+    printf -- '- Configuration name: `%s`\n' "$config_name"
+    printf -- '- Configuration UUID: `%s`\n' "${config_uuid:-unknown}"
+    printf -- '- Configuration XML: `%s`\n' "$( [ -f "$root/src/cf/Configuration.xml" ] && printf 'present' || printf 'missing' )"
+
+    printf '\n## Freshness\n\n'
+    printf -- '- Refresh command: `./scripts/llm/export-context.sh --write`\n'
+    printf -- '- Check command: `./scripts/llm/export-context.sh --check`\n'
+    printf -- '- `metadata-index.generated.json` checksum: `%s`\n' "$metadata_checksum"
+    printf -- '- `source-tree.generated.txt` checksum: `%s`\n' "$tree_checksum"
+
+    printf '\n## High-Signal Counts\n\n'
+    printf '| Area | Count |\n'
+    printf '| --- | ---: |\n'
+    printf '| HTTP services | %s |\n' "$(count_inventory_entries "src/cf/HTTPServices")"
+    printf '| Web services | %s |\n' "$(count_inventory_entries "src/cf/WebServices")"
+    printf '| Scheduled jobs | %s |\n' "$(count_inventory_entries "src/cf/ScheduledJobs")"
+    printf '| Common modules | %s |\n' "$(count_inventory_entries "src/cf/CommonModules")"
+    printf '| Subsystems | %s |\n' "$(count_inventory_entries "src/cf/Subsystems")"
+    printf '| Extensions | %s |\n' "$(count_inventory_entries "src/cfe")"
+    printf '| External processors | %s |\n' "$(count_inventory_entries "src/epf")"
+    printf '| Reports | %s |\n' "$(count_inventory_entries "src/erf")"
+
+    printf '\n## Representative Entrypoints\n\n'
+    printf '### HTTP Services\n\n'
+    emit_markdown_examples "src/cf/HTTPServices"
+    printf '\n### Web Services\n\n'
+    emit_markdown_examples "src/cf/WebServices"
+    printf '\n### Scheduled Jobs\n\n'
+    emit_markdown_examples "src/cf/ScheduledJobs"
+    printf '\n### Common Modules\n\n'
+    emit_markdown_examples "src/cf/CommonModules"
+    printf '\n### Subsystems\n\n'
+    emit_markdown_examples "src/cf/Subsystems"
+
+    printf '\n## Task-to-Path Routing\n\n'
+    printf -- '- Integration and service edges -> `src/cf/HTTPServices`, `src/cf/WebServices`\n'
+    printf -- '- Background and scheduled execution -> `src/cf/ScheduledJobs`\n'
+    printf -- '- Shared business logic and reusable helpers -> `src/cf/CommonModules`\n'
+    printf -- '- Navigation and product surface map -> `src/cf/Subsystems`\n'
+    printf -- '- Extension-owned behavior -> `src/cfe`\n'
+    printf -- '- External processors and reports -> `src/epf`, `src/erf`\n'
+
+    printf '\n## Follow-Up Routers\n\n'
+    printf -- '- Curated project truth: `automation/context/project-map.md`\n'
+    printf -- '- Runtime profile policy: `automation/context/runtime-profile-policy.json`\n'
+    printf -- '- Raw inventory for deeper narrowing: `automation/context/metadata-index.generated.json`\n'
+    printf -- '- Verification matrix: `docs/agent/generated-project-verification.md`\n'
+    printf -- '- Repeatable workflows and Codex guide: `.agents/skills/README.md`, `.codex/README.md`\n'
+    printf -- '- Long-running plans: `docs/exec-plans/README.md`\n'
   } >"$target_file"
 }
 
@@ -396,15 +510,19 @@ else
   repo_role="generated-project"
   tree_file="$context_dir/source-tree.generated.txt"
   metadata_file="$context_dir/metadata-index.generated.json"
+  summary_file="$context_dir/hotspots-summary.generated.md"
   tmp_tree="$tmpdir/source-tree.generated.txt"
   tmp_metadata="$tmpdir/metadata-index.generated.json"
+  tmp_summary="$tmpdir/hotspots-summary.generated.md"
 
   render_generated_tree "$tmp_tree"
   render_generated_metadata "$tmp_metadata"
+  render_generated_hotspots_summary "$tmp_summary" "$tmp_metadata" "$tmp_tree"
 
   targets=(
     "$tree_file:$tmp_tree"
     "$metadata_file:$tmp_metadata"
+    "$summary_file:$tmp_summary"
   )
 fi
 

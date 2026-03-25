@@ -2,6 +2,7 @@
 
 Этот документ делит проверки generated project на три слоя: `safe local`, `profile-required`, `provisioned/self-hosted 1C`.
 Runtime profile contract, canonical local profile paths и `local-private` правила описаны в [env/README.md](../../env/README.md).
+Sanctioned checked-in team-shared presets описываются в `automation/context/runtime-profile-policy.json`.
 
 ## Safe Local
 
@@ -31,6 +32,12 @@ make export-context-check
 | `./scripts/test/run-smoke.sh --profile env/local.json --run-root /tmp/smoke-run` | Короткий runtime smoke contour | подготовленный profile | пишет только run-root | run-root logs и summary |
 | `./scripts/test/run-xunit.sh --profile env/local.json --run-root /tmp/xunit-run` | xUnit contour | подготовленный profile | пишет только run-root | run-root logs и summary |
 | `./scripts/test/run-bdd.sh --profile env/local.json --run-root /tmp/bdd-run` | BDD contour | подготовленный profile | пишет только run-root | run-root logs и summary |
+
+Важно:
+
+- если sanctioned checked-in profile ещё не wired project-specific contour, используйте `unsupportedReason`, а не `echo TODO`;
+- такой contour завершится fail-closed и должен считаться `unsupported`, а не зелёной проверкой;
+- baseline onboarding не должен рекламировать unsupported contour как safe first pass.
 
 ## Provisioned / Self-Hosted 1C
 

@@ -66,16 +66,16 @@
       "command": ["git", "diff", "--", "./src"]
     },
     "xunit": {
-      "command": ["bash", "-lc", "echo TODO: direct platform xUnit contour"]
+      "unsupportedReason": "WSL/Linux xUnit contour is project-specific; wire a real command before treating this profile as green."
     },
     "bdd": {
-      "command": ["bash", "-lc", "echo TODO: direct platform BDD contour"]
+      "unsupportedReason": "WSL/Linux BDD contour is project-specific; wire a real command before treating this profile as green."
     },
     "smoke": {
-      "command": ["bash", "-lc", "echo TODO: direct platform smoke contour"]
+      "unsupportedReason": "WSL/Linux smoke contour is project-specific; wire a real command before treating this profile as green."
     },
     "publishHttp": {
-      "command": ["bash", "-lc", "echo TODO: publish selected HTTP service"]
+      "unsupportedReason": "WSL/Linux publish contour is project-specific; wire a real command before treating this profile as green."
     }
   }
 }

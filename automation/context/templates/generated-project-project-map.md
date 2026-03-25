@@ -22,7 +22,9 @@
 
 ## Что не смешивать с этим файлом
 
+- compact generated summary из `automation/context/hotspots-summary.generated.md`, если нужна summary-first навигация;
 - machine-generated inventory из `automation/context/metadata-index.generated.json`;
+- project-owned sanctioned profile policy из `automation/context/runtime-profile-policy.json`, если речь про checked-in team-shared presets;
 - машинно-зависимые настройки из `env/local.json`, `env/wsl.json`, `env/.local/*.json`;
 - push-only closeout contract, если репозиторий local-only и remote не настроен;
 - template maintenance notes, которые уже живут в `docs/template-maintenance.md`.

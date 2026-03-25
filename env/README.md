@@ -30,7 +30,9 @@ Versioned файлы `*.example.json` являются source of truth для ф
 Ad-hoc и machine-specific profiles нужно складывать в `env/.local/`.
 Например: `env/.local/develop.json`, `env/.local/do-rolf.json`, `env/.local/local-ibcmd.json`.
 
-`doctor` проверяет этот layout и пишет warning в `summary.json`, если находит неожиданные root-level `env/*.json` вне allowlist. Это warning-only policy: runtime launch не падает только из-за layout drift.
+Если generated проект сознательно хранит дополнительный checked-in root-level profile, его нужно явно объявить в `automation/context/runtime-profile-policy.json` через `rootEnvProfiles.sanctionedAdditionalProfiles`.
+
+`doctor` проверяет этот layout и пишет `warning` в `summary.json`, если находит неожиданные root-level `env/*.json` вне canonical allowlist и вне sanctioned policy. Baseline QA checks должны использовать тот же policy contract и валить drift механически.
 
 `env/local.example.json` намеренно показывает mixed-profile contour:
 
@@ -161,13 +163,32 @@ export ONEC_IB_PASSWORD='...'
 {
   "capabilities": {
     "xunit": {
-      "command": ["bash", "-lc", "echo TODO: run xUnit"]
+      "command": ["bash", "./scripts/project/run-xunit.sh"]
     }
   }
 }
 ```
 
-`driver` и `command` взаимоисключающие для одной capability.
+`driver`, `command` и `unsupportedReason` взаимоисключающие для одной capability.
+
+Если contour пока не реализован, используйте fail-closed shape вместо `echo TODO`:
+
+```json
+{
+  "capabilities": {
+    "smoke": {
+      "unsupportedReason": "Project-specific smoke contour is not wired yet; replace this with a real command before treating it as green."
+    }
+  }
+}
+```
+
+Такой contour:
+
+- завершится non-zero при запуске соответствующего `./scripts/test/run-*.sh`;
+- запишет `unsupported` причину в `summary.json`;
+- будет считаться `unsupported` capability в `doctor`;
+- не должен объявляться baseline-ready в sanctioned checked-in profile.
 
 `diffSrc.command` тоже можно задать явно, но по умолчанию script использует `git diff -- ./src`.
 

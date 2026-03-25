@@ -105,7 +105,9 @@ append_project_agents_overlay() {
 - This repository is a generated 1С-project created from `1c-runner-agnostic-template`.
 - Start with [docs/agent/generated-project-index.md](docs/agent/generated-project-index.md) for the generated-project-first onboarding path.
 - Use [automation/context/project-map.md](automation/context/project-map.md) as the project-owned repo map.
-- Use [automation/context/metadata-index.generated.json](automation/context/metadata-index.generated.json) as the generated-derived inventory for narrowing the `src/` search space.
+- Use [automation/context/hotspots-summary.generated.md](automation/context/hotspots-summary.generated.md) as the compact generated-derived map for the first hour.
+- Use [automation/context/metadata-index.generated.json](automation/context/metadata-index.generated.json) as the deeper generated-derived inventory for narrowing the `src/` search space.
+- Use [automation/context/runtime-profile-policy.json](automation/context/runtime-profile-policy.json) for sanctioned checked-in runtime profile policy.
 - Use [docs/agent/generated-project-verification.md](docs/agent/generated-project-verification.md) and `make agent-verify` as the first no-1C verification path.
 - Use [docs/agent/review.md](docs/agent/review.md), [env/README.md](env/README.md), [.agents/skills/README.md](.agents/skills/README.md), [.codex/README.md](.codex/README.md), and [docs/exec-plans/README.md](docs/exec-plans/README.md) as the main follow-up routers.
 - Use [docs/template-maintenance.md](docs/template-maintenance.md) only for template refresh and maintenance work.

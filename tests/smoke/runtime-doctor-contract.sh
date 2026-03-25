@@ -6,15 +6,35 @@ SOURCE_ROOT="$(cd -- "$SCRIPT_DIR/../.." && pwd)"
 
 tmpdir="$(mktemp -d)"
 root_drift_profile_path="$SOURCE_ROOT/env/runtime-doctor-drift.fixture.json"
-trap 'rm -rf "$tmpdir"; rm -f "$root_drift_profile_path"' EXIT
+policy_path="$SOURCE_ROOT/automation/context/runtime-profile-policy.json"
+policy_backup="$tmpdir/runtime-profile-policy.backup"
+
+cleanup() {
+  rm -rf "$tmpdir"
+  rm -f "$root_drift_profile_path"
+  if [ -f "$policy_backup" ]; then
+    mv "$policy_backup" "$policy_path"
+  else
+    rm -f "$policy_path"
+  fi
+}
+
+if [ -f "$policy_path" ]; then
+  cp "$policy_path" "$policy_backup"
+fi
+
+trap cleanup EXIT
 
 profile_path="$tmpdir/doctor-profile.json"
 run_root="$tmpdir/doctor-run"
+unsupported_profile_path="$tmpdir/doctor-unsupported-profile.json"
+unsupported_run_root="$tmpdir/doctor-unsupported-run"
 command_override_profile_path="$tmpdir/doctor-command-profile.json"
 command_override_run_root="$tmpdir/doctor-command-run"
 ld_preload_profile_path="$tmpdir/doctor-ld-preload-profile.json"
 ld_preload_run_root="$tmpdir/doctor-ld-preload-run"
 layout_warning_run_root="$tmpdir/doctor-layout-warning-run"
+layout_clean_run_root="$tmpdir/doctor-layout-clean-run"
 fake_binary="$tmpdir/fake-1cv8"
 fake_libstdcpp="$tmpdir/libstdc++.so.6"
 fake_libgcc="$tmpdir/libgcc_s.so.1"
@@ -109,6 +129,50 @@ if grep -Fq -- "doctor-secret" "$run_root/summary.json"; then
   exit 1
 fi
 
+cat >"$unsupported_profile_path" <<EOF
+{
+  "schemaVersion": 2,
+  "profileName": "doctor-unsupported-fixture",
+  "runnerAdapter": "direct-platform",
+  "platform": {
+    "binaryPath": "$fake_binary"
+  },
+  "infobase": {
+    "mode": "file",
+    "filePath": "/var/tmp/doctor-unsupported-fixture",
+    "auth": {
+      "mode": "os"
+    }
+  },
+  "capabilities": {
+    "xunit": {
+      "unsupportedReason": "xUnit contour is not wired yet"
+    },
+    "bdd": {
+      "unsupportedReason": "BDD contour is not wired yet"
+    },
+    "smoke": {
+      "unsupportedReason": "Smoke contour is not wired yet"
+    },
+    "publishHttp": {
+      "unsupportedReason": "Publish contour is not wired yet"
+    }
+  }
+}
+EOF
+
+(
+  cd "$SOURCE_ROOT"
+  ./scripts/diag/doctor.sh --profile "$unsupported_profile_path" --run-root "$unsupported_run_root" >/dev/null
+)
+
+assert_jq "$unsupported_run_root/summary.json" '.status == "success"' "doctor-unsupported-status"
+assert_jq "$unsupported_run_root/summary.json" '[.checks.required_capabilities[] | select(.status == "missing")] | length == 0' "doctor-unsupported-no-missing"
+assert_jq "$unsupported_run_root/summary.json" '[.checks.required_capabilities[] | select(.name == "run-xunit" and .status == "unsupported" and .reason == "xUnit contour is not wired yet")] | length == 1' "doctor-unsupported-xunit"
+assert_jq "$unsupported_run_root/summary.json" '[.checks.required_capabilities[] | select(.name == "run-bdd" and .status == "unsupported" and .reason == "BDD contour is not wired yet")] | length == 1' "doctor-unsupported-bdd"
+assert_jq "$unsupported_run_root/summary.json" '[.checks.required_capabilities[] | select(.name == "run-smoke" and .status == "unsupported" and .reason == "Smoke contour is not wired yet")] | length == 1' "doctor-unsupported-smoke"
+assert_jq "$unsupported_run_root/summary.json" '[.checks.optional_capabilities[] | select(.name == "publish-http" and .status == "unsupported" and .reason == "Publish contour is not wired yet")] | length == 1' "doctor-unsupported-publish-http"
+
 cat >"$root_drift_profile_path" <<'EOF'
 {
   "fixture": true
@@ -123,6 +187,7 @@ EOF
 assert_jq "$layout_warning_run_root/summary.json" '.status == "success"' "doctor-layout-warning-status"
 assert_jq "$layout_warning_run_root/summary.json" '.warnings.runtime_profile_layout.status == "warning"' "doctor-layout-warning-state"
 assert_jq "$layout_warning_run_root/summary.json" '.warnings.runtime_profile_layout.recommended_sandbox == "env/.local/"' "doctor-layout-warning-sandbox"
+assert_jq "$layout_warning_run_root/summary.json" '.warnings.runtime_profile_layout.policy_path == "automation/context/runtime-profile-policy.json"' "doctor-layout-warning-policy-path"
 assert_jq "$layout_warning_run_root/summary.json" '.warnings.runtime_profile_layout.unexpected_root_profiles | index($ARGS.positional[0]) != null' "doctor-layout-warning-path" \
   --args "env/runtime-doctor-drift.fixture.json"
 
@@ -131,6 +196,39 @@ if ! grep -Fq -- "env/.local/" "$layout_warning_run_root/stdout.log"; then
   cat "$layout_warning_run_root/stdout.log" >&2
   exit 1
 fi
+
+cat >"$policy_path" <<'EOF'
+{
+  "rootEnvProfiles": {
+    "canonicalExamples": [
+      "env/local.example.json",
+      "env/wsl.example.json",
+      "env/ci.example.json",
+      "env/windows-executor.example.json"
+    ],
+    "canonicalLocalPrivate": [
+      "env/local.json",
+      "env/wsl.json",
+      "env/ci.json",
+      "env/windows-executor.json"
+    ],
+    "sanctionedAdditionalProfiles": [
+      "env/runtime-doctor-drift.fixture.json"
+    ],
+    "localSandbox": "env/.local/"
+  }
+}
+EOF
+
+(
+  cd "$SOURCE_ROOT"
+  ./scripts/diag/doctor.sh --profile "$profile_path" --run-root "$layout_clean_run_root" >/dev/null
+)
+
+assert_jq "$layout_clean_run_root/summary.json" '.status == "success"' "doctor-layout-clean-status"
+assert_jq "$layout_clean_run_root/summary.json" '.warnings.runtime_profile_layout.status == "clean"' "doctor-layout-clean-warning-state"
+assert_jq "$layout_clean_run_root/summary.json" '.warnings.runtime_profile_layout.unexpected_root_profiles == []' "doctor-layout-clean-drift-empty"
+assert_jq "$layout_clean_run_root/summary.json" '.warnings.runtime_profile_layout.sanctioned_additional_profiles == ["env/runtime-doctor-drift.fixture.json"]' "doctor-layout-clean-sanctioned"
 
 cat >"$command_override_profile_path" <<EOF
 {

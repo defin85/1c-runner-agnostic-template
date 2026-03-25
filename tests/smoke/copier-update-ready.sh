@@ -16,10 +16,17 @@ real_copier="$(command -v copier)"
 mkdir -p "$template_root" "$bindir"
 
 copy_template_repo() {
+  local manifest=""
   if git -C "$SOURCE_ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
     (
       cd "$SOURCE_ROOT"
-      git ls-files -z | tar --null -T - -cf -
+      manifest="$(mktemp)"
+      while IFS= read -r -d '' relpath; do
+        [ -e "$relpath" ] || continue
+        printf '%s\0' "$relpath" >>"$manifest"
+      done < <(git ls-files -z --cached --others --exclude-standard)
+      tar --null -T "$manifest" -cf -
+      rm -f "$manifest"
     ) | (
       cd "$template_root"
       tar xf -
@@ -98,6 +105,25 @@ assert_count() {
   if [ "$actual_count" != "$expected_count" ]; then
     printf 'unexpected count for %s: expected %s, got %s\n' "$pattern" "$expected_count" "$actual_count" >&2
     printf 'actual log contents:\n' >&2
+    cat "$file" >&2
+    exit 1
+  fi
+}
+
+assert_line_before() {
+  local file="$1"
+  local first="$2"
+  local second="$3"
+  local first_line=""
+  local second_line=""
+
+  first_line="$(grep -nF -- "$first" "$file" | head -n 1 | cut -d: -f1)"
+  second_line="$(grep -nF -- "$second" "$file" | head -n 1 | cut -d: -f1)"
+
+  if [ -z "$first_line" ] || [ -z "$second_line" ] || [ "$first_line" -ge "$second_line" ]; then
+    printf 'expected text to appear earlier in %s\nfirst: %s\nsecond: %s\n' \
+      "$file" "$first" "$second" >&2
+    printf 'actual file contents:\n' >&2
     cat "$file" >&2
     exit 1
   fi
@@ -220,8 +246,10 @@ assert_exists "$rendered_root/docs/template-maintenance.md"
 assert_exists "$rendered_root/docs/exec-plans/README.md"
 assert_exists "$rendered_root/docs/migrations/runtime-profile-v2.md"
 assert_exists "$rendered_root/env/.local/README.md"
+assert_exists "$rendered_root/env/AGENTS.md"
 assert_exists "$rendered_root/scripts/lib/capability.sh"
 assert_exists "$rendered_root/scripts/lib/ibcmd.sh"
+assert_exists "$rendered_root/scripts/AGENTS.md"
 assert_exists "$rendered_root/scripts/qa/agent-verify.sh"
 assert_exists "$rendered_root/scripts/qa/check-agent-docs.sh"
 assert_exists "$rendered_root/scripts/platform/dump-src.sh"
@@ -230,11 +258,16 @@ assert_exists "$rendered_root/scripts/diag/doctor.sh"
 assert_exists "$rendered_root/scripts/llm/export-context.sh"
 assert_exists "$rendered_root/scripts/template/migrate-runtime-profile-v2.sh"
 assert_exists "$rendered_root/automation/context/project-map.md"
+assert_exists "$rendered_root/automation/context/runtime-profile-policy.json"
 assert_exists "$rendered_root/automation/context/source-tree.generated.txt"
 assert_exists "$rendered_root/automation/context/metadata-index.generated.json"
+assert_exists "$rendered_root/automation/context/hotspots-summary.generated.md"
+assert_exists "$rendered_root/automation/context/templates/generated-project-hotspots-summary.md"
 assert_exists "$rendered_root/automation/context/templates/generated-project-project-map.md"
 assert_exists "$rendered_root/automation/context/templates/generated-project-metadata-index.json"
+assert_exists "$rendered_root/automation/context/templates/generated-project-runtime-profile-policy.json"
 assert_exists "$rendered_root/src/AGENTS.md"
+assert_exists "$rendered_root/tests/AGENTS.md"
 assert_exists "$rendered_root/tests/smoke/runtime-capability-contract.sh"
 assert_exists "$rendered_root/tests/smoke/runtime-doctor-contract.sh"
 assert_exists "$rendered_root/tests/smoke/runtime-direct-platform-xvfb-contract.sh"
@@ -301,10 +334,15 @@ assert_jq "$rendered_root/env/local.example.json" '.runnerAdapter == "direct-pla
 assert_jq "$rendered_root/env/ci.example.json" '.runnerAdapter == "direct-platform" and .ibcmd.runtimeMode == "dbms-infobase" and .ibcmd.dbmsInfobase.kind == "PostgreSQL" and .capabilities.loadSrc.driver == "designer"' "ci-example-driver"
 assert_jq "$rendered_root/env/wsl.example.json" '.runnerAdapter == "direct-platform" and .ibcmd.runtimeMode == "standalone-server" and .platform.xvfb.enabled == true and .platform.xvfb.serverArgs == ["-screen","0","1440x900x24","-noreset"] and .platform.ldPreload.enabled == true and .platform.ldPreload.libraries == ["/usr/lib/libstdc++.so.6","/usr/lib/libgcc_s.so.1"] and .capabilities.loadSrc.driver == "designer"' "wsl-example-driver"
 assert_jq "$rendered_root/env/windows-executor.example.json" '.runnerAdapter == "remote-windows" and .capabilities.loadSrc.driver == "designer"' "windows-example-driver"
+assert_jq "$rendered_root/env/local.example.json" '.capabilities.smoke.unsupportedReason != null and .capabilities.xunit.unsupportedReason != null and .capabilities.bdd.unsupportedReason != null' "local-example-unsupported"
+assert_jq "$rendered_root/env/ci.example.json" '.capabilities.smoke.unsupportedReason != null and .capabilities.xunit.unsupportedReason != null and .capabilities.bdd.unsupportedReason != null' "ci-example-unsupported"
+assert_jq "$rendered_root/env/wsl.example.json" '.capabilities.smoke.unsupportedReason != null and .capabilities.xunit.unsupportedReason != null and .capabilities.bdd.unsupportedReason != null' "wsl-example-unsupported"
 assert_contains "$rendered_root/README.md" "generated 1С-проект"
 assert_contains "$rendered_root/README.md" "[docs/agent/generated-project-index.md](docs/agent/generated-project-index.md)"
 assert_contains "$rendered_root/README.md" "[automation/context/project-map.md](automation/context/project-map.md)"
+assert_contains "$rendered_root/README.md" "[automation/context/hotspots-summary.generated.md](automation/context/hotspots-summary.generated.md)"
 assert_contains "$rendered_root/README.md" "[automation/context/metadata-index.generated.json](automation/context/metadata-index.generated.json)"
+assert_contains "$rendered_root/README.md" "[automation/context/runtime-profile-policy.json](automation/context/runtime-profile-policy.json)"
 assert_contains "$rendered_root/README.md" "[docs/agent/generated-project-verification.md](docs/agent/generated-project-verification.md)"
 assert_contains "$rendered_root/README.md" "[docs/agent/review.md](docs/agent/review.md)"
 assert_contains "$rendered_root/README.md" "[env/README.md](env/README.md)"
@@ -321,9 +359,12 @@ assert_contains "$rendered_root/env/README.md" "driver=ibcmd"
 assert_contains "$rendered_root/env/README.md" "xvfb-run"
 assert_contains "$rendered_root/env/README.md" "LD_PRELOAD"
 assert_contains "$rendered_root/env/README.md" "env/.local/"
+assert_contains "$rendered_root/env/README.md" "unsupportedReason"
 assert_contains "$rendered_root/AGENTS.md" 'Start with [docs/agent/generated-project-index.md](docs/agent/generated-project-index.md) for the generated-project-first onboarding path.'
 assert_contains "$rendered_root/AGENTS.md" 'Use [automation/context/project-map.md](automation/context/project-map.md) as the project-owned repo map.'
-assert_contains "$rendered_root/AGENTS.md" 'Use [automation/context/metadata-index.generated.json](automation/context/metadata-index.generated.json) as the generated-derived inventory for narrowing the `src/` search space.'
+assert_contains "$rendered_root/AGENTS.md" 'Use [automation/context/hotspots-summary.generated.md](automation/context/hotspots-summary.generated.md) as the compact generated-derived map for the first hour.'
+assert_contains "$rendered_root/AGENTS.md" 'Use [automation/context/metadata-index.generated.json](automation/context/metadata-index.generated.json) as the deeper generated-derived inventory for narrowing the `src/` search space.'
+assert_contains "$rendered_root/AGENTS.md" 'Use [automation/context/runtime-profile-policy.json](automation/context/runtime-profile-policy.json) for sanctioned checked-in runtime profile policy.'
 assert_contains "$rendered_root/AGENTS.md" 'Use [docs/agent/generated-project-verification.md](docs/agent/generated-project-verification.md) and `make agent-verify` as the first no-1C verification path.'
 assert_contains "$rendered_root/AGENTS.md" 'Use [docs/agent/review.md](docs/agent/review.md), [env/README.md](env/README.md), [.agents/skills/README.md](.agents/skills/README.md), [.codex/README.md](.codex/README.md), and [docs/exec-plans/README.md](docs/exec-plans/README.md) as the main follow-up routers.'
 assert_contains "$rendered_root/AGENTS.md" 'Use [docs/template-maintenance.md](docs/template-maintenance.md) only for template refresh and maintenance work.'
@@ -331,17 +372,35 @@ assert_contains "$rendered_root/AGENTS.md" 'For remote-backed repos with a writa
 assert_contains "$rendered_root/AGENTS.md" 'For local-only repos or repos without a writable remote, do not invent a push-only closeout path.'
 assert_contains "$rendered_root/docs/README.md" "[docs/agent/generated-project-index.md](agent/generated-project-index.md)"
 assert_contains "$rendered_root/docs/AGENTS.md" "[docs/agent/generated-project-index.md](agent/generated-project-index.md)"
+assert_contains "$rendered_root/env/AGENTS.md" "automation/context/runtime-profile-policy.json"
+assert_contains "$rendered_root/tests/AGENTS.md" "scripts/qa/check-agent-docs.sh"
+assert_contains "$rendered_root/scripts/AGENTS.md" "automation/context/hotspots-summary.generated.md"
 assert_contains "$rendered_root/src/AGENTS.md" "[docs/agent/generated-project-index.md](../docs/agent/generated-project-index.md)"
 assert_contains "$rendered_root/src/AGENTS.md" "automation/context/project-map.md"
+assert_contains "$rendered_root/src/AGENTS.md" "automation/context/hotspots-summary.generated.md"
 assert_contains "$rendered_root/src/AGENTS.md" "automation/context/metadata-index.generated.json"
+assert_line_before \
+  "$rendered_root/docs/agent/generated-project-index.md" \
+  "automation/context/hotspots-summary.generated.md" \
+  "automation/context/metadata-index.generated.json"
 assert_contains "$rendered_root/automation/context/project-map.md" "role: generated 1С-проект"
 assert_contains "$rendered_root/automation/context/project-map.md" "generated-derived"
+assert_contains "$rendered_root/automation/context/project-map.md" "automation/context/runtime-profile-policy.json"
 assert_contains "$rendered_root/automation/context/project-map.md" "docs/agent/review.md"
 assert_contains "$rendered_root/automation/context/project-map.md" "env/README.md"
 assert_contains "$rendered_root/automation/context/project-map.md" "docs/exec-plans/README.md"
+assert_contains "$rendered_root/automation/context/hotspots-summary.generated.md" "# Generated Hotspots Summary"
+assert_contains "$rendered_root/automation/context/hotspots-summary.generated.md" "## Task-to-Path Routing"
+assert_contains "$rendered_root/automation/context/hotspots-summary.generated.md" "automation/context/runtime-profile-policy.json"
 assert_contains "$rendered_root/automation/context/source-tree.generated.txt" "# Generated Project Tree"
-assert_jq "$rendered_root/automation/context/metadata-index.generated.json" '.inventoryRole == "generated-derived" and .authoritativeDocs.projectMap == "automation/context/project-map.md" and .authoritativeDocs.review == "docs/agent/review.md" and .authoritativeDocs.envReadme == "env/README.md" and .authoritativeDocs.executionPlans == "docs/exec-plans/README.md" and .entrypointInventory.configurationRoots == ["src/cf","src/cfe","src/epf","src/erf"]' "generated-metadata-index"
+assert_jq "$rendered_root/automation/context/metadata-index.generated.json" '.inventoryRole == "generated-derived" and .authoritativeDocs.projectMap == "automation/context/project-map.md" and .authoritativeDocs.review == "docs/agent/review.md" and .authoritativeDocs.envReadme == "env/README.md" and .authoritativeDocs.executionPlans == "docs/exec-plans/README.md" and .authoritativeDocs.runtimeProfilePolicy == "automation/context/runtime-profile-policy.json" and .authoritativeDocs.hotspotsSummary == "automation/context/hotspots-summary.generated.md" and .entrypointInventory.configurationRoots == ["src/cf","src/cfe","src/epf","src/erf"]' "generated-metadata-index"
+assert_jq "$rendered_root/automation/context/runtime-profile-policy.json" '.rootEnvProfiles.sanctionedAdditionalProfiles == []' "generated-runtime-policy"
 assert_contains "$rendered_root/automation/context/template-managed-paths.txt" "scripts/template/update-template.sh"
+assert_contains "$rendered_root/automation/context/template-managed-paths.txt" "automation/context/templates/generated-project-hotspots-summary.md"
+assert_contains "$rendered_root/automation/context/template-managed-paths.txt" "automation/context/templates/generated-project-runtime-profile-policy.json"
+assert_contains "$rendered_root/automation/context/template-managed-paths.txt" "env/AGENTS.md"
+assert_contains "$rendered_root/automation/context/template-managed-paths.txt" "tests/AGENTS.md"
+assert_contains "$rendered_root/automation/context/template-managed-paths.txt" "scripts/AGENTS.md"
 assert_contains "$rendered_root/.template-overlay-version" "v0.1.0"
 assert_contains "$rendered_root/src/cf/DataProcessors/TestProcessor/Ext/ObjectModule.bsl" "{{ raw_bsl_expression }}"
 
@@ -375,6 +434,7 @@ if [ "$status_before_preview" != "$status_after_preview" ]; then
 fi
 assert_contains "$preview_output" "=== automation/context/source-tree.generated.txt ==="
 assert_contains "$preview_output" "=== automation/context/metadata-index.generated.json ==="
+assert_contains "$preview_output" "=== automation/context/hotspots-summary.generated.md ==="
 
 status_before_export="$(git -C "$rendered_root" status --short)"
 (
@@ -513,13 +573,20 @@ assert_exists "$rendered_root/docs/template-maintenance.md"
 assert_exists "$rendered_root/docs/exec-plans/README.md"
 assert_exists "$rendered_root/docs/migrations/runtime-profile-v2.md"
 assert_exists "$rendered_root/env/.local/README.md"
+assert_exists "$rendered_root/env/AGENTS.md"
 assert_exists "$rendered_root/scripts/qa/agent-verify.sh"
 assert_exists "$rendered_root/scripts/qa/check-agent-docs.sh"
+assert_exists "$rendered_root/scripts/AGENTS.md"
 assert_exists "$rendered_root/automation/context/project-map.md"
+assert_exists "$rendered_root/automation/context/runtime-profile-policy.json"
 assert_exists "$rendered_root/automation/context/source-tree.generated.txt"
 assert_exists "$rendered_root/automation/context/metadata-index.generated.json"
+assert_exists "$rendered_root/automation/context/hotspots-summary.generated.md"
+assert_exists "$rendered_root/automation/context/templates/generated-project-hotspots-summary.md"
 assert_exists "$rendered_root/automation/context/templates/generated-project-project-map.md"
+assert_exists "$rendered_root/automation/context/templates/generated-project-runtime-profile-policy.json"
 assert_exists "$rendered_root/src/AGENTS.md"
+assert_exists "$rendered_root/tests/AGENTS.md"
 assert_exists "$rendered_root/tests/smoke/agent-docs-contract.sh"
 assert_exists "$rendered_root/scripts/lib/capability.sh"
 assert_exists "$rendered_root/scripts/lib/ibcmd.sh"
@@ -558,6 +625,10 @@ assert_contains "$rendered_root/openspec/project.md" "openspec marker must survi
 assert_exists "$rendered_root/src/cf/DataProcessors/ReimportedProcessor/Ext/ObjectModule.bsl"
 assert_not_exists "$rendered_root/src/cf/DataProcessors/TestProcessor/Ext/ObjectModule.bsl"
 assert_contains "$rendered_root/.template-overlay-version" "v0.2.0"
+assert_line_before \
+  "$rendered_root/docs/agent/generated-project-index.md" \
+  "automation/context/hotspots-summary.generated.md" \
+  "automation/context/metadata-index.generated.json"
 assert_count "$command_log" "openspec init --tools none" "1"
 assert_count "$command_log" "bd init --stealth -p smoke-project" "1"
 assert_count "$command_log" "copier copy --trust --defaults" "1"

@@ -15,12 +15,13 @@
 
 Если это generated repo, держите порядок таким:
 
-1. Root `README.md` -> `automation/context/project-map.md` -> `automation/context/metadata-index.generated.json`.
+1. Root `README.md` -> `automation/context/project-map.md` -> `automation/context/hotspots-summary.generated.md`.
 2. `make agent-verify` -> `make export-context-check`.
-3. [env/README.md](../env/README.md) для runtime profile contract.
+3. [env/README.md](../env/README.md) и `automation/context/runtime-profile-policy.json` для runtime profile contract и sanctioned checked-in presets.
 4. [docs/agent/review.md](../docs/agent/review.md) перед code/doc/tooling changes.
 5. [.agents/skills/README.md](../.agents/skills/README.md) для repeatable workflows.
 6. [docs/exec-plans/README.md](../docs/exec-plans/README.md) для long-running work.
+7. `automation/context/metadata-index.generated.json` открывайте только когда compact summary уже не хватает.
 
 ## Closeout
 
@@ -32,6 +33,35 @@
 - `config.toml` здесь intentionally host-safe by default: checked-in MCP examples закомментированы.
 - Если включаете локальные MCP servers, адаптируйте пути и env values под свою машину.
 - Не делайте machine-specific MCP paths обязательными для команды или CI.
+
+## Generated Project Playbooks
+
+### First 15 Minutes
+
+- Соберите identity через `README.md`, `automation/context/project-map.md`, `automation/context/hotspots-summary.generated.md`.
+- Пройдите `make agent-verify` и `make export-context-check`.
+- Перед runtime-работой проверьте [env/README.md](../env/README.md) и `automation/context/runtime-profile-policy.json`.
+
+### Long-Running Change
+
+- Откройте [docs/exec-plans/README.md](../docs/exec-plans/README.md) и заведите plan artifact до того, как сессия разрастётся.
+- Используйте `/plan` для фиксации execution matrix и `/compact` перед handoff или длинной веткой исследования.
+
+### Runtime Investigation
+
+- Начинайте с `./scripts/diag/doctor.sh --profile ... --run-root ...`.
+- Если contour project-specific и ещё не wired, ожидайте fail-closed `unsupported`, а не зелёный успех.
+- `/ps` полезен, когда параллельно идут несколько долгих shell contours.
+
+### Review-Only Session
+
+- Перед review откройте [docs/agent/review.md](../docs/agent/review.md).
+- Используйте `/review`, когда нужен focused pass по текущему worktree без новой реализации.
+
+### Parallel Research
+
+- Worktrees и bounded subagents уместны, когда нужно независимо исследовать разные зоны вроде `src/`, runtime contract и docs surface.
+- `/agent` и worktrees используйте только для действительно независимых веток исследования, а не вместо локального чтения пары файлов.
 
 ## Useful Session Controls
 

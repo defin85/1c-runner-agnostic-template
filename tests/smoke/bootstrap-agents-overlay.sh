@@ -76,6 +76,18 @@ assert_contains() {
   fi
 }
 
+assert_jq() {
+  local file="$1"
+  local expr="$2"
+  local label="$3"
+
+  if ! jq -e "$expr" "$file" >/dev/null; then
+    printf 'jq assertion failed (%s): %s\n' "$label" "$expr" >&2
+    cat "$file" >&2
+    exit 1
+  fi
+}
+
 assert_count() {
   local file="$1"
   local pattern="$2"
@@ -124,18 +136,25 @@ run_bootstrap
 agents_file="$project_root/AGENTS.md"
 readme_file="$project_root/README.md"
 project_map_file="$project_root/automation/context/project-map.md"
+runtime_policy_file="$project_root/automation/context/runtime-profile-policy.json"
 metadata_index_file="$project_root/automation/context/metadata-index.generated.json"
+hotspots_summary_file="$project_root/automation/context/hotspots-summary.generated.md"
 source_tree_file="$project_root/automation/context/source-tree.generated.txt"
 openspec_project_file="$project_root/openspec/project.md"
 overlay_version_file="$project_root/.template-overlay-version"
 manifest_file="$project_root/automation/context/template-managed-paths.txt"
 docs_agents_file="$project_root/docs/AGENTS.md"
+env_agents_file="$project_root/env/AGENTS.md"
+tests_agents_file="$project_root/tests/AGENTS.md"
+scripts_agents_file="$project_root/scripts/AGENTS.md"
 src_agents_file="$project_root/src/AGENTS.md"
 
 assert_contains "$agents_file" "We operate in a cycle: **OpenSpec (What) -> Beads (How) -> Code (Implementation)**."
 assert_contains "$agents_file" 'This repository is a generated 1С-project created from `1c-runner-agnostic-template`.'
 assert_contains "$agents_file" 'Start with [docs/agent/generated-project-index.md](docs/agent/generated-project-index.md) for the generated-project-first onboarding path.'
 assert_contains "$agents_file" 'Use [automation/context/project-map.md](automation/context/project-map.md) as the project-owned repo map.'
+assert_contains "$agents_file" 'Use [automation/context/hotspots-summary.generated.md](automation/context/hotspots-summary.generated.md) as the compact generated-derived map for the first hour.'
+assert_contains "$agents_file" 'Use [automation/context/runtime-profile-policy.json](automation/context/runtime-profile-policy.json) for sanctioned checked-in runtime profile policy.'
 assert_contains "$agents_file" 'Use [docs/agent/generated-project-verification.md](docs/agent/generated-project-verification.md) and `make agent-verify` as the first no-1C verification path.'
 assert_contains "$agents_file" 'Use [docs/template-maintenance.md](docs/template-maintenance.md) only for template refresh and maintenance work.'
 assert_contains "$agents_file" 'Use [docs/agent/review.md](docs/agent/review.md), [env/README.md](env/README.md), [.agents/skills/README.md](.agents/skills/README.md), [.codex/README.md](.codex/README.md), and [docs/exec-plans/README.md](docs/exec-plans/README.md) as the main follow-up routers.'
@@ -151,7 +170,9 @@ assert_next_line "$agents_file" "<!-- OPENSPEC:END -->" "<!-- RUNNER_AGNOSTIC_TE
 assert_contains "$readme_file" "<!-- RUNNER_AGNOSTIC_PROJECT:START -->"
 assert_contains "$readme_file" "generated 1С-проект"
 assert_contains "$readme_file" "[automation/context/project-map.md](automation/context/project-map.md)"
+assert_contains "$readme_file" "[automation/context/hotspots-summary.generated.md](automation/context/hotspots-summary.generated.md)"
 assert_contains "$readme_file" "[automation/context/metadata-index.generated.json](automation/context/metadata-index.generated.json)"
+assert_contains "$readme_file" "[automation/context/runtime-profile-policy.json](automation/context/runtime-profile-policy.json)"
 assert_contains "$readme_file" "[docs/agent/generated-project-verification.md](docs/agent/generated-project-verification.md)"
 assert_contains "$readme_file" "[docs/agent/review.md](docs/agent/review.md)"
 assert_contains "$readme_file" "[env/README.md](env/README.md)"
@@ -163,18 +184,35 @@ assert_contains "$readme_file" "local-only"
 assert_contains "$readme_file" "remote-backed"
 assert_contains "$project_map_file" "Ownership Model"
 assert_contains "$project_map_file" "generated-derived"
+assert_contains "$project_map_file" "automation/context/runtime-profile-policy.json"
 assert_contains "$openspec_project_file" "generated 1С-проект"
 assert_contains "$metadata_index_file" "\"inventoryRole\": \"generated-derived\""
+assert_contains "$hotspots_summary_file" "# Generated Hotspots Summary"
+assert_contains "$hotspots_summary_file" "## Freshness"
+assert_contains "$hotspots_summary_file" "automation/context/runtime-profile-policy.json"
 assert_contains "$source_tree_file" "# Generated Project Tree"
 assert_contains "$overlay_version_file" "$(git -C "$SOURCE_ROOT" describe --tags --always)"
 assert_contains "$manifest_file" "scripts/template/update-template.sh"
+assert_contains "$manifest_file" "automation/context/templates/generated-project-hotspots-summary.md"
+assert_contains "$manifest_file" "automation/context/templates/generated-project-runtime-profile-policy.json"
 assert_contains "$manifest_file" "docs/AGENTS.md"
+assert_contains "$manifest_file" "env/AGENTS.md"
+assert_contains "$manifest_file" "tests/AGENTS.md"
+assert_contains "$manifest_file" "scripts/AGENTS.md"
 assert_contains "$manifest_file" "src/AGENTS.md"
 assert_contains "$docs_agents_file" "[docs/agent/generated-project-index.md](agent/generated-project-index.md)"
 assert_contains "$docs_agents_file" "[docs/agent/index.md](agent/index.md)"
+assert_contains "$env_agents_file" "[env/README.md](README.md)"
+assert_contains "$env_agents_file" "automation/context/runtime-profile-policy.json"
+assert_contains "$tests_agents_file" "[docs/agent/generated-project-verification.md](../docs/agent/generated-project-verification.md)"
+assert_contains "$tests_agents_file" "scripts/qa/check-agent-docs.sh"
+assert_contains "$scripts_agents_file" "[docs/agent/generated-project-index.md](../docs/agent/generated-project-index.md)"
+assert_contains "$scripts_agents_file" "automation/context/hotspots-summary.generated.md"
 assert_contains "$src_agents_file" "[docs/agent/generated-project-index.md](../docs/agent/generated-project-index.md)"
 assert_contains "$src_agents_file" "automation/context/project-map.md"
+assert_contains "$src_agents_file" "automation/context/hotspots-summary.generated.md"
 assert_contains "$src_agents_file" "automation/context/metadata-index.generated.json"
+assert_jq "$runtime_policy_file" '.rootEnvProfiles.sanctionedAdditionalProfiles == []' "runtime-policy-default"
 
 mkdir -p \
   "$project_root/src/cf/HTTPServices/Orders" \
@@ -220,6 +258,9 @@ assert_contains "$metadata_index_file" '"subsystems": ["src/cf/Subsystems/Backof
 assert_contains "$metadata_index_file" '"extensions": ["src/cfe/MainExtension"]'
 assert_contains "$metadata_index_file" '"externalProcessors": ["src/epf/ImportWizard"]'
 assert_contains "$metadata_index_file" '"reports": ["src/erf/RevenueReport"]'
+assert_jq "$metadata_index_file" '.authoritativeDocs.runtimeProfilePolicy == "automation/context/runtime-profile-policy.json" and .authoritativeDocs.hotspotsSummary == "automation/context/hotspots-summary.generated.md"' "generated-metadata-authoritative-docs"
+assert_contains "$hotspots_summary_file" 'Configuration name: `SmokeConfiguration`'
+assert_contains "$hotspots_summary_file" '`metadata-index.generated.json` checksum:'
 
 if grep -Fq -- './env/local.json' "$source_tree_file"; then
   printf 'generated source tree leaked env/local.json\n' >&2

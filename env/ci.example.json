@@ -62,16 +62,16 @@
       "command": ["git", "diff", "--", "./src"]
     },
     "xunit": {
-      "command": ["bash", "-lc", "echo TODO: CI xUnit contour"]
+      "unsupportedReason": "CI xUnit contour is project-specific; wire a real command before treating this profile as green."
     },
     "bdd": {
-      "command": ["bash", "-lc", "echo TODO: CI BDD contour"]
+      "unsupportedReason": "CI BDD contour is project-specific; wire a real command before treating this profile as green."
     },
     "smoke": {
-      "command": ["bash", "-lc", "echo TODO: CI smoke contour"]
+      "unsupportedReason": "CI smoke contour is project-specific; wire a real command before treating this profile as green."
     },
     "publishHttp": {
-      "command": ["bash", "-lc", "echo TODO: CI publish HTTP service"]
+      "unsupportedReason": "CI publish contour is project-specific; wire a real command before treating this profile as green."
     }
   }
 }

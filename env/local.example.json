@@ -59,16 +59,16 @@
       "command": ["git", "diff", "--", "./src"]
     },
     "xunit": {
-      "command": ["bash", "-lc", "echo TODO: run xUnit checks"]
+      "unsupportedReason": "xUnit contour is project-specific; wire a real command before treating this profile as green."
     },
     "bdd": {
-      "command": ["bash", "-lc", "echo TODO: run BDD checks"]
+      "unsupportedReason": "BDD contour is project-specific; wire a real command before treating this profile as green."
     },
     "smoke": {
-      "command": ["bash", "-lc", "echo TODO: run smoke checks"]
+      "unsupportedReason": "Smoke contour is project-specific; wire a real command before treating this profile as green."
     },
     "publishHttp": {
-      "command": ["bash", "-lc", "echo TODO: publish HTTP service"]
+      "unsupportedReason": "Publish contour is project-specific; wire a real command before treating this profile as green."
     }
   }
 }

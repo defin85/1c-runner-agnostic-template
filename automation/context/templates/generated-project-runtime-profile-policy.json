@@ -1,0 +1,16 @@
+{
+  "projectRole": "generated-project-template",
+  "policyRole": "project-owned-runtime-profile-policy-reference",
+  "livePolicyPath": "automation/context/runtime-profile-policy.json",
+  "expectedSections": [
+    "rootEnvProfiles.canonicalExamples",
+    "rootEnvProfiles.canonicalLocalPrivate",
+    "rootEnvProfiles.sanctionedAdditionalProfiles",
+    "rootEnvProfiles.localSandbox"
+  ],
+  "notes": [
+    "Generated projects may declare checked-in team-shared presets here.",
+    "Leave sanctionedAdditionalProfiles empty until the project intentionally commits a shared preset under env/*.json.",
+    "Sanctioned checked-in profiles must not keep smoke/xunit/bdd as success-on-placeholder contours."
+  ]
+}

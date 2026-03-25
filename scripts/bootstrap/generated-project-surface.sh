@@ -94,7 +94,9 @@ write_generated_readme_router() {
 
 - Начните с [docs/agent/generated-project-index.md](docs/agent/generated-project-index.md).
 - Карта проекта и project-owned truth лежат в [automation/context/project-map.md](automation/context/project-map.md).
-- Быстрый generated-derived inventory лежит в [automation/context/metadata-index.generated.json](automation/context/metadata-index.generated.json).
+- Summary-first generated map лежит в [automation/context/hotspots-summary.generated.md](automation/context/hotspots-summary.generated.md).
+- Raw generated-derived inventory лежит в [automation/context/metadata-index.generated.json](automation/context/metadata-index.generated.json).
+- Sanctioned checked-in profile policy лежит в [automation/context/runtime-profile-policy.json](automation/context/runtime-profile-policy.json).
 - Матрица проверок лежит в [docs/agent/generated-project-verification.md](docs/agent/generated-project-verification.md).
 - Runtime profile contract и local-only profiles описаны в [env/README.md](env/README.md).
 - Review expectations лежат в [docs/agent/review.md](docs/agent/review.md).
@@ -132,7 +134,9 @@ write_generated_readme_starter() {
 - \`src/\` — основная конфигурация, расширения, обработки и отчеты;
 - \`scripts/\` — канонические entrypoint-скрипты для запуска, тестов и QA;
 - \`automation/context/project-map.md\` — project-owned карта системы;
-- \`automation/context/metadata-index.generated.json\` — generated-derived inventory для narrowing search;
+- \`automation/context/hotspots-summary.generated.md\` — compact summary-first карта hot paths;
+- \`automation/context/metadata-index.generated.json\` — raw generated-derived inventory для deeper narrowing search;
+- \`automation/context/runtime-profile-policy.json\` — policy для sanctioned checked-in runtime profiles;
 - \`openspec/\` — contract-first workspace для требований и изменений;
 - \`tests/\` и \`features/\` — automated checks разных слоёв.
 
@@ -140,17 +144,17 @@ write_generated_readme_starter() {
 
 1. Прочитайте [docs/agent/generated-project-index.md](docs/agent/generated-project-index.md).
 2. Сверьтесь с [automation/context/project-map.md](automation/context/project-map.md).
-3. Посмотрите [automation/context/metadata-index.generated.json](automation/context/metadata-index.generated.json), чтобы сузить поиск по \`src/\`.
+3. Посмотрите [automation/context/hotspots-summary.generated.md](automation/context/hotspots-summary.generated.md), а затем при необходимости углубитесь в [automation/context/metadata-index.generated.json](automation/context/metadata-index.generated.json).
 4. Запустите \`make agent-verify\`.
-5. Сверьтесь с [env/README.md](env/README.md), [docs/agent/review.md](docs/agent/review.md), [.agents/skills/README.md](.agents/skills/README.md) и [.codex/README.md](.codex/README.md).
+5. Сверьтесь с [env/README.md](env/README.md), [automation/context/runtime-profile-policy.json](automation/context/runtime-profile-policy.json), [docs/agent/review.md](docs/agent/review.md), [.agents/skills/README.md](.agents/skills/README.md) и [.codex/README.md](.codex/README.md).
 6. Если работа становится длинной, откройте [docs/exec-plans/README.md](docs/exec-plans/README.md).
 7. Если нужен template maintenance path, отдельно откройте [docs/template-maintenance.md](docs/template-maintenance.md).
 
 ## Ownership Classes
 
 - \`template-managed\`: \`scripts/\`, template docs, shared skills, CI contours, managed blocks, \`.template-overlay-version\`.
-- \`seed-once / project-owned\`: \`README.md\`, \`openspec/project.md\`, \`automation/context/project-map.md\`.
-- \`generated-derived\`: \`automation/context/source-tree.generated.txt\`, \`automation/context/metadata-index.generated.json\`.
+- \`seed-once / project-owned\`: \`README.md\`, \`openspec/project.md\`, \`automation/context/project-map.md\`, \`automation/context/runtime-profile-policy.json\`.
+- \`generated-derived\`: \`automation/context/source-tree.generated.txt\`, \`automation/context/metadata-index.generated.json\`, \`automation/context/hotspots-summary.generated.md\`.
 - \`local-private\`: \`env/local.json\`, \`env/wsl.json\`, \`env/.local/*.json\`, machine-specific MCP/Codex overrides.
 
 ## Closeout Semantics
@@ -221,16 +225,16 @@ write_project_map_starter() {
 
 - \`template-managed\`: shared runtime/test/QA contract, template docs, shared skills, managed blocks
 - \`seed-once / project-owned\`: этот файл, \`README.md\`, \`openspec/project.md\`
-- \`generated-derived\`: \`automation/context/source-tree.generated.txt\`, \`automation/context/metadata-index.generated.json\`
+- \`project-owned policy\`: \`automation/context/runtime-profile-policy.json\`
+- \`generated-derived\`: \`automation/context/source-tree.generated.txt\`, \`automation/context/metadata-index.generated.json\`, \`automation/context/hotspots-summary.generated.md\`
 - \`local-private\`: \`env/local.json\`, \`env/wsl.json\`, \`env/.local/*.json\`, machine-specific Codex/MCP config
 
 ## Canonical Entrypoints
 
 - baseline verify: \`make agent-verify\`
 - runtime doctor: \`./scripts/diag/doctor.sh --profile env/local.json --run-root /tmp/doctor-run\`
-- xUnit: \`./scripts/test/run-xunit.sh --profile env/local.json --run-root /tmp/xunit-run\`
-- BDD: \`./scripts/test/run-bdd.sh --profile env/local.json --run-root /tmp/bdd-run\`
-- smoke: \`./scripts/test/run-smoke.sh --profile env/local.json --run-root /tmp/smoke-run\`
+- project-owned sanctioned profile policy: \`automation/context/runtime-profile-policy.json\`
+- xUnit / BDD / smoke: repo entrypoints существуют, но unsupported profile должен fail-closed завершаться, пока проект не wired реальный contour
 - context refresh: \`./scripts/llm/export-context.sh --write\`
 
 ## Immediate Routers
@@ -246,6 +250,37 @@ write_project_map_starter() {
 - Зафиксируйте реальные bounded contexts, бизнес-термины и ключевые metadata entrypoint-ы.
 - Дополните секции HTTP services, scheduled jobs, forms и extensions по фактическому проекту.
 - Держите этот файл как curated project-owned truth, а generated-derived inventory refresh-ите отдельной командой.
+EOF
+}
+
+write_runtime_profile_policy_starter() {
+  local target_file="$1"
+
+  ensure_parent_dir "$target_file"
+  cat >"$target_file" <<'EOF'
+{
+  "rootEnvProfiles": {
+    "canonicalExamples": [
+      "env/local.example.json",
+      "env/wsl.example.json",
+      "env/ci.example.json",
+      "env/windows-executor.example.json"
+    ],
+    "canonicalLocalPrivate": [
+      "env/local.json",
+      "env/wsl.json",
+      "env/ci.json",
+      "env/windows-executor.json"
+    ],
+    "sanctionedAdditionalProfiles": [],
+    "localSandbox": "env/.local/"
+  },
+  "notes": [
+    "Declare only checked-in team-shared presets here.",
+    "Do not list local-private profiles from env/.local/ or ignored local.json/wsl.json files.",
+    "Sanctioned checked-in profiles must not keep smoke/xunit/bdd as success-on-placeholder contours."
+  ]
+}
 EOF
 }
 
@@ -338,6 +373,7 @@ seed_generated_project_surface_on_copy() {
 
   write_generated_readme_starter "$root/README.md" "$project_name" "$project_slug" "$project_description"
   write_project_map_starter "$root/automation/context/project-map.md" "$project_name" "$project_slug" "$project_description"
+  write_runtime_profile_policy_starter "$root/automation/context/runtime-profile-policy.json"
   write_openspec_project_starter "$root/openspec/project.md" "$project_name" "$project_slug" "$project_description"
 }
 
@@ -351,6 +387,10 @@ refresh_generated_project_surface_on_update() {
 
   if [ ! -f "$root/automation/context/project-map.md" ]; then
     write_project_map_starter "$root/automation/context/project-map.md" "$project_name" "$project_slug" "$project_description"
+  fi
+
+  if [ ! -f "$root/automation/context/runtime-profile-policy.json" ]; then
+    write_runtime_profile_policy_starter "$root/automation/context/runtime-profile-policy.json"
   fi
 
   if [ ! -f "$root/openspec/project.md" ] || openspec_project_is_bootstrap_stub "$root/openspec/project.md"; then

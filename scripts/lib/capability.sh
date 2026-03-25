@@ -316,7 +316,7 @@ execute_prepared_capability_command() {
   local -a wrapped_command=()
   local exit_code=0
 
-  if [ "${CAPABILITY_COMMAND[*]-}" = "" ]; then
+  if [ "${CAPABILITY_COMMAND[*]-}" = "" ] && [ "$CAPABILITY_COMMAND_EXECUTOR" != "builtin-unsupported" ]; then
     die "capability command was not prepared"
   fi
 
@@ -337,6 +337,12 @@ execute_prepared_capability_command() {
         "${wrapped_command[@]}" >"$stdout_log" 2>"$stderr_log"
       fi
       exit_code=$?
+      ;;
+    builtin-unsupported)
+      printf 'unsupported contour: %s\n' \
+        "${CAPABILITY_COMMAND[0]:-runtime profile marks this capability as unsupported}" \
+        >"$stderr_log"
+      exit_code=64
       ;;
     *)
       set -e

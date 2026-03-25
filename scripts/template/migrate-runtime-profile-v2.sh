@@ -254,18 +254,30 @@ main() {
             { command: $diff_command }
           end
         ),
-        xunit: {
-          command: (if $xunit_command == null then ["bash", "-lc", "echo TODO: migrate xUnit contour"] else $xunit_command end)
-        },
-        bdd: {
-          command: (if $bdd_command == null then ["bash", "-lc", "echo TODO: migrate BDD contour"] else $bdd_command end)
-        },
-        smoke: {
-          command: (if $smoke_command == null then ["bash", "-lc", "echo TODO: migrate smoke contour"] else $smoke_command end)
-        },
+        xunit: (
+          if $xunit_command == null then
+            { unsupportedReason: "xUnit contour is not wired yet; migrate it before treating this profile as green." }
+          else
+            { command: $xunit_command }
+          end
+        ),
+        bdd: (
+          if $bdd_command == null then
+            { unsupportedReason: "BDD contour is not wired yet; migrate it before treating this profile as green." }
+          else
+            { command: $bdd_command }
+          end
+        ),
+        smoke: (
+          if $smoke_command == null then
+            { unsupportedReason: "Smoke contour is not wired yet; migrate it before treating this profile as green." }
+          else
+            { command: $smoke_command }
+          end
+        ),
         publishHttp: (
           if $publish_command == null then
-            { command: ["bash", "-lc", "echo TODO: migrate publish HTTP contour"] }
+            { unsupportedReason: "Publish HTTP contour is not wired yet; migrate it before treating this profile as green." }
           else
             { command: $publish_command }
           end

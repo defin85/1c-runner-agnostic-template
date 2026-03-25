@@ -31,8 +31,10 @@ Makefile
 automation/AGENTS.md
 automation/checklists/change-contract.md
 automation/context/template-managed-paths.txt
+automation/context/templates/generated-project-hotspots-summary.md
 automation/context/templates/generated-project-metadata-index.json
 automation/context/templates/generated-project-project-map.md
+automation/context/templates/generated-project-runtime-profile-policy.json
 automation/prompts/README.md
 docs/AGENTS.md
 docs/README.md
@@ -49,6 +51,7 @@ docs/exec-plans/completed/.gitkeep
 docs/migrations/runtime-profile-v2.md
 docs/template-maintenance.md
 env/.local/README.md
+env/AGENTS.md
 env/README.md
 env/ci.example.json
 env/local.example.json
@@ -60,6 +63,7 @@ src/AGENTS.md
 scripts/adapters/direct-platform.sh
 scripts/adapters/remote-windows.sh
 scripts/adapters/vrunner.sh
+scripts/AGENTS.md
 scripts/bootstrap/agents-overlay.sh
 scripts/bootstrap/copier-post-copy.sh
 scripts/bootstrap/copier-post-update.sh
@@ -94,6 +98,7 @@ scripts/test/run-smoke.sh
 scripts/test/run-xunit.sh
 tests/README.md
 tests/fixtures/README.md
+tests/AGENTS.md
 tests/shell-fixtures/README.md
 tests/smoke/README.md
 tests/smoke/agent-docs-contract.sh

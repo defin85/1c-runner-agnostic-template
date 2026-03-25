@@ -9,6 +9,7 @@ RUNTIME_PROFILE_JSON=""
 RUNTIME_PROFILE_NAME=""
 RUNTIME_PROFILE_RUNNER_ADAPTER=""
 RUNTIME_PROFILE_LOCAL_SANDBOX_DIR="env/.local/"
+RUNTIME_PROFILE_POLICY_PATH="automation/context/runtime-profile-policy.json"
 
 runtime_profile_loaded() {
   [ -n "$RUNTIME_PROFILE_PATH" ] && [ -n "$RUNTIME_PROFILE_JSON" ]
@@ -65,12 +66,88 @@ canonical_root_runtime_profile_filename() {
   esac
 }
 
+append_unique_field() {
+  local array_name="$1"
+  local candidate="$2"
+  local existing=""
+  local -n fields_ref="$array_name"
+
+  for existing in "${fields_ref[@]}"; do
+    if [ "$existing" = "$candidate" ]; then
+      return 0
+    fi
+  done
+
+  fields_ref+=("$candidate")
+}
+
+runtime_profile_policy_file_path() {
+  local root="$1"
+
+  printf '%s/%s\n' "$root" "$RUNTIME_PROFILE_POLICY_PATH"
+}
+
+load_sanctioned_additional_root_runtime_profiles() {
+  local root="$1"
+  local array_name="$2"
+  local policy_path=""
+  local relpath=""
+  local -n out_ref="$array_name"
+
+  out_ref=()
+  policy_path="$(runtime_profile_policy_file_path "$root")"
+  if [ ! -f "$policy_path" ]; then
+    return 0
+  fi
+
+  require_command jq
+  while IFS= read -r relpath; do
+    [ -n "$relpath" ] || continue
+
+    case "$relpath" in
+      env/*.json)
+        append_unique_field out_ref "$relpath"
+        ;;
+      *)
+        die "runtime-profile policy lists a non env/*.json path: $relpath"
+        ;;
+    esac
+  done < <(
+    jq -r '
+      (.rootEnvProfiles.sanctionedAdditionalProfiles // [])
+      | if type != "array" then
+          error("rootEnvProfiles.sanctionedAdditionalProfiles must be an array")
+        else
+          .[]
+        end
+      | tostring
+    ' "$policy_path"
+  )
+}
+
+root_runtime_profile_is_sanctioned_by_policy() {
+  local root="$1"
+  local relpath="$2"
+  local candidate=""
+  local -a sanctioned_paths=()
+
+  load_sanctioned_additional_root_runtime_profiles "$root" sanctioned_paths
+  for candidate in "${sanctioned_paths[@]}"; do
+    if [ "$candidate" = "$relpath" ]; then
+      return 0
+    fi
+  done
+
+  return 1
+}
+
 collect_runtime_profile_layout_drift_paths() {
   local root="$1"
   local array_name="$2"
   local env_root="$root/env"
   local path=""
   local filename=""
+  local relpath=""
   local -n out_ref="$array_name"
 
   out_ref=()
@@ -87,7 +164,12 @@ collect_runtime_profile_layout_drift_paths() {
       continue
     fi
 
-    out_ref+=("env/$filename")
+    relpath="env/$filename"
+    if root_runtime_profile_is_sanctioned_by_policy "$root" "$relpath"; then
+      continue
+    fi
+
+    out_ref+=("$relpath")
   done
   shopt -u nullglob
 }
@@ -96,11 +178,18 @@ build_runtime_profile_layout_warning_json() {
   local root="$1"
   local status="clean"
   local unexpected_json="[]"
+  local sanctioned_json="[]"
+  local policy_path="$RUNTIME_PROFILE_POLICY_PATH"
   local -a unexpected_paths=()
+  local -a sanctioned_paths=()
 
   require_command jq
 
+  load_sanctioned_additional_root_runtime_profiles "$root" sanctioned_paths
   collect_runtime_profile_layout_drift_paths "$root" unexpected_paths
+  if [ "${sanctioned_paths[*]-}" != "" ]; then
+    sanctioned_json="$(printf '%s\n' "${sanctioned_paths[@]}" | jq -R . | jq -s '.')"
+  fi
   if [ "${unexpected_paths[*]-}" != "" ]; then
     status="warning"
     unexpected_json="$(printf '%s\n' "${unexpected_paths[@]}" | jq -R . | jq -s '.')"
@@ -109,12 +198,16 @@ build_runtime_profile_layout_warning_json() {
   jq -cn \
     --arg status "$status" \
     --arg recommended_sandbox "$RUNTIME_PROFILE_LOCAL_SANDBOX_DIR" \
+    --arg policy_path "$policy_path" \
     --argjson unexpected_root_profiles "$unexpected_json" \
+    --argjson sanctioned_additional_profiles "$sanctioned_json" \
     '{
       runtime_profile_layout: {
         status: $status,
         unexpected_root_profiles: $unexpected_root_profiles,
-        recommended_sandbox: $recommended_sandbox
+        recommended_sandbox: $recommended_sandbox,
+        policy_path: $policy_path,
+        sanctioned_additional_profiles: $sanctioned_additional_profiles
       }
     }'
 }

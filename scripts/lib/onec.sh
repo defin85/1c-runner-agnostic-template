@@ -34,6 +34,13 @@ capability_command_expr() {
   printf '.capabilities.%s.command' "$key"
 }
 
+capability_unsupported_reason_expr() {
+  local key=""
+
+  key="$(capability_profile_key "$1")"
+  printf '.capabilities.%s.unsupportedReason' "$key"
+}
+
 capability_driver_expr() {
   local key=""
 
@@ -54,6 +61,10 @@ capability_supports_driver_selection() {
 
 capability_has_profile_driver() {
   profile_has_nonnull "$(capability_driver_expr "$1")"
+}
+
+capability_has_profile_unsupported_reason() {
+  profile_has_nonnull "$(capability_unsupported_reason_expr "$1")"
 }
 
 command_basename() {
@@ -444,6 +455,7 @@ validate_capability_command_driver_contract() {
   local capability_id="$1"
   local has_command=1
   local has_driver=1
+  local has_unsupported_reason=1
 
   if capability_has_profile_command "$capability_id"; then
     has_command=0
@@ -453,8 +465,20 @@ validate_capability_command_driver_contract() {
     has_driver=0
   fi
 
+  if capability_has_profile_unsupported_reason "$capability_id"; then
+    has_unsupported_reason=0
+  fi
+
   if [ "$has_command" -eq 0 ] && [ "$has_driver" -eq 0 ]; then
     die "capability $capability_id must not define both driver and command in $RUNTIME_PROFILE_PATH"
+  fi
+
+  if [ "$has_command" -eq 0 ] && [ "$has_unsupported_reason" -eq 0 ]; then
+    die "capability $capability_id must not define both command and unsupportedReason in $RUNTIME_PROFILE_PATH"
+  fi
+
+  if [ "$has_driver" -eq 0 ] && [ "$has_unsupported_reason" -eq 0 ]; then
+    die "capability $capability_id must not define both driver and unsupportedReason in $RUNTIME_PROFILE_PATH"
   fi
 
   if [ "$has_driver" -eq 0 ] && ! capability_supports_driver_selection "$capability_id"; then
@@ -525,6 +549,23 @@ build_redacted_context_json() {
         ref: (if $ref == "" then null else $ref end),
         file_path: (if $file_path == "" then null else $file_path end),
         auth_mode: (if $auth_mode == "" then null else $auth_mode end)
+      }
+    }'
+}
+
+build_unsupported_capability_context_json() {
+  local reason="$1"
+  local base_json="{}"
+
+  base_json="$(build_redacted_context_json)"
+
+  jq -cn \
+    --argjson base "$base_json" \
+    --arg reason "$reason" \
+    '$base + {
+      unsupported: {
+        placeholder: true,
+        reason: $reason
       }
     }'
 }
@@ -601,6 +642,21 @@ maybe_use_profile_command() {
 
   set_prepared_capability_command "" "profile-command" "$executor" "${profile_command[@]}"
   set_prepared_context_from_profile "$adapter"
+  return 0
+}
+
+maybe_use_profile_unsupported_reason() {
+  local capability_id="$1"
+  local reason=""
+
+  validate_capability_command_driver_contract "$capability_id"
+  if ! capability_has_profile_unsupported_reason "$capability_id"; then
+    return 1
+  fi
+
+  reason="$(require_profile_string "$(capability_unsupported_reason_expr "$capability_id") // empty" "$(capability_unsupported_reason_expr "$capability_id")")"
+  set_prepared_capability_command "" "unsupported-profile" "builtin-unsupported" "$reason"
+  set_capability_context_json "$(build_unsupported_capability_context_json "$reason")"
   return 0
 }
 
@@ -789,6 +845,9 @@ prepare_create_ib_command() {
   local binary_path=""
 
   reject_capability_selected_files "$capability_id"
+  if maybe_use_profile_unsupported_reason "$capability_id"; then
+    return 0
+  fi
   if maybe_use_profile_command "$capability_id" "$adapter"; then
     return 0
   fi
@@ -828,6 +887,9 @@ prepare_dump_src_command() {
   local -a command=()
 
   reject_capability_selected_files "$capability_id"
+  if maybe_use_profile_unsupported_reason "$capability_id"; then
+    return 0
+  fi
   if maybe_use_profile_command "$capability_id" "$adapter"; then
     return 0
   fi
@@ -870,6 +932,9 @@ prepare_load_src_command() {
     die "partial load-src is not supported when capabilities.loadSrc.command override is set"
   fi
 
+  if maybe_use_profile_unsupported_reason "$capability_id"; then
+    return 0
+  fi
   if maybe_use_profile_command "$capability_id" "$adapter"; then
     return 0
   fi
@@ -912,6 +977,9 @@ prepare_update_db_command() {
   local -a command=()
 
   reject_capability_selected_files "$capability_id"
+  if maybe_use_profile_unsupported_reason "$capability_id"; then
+    return 0
+  fi
   if maybe_use_profile_command "$capability_id" "$adapter"; then
     return 0
   fi
@@ -947,6 +1015,9 @@ prepare_diff_src_command() {
   local _adapter="$2"
 
   reject_capability_selected_files "$capability_id"
+  if maybe_use_profile_unsupported_reason "$capability_id"; then
+    return 0
+  fi
   if maybe_use_profile_command "$capability_id" "$_adapter"; then
     return 0
   fi
@@ -960,6 +1031,9 @@ prepare_required_profile_command() {
   local _adapter="$2"
 
   reject_capability_selected_files "$capability_id"
+  if maybe_use_profile_unsupported_reason "$capability_id"; then
+    return 0
+  fi
   if maybe_use_profile_command "$capability_id" "$_adapter"; then
     return 0
   fi
@@ -985,7 +1059,7 @@ collect_required_env_refs() {
   done
 
   for capability_id in create-ib dump-src load-src update-db; do
-    if capability_has_profile_command "$capability_id"; then
+    if capability_has_profile_command "$capability_id" || capability_has_profile_unsupported_reason "$capability_id"; then
       continue
     fi
 
@@ -1004,21 +1078,6 @@ collect_required_env_refs() {
         ;;
     esac
   done
-}
-
-append_unique_field() {
-  local array_name="$1"
-  local candidate="$2"
-  local existing=""
-  local -n fields_ref="$array_name"
-
-  for existing in "${fields_ref[@]}"; do
-    if [ "$existing" = "$candidate" ]; then
-      return 0
-    fi
-  done
-
-  fields_ref+=("$candidate")
 }
 
 collect_designer_required_profile_fields() {
@@ -1077,7 +1136,7 @@ collect_required_profile_fields() {
   esac
 
   for capability_id in create-ib dump-src load-src update-db; do
-    if capability_has_profile_command "$capability_id"; then
+    if capability_has_profile_command "$capability_id" || capability_has_profile_unsupported_reason "$capability_id"; then
       continue
     fi
 
@@ -1112,6 +1171,11 @@ doctor_capability_failure_reason() {
   local -a profile_command=()
 
   validate_capability_command_driver_contract "$capability_id"
+  if capability_has_profile_unsupported_reason "$capability_id"; then
+    require_profile_string "$(capability_unsupported_reason_expr "$capability_id") // empty" "$(capability_unsupported_reason_expr "$capability_id")"
+    return 0
+  fi
+
   if capability_has_profile_command "$capability_id"; then
     load_profile_command_array "$capability_id" profile_command
     set -- "${profile_command[@]}"
@@ -1264,7 +1328,13 @@ build_doctor_capability_drivers_json() {
 
   for capability_id in create-ib dump-src load-src update-db; do
     validate_capability_command_driver_contract "$capability_id"
-    if capability_has_profile_command "$capability_id"; then
+    reason=""
+    if capability_has_profile_unsupported_reason "$capability_id"; then
+      source="unsupported-profile"
+      driver=""
+      reason="$(require_profile_string "$(capability_unsupported_reason_expr "$capability_id") // empty" "$(capability_unsupported_reason_expr "$capability_id")")"
+      context_json="$(jq -cn --arg reason "$reason" '{unsupported: {placeholder: true, reason: $reason}}')"
+    elif capability_has_profile_command "$capability_id"; then
       source="profile-command"
       driver=""
       context_json='{}'
@@ -1274,7 +1344,9 @@ build_doctor_capability_drivers_json() {
       context_json="$(build_doctor_driver_context_json "$capability_id" "$driver")"
     fi
 
-    reason="$(doctor_capability_failure_reason "$capability_id" "$adapter")"
+    if [ -z "$reason" ]; then
+      reason="$(doctor_capability_failure_reason "$capability_id" "$adapter")"
+    fi
     status="present"
     if [ -n "$reason" ]; then
       status="missing"

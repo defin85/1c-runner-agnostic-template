@@ -131,12 +131,31 @@ profile_field_status() {
 capability_status() {
   local capability_id="$1"
   local adapter="$2"
+  local check_reason=""
 
-  if doctor_has_required_capability "$capability_id" "$adapter"; then
+  if capability_has_profile_unsupported_reason "$capability_id"; then
+    check_reason="$(require_profile_string "$(capability_unsupported_reason_expr "$capability_id") // empty" "$(capability_unsupported_reason_expr "$capability_id")")"
+    printf 'unsupported\t%s\n' "$check_reason"
+    return 0
+  fi
+
+  check_reason="$(doctor_capability_failure_reason "$capability_id" "$adapter")"
+  if [ -z "$check_reason" ]; then
     printf 'present\n'
   else
-    printf 'missing\n'
+    printf 'missing\t%s\n' "$check_reason"
   fi
+}
+
+doctor_allows_unsupported_required_capability() {
+  case "$1" in
+    run-xunit|run-bdd|run-smoke)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
 }
 
 main() {
@@ -267,12 +286,18 @@ main() {
   done
 
   for capability_id in "${required_capabilities[@]}"; do
-    check_reason="$(doctor_capability_failure_reason "$capability_id" "$adapter")"
     check_status="present"
-    if [ -n "$check_reason" ]; then
-      check_status="missing"
+    check_reason=""
+    if doctor_allows_unsupported_required_capability "$capability_id" && capability_has_profile_unsupported_reason "$capability_id"; then
+      check_status="unsupported"
+      check_reason="$(require_profile_string "$(capability_unsupported_reason_expr "$capability_id") // empty" "$(capability_unsupported_reason_expr "$capability_id")")"
+    else
+      check_reason="$(doctor_capability_failure_reason "$capability_id" "$adapter")"
+      if [ -n "$check_reason" ]; then
+        check_status="missing"
+      fi
     fi
-    if [ "$check_status" != "present" ]; then
+    if [ "$check_status" = "missing" ]; then
       status="failed"
       log "missing capability precondition: $capability_id ($check_reason)"
     fi
@@ -280,8 +305,10 @@ main() {
   done
 
   for capability_id in "${optional_capabilities[@]}"; do
-    check_status="$(capability_status "$capability_id" "$adapter")"
-    append_json_check "$optional_capabilities_jsonl" "$capability_id" "$check_status" false
+    IFS=$'\t' read -r check_status check_reason <<EOF
+$(capability_status "$capability_id" "$adapter")
+EOF
+    append_json_check "$optional_capabilities_jsonl" "$capability_id" "$check_status" false "$check_reason"
   done
 
   required_tools_json="$(jq -s '.' "$required_tools_jsonl")"
