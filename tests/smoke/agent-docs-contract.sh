@@ -182,6 +182,28 @@ PY
 assert_fails_with "$source_noop_profile_root" \
   "checked-in verification contour must use unsupportedReason or a repo-owned entrypoint: env/ci.example.json (smoke)"
 
+source_shell_wrapper_profile_root="$tmpdir/source-shell-wrapper-profile"
+copy_repo "$source_shell_wrapper_profile_root"
+refresh_source_context "$source_shell_wrapper_profile_root"
+python - <<'PY' "$source_shell_wrapper_profile_root/env/ci.example.json"
+from pathlib import Path
+import json
+import sys
+
+path = Path(sys.argv[1])
+data = json.loads(path.read_text())
+data["capabilities"]["smoke"] = {
+    "command": [
+        "bash",
+        "-lc",
+        "./scripts/test/run-smoke.sh --profile env/local.json --run-root /tmp/source-shell-wrapper-smoke || true",
+    ]
+}
+path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n")
+PY
+assert_fails_with "$source_shell_wrapper_profile_root" \
+  "checked-in verification contour must use unsupportedReason or a repo-owned entrypoint: env/ci.example.json (smoke)"
+
 generated_template_root="$tmpdir/generated-template"
 generated_root="$tmpdir/generated"
 generated_bindir="$tmpdir/generated-bin"
@@ -362,6 +384,85 @@ refresh_source_context "$generated_sanctioned_noop_root"
 assert_fails_with "$generated_sanctioned_noop_root" \
   "checked-in verification contour must use unsupportedReason or a repo-owned entrypoint: env/develop.json (smoke)" \
   "$generated_bindir"
+
+generated_sanctioned_shell_wrapper_root="$tmpdir/generated-sanctioned-shell-wrapper"
+cp -R "$generated_root" "$generated_sanctioned_shell_wrapper_root"
+cat >"$generated_sanctioned_shell_wrapper_root/env/develop.json" <<'EOF'
+{
+  "profileName": "develop",
+  "capabilities": {
+    "smoke": {
+      "command": ["bash", "-lc", "./scripts/test/run-smoke.sh --profile env/local.json --run-root /tmp/generated-shell-wrapper-smoke || true"]
+    }
+  }
+}
+EOF
+cat >"$generated_sanctioned_shell_wrapper_root/automation/context/runtime-profile-policy.json" <<'EOF'
+{
+  "rootEnvProfiles": {
+    "canonicalExamples": [
+      "env/local.example.json",
+      "env/wsl.example.json",
+      "env/ci.example.json",
+      "env/windows-executor.example.json"
+    ],
+    "canonicalLocalPrivate": [
+      "env/local.json",
+      "env/wsl.json",
+      "env/ci.json",
+      "env/windows-executor.json"
+    ],
+    "sanctionedAdditionalProfiles": [
+      "env/develop.json"
+    ],
+    "localSandbox": "env/.local/"
+  }
+}
+EOF
+refresh_source_context "$generated_sanctioned_shell_wrapper_root"
+assert_fails_with "$generated_sanctioned_shell_wrapper_root" \
+  "checked-in verification contour must use unsupportedReason or a repo-owned entrypoint: env/develop.json (smoke)" \
+  "$generated_bindir"
+
+generated_sanctioned_direct_entrypoint_root="$tmpdir/generated-sanctioned-direct-entrypoint"
+cp -R "$generated_root" "$generated_sanctioned_direct_entrypoint_root"
+cat >"$generated_sanctioned_direct_entrypoint_root/env/develop.json" <<'EOF'
+{
+  "profileName": "develop",
+  "capabilities": {
+    "smoke": {
+      "command": ["./scripts/test/run-smoke.sh", "--profile", "env/local.json", "--run-root", "/tmp/generated-direct-entrypoint-smoke"]
+    }
+  }
+}
+EOF
+cat >"$generated_sanctioned_direct_entrypoint_root/automation/context/runtime-profile-policy.json" <<'EOF'
+{
+  "rootEnvProfiles": {
+    "canonicalExamples": [
+      "env/local.example.json",
+      "env/wsl.example.json",
+      "env/ci.example.json",
+      "env/windows-executor.example.json"
+    ],
+    "canonicalLocalPrivate": [
+      "env/local.json",
+      "env/wsl.json",
+      "env/ci.json",
+      "env/windows-executor.json"
+    ],
+    "sanctionedAdditionalProfiles": [
+      "env/develop.json"
+    ],
+    "localSandbox": "env/.local/"
+  }
+}
+EOF
+refresh_source_context "$generated_sanctioned_direct_entrypoint_root"
+(
+  cd "$generated_sanctioned_direct_entrypoint_root"
+  PATH="$generated_bindir:$PATH" ./scripts/qa/check-agent-docs.sh >/dev/null
+)
 
 generated_empty_identity_root="$tmpdir/generated-empty-identity"
 cp -R "$generated_root" "$generated_empty_identity_root"

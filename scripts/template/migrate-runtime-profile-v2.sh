@@ -32,6 +32,12 @@ wrap_shell_command_json() {
   jq -cn --arg cmd "$command_string" '["bash", "-lc", $cmd]'
 }
 
+unsupported_reason_json() {
+  local reason="$1"
+
+  jq -cn --arg reason "$reason" '{unsupportedReason: $reason}'
+}
+
 first_token() {
   local command_string="$1"
 
@@ -41,6 +47,70 @@ first_token() {
   fi
 
   awk '{print $1}' <<<"$command_string"
+}
+
+command_string_uses_make_target() {
+  local command_string="$1"
+  local first=""
+  local second=""
+
+  first="$(awk '{print $1}' <<<"$command_string")"
+  second="$(awk '{print $2}' <<<"$command_string")"
+
+  [ "$first" = "make" ] || return 1
+  [ -n "$second" ] || return 1
+  [[ "$second" != -* ]]
+}
+
+command_string_uses_repo_owned_entrypoint() {
+  local command_string="$1"
+  local first=""
+
+  first="$(first_token "$command_string")"
+  [ -n "$first" ] || return 1
+
+  case "$first" in
+    ./*|scripts/*|tests/*|features/*|src/*|automation/*|docs/*|env/*|.agents/*|.codex/*|.claude/*|Makefile)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+command_string_uses_shell_control_operators() {
+  local command_string="$1"
+
+  [[ "$command_string" == *"||"* ]] || \
+  [[ "$command_string" == *"&&"* ]] || \
+  [[ "$command_string" == *";"* ]] || \
+  [[ "$command_string" == *"|"* ]] || \
+  [[ "$command_string" == *">"* ]] || \
+  [[ "$command_string" == *"<"* ]]
+}
+
+migrate_verification_capability_json() {
+  local command_string="$1"
+  local missing_reason="$2"
+  local suspicious_reason="$3"
+
+  if [ -z "$command_string" ]; then
+    unsupported_reason_json "$missing_reason"
+    return
+  fi
+
+  if command_string_uses_shell_control_operators "$command_string"; then
+    unsupported_reason_json "$suspicious_reason"
+    return
+  fi
+
+  if command_string_uses_make_target "$command_string" || command_string_uses_repo_owned_entrypoint "$command_string"; then
+    jq -cn --arg cmd "$command_string" '{command: ["bash", "-lc", $cmd]}'
+    return
+  fi
+
+  unsupported_reason_json "$suspicious_reason"
 }
 
 extract_switch_value() {
@@ -178,10 +248,10 @@ main() {
     password_env_json='"ONEC_IB_PASSWORD"'
   fi
 
-  xunit_json="$(wrap_shell_command_json "$xunit_cmd")"
-  bdd_json="$(wrap_shell_command_json "$bdd_cmd")"
-  smoke_json="$(wrap_shell_command_json "$smoke_cmd")"
-  publish_json="$(wrap_shell_command_json "$publish_cmd")"
+  xunit_json="$(migrate_verification_capability_json "$xunit_cmd" "xUnit contour is not wired yet; migrate it before treating this profile as green." "Legacy xUnit contour looked like a placeholder or no-op command; replace it with a repo-owned entrypoint before treating this profile as green.")"
+  bdd_json="$(migrate_verification_capability_json "$bdd_cmd" "BDD contour is not wired yet; migrate it before treating this profile as green." "Legacy BDD contour looked like a placeholder or no-op command; replace it with a repo-owned entrypoint before treating this profile as green.")"
+  smoke_json="$(migrate_verification_capability_json "$smoke_cmd" "Smoke contour is not wired yet; migrate it before treating this profile as green." "Legacy smoke contour looked like a placeholder or no-op command; replace it with a repo-owned entrypoint before treating this profile as green.")"
+  publish_json="$(migrate_verification_capability_json "$publish_cmd" "Publish HTTP contour is not wired yet; migrate it before treating this profile as green." "Legacy publish contour looked like a placeholder or no-op command; replace it with a repo-owned entrypoint before treating this profile as green.")"
   diff_json="$(wrap_shell_command_json "$diff_cmd")"
 
   jq -n \
@@ -254,34 +324,10 @@ main() {
             { command: $diff_command }
           end
         ),
-        xunit: (
-          if $xunit_command == null then
-            { unsupportedReason: "xUnit contour is not wired yet; migrate it before treating this profile as green." }
-          else
-            { command: $xunit_command }
-          end
-        ),
-        bdd: (
-          if $bdd_command == null then
-            { unsupportedReason: "BDD contour is not wired yet; migrate it before treating this profile as green." }
-          else
-            { command: $bdd_command }
-          end
-        ),
-        smoke: (
-          if $smoke_command == null then
-            { unsupportedReason: "Smoke contour is not wired yet; migrate it before treating this profile as green." }
-          else
-            { command: $smoke_command }
-          end
-        ),
-        publishHttp: (
-          if $publish_command == null then
-            { unsupportedReason: "Publish HTTP contour is not wired yet; migrate it before treating this profile as green." }
-          else
-            { command: $publish_command }
-          end
-        )
+        xunit: $xunit_command,
+        bdd: $bdd_command,
+        smoke: $smoke_command,
+        publishHttp: $publish_command
       }
     }'
 }

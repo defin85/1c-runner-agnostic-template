@@ -190,8 +190,8 @@ export ONEC_IB_PASSWORD='...'
 - будет считаться `unsupported` capability в `doctor`;
 - не должен объявляться baseline-ready в sanctioned checked-in profile.
 
-Для checked-in example profiles и sanctioned additional presets в `smoke` / `xunit` / `bdd` используйте либо `unsupportedReason`, либо repo-owned entrypoint вроде `./scripts/...` или `make <target>`.
-Inline shell snippets и trivial success commands вроде `true`, `echo ...` или `bash -lc "..."` без repo-owned entrypoint semantic baseline должен отклонять.
+Для checked-in example profiles и sanctioned additional presets в `smoke` / `xunit` / `bdd` используйте либо `unsupportedReason`, либо прямой repo-owned entrypoint в `command[0]` вроде `./scripts/...` / `scripts/...`, либо `make <target>`.
+Inline shell snippets и trivial success commands вроде `true`, `echo ...` или `bash -lc "./scripts/... || true"` semantic baseline должен отклонять. Repo-owned path внутри shell-wrapper не считается допустимым checked-in contract.
 
 `diffSrc.command` тоже можно задать явно, но по умолчанию script использует `git diff -- ./src`.
 

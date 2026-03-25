@@ -12,6 +12,6 @@
     "Generated projects may declare checked-in team-shared presets here.",
     "Leave sanctionedAdditionalProfiles empty until the project intentionally commits a shared preset under env/*.json.",
     "Sanctioned checked-in profiles must not keep smoke/xunit/bdd as success-on-placeholder contours.",
-    "Checked-in smoke/xunit/bdd commands must use repo-owned entrypoints or unsupportedReason, not inline or trivial success commands."
+    "Checked-in smoke/xunit/bdd commands must use unsupportedReason or direct repo-owned entrypoints in command[0] (or make <target>), not shell wrappers, inline snippets, or trivial success commands."
   ]
 }

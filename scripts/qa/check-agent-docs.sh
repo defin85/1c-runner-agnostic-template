@@ -190,7 +190,6 @@ checked_in_command_token_references_repo_path() {
 
 checked_in_verification_command_is_repo_owned() {
   local -a command=("$@")
-  local token=""
 
   [ "$#" -gt 0 ] || return 1
 
@@ -198,13 +197,7 @@ checked_in_verification_command_is_repo_owned() {
     return 0
   fi
 
-  for token in "${command[@]}"; do
-    if checked_in_command_token_references_repo_path "$token"; then
-      return 0
-    fi
-  done
-
-  return 1
+  checked_in_command_token_references_repo_path "${command[0]}"
 }
 
 check_checked_in_verification_command_shape() {

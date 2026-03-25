@@ -41,7 +41,9 @@
 1. Проверьте `platform.binaryPath`.
 2. Проверьте `infobase.mode`, `server`/`ref` или `filePath`.
 3. Задайте `passwordEnv` вместо literal password.
-4. Проверьте `capabilities.xunit.command`, `capabilities.bdd.command`, `capabilities.smoke.command`.
+4. Проверьте `capabilities.xunit`, `capabilities.bdd`, `capabilities.smoke` и `capabilities.publishHttp`.
+   Generic shell placeholders, no-op commands и shell-wrapper chains helper теперь переводит в `unsupportedReason`.
+   Автоматически сохраняются только прямой repo-owned entrypoint вроде `./scripts/...` или `make <target>` без `||`, `&&`, `;`, pipe/redirection.
 5. Замените старый profile новым.
 6. Прогоните `./scripts/diag/doctor.sh --profile <new-profile>`.
 
@@ -83,7 +85,7 @@
       "sourceDir": "./src/cf"
     },
     "xunit": {
-      "command": ["bash", "-lc", "echo run xunit"]
+      "unsupportedReason": "Legacy xUnit contour looked like a placeholder or no-op command; replace it with a repo-owned entrypoint before treating this profile as green."
     }
   }
 }
