@@ -145,6 +145,8 @@ codex_workflows_file="$project_root/docs/agent/codex-workflows.md"
 operator_local_runbook_file="$project_root/docs/agent/operator-local-runbook.md"
 exec_plan_template_file="$project_root/docs/exec-plans/TEMPLATE.md"
 exec_plan_example_file="$project_root/docs/exec-plans/EXAMPLE.md"
+work_items_readme_file="$project_root/docs/work-items/README.md"
+work_items_template_file="$project_root/docs/work-items/TEMPLATE.md"
 metadata_index_file="$project_root/automation/context/metadata-index.generated.json"
 hotspots_summary_file="$project_root/automation/context/hotspots-summary.generated.md"
 project_delta_hints_file="$project_root/automation/context/project-delta-hints.json"
@@ -169,7 +171,7 @@ assert_contains "$agents_file" 'Use [automation/context/runtime-profile-policy.j
 assert_contains "$agents_file" 'Use [docs/agent/generated-project-verification.md](docs/agent/generated-project-verification.md) and `make agent-verify` as the first no-1C verification path.'
 assert_contains "$agents_file" 'Use [docs/template-maintenance.md](docs/template-maintenance.md) only for template refresh and maintenance work.'
 assert_contains "$agents_file" 'Use [docs/agent/codex-workflows.md](docs/agent/codex-workflows.md) as the canonical Codex workflow guide after the first router step.'
-assert_contains "$agents_file" 'Use [docs/agent/review.md](docs/agent/review.md), [docs/agent/operator-local-runbook.md](docs/agent/operator-local-runbook.md), [env/README.md](env/README.md), [.agents/skills/README.md](.agents/skills/README.md), and [docs/exec-plans/README.md](docs/exec-plans/README.md) as the main follow-up routers.'
+assert_contains "$agents_file" 'Use [docs/agent/review.md](docs/agent/review.md), [docs/agent/operator-local-runbook.md](docs/agent/operator-local-runbook.md), [env/README.md](env/README.md), [.agents/skills/README.md](.agents/skills/README.md), [docs/exec-plans/README.md](docs/exec-plans/README.md), and [docs/work-items/README.md](docs/work-items/README.md) as the main follow-up routers.'
 assert_contains "$agents_file" 'Do not move to production code for new or major changes without explicit approval. Canonical signal: `Go!`.'
 assert_contains "$agents_file" 'Use `bd` as the source of truth for code-change tracking.'
 assert_contains "$agents_file" 'Final delivery must include explicit `Requirement -> Code -> Test` evidence with concrete file paths.'
@@ -192,6 +194,7 @@ assert_contains "$readme_file" "[.agents/skills/README.md](.agents/skills/README
 assert_contains "$readme_file" "[.codex/README.md](.codex/README.md)"
 assert_contains "$readme_file" "[docs/agent/codex-workflows.md](docs/agent/codex-workflows.md)"
 assert_contains "$readme_file" "[docs/exec-plans/README.md](docs/exec-plans/README.md)"
+assert_contains "$readme_file" "[docs/work-items/README.md](docs/work-items/README.md)"
 assert_contains "$readme_file" "[docs/template-maintenance.md](docs/template-maintenance.md)"
 assert_contains "$readme_file" "local-only"
 assert_contains "$readme_file" "remote-backed"
@@ -204,6 +207,7 @@ assert_contains "$project_map_file" "generated-derived"
 assert_contains "$project_map_file" "automation/context/runtime-profile-policy.json"
 assert_contains "$project_map_file" "docs/agent/architecture-map.md"
 assert_contains "$project_map_file" "docs/agent/runtime-quickstart.md"
+assert_contains "$project_map_file" "docs/work-items/README.md"
 assert_contains "$project_map_file" "automation/context/project-delta-hints.json"
 assert_contains "$project_map_file" "automation/context/project-delta-hotspots.generated.md"
 assert_contains "$openspec_project_file" "generated 1С-проект"
@@ -217,18 +221,26 @@ assert_contains "$runtime_quickstart_file" "## Contour Quick Reference"
 assert_contains "$runtime_quickstart_file" "automation/context/runtime-support-matrix.md"
 assert_contains "$runtime_quickstart_file" "## Optional Project-Specific Baseline Extension"
 assert_contains "$runtime_quickstart_file" "docs/agent/operator-local-runbook.md"
+assert_contains "$runtime_quickstart_file" "docs/work-items/README.md"
 assert_contains "$codex_workflows_file" "# Codex Workflows"
 assert_contains "$codex_workflows_file" "docs/exec-plans/TEMPLATE.md"
+assert_contains "$codex_workflows_file" "docs/work-items/README.md"
+assert_contains "$codex_workflows_file" "docs/work-items/TEMPLATE.md"
 assert_contains "$operator_local_runbook_file" "# Operator-Local Runbook"
 assert_contains "$operator_local_runbook_file" "automation/context/runtime-support-matrix.md"
+assert_contains "$operator_local_runbook_file" "docs/work-items/README.md"
 assert_contains "$exec_plan_template_file" "# Execution Plan Template"
 assert_contains "$exec_plan_example_file" "# Example Execution Plan"
+assert_contains "$work_items_readme_file" "# Work Items"
+assert_contains "$work_items_readme_file" "docs/exec-plans/README.md"
+assert_contains "$work_items_template_file" "# Work Item Template"
 assert_contains "$metadata_index_file" "\"inventoryRole\": \"generated-derived\""
 assert_contains "$hotspots_summary_file" "# Generated Hotspots Summary"
 assert_contains "$hotspots_summary_file" "## Freshness"
 assert_contains "$hotspots_summary_file" "automation/context/runtime-profile-policy.json"
 assert_contains "$hotspots_summary_file" "docs/agent/architecture-map.md"
 assert_contains "$hotspots_summary_file" "docs/agent/runtime-quickstart.md"
+assert_contains "$hotspots_summary_file" "docs/work-items/README.md"
 assert_contains "$hotspots_summary_file" "automation/context/project-delta-hotspots.generated.md"
 assert_contains "$project_delta_hotspots_file" "# Generated Project-Delta Hotspots"
 assert_contains "$project_delta_hotspots_file" "automation/context/project-delta-hints.json"
@@ -240,6 +252,8 @@ assert_contains "$manifest_file" "automation/context/templates/generated-project
 assert_contains "$manifest_file" "automation/context/templates/generated-project-project-delta-hints.json"
 assert_contains "$manifest_file" "automation/context/templates/generated-project-project-delta-hotspots.md"
 assert_contains "$manifest_file" "automation/context/templates/generated-project-runtime-profile-policy.json"
+assert_contains "$manifest_file" "automation/context/templates/generated-project-work-items-readme.md"
+assert_contains "$manifest_file" "automation/context/templates/generated-project-work-items-template.md"
 assert_contains "$manifest_file" "docs/AGENTS.md"
 assert_contains "$manifest_file" "env/AGENTS.md"
 assert_contains "$manifest_file" "tests/AGENTS.md"
@@ -312,7 +326,7 @@ assert_contains "$metadata_index_file" '"subsystems": ["src/cf/Subsystems/Backof
 assert_contains "$metadata_index_file" '"extensions": ["src/cfe/MainExtension"]'
 assert_contains "$metadata_index_file" '"externalProcessors": ["src/epf/ImportWizard"]'
 assert_contains "$metadata_index_file" '"reports": ["src/erf/RevenueReport"]'
-assert_jq "$metadata_index_file" '.authoritativeDocs.runtimeProfilePolicy == "automation/context/runtime-profile-policy.json" and .authoritativeDocs.hotspotsSummary == "automation/context/hotspots-summary.generated.md" and .authoritativeDocs.architectureMap == "docs/agent/architecture-map.md" and .authoritativeDocs.runtimeQuickstart == "docs/agent/runtime-quickstart.md" and .authoritativeDocs.codexWorkflows == "docs/agent/codex-workflows.md" and .authoritativeDocs.operatorLocalRunbook == "docs/agent/operator-local-runbook.md" and .authoritativeDocs.projectDeltaHints == "automation/context/project-delta-hints.json" and .authoritativeDocs.projectDeltaHotspots == "automation/context/project-delta-hotspots.generated.md"' "generated-metadata-authoritative-docs"
+assert_jq "$metadata_index_file" '.authoritativeDocs.runtimeProfilePolicy == "automation/context/runtime-profile-policy.json" and .authoritativeDocs.hotspotsSummary == "automation/context/hotspots-summary.generated.md" and .authoritativeDocs.architectureMap == "docs/agent/architecture-map.md" and .authoritativeDocs.runtimeQuickstart == "docs/agent/runtime-quickstart.md" and .authoritativeDocs.codexWorkflows == "docs/agent/codex-workflows.md" and .authoritativeDocs.operatorLocalRunbook == "docs/agent/operator-local-runbook.md" and .authoritativeDocs.workItemsGuide == "docs/work-items/README.md" and .authoritativeDocs.workItemsTemplate == "docs/work-items/TEMPLATE.md" and .authoritativeDocs.projectDeltaHints == "automation/context/project-delta-hints.json" and .authoritativeDocs.projectDeltaHotspots == "automation/context/project-delta-hotspots.generated.md"' "generated-metadata-authoritative-docs"
 assert_contains "$hotspots_summary_file" 'Configuration name: `SmokeConfiguration`'
 assert_contains "$hotspots_summary_file" '`metadata-index.generated.json` checksum:'
 assert_contains "$project_delta_hotspots_file" "No project-delta selectors are declared yet."

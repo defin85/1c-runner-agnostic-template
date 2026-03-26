@@ -248,6 +248,13 @@ assert_fails_with "$generated_stale_project_delta_root" \
   "stale context file: $generated_stale_project_delta_root/automation/context/project-delta-hotspots.generated.md" \
   "$generated_bindir"
 
+source_managed_work_items_root="$tmpdir/source-managed-work-items"
+copy_repo "$source_managed_work_items_root"
+refresh_source_context "$source_managed_work_items_root"
+printf 'docs/work-items/README.md\n' >>"$source_managed_work_items_root/automation/context/template-managed-paths.txt"
+assert_fails_with "$source_managed_work_items_root" \
+  "project-owned work-item guide must not become template-managed: automation/context/template-managed-paths.txt"
+
 generated_missing_runbook_root="$tmpdir/generated-missing-runbook"
 cp -R "$generated_root" "$generated_missing_runbook_root"
 sed -i 's/make template-check-update/template-check-update/' \
@@ -299,6 +306,20 @@ cp -R "$generated_root" "$generated_missing_operator_local_runbook_root"
 rm -f "$generated_missing_operator_local_runbook_root/docs/agent/operator-local-runbook.md"
 assert_fails_with "$generated_missing_operator_local_runbook_root" \
   "missing agent-facing path: docs/agent/operator-local-runbook.md" \
+  "$generated_bindir"
+
+generated_missing_work_items_readme_root="$tmpdir/generated-missing-work-items-readme"
+cp -R "$generated_root" "$generated_missing_work_items_readme_root"
+rm -f "$generated_missing_work_items_readme_root/docs/work-items/README.md"
+assert_fails_with "$generated_missing_work_items_readme_root" \
+  "missing agent-facing path: docs/work-items/README.md" \
+  "$generated_bindir"
+
+generated_missing_work_items_template_root="$tmpdir/generated-missing-work-items-template"
+cp -R "$generated_root" "$generated_missing_work_items_template_root"
+rm -f "$generated_missing_work_items_template_root/docs/work-items/TEMPLATE.md"
+assert_fails_with "$generated_missing_work_items_template_root" \
+  "missing agent-facing path: docs/work-items/TEMPLATE.md" \
   "$generated_bindir"
 
 generated_missing_project_delta_hints_root="$tmpdir/generated-missing-project-delta-hints"

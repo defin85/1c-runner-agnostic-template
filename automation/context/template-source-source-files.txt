@@ -44,6 +44,9 @@
 ./automation/context/templates/generated-project-architecture-map.md
 ./automation/context/templates/generated-project-hotspots-summary.md
 ./automation/context/templates/generated-project-metadata-index.json
+./automation/context/templates/generated-project-operator-local-runbook.md
+./automation/context/templates/generated-project-project-delta-hints.json
+./automation/context/templates/generated-project-project-delta-hotspots.md
 ./automation/context/templates/generated-project-project-map.md
 ./automation/context/templates/generated-project-runtime-profile-policy.json
 ./automation/context/templates/generated-project-runtime-quickstart.md
@@ -54,6 +57,7 @@
 ./docs/AGENTS.md
 ./docs/README.md
 ./docs/agent/architecture.md
+./docs/agent/codex-workflows.md
 ./docs/agent/generated-project-index.md
 ./docs/agent/generated-project-verification.md
 ./docs/agent/index.md
@@ -174,6 +178,14 @@
 ./openspec/changes/expand-generated-project-productivity-surface/specs/template-ci-contours/spec.md
 ./openspec/changes/expand-generated-project-productivity-surface/tasks.md
 ./openspec/changes/expand-generated-project-productivity-surface/traceability.md
+./openspec/changes/refine-generated-project-curated-truth/design.md
+./openspec/changes/refine-generated-project-curated-truth/proposal.md
+./openspec/changes/refine-generated-project-curated-truth/specs/generated-context-artifacts/spec.md
+./openspec/changes/refine-generated-project-curated-truth/specs/generated-project-agent-guidance/spec.md
+./openspec/changes/refine-generated-project-curated-truth/specs/generated-runtime-support-matrix/spec.md
+./openspec/changes/refine-generated-project-curated-truth/specs/template-ci-contours/spec.md
+./openspec/changes/refine-generated-project-curated-truth/tasks.md
+./openspec/changes/refine-generated-project-curated-truth/traceability.md
 ./openspec/project.md
 ./openspec/specs/agent-runtime-toolkit/spec.md
 ./openspec/specs/generated-context-artifacts/spec.md

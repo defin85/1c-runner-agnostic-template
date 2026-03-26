@@ -43,12 +43,14 @@
 ./docs/exec-plans/active
 ./docs/exec-plans/completed
 ./docs/migrations
+./docs/work-items
 ./env
 ./env/.local
 ./features
 ./features/examples
 ./openspec
 ./openspec/changes
+./openspec/changes/add-generated-project-work-item-workspace
 ./openspec/changes/archive
 ./openspec/changes/expand-generated-project-productivity-surface
 ./openspec/changes/refine-generated-project-curated-truth

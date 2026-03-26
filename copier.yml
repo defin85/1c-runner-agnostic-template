@@ -28,6 +28,8 @@ _exclude:
   - automation/context/template-source-metadata-index.json
   - automation/context/template-source-tree.txt
   - automation/context/template-source-source-files.txt
+  - docs/work-items/README.md
+  - docs/work-items/TEMPLATE.md
 _message_before_update: |-
   Перед `copier update`:
     - убедитесь, что конечный проект находится в Git и рабочее дерево чистое;

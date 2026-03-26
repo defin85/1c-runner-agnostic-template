@@ -100,10 +100,11 @@ write_generated_readme_router() {
 - Operator-local runtime bridge: [docs/agent/operator-local-runbook.md](docs/agent/operator-local-runbook.md).
 - Project-specific runtime digest: [docs/agent/runtime-quickstart.md](docs/agent/runtime-quickstart.md).
 - Checked-in runtime support truth: [automation/context/runtime-support-matrix.md](automation/context/runtime-support-matrix.md), [automation/context/runtime-support-matrix.json](automation/context/runtime-support-matrix.json).
+- Long-running companion workspace: [docs/work-items/README.md](docs/work-items/README.md).
 - Project-specific delta bridge: [automation/context/project-delta-hotspots.generated.md](automation/context/project-delta-hotspots.generated.md).
 - Generated-derived search aids: [automation/context/hotspots-summary.generated.md](automation/context/hotspots-summary.generated.md), [automation/context/metadata-index.generated.json](automation/context/metadata-index.generated.json).
 - Verification and runtime contracts: [docs/agent/generated-project-verification.md](docs/agent/generated-project-verification.md), [env/README.md](env/README.md), [automation/context/runtime-profile-policy.json](automation/context/runtime-profile-policy.json).
-- Follow-up routers: [docs/agent/review.md](docs/agent/review.md), [.agents/skills/README.md](.agents/skills/README.md), [.codex/README.md](.codex/README.md), [docs/exec-plans/README.md](docs/exec-plans/README.md).
+- Follow-up routers: [docs/agent/review.md](docs/agent/review.md), [.agents/skills/README.md](.agents/skills/README.md), [.codex/README.md](.codex/README.md), [docs/exec-plans/README.md](docs/exec-plans/README.md), [docs/work-items/README.md](docs/work-items/README.md).
 - Template maintenance path вынесен в [docs/template-maintenance.md](docs/template-maintenance.md) и не является primary feature-delivery workflow.
 <!-- RUNNER_AGNOSTIC_PROJECT:END -->
 EOF
@@ -139,6 +140,7 @@ write_generated_readme_starter() {
 - \`docs/agent/operator-local-runbook.md\` — project-owned bridge для operator-local contour-ов;
 - \`docs/agent/runtime-quickstart.md\` — project-owned короткий digest по runnable contour-ам и prerequisites;
 - \`automation/context/runtime-support-matrix.md\` и \`automation/context/runtime-support-matrix.json\` — checked-in runtime support truth;
+- \`docs/work-items/\` — project-owned workspace для bulky supporting artifacts длинных задач;
 - \`automation/context/project-delta-hints.json\` — project-owned selectors для project-specific customization layer;
 - \`automation/context/project-delta-hotspots.generated.md\` — generated-derived bridge к project-specific hotspots;
 - \`automation/context/hotspots-summary.generated.md\` — compact summary-first карта hot paths;
@@ -158,6 +160,7 @@ write_generated_readme_starter() {
 - Operator-local runtime bridge: [docs/agent/operator-local-runbook.md](docs/agent/operator-local-runbook.md).
 - Project-specific runtime digest: [docs/agent/runtime-quickstart.md](docs/agent/runtime-quickstart.md).
 - Checked-in runtime truth: [automation/context/runtime-support-matrix.md](automation/context/runtime-support-matrix.md), [automation/context/runtime-support-matrix.json](automation/context/runtime-support-matrix.json).
+- Work-item workspace for bulky long-running artifacts: [docs/work-items/README.md](docs/work-items/README.md).
 - Project-specific delta bridge: [automation/context/project-delta-hotspots.generated.md](automation/context/project-delta-hotspots.generated.md).
 - Runtime profile contract и sanctioned checked-in presets: [env/README.md](env/README.md), [automation/context/runtime-profile-policy.json](automation/context/runtime-profile-policy.json).
 - Template maintenance path вынесен в [docs/template-maintenance.md](docs/template-maintenance.md) и не является primary feature-delivery workflow.
@@ -165,7 +168,7 @@ write_generated_readme_starter() {
 ## Ownership Classes
 
 - \`template-managed\`: \`scripts/\`, template docs, shared skills, CI contours, managed blocks, \`.template-overlay-version\`.
-- \`seed-once / project-owned\`: \`README.md\`, \`openspec/project.md\`, \`automation/context/project-map.md\`, \`docs/agent/architecture-map.md\`, \`docs/agent/operator-local-runbook.md\`, \`docs/agent/runtime-quickstart.md\`, \`automation/context/project-delta-hints.json\`, \`automation/context/runtime-profile-policy.json\`, \`automation/context/runtime-support-matrix.md\`, \`automation/context/runtime-support-matrix.json\`.
+- \`seed-once / project-owned\`: \`README.md\`, \`openspec/project.md\`, \`automation/context/project-map.md\`, \`docs/agent/architecture-map.md\`, \`docs/agent/operator-local-runbook.md\`, \`docs/agent/runtime-quickstart.md\`, \`docs/work-items/README.md\`, \`docs/work-items/TEMPLATE.md\`, \`automation/context/project-delta-hints.json\`, \`automation/context/runtime-profile-policy.json\`, \`automation/context/runtime-support-matrix.md\`, \`automation/context/runtime-support-matrix.json\`.
 - \`generated-derived\`: \`automation/context/source-tree.generated.txt\`, \`automation/context/metadata-index.generated.json\`, \`automation/context/hotspots-summary.generated.md\`, \`automation/context/project-delta-hotspots.generated.md\`.
 - \`local-private\`: \`env/local.json\`, \`env/wsl.json\`, \`env/.local/*.json\`, machine-specific MCP/Codex overrides.
 
@@ -236,7 +239,7 @@ write_project_map_starter() {
 ## Ownership Model
 
 - \`template-managed\`: shared runtime/test/QA contract, template docs, shared skills, managed blocks
-- \`seed-once / project-owned\`: этот файл, \`README.md\`, \`openspec/project.md\`
+- \`seed-once / project-owned\`: этот файл, \`README.md\`, \`openspec/project.md\`, \`docs/work-items/README.md\`, \`docs/work-items/TEMPLATE.md\`
 - \`project-owned policy\`: \`automation/context/runtime-profile-policy.json\`
 - \`project-owned hints\`: \`automation/context/project-delta-hints.json\`
 - \`generated-derived\`: \`automation/context/source-tree.generated.txt\`, \`automation/context/metadata-index.generated.json\`, \`automation/context/hotspots-summary.generated.md\`, \`automation/context/project-delta-hotspots.generated.md\`
@@ -263,6 +266,7 @@ write_project_map_starter() {
 - Codex workflow guide: \`docs/agent/codex-workflows.md\`
 - operator-local runtime bridge: \`docs/agent/operator-local-runbook.md\`
 - runtime quick answers: \`docs/agent/runtime-quickstart.md\`
+- long-running work-item workspace: \`docs/work-items/README.md\`
 - project-specific delta selectors: \`automation/context/project-delta-hints.json\`
 - generated delta bridge: \`automation/context/project-delta-hotspots.generated.md\`
 - эти файлы должны оставаться согласованными с \`automation/context/project-map.md\`, runtime support matrix и generated-derived refresh path
@@ -274,6 +278,7 @@ write_project_map_starter() {
 - code architecture: \`docs/agent/architecture-map.md\`
 - operator-local runtime: \`docs/agent/operator-local-runbook.md\`
 - runtime quick reference: \`docs/agent/runtime-quickstart.md\`
+- work-item workspace: \`docs/work-items/README.md\`
 - project-delta bridge: \`automation/context/project-delta-hotspots.generated.md\`
 - review: \`docs/agent/review.md\`
 - env contract: \`env/README.md\`
@@ -285,6 +290,7 @@ write_project_map_starter() {
 - Зафиксируйте реальные bounded contexts, бизнес-термины и ключевые metadata entrypoint-ы.
 - Перенесите первые ответы “где менять X?” в \`docs/agent/architecture-map.md\`.
 - Держите \`docs/agent/runtime-quickstart.md\` и \`docs/agent/operator-local-runbook.md\` согласованными с \`automation/context/runtime-support-matrix.md\` и \`.json\`.
+- Держите \`docs/work-items/\` для bulky supporting artifacts, а progress и handoff оставляйте в \`docs/exec-plans/\`.
 - Заполните \`automation/context/project-delta-hints.json\`, когда появятся стабильные project-specific prefixes, и refresh-ите \`automation/context/project-delta-hotspots.generated.md\`.
 - Дополните секции HTTP services, scheduled jobs, forms и extensions по фактическому проекту.
 - Держите этот файл как curated project-owned truth, а generated-derived inventory refresh-ите отдельной командой.
@@ -331,6 +337,7 @@ write_architecture_map_starter() {
 - curated repo map: `automation/context/project-map.md`
 - project-delta selectors: `automation/context/project-delta-hints.json`
 - project-delta bridge: `automation/context/project-delta-hotspots.generated.md`
+- long-running work-item workspace: `docs/work-items/README.md`
 - runtime quick answers: `docs/agent/runtime-quickstart.md`
 - summary-first generated map: `automation/context/hotspots-summary.generated.md`
 - raw generated inventory: `automation/context/metadata-index.generated.json`
@@ -375,6 +382,7 @@ write_operator_local_runbook_starter() {
 
 - checked-in runtime truth: `automation/context/runtime-support-matrix.md`, `automation/context/runtime-support-matrix.json`
 - runtime digest: `docs/agent/runtime-quickstart.md`
+- long-running companion workspace: `docs/work-items/README.md`
 - general runtime contract: `env/README.md`
 - verification semantics: `docs/agent/generated-project-verification.md`
 EOF
@@ -421,9 +429,108 @@ write_runtime_quickstart_starter() {
 - checked-in runtime truth: `automation/context/runtime-support-matrix.md`, `automation/context/runtime-support-matrix.json`
 - sanctioned checked-in profile policy: `automation/context/runtime-profile-policy.json`
 - operator-local bridge: `docs/agent/operator-local-runbook.md`
+- long-running companion workspace: `docs/work-items/README.md`
 - generated verification guide: `docs/agent/generated-project-verification.md`
 - general runtime contract: `env/README.md`
 - code routing companion: `docs/agent/architecture-map.md`
+EOF
+}
+
+write_work_items_readme_starter() {
+  local target_file="$1"
+
+  ensure_parent_dir "$target_file"
+  cat >"$target_file" <<'EOF'
+# Work Items
+
+`docs/work-items/` является project-owned workspace для supporting artifacts длинных задач.
+Используйте его, когда одного change contract в `OpenSpec` и одного living progress файла в `docs/exec-plans/` уже недостаточно.
+
+## Role Separation
+
+- `OpenSpec` — change contract, requirements, acceptance.
+- `bd` — executable tracking и live status.
+- `docs/exec-plans/active/<task-id>.md` — living progress, handoff и session restart.
+- `docs/work-items/<task-id>/` — extracted notes, attachment summaries, bulky inputs, task-local evidence и supporting materials.
+
+## When To Create A Work-Item Folder
+
+1. У задачи есть дополнительные материалы, которые не должны жить в `src/`.
+2. Нужны extracted summaries для raw attachments, писем или operator notes.
+3. Нужны task-local evidence links, integration notes или bulky references рядом с exec-plan.
+
+## What Not To Put Here
+
+- не используйте `docs/work-items/` как замену `bd`;
+- не дублируйте здесь progress, который уже должен жить в `docs/exec-plans/`;
+- не переносите сюда code payload из `src/`.
+
+## Suggested Layout
+
+- `docs/work-items/<task-id>/index.md` — task-local landing page;
+- `docs/work-items/<task-id>/notes.md` — extracted notes и summaries;
+- `docs/work-items/<task-id>/attachments/` — raw supporting files, если их правда нужно version-control-ить;
+- `docs/exec-plans/active/<task-id>.md` — companion living plan с progress и handoff.
+
+## Starter Workflow
+
+1. Если change новый или неоднозначный, начните с `OpenSpec`.
+2. После approval переведите execution tracking в `bd`.
+3. Скопируйте `docs/exec-plans/TEMPLATE.md` в `docs/exec-plans/active/<task-id>.md`.
+4. Если нужны bulky supporting artifacts, скопируйте `docs/work-items/TEMPLATE.md` в `docs/work-items/<task-id>/index.md`.
+
+## Related Truth
+
+- planning guide: `docs/agent/codex-workflows.md`
+- onboarding router: `docs/agent/generated-project-index.md`
+- execution plans contract: `docs/exec-plans/README.md`
+- work-item starter: `docs/work-items/TEMPLATE.md`
+EOF
+}
+
+write_work_items_template_starter() {
+  local target_file="$1"
+
+  ensure_parent_dir "$target_file"
+  cat >"$target_file" <<'EOF'
+# Work Item Template
+
+Скопируйте этот файл в `docs/work-items/<task-id>/index.md`, когда длинной задаче нужны supporting artifacts рядом с exec-plan.
+
+## Identity
+
+- Task / change id:
+- Exec plan: `docs/exec-plans/active/<task-id>.md`
+- OpenSpec change / spec:
+- Related code paths:
+
+## Inputs
+
+- source materials:
+- linked runbooks:
+- linked tests / checks:
+
+## Extracted Notes
+
+-
+
+## Decisions
+
+-
+
+## Evidence
+
+-
+
+## Attachments
+
+- raw files, если они нужны:
+- markdown summaries:
+
+## Handoff Notes
+
+- what the next session should read first:
+- what stays in exec-plan vs what stays here:
 EOF
 }
 
@@ -682,6 +789,8 @@ Project-specific business context, bounded contexts и metadata entrypoint-ы к
 
 - Deployable source tree живёт в \`src/\`.
 - Intent и изменения фиксируются в \`openspec/\`.
+- \`docs/exec-plans/\` хранит living progress и handoff для длинных задач.
+- \`docs/work-items/\` хранит bulky supporting artifacts, которые не должны жить в \`OpenSpec\`, одном exec-plan файле или в \`src/\`.
 - Runtime/test/QA contract задаётся repo-owned scripts.
 - Template maintenance path изолирован от feature-delivery workflow и документирован отдельно в \`docs/template-maintenance.md\`.
 
@@ -712,6 +821,8 @@ seed_generated_project_surface_on_copy() {
   write_architecture_map_starter "$root/docs/agent/architecture-map.md"
   write_operator_local_runbook_starter "$root/docs/agent/operator-local-runbook.md"
   write_runtime_quickstart_starter "$root/docs/agent/runtime-quickstart.md"
+  write_work_items_readme_starter "$root/docs/work-items/README.md"
+  write_work_items_template_starter "$root/docs/work-items/TEMPLATE.md"
   write_project_delta_hints_starter "$root/automation/context/project-delta-hints.json"
   write_runtime_profile_policy_starter "$root/automation/context/runtime-profile-policy.json"
   write_runtime_support_matrix_json_starter "$root/automation/context/runtime-support-matrix.json"
@@ -741,6 +852,14 @@ refresh_generated_project_surface_on_update() {
 
   if [ ! -f "$root/docs/agent/runtime-quickstart.md" ]; then
     write_runtime_quickstart_starter "$root/docs/agent/runtime-quickstart.md"
+  fi
+
+  if [ ! -f "$root/docs/work-items/README.md" ]; then
+    write_work_items_readme_starter "$root/docs/work-items/README.md"
+  fi
+
+  if [ ! -f "$root/docs/work-items/TEMPLATE.md" ]; then
+    write_work_items_template_starter "$root/docs/work-items/TEMPLATE.md"
   fi
 
   if [ ! -f "$root/automation/context/project-delta-hints.json" ]; then

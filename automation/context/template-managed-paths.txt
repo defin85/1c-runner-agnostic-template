@@ -42,6 +42,8 @@ automation/context/templates/generated-project-runtime-profile-policy.json
 automation/context/templates/generated-project-runtime-quickstart.md
 automation/context/templates/generated-project-runtime-support-matrix.json
 automation/context/templates/generated-project-runtime-support-matrix.md
+automation/context/templates/generated-project-work-items-readme.md
+automation/context/templates/generated-project-work-items-template.md
 automation/prompts/README.md
 docs/AGENTS.md
 docs/README.md

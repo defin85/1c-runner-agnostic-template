@@ -11,7 +11,7 @@
 - Для первого прогона используйте `make agent-verify`.
 - Для generated project используйте [docs/agent/codex-workflows.md](../docs/agent/codex-workflows.md) как canonical workflow guide после первого router step.
 - Для operator-local runtime решений в generated project держите project-owned bridge в `docs/agent/operator-local-runbook.md`.
-- Для generated project дополнительно сверяйтесь с `automation/context/runtime-support-matrix.md`, `docs/agent/runtime-quickstart.md`, [env/README.md](../env/README.md), [docs/agent/review.md](../docs/agent/review.md), [.agents/skills/README.md](../.agents/skills/README.md), [docs/exec-plans/README.md](../docs/exec-plans/README.md) и [docs/exec-plans/TEMPLATE.md](../docs/exec-plans/TEMPLATE.md).
+- Для generated project дополнительно сверяйтесь с `automation/context/runtime-support-matrix.md`, `docs/agent/runtime-quickstart.md`, [env/README.md](../env/README.md), [docs/agent/review.md](../docs/agent/review.md), [.agents/skills/README.md](../.agents/skills/README.md), [docs/exec-plans/README.md](../docs/exec-plans/README.md), [docs/exec-plans/TEMPLATE.md](../docs/exec-plans/TEMPLATE.md) и [docs/work-items/README.md](../docs/work-items/README.md).
 - Repeatable workflows лежат в [.agents/skills/README.md](../.agents/skills/README.md).
 
 ## Closeout

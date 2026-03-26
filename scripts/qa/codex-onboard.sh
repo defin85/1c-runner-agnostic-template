@@ -27,6 +27,7 @@ Generated-project router reference: docs/agent/generated-project-index.md
 Generated-project workflow guide: docs/agent/codex-workflows.md
 Generated-project support-matrix templates: automation/context/templates/generated-project-runtime-support-matrix.md, automation/context/templates/generated-project-runtime-support-matrix.json
 Generated-project productivity scaffolds: automation/context/templates/generated-project-architecture-map.md, automation/context/templates/generated-project-operator-local-runbook.md, automation/context/templates/generated-project-runtime-quickstart.md, automation/context/templates/generated-project-project-delta-hints.json, automation/context/templates/generated-project-project-delta-hotspots.md
+Generated-project work-item scaffolds: automation/context/templates/generated-project-work-items-readme.md, automation/context/templates/generated-project-work-items-template.md
 Execution plan starters: docs/exec-plans/TEMPLATE.md, docs/exec-plans/EXAMPLE.md
 
 Codex controls:
@@ -61,6 +62,8 @@ print_generated_repo_onboard() {
   local project_delta_hints_path="automation/context/project-delta-hints.json"
   local project_delta_hotspots_path="automation/context/project-delta-hotspots.generated.md"
   local exec_plan_template_path="docs/exec-plans/TEMPLATE.md"
+  local work_items_readme_path="docs/work-items/README.md"
+  local work_items_template_path="docs/work-items/TEMPLATE.md"
   local config_name=""
   local contour_line=""
   local extension_line=""
@@ -75,6 +78,8 @@ print_generated_repo_onboard() {
   require_generated_path "$project_delta_hints_path"
   require_generated_path "$project_delta_hotspots_path"
   require_generated_path "$exec_plan_template_path"
+  require_generated_path "$work_items_readme_path"
+  require_generated_path "$work_items_template_path"
 
   if [ -f "$root/$metadata_path" ]; then
     config_name="$(jq -r '.configuration.name // ""' "$root/$metadata_path")"
@@ -103,6 +108,8 @@ Project-delta hotspots: $project_delta_hotspots_path
 Summary-first map: $summary_path
 Raw inventory: $metadata_path
 Exec-plan template: $exec_plan_template_path
+Work-items guide: $work_items_readme_path
+Work-item template: $work_items_template_path
 Project-specific baseline extension: $extension_line
 EOF
 
@@ -137,6 +144,7 @@ Planning matrix:
 - OpenSpec -> use for new capability, breaking change, architecture shift, or ambiguous intent
 - bd -> use for executable code-change tracking after approval
 - docs/exec-plans/TEMPLATE.md -> copy-ready starter for long-running, multi-session, or cross-cutting work
+- docs/work-items/README.md -> task-local supporting artifacts workspace next to the exec-plan
 
 Follow-up routers:
 - docs/agent/review.md
@@ -146,6 +154,7 @@ Follow-up routers:
 - .agents/skills/README.md
 - .codex/README.md
 - docs/exec-plans/README.md
+- docs/work-items/README.md
 - docs/template-maintenance.md
 
 Next commands:
