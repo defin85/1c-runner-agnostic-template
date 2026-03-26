@@ -430,6 +430,7 @@ for rel in \
   docs/agent/verify.md \
   docs/agent/review.md \
   docs/template-maintenance.md \
+  docs/template-release.md \
   docs/exec-plans/README.md \
   docs/exec-plans/active/.gitkeep \
   docs/exec-plans/completed/.gitkeep \
@@ -460,6 +461,7 @@ require_markdown_link "docs/agent/index.md" "source-vs-generated.md"
 require_markdown_link "docs/agent/index.md" "verify.md"
 require_markdown_link "docs/agent/index.md" "review.md"
 require_markdown_link "docs/agent/index.md" "../template-maintenance.md"
+require_markdown_link "docs/agent/index.md" "../template-release.md"
 require_markdown_link "docs/agent/index.md" "../exec-plans/README.md"
 require_markdown_link "docs/agent/index.md" "../../.agents/skills/README.md"
 require_markdown_link "docs/agent/index.md" "../../.codex/README.md"
@@ -551,6 +553,12 @@ require_contains "docs/template-maintenance.md" ".template-overlay-version"
 require_contains "docs/template-maintenance.md" "automation/context/template-managed-paths.txt"
 require_contains "docs/template-maintenance.md" "./scripts/llm/export-context.sh --write"
 require_contains "docs/template-maintenance.md" "tests/smoke/copier-update-ready.sh"
+require_contains "docs/template-release.md" "source repo шаблона"
+require_contains "docs/template-release.md" "./scripts/release/install-source-hooks.sh"
+require_contains "docs/template-release.md" "./scripts/release/publish-overlay-release.sh --tag v0.3.6"
+require_contains "docs/template-release.md" "origin/main"
+require_contains "docs/template-release.md" "refs/tags/v*"
+require_contains "docs/template-release.md" "make agent-verify"
 require_contains ".codex/README.md" "env/README.md"
 require_contains ".codex/README.md" "docs/agent/review.md"
 require_contains ".codex/README.md" "docs/exec-plans/README.md"
@@ -596,6 +604,7 @@ for rel in \
   docs/agent/verify.md \
   docs/agent/review.md \
   docs/template-maintenance.md \
+  docs/template-release.md \
   docs/exec-plans/README.md \
   automation/AGENTS.md \
   .codex/README.md \
@@ -616,9 +625,18 @@ if is_source_repo; then
   require_markdown_link "AGENTS.md" "docs/exec-plans/README.md"
   require_markdown_link "README.md" "docs/agent/index.md"
   require_markdown_link "README.md" "docs/template-maintenance.md"
+  require_markdown_link "docs/agent/architecture.md" "../template-release.md"
   require_contains "README.md" "1c-runner-agnostic-template"
   require_contains "README.md" "automation/context/templates/"
   require_contains "docs/README.md" "automation/context/hotspots-summary.generated.md"
+  require_path "scripts/release/install-source-hooks.sh"
+  require_path "scripts/release/publish-overlay-release.sh"
+  require_path "scripts/release/lib-source-release.sh"
+  require_path ".githooks/pre-push"
+  require_contains "docs/agent/index.md" "docs/template-release.md"
+  require_contains "docs/agent/architecture.md" "docs/template-release.md"
+  require_contains "docs/agent/architecture.md" "./scripts/release/publish-overlay-release.sh --tag vX.Y.Z"
+  require_contains "docs/template-maintenance.md" "docs/template-release.md"
 
   for rel in \
     automation/context/template-source-project-map.md \

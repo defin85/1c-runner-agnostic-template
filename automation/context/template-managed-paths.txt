@@ -52,6 +52,7 @@ docs/exec-plans/active/.gitkeep
 docs/exec-plans/completed/.gitkeep
 docs/migrations/runtime-profile-v2.md
 docs/template-maintenance.md
+docs/template-release.md
 env/.local/README.md
 env/AGENTS.md
 env/README.md

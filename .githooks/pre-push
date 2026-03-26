@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+canonical_command="./scripts/release/publish-overlay-release.sh --tag vX.Y.Z"
+runbook_path="docs/template-release.md"
+allow_push="${TEMPLATE_SOURCE_RELEASE_ALLOW_PUSH:-0}"
+blocked=0
+
+while read -r _local_ref _local_oid remote_ref _remote_oid; do
+  [ -n "${remote_ref:-}" ] || continue
+
+  case "$remote_ref" in
+    refs/tags/v*)
+      if [ "$allow_push" = "1" ]; then
+        continue
+      fi
+
+      printf 'error: overlay release tags must be pushed via %s\n' "$canonical_command" >&2
+      printf 'error: see %s for the canonical source release workflow\n' "$runbook_path" >&2
+      blocked=1
+      ;;
+  esac
+done
+
+exit "$blocked"

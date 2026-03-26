@@ -38,6 +38,9 @@ git -C "$root" ls-files --cached --others --exclude-standard \
       /^\.claude\/commands\// { next }
       /^tooling\// { next }
       /^automation\/context\/template-source-(metadata-index\.json|project-map\.md|source-files\.txt|tree\.txt)$/ { next }
+      /^\.githooks\// { next }
+      /^scripts\/release\// { next }
+      /^tests\/smoke\/template-release-workflow\.sh$/ { next }
       /^src\// && $0 != "src/AGENTS.md" { next }
       { print }
     ' \

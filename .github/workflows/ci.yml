@@ -95,6 +95,10 @@ jobs:
         if: hashFiles('tests/smoke/agent-docs-contract.sh') != ''
         run: bash tests/smoke/agent-docs-contract.sh
 
+      - name: Template release workflow
+        if: hashFiles('tests/smoke/template-release-workflow.sh') != ''
+        run: bash tests/smoke/template-release-workflow.sh
+
       - name: Copier update-ready smoke
         if: hashFiles('tests/smoke/copier-update-ready.sh') != ''
         run: bash tests/smoke/copier-update-ready.sh

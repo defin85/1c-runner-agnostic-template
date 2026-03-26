@@ -49,9 +49,12 @@ Template lifecycle:
 - `./scripts/bootstrap/copier-post-update.sh`
 - `./scripts/template/check-update.sh`
 - `./scripts/template/update-template.sh`
+- `./scripts/release/install-source-hooks.sh`
+- `./scripts/release/publish-overlay-release.sh --tag vX.Y.Z`
 
 ## First-Pass Orientation
 
 - Если нужно понять repo contract, начните с [openspec/project.md](../../openspec/project.md).
 - Если нужно быстро проверить repo integrity, используйте [docs/agent/verify.md](verify.md) и `make agent-verify`.
+- Если нужно выпустить новый overlay release tag source repo, переходите в [docs/template-release.md](../template-release.md).
 - Если задача длинная или кросс-файловая, создайте execution plan в [docs/exec-plans/README.md](../exec-plans/README.md).

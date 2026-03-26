@@ -28,6 +28,7 @@ Baseline intentionally не требует:
 ```bash
 bash tests/smoke/bootstrap-agents-overlay.sh
 bash tests/smoke/copier-update-ready.sh
+bash tests/smoke/template-release-workflow.sh
 ```
 
 ## Runtime Contour

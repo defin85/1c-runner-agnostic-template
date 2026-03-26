@@ -9,6 +9,8 @@ _envops:
 _exclude:
   - .git
   - .git/**
+  - .githooks
+  - .githooks/**
   - copier.yml
   - .github/workflows/ci.yml
   - AGENTS.md
@@ -19,6 +21,9 @@ _exclude:
   - .claude/commands/**
   - tooling
   - tooling/**
+  - scripts/release
+  - scripts/release/**
+  - tests/smoke/template-release-workflow.sh
   - automation/context/template-source-project-map.md
   - automation/context/template-source-metadata-index.json
   - automation/context/template-source-tree.txt

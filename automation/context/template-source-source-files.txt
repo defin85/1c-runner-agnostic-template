@@ -63,6 +63,7 @@
 ./docs/exec-plans/completed/.gitkeep
 ./docs/migrations/runtime-profile-v2.md
 ./docs/template-maintenance.md
+./docs/template-release.md
 ./env/.local/README.md
 ./env/AGENTS.md
 ./env/README.md
@@ -73,6 +74,13 @@
 ./features/README.md
 ./features/examples/tdd-starter.feature
 ./openspec/AGENTS.md
+./openspec/changes/add-source-template-release-workflow/design.md
+./openspec/changes/add-source-template-release-workflow/proposal.md
+./openspec/changes/add-source-template-release-workflow/specs/repository-agent-guidance/spec.md
+./openspec/changes/add-source-template-release-workflow/specs/template-ci-contours/spec.md
+./openspec/changes/add-source-template-release-workflow/specs/template-overlay-delivery/spec.md
+./openspec/changes/add-source-template-release-workflow/tasks.md
+./openspec/changes/add-source-template-release-workflow/traceability.md
 ./openspec/changes/archive/2026-03-18-add-agent-toolkit-and-ci-contours/design.md
 ./openspec/changes/archive/2026-03-18-add-agent-toolkit-and-ci-contours/proposal.md
 ./openspec/changes/archive/2026-03-18-add-agent-toolkit-and-ci-contours/specs/agent-runtime-toolkit/spec.md
@@ -194,6 +202,9 @@
 ./scripts/qa/check-skill-bindings.sh
 ./scripts/qa/codex-onboard.sh
 ./scripts/qa/format-bsl.sh
+./scripts/release/install-source-hooks.sh
+./scripts/release/lib-source-release.sh
+./scripts/release/publish-overlay-release.sh
 ./scripts/template/check-update.sh
 ./scripts/template/lib-overlay.sh
 ./scripts/template/migrate-runtime-profile-v2.sh
@@ -225,5 +236,6 @@
 ./tests/smoke/runtime-ibcmd-validation-contract.sh
 ./tests/smoke/runtime-profile-legacy-rejection.sh
 ./tests/smoke/runtime-profile-migration-helper.sh
+./tests/smoke/template-release-workflow.sh
 ./tests/smoke/update-1c-project-wrapper.sh
 ./tests/xunit/README.md

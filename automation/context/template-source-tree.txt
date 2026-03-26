@@ -29,6 +29,7 @@
 ./.claude/skills/1c-run-xunit
 ./.claude/skills/1c-update-db
 ./.codex
+./.githooks
 ./.github
 ./.github/workflows
 ./automation
@@ -48,6 +49,7 @@
 ./features/examples
 ./openspec
 ./openspec/changes
+./openspec/changes/add-source-template-release-workflow
 ./openspec/changes/archive
 ./openspec/changes/harden-generated-project-agent-contract
 ./openspec/changes/unify-generated-project-onboarding-truth
@@ -69,6 +71,7 @@
 ./scripts/llm
 ./scripts/platform
 ./scripts/qa
+./scripts/release
 ./scripts/template
 ./scripts/test
 ./src

@@ -7,7 +7,8 @@
     "sourceVsGenerated": "docs/agent/source-vs-generated.md",
     "verify": "docs/agent/verify.md",
     "review": "docs/agent/review.md",
-    "executionPlans": "docs/exec-plans/README.md"
+    "executionPlans": "docs/exec-plans/README.md",
+    "templateRelease": "docs/template-release.md"
   },
   "entrypoints": {
     "bootstrap": [
@@ -34,6 +35,10 @@
       "./scripts/qa/agent-verify.sh",
       "./scripts/qa/check-agent-docs.sh",
       "./scripts/qa/check-skill-bindings.sh"
+    ],
+    "release": [
+      "./scripts/release/install-source-hooks.sh",
+      "./scripts/release/publish-overlay-release.sh --tag vX.Y.Z"
     ]
   },
   "agentSurfaces": {

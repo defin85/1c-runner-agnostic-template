@@ -2,6 +2,7 @@
 
 Этот документ описывает ongoing template maintenance path для generated repos.
 Он не является primary onboarding или feature-delivery workflow.
+Для source repo release tag используйте отдельный runbook: [docs/template-release.md](template-release.md).
 
 ## Когда сюда идти
 

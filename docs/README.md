@@ -17,3 +17,4 @@
 - в template source repo начните с [docs/agent/index.md](agent/index.md);
 - в generated repo начните с [docs/agent/generated-project-index.md](agent/generated-project-index.md), затем откройте `automation/context/project-map.md` и `automation/context/hotspots-summary.generated.md`;
 - isolated template refresh path всегда живёт отдельно в [docs/template-maintenance.md](template-maintenance.md).
+- source template release path для maintainer-а живёт отдельно в [docs/template-release.md](template-release.md).

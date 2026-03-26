@@ -15,6 +15,7 @@
 ## Canonical Entrypoints
 
 - bootstrap: `./scripts/bootstrap/copier-post-copy.sh`, `./scripts/bootstrap/copier-post-update.sh`
+- source release: `./scripts/release/install-source-hooks.sh`, `./scripts/release/publish-overlay-release.sh --tag vX.Y.Z`
 - runtime diagnostics: `./scripts/diag/doctor.sh`
 - runtime capabilities: `./scripts/platform/*.sh`
 - tests: `./scripts/test/*.sh`
@@ -28,3 +29,4 @@
 - broader QA: `make qa`
 - fixture delivery smoke: `bash tests/smoke/bootstrap-agents-overlay.sh`
 - copier delivery smoke: `bash tests/smoke/copier-update-ready.sh`
+- source release smoke: `bash tests/smoke/template-release-workflow.sh`

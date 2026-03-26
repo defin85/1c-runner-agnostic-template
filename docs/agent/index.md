@@ -26,6 +26,7 @@
 | Где лежат repeatable repo skills? | [.agents/skills/README.md](../../.agents/skills/README.md) |
 | Где Codex-specific repo guidance? | [.codex/README.md](../../.codex/README.md) |
 | Где описан isolated template maintenance path для generated repos? | [docs/template-maintenance.md](../template-maintenance.md) |
+| Где описан canonical source release path для overlay tag? | [docs/template-release.md](../template-release.md) |
 
 ## Durable Linking Policy
 
