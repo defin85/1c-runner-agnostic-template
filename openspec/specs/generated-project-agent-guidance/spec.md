@@ -20,8 +20,9 @@ The template SHALL keep generated root guidance concise and link it to the most 
 #### Scenario: Agent starts from the root of a generated repo
 
 - **WHEN** a new agent loads the root guidance of a generated repository
-- **THEN** it MUST see explicit links to the generated onboarding route, baseline verify, review guidance, repeatable skills, and long-running execution plans
-- **AND** the guidance MUST distinguish between local-only and remote-backed closeout expectations rather than requiring unconditional `git push`
+- **THEN** it MUST see `docs/agent/generated-project-index.md` identified as the canonical onboarding router
+- **AND** root `AGENTS.md`, root `README.md`, and `.codex/README.md` MUST stay role-specific pointer surfaces instead of duplicating the full onboarding sequence inline
+- **AND** the canonical onboarding router MUST contain the explicit matrix for when to use OpenSpec, `bd`, and `docs/exec-plans/README.md`
 
 ### Requirement: Codex-First Generated Runbook
 
@@ -30,8 +31,9 @@ The template SHALL ship a generated-project-first runbook for the first minutes 
 #### Scenario: Codex agent needs a first-hour workflow
 
 - **WHEN** a Codex agent starts in a generated repository and has not yet built project context
-- **THEN** the onboarding docs MUST describe a linear path from repo identity to safe verification, review flow, and long-running planning
-- **AND** that path MUST link to repo-owned entrypoints such as `make agent-verify`, `env/README.md`, `.agents/skills/README.md`, `.codex/README.md`, and `docs/exec-plans/README.md`
+- **THEN** the repository MUST provide a read-only onboarding entrypoint such as `make codex-onboard`
+- **AND** that entrypoint MUST print repo identity, safe-local verification commands, runtime support status pointers, key documentation routers, and next commands without mutating checked-in files
+- **AND** the onboarding docs MUST explain how the read-only onboarding path relates to OpenSpec, `bd`, and long-running execution plans
 
 ### Requirement: Generated-Project Root Entry Point
 
@@ -69,14 +71,15 @@ The template SHALL seed truthful project-specific context artifacts for generate
 
 ### Requirement: Verification Matrix For Generated Repositories
 
-The template SHALL provide a generated-project verification map that distinguishes safe local checks from profile-required and provisioned-runtime contours.
+Шаблон MUST предоставлять generated-project verification map, которая различает safe local checks, profile-required contours, unsupported contours и provisioned-runtime contours.
 
 #### Scenario: Agent asks which checks are safe to run first
 
-- **WHEN** an agent needs a first-pass verification path in a generated repository
-- **THEN** the repository documentation MUST classify relevant commands by prerequisites, side effects, and expected artifacts
-- **AND** it MUST provide a documented no-1C baseline path
-- **AND** runtime-profile-required and provisioned/self-hosted 1C contours MUST be marked explicitly as deeper verification layers
+- **WHEN** агенту нужен first-pass verification path в generated repository
+- **THEN** repository documentation ДОЛЖНА классифицировать релевантные команды по prerequisites, side effects, expected artifacts и support status
+- **AND** она ДОЛЖНА давать задокументированный no-1C baseline path
+- **AND** runtime-profile-required и provisioned/self-hosted 1C contours ДОЛЖНЫ быть явно помечены как более глубокие verification layers
+- **AND** любой unsupported или placeholder contour НЕ ДОЛЖЕН показываться как зелёный baseline-ready verification step
 
 ### Requirement: Side-Effect-Transparent Context Export
 
@@ -88,3 +91,14 @@ The template SHALL provide side-effect-transparent utilities for inspecting and 
 - **THEN** the tooling MUST provide help, preview, or check behavior without mutating checked-in files
 - **AND** explicit write behavior MUST require a dedicated flag or command path
 - **AND** refreshed machine-generated artifacts MUST use deterministic filenames or suffixes that signal generated status
+
+### Requirement: Local Working-Area Routing For Generated Repositories
+
+Шаблон MUST поставлять краткий directory-local routing guidance для generated-project work в самых friction-heavy рабочих зонах.
+
+#### Scenario: Agent enters env, tests, or scripts in a generated repository
+
+- **WHEN** агент открывает `env/`, `tests/` или `scripts/` внутри generated repository
+- **THEN** локальный `AGENTS.md` ДОЛЖЕН маршрутизировать агента к релевантным truth sources и guardrails для этой области
+- **AND** локальный guidance ДОЛЖЕН оставаться уже root router, а не дублировать весь repository manual
+

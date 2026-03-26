@@ -35,14 +35,14 @@ The CI design SHALL avoid storing real runtime credentials or destructive enviro
 
 ### Requirement: Agent-Facing Artifact Freshness
 
-The static CI contour SHALL validate the integrity and freshness of agent-facing documentation, context, and skill bindings.
+Static CI contour MUST проверять integrity, freshness и semantic truthfulness agent-facing documentation, context и verification guidance.
 
 #### Scenario: Agent-facing artifacts drift
 
-- **WHEN** root agent instructions, the agent docs index/runbooks, live automation context, or repo-local skill packaging drift out of sync
-- **THEN** the static contour MUST fail before fixture or runtime contours continue
-- **AND** the checks MUST run without licensed 1C binaries or secret runtime credentials
-- **AND** the reported failure MUST identify which artifact class is stale or inconsistent
+- **WHEN** root agent instructions, agent docs index/runbooks, live automation context, repo-local skill packaging, generated onboarding summaries или generated verification semantics расходятся
+- **THEN** static contour ДОЛЖЕН падать до продолжения fixture или runtime contours
+- **AND** checks ДОЛЖНЫ выполняться без licensed 1C binaries и secret runtime credentials
+- **AND** reported failure ДОЛЖЕН указывать, какой класс artifact-ов stale, inconsistent или semantically misleading
 
 ### Requirement: Agent-Facing Ownership Verification
 
@@ -54,4 +54,10 @@ The template SHALL provide static or fixture-level checks that keep generated-pr
 - **THEN** the relevant static or fixture contours MUST validate generated-project ownership boundaries and freshness expectations
 - **AND** those checks MUST detect raw placeholder drift in generated-project-seeded agent context
 - **AND** any workflow advertised as a canonical template-maintenance path for generated repositories MUST execute successfully in fixture smoke or stop being advertised as guaranteed-safe
+
+#### Scenario: Template source release workflow changes
+
+- **WHEN** source-repo docs, release scripts, or hook guardrails change the canonical template release path
+- **THEN** the static or fixture contours MUST validate that the advertised release command, hook behavior, and documented source release runbook stay consistent
+- **AND** the relevant smoke contour MUST prove that accidental overlay tag pushes fail closed while the canonical guarded release path still succeeds
 

@@ -10,6 +10,8 @@ The template SHALL ship docs and automated checks that describe and verify overl
 - **THEN** the documented behavior, scripts, and smoke tests MUST agree on overlay release semantics
 - **AND** generated-project docs MUST no longer describe ongoing `copier update` as the primary maintenance path
 
+## ADDED Requirements
+
 ### Requirement: Source Template Release Publishing Is Explicit
 
 The template source repository SHALL publish overlay release tags only through an explicit repo-owned release workflow.
