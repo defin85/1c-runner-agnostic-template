@@ -11,6 +11,9 @@ root="$(project_root)"
 status=0
 generated_summary_rel="automation/context/hotspots-summary.generated.md"
 generated_policy_rel="automation/context/runtime-profile-policy.json"
+generated_matrix_json_rel="automation/context/runtime-support-matrix.json"
+generated_matrix_md_rel="automation/context/runtime-support-matrix.md"
+codex_onboard_rel="scripts/qa/codex-onboard.sh"
 
 require_markdown_link() {
   local rel="$1"
@@ -47,6 +50,16 @@ require_absent_regex() {
 
   if grep -Eq -- "$pattern" "$root/$rel"; then
     printf '%s: %s\n' "$message" "$rel" >&2
+    status=1
+  fi
+}
+
+require_no_local_private_runtime_truth() {
+  local rel="$1"
+
+  if grep -Eq -- 'runtime doctor:.*env/(local|wsl|ci|windows-executor)\.json|runtime truth:.*env/(local|wsl|ci|windows-executor)\.json|shared truth:.*env/(local|wsl|ci|windows-executor)\.json|source of truth:.*env/(local|wsl|ci|windows-executor)\.json|--profile[[:space:]]+env/(local|wsl|ci|windows-executor)\.json|--profile[[:space:]]+env/\.local/' "$root/$rel"; then
+    printf 'local-private runtime profile must not be advertised as shared truth outside runtime support matrix: %s\n' \
+      "$rel" >&2
     status=1
   fi
 }
@@ -281,6 +294,8 @@ check_generated_metadata_contract() {
   require_contains "automation/context/metadata-index.generated.json" "\"codexGuide\""
   require_contains "automation/context/metadata-index.generated.json" "\"executionPlans\""
   require_contains "automation/context/metadata-index.generated.json" "\"runtimeProfilePolicy\""
+  require_contains "automation/context/metadata-index.generated.json" "\"runtimeSupportMatrixJson\""
+  require_contains "automation/context/metadata-index.generated.json" "\"runtimeSupportMatrixMarkdown\""
   require_contains "automation/context/metadata-index.generated.json" "\"hotspotsSummary\""
 
   if [ -f "$root/src/cf/Configuration.xml" ]; then
@@ -306,6 +321,8 @@ check_generated_summary_contract() {
   require_contains "$generated_summary_rel" "automation/context/project-map.md"
   require_contains "$generated_summary_rel" "automation/context/metadata-index.generated.json"
   require_contains "$generated_summary_rel" "automation/context/runtime-profile-policy.json"
+  require_contains "$generated_summary_rel" "automation/context/runtime-support-matrix.md"
+  require_contains "$generated_summary_rel" "automation/context/runtime-support-matrix.json"
 }
 
 check_generated_runtime_profile_policy_contract() {
@@ -356,6 +373,29 @@ check_generated_runtime_profile_policy_contract() {
   done
 }
 
+check_generated_runtime_support_matrix_contract() {
+  require_contains "$generated_matrix_md_rel" "# Runtime Support Matrix"
+  require_contains "$generated_matrix_md_rel" '`supported`'
+  require_contains "$generated_matrix_md_rel" '`unsupported`'
+  require_contains "$generated_matrix_md_rel" '`operator-local`'
+  require_contains "$generated_matrix_md_rel" '`provisioned`'
+  require_contains "$generated_matrix_md_rel" "automation/context/project-map.md"
+  require_contains "$generated_matrix_md_rel" "docs/agent/generated-project-index.md"
+  require_contains "$generated_matrix_md_rel" "docs/agent/generated-project-verification.md"
+
+  require_jq_expr "$generated_matrix_json_rel" '.matrixRole == "project-owned-runtime-support-matrix"' \
+    "runtime support matrix must declare project-owned role"
+  require_jq_expr "$generated_matrix_json_rel" \
+    '(.statuses | sort) == ["operator-local","provisioned","supported","unsupported"]' \
+    "runtime support matrix must define the canonical status set"
+  require_jq_expr "$generated_matrix_json_rel" \
+    '(.contours | map(.id)) as $ids | ["codex-onboard","agent-verify","export-context-check","doctor","xunit","bdd","smoke","publish-http"] | all(. as $id | $ids | index($id))' \
+    "runtime support matrix must cover the required contour ids"
+  require_jq_expr "$generated_matrix_json_rel" \
+    '.contours | type == "array" and length > 0 and all(.[]; (.id | type == "string" and length > 0) and (.status | type == "string" and length > 0) and (.profileProvenance | type == "string" and length > 0) and (((.entrypoint // "") | type == "string" and length > 0) or ((.runbookPath // "") | type == "string" and length > 0)))' \
+    "runtime support matrix contours must declare id/status/provenance and entrypoint or runbook"
+}
+
 check_generated_closeout_contract() {
   require_contains "AGENTS.md" "local-only"
   require_contains "AGENTS.md" "remote-backed"
@@ -404,8 +444,11 @@ for rel in \
   automation/context/templates/generated-project-hotspots-summary.md \
   automation/context/templates/generated-project-project-map.md \
   automation/context/templates/generated-project-metadata-index.json \
+  automation/context/templates/generated-project-runtime-support-matrix.json \
+  automation/context/templates/generated-project-runtime-support-matrix.md \
   automation/context/templates/generated-project-runtime-profile-policy.json \
-  automation/context/template-managed-paths.txt; do
+  automation/context/template-managed-paths.txt \
+  scripts/qa/codex-onboard.sh; do
   require_path "$rel"
 done
 
@@ -448,17 +491,22 @@ require_contains "automation/AGENTS.md" "automation/context/project-map.md"
 require_contains "automation/AGENTS.md" "automation/context/hotspots-summary.generated.md"
 require_contains "automation/AGENTS.md" "automation/context/metadata-index.generated.json"
 require_contains "automation/AGENTS.md" "automation/context/runtime-profile-policy.json"
+require_contains "automation/AGENTS.md" "automation/context/runtime-support-matrix.md"
 require_contains "automation/AGENTS.md" "docs/agent/generated-project-index.md"
 require_contains "env/AGENTS.md" "env/README.md"
 require_contains "env/AGENTS.md" "automation/context/runtime-profile-policy.json"
+require_contains "env/AGENTS.md" "automation/context/runtime-support-matrix.md"
 require_contains "env/AGENTS.md" "unsupportedReason"
 require_contains "tests/AGENTS.md" "docs/agent/generated-project-verification.md"
 require_contains "tests/AGENTS.md" "automation/context/runtime-profile-policy.json"
+require_contains "tests/AGENTS.md" "automation/context/runtime-support-matrix.md"
 require_contains "tests/AGENTS.md" "scripts/qa/check-agent-docs.sh"
 require_contains "tests/AGENTS.md" "scripts/llm/export-context.sh"
 require_contains "scripts/AGENTS.md" "docs/agent/generated-project-index.md"
 require_contains "scripts/AGENTS.md" "automation/context/hotspots-summary.generated.md"
 require_contains "scripts/AGENTS.md" "automation/context/runtime-profile-policy.json"
+require_contains "scripts/AGENTS.md" "automation/context/runtime-support-matrix.md"
+require_contains "scripts/AGENTS.md" "make codex-onboard"
 require_contains "scripts/AGENTS.md" "scripts/llm/export-context.sh"
 require_contains "scripts/AGENTS.md" "scripts/qa/check-agent-docs.sh"
 require_contains "src/AGENTS.md" "automation/context/project-map.md"
@@ -466,11 +514,15 @@ require_contains "src/AGENTS.md" "automation/context/hotspots-summary.generated.
 require_contains "src/AGENTS.md" "automation/context/metadata-index.generated.json"
 require_contains "docs/agent/generated-project-index.md" "seed-once / project-owned"
 require_contains "docs/agent/generated-project-index.md" "generated-derived"
+require_contains "docs/agent/generated-project-index.md" "make codex-onboard"
 require_contains "docs/agent/generated-project-index.md" "make template-update"
 require_contains "docs/agent/generated-project-index.md" ".template-overlay-version"
 require_contains "docs/agent/generated-project-index.md" "automation/context/hotspots-summary.generated.md"
 require_contains "docs/agent/generated-project-index.md" "automation/context/metadata-index.generated.json"
 require_contains "docs/agent/generated-project-index.md" "automation/context/runtime-profile-policy.json"
+require_contains "docs/agent/generated-project-index.md" "automation/context/runtime-support-matrix.md"
+require_contains "docs/agent/generated-project-index.md" "OpenSpec"
+require_contains "docs/agent/generated-project-index.md" "docs/exec-plans/README.md"
 require_contains "docs/agent/generated-project-index.md" "docs/agent/review.md"
 require_contains "docs/agent/generated-project-index.md" "env/README.md"
 require_contains "docs/agent/generated-project-index.md" ".agents/skills/README.md"
@@ -483,11 +535,13 @@ require_contains "docs/agent/verify.md" "make agent-verify"
 require_contains "docs/agent/generated-project-verification.md" "Safe Local"
 require_contains "docs/agent/generated-project-verification.md" "make export-context-preview"
 require_contains "docs/agent/generated-project-verification.md" "make export-context-check"
+require_contains "docs/agent/generated-project-verification.md" "make codex-onboard"
 require_contains "docs/agent/generated-project-verification.md" "Profile-Required"
 require_contains "docs/agent/generated-project-verification.md" "Provisioned / Self-Hosted 1C"
 require_contains "docs/agent/generated-project-verification.md" "./scripts/llm/export-context.sh --write"
 require_contains "docs/agent/generated-project-verification.md" "unsupportedReason"
 require_contains "docs/agent/generated-project-verification.md" "runtime-profile-policy.json"
+require_contains "docs/agent/generated-project-verification.md" "runtime-support-matrix.md"
 require_contains "docs/template-maintenance.md" "template maintenance"
 require_contains "docs/template-maintenance.md" "make template-check-update"
 require_contains "docs/template-maintenance.md" "make template-update"
@@ -500,11 +554,28 @@ require_contains "docs/template-maintenance.md" "tests/smoke/copier-update-ready
 require_contains ".codex/README.md" "env/README.md"
 require_contains ".codex/README.md" "docs/agent/review.md"
 require_contains ".codex/README.md" "docs/exec-plans/README.md"
+require_contains ".codex/README.md" "make codex-onboard"
+require_contains ".codex/README.md" "runtime-support-matrix.md"
 require_contains ".codex/README.md" "First 15 Minutes"
 require_contains ".codex/README.md" "Long-Running Change"
 require_contains ".codex/README.md" "Runtime Investigation"
 require_contains ".codex/README.md" "Review-Only Session"
 require_contains ".codex/README.md" "Parallel Research"
+require_contains "docs/agent/source-vs-generated.md" "runtime-support-matrix.md"
+require_contains "docs/agent/source-vs-generated.md" "runtime-support-matrix.json"
+require_contains "scripts/qa/codex-onboard.sh" "Repository role: generated-project"
+require_contains "scripts/qa/codex-onboard.sh" "Canonical onboarding router: docs/agent/generated-project-index.md"
+require_contains "scripts/qa/codex-onboard.sh" "Runtime support matrix (md):"
+require_contains "scripts/qa/codex-onboard.sh" "Planning matrix:"
+require_contains "automation/context/templates/generated-project-metadata-index.json" "runtimeSupportMatrixJsonPath"
+require_contains "automation/context/templates/generated-project-metadata-index.json" "runtimeSupportMatrixMarkdownPath"
+require_contains "automation/context/templates/generated-project-hotspots-summary.md" "runtime-support-matrix.md"
+require_contains "automation/context/templates/generated-project-project-map.md" "runtime support truth"
+require_contains "automation/context/templates/generated-project-runtime-support-matrix.json" "requiredContourIds"
+require_contains "automation/context/templates/generated-project-runtime-support-matrix.md" "# Runtime Support Matrix Reference"
+require_contains "automation/context/template-managed-paths.txt" "automation/context/templates/generated-project-runtime-support-matrix.json"
+require_contains "automation/context/template-managed-paths.txt" "automation/context/templates/generated-project-runtime-support-matrix.md"
+require_contains "automation/context/template-managed-paths.txt" "scripts/qa/codex-onboard.sh"
 require_contains ".agents/skills/README.md" ".claude/skills/"
 require_contains ".claude/skills/README.md" ".agents/skills/"
 require_contains "docs/exec-plans/README.md" "Progress"
@@ -582,10 +653,13 @@ else
     automation/context/metadata-index.generated.json \
     automation/context/hotspots-summary.generated.md \
     automation/context/runtime-profile-policy.json \
+    automation/context/runtime-support-matrix.json \
+    automation/context/runtime-support-matrix.md \
     openspec/project.md \
     env/AGENTS.md \
     tests/AGENTS.md \
     scripts/AGENTS.md \
+    scripts/qa/codex-onboard.sh \
     .template-overlay-version; do
     require_path "$rel"
   done
@@ -595,6 +669,8 @@ else
   require_markdown_link "AGENTS.md" "$generated_summary_rel"
   require_markdown_link "AGENTS.md" "automation/context/metadata-index.generated.json"
   require_markdown_link "AGENTS.md" "$generated_policy_rel"
+  require_markdown_link "AGENTS.md" "$generated_matrix_md_rel"
+  require_markdown_link "AGENTS.md" "$generated_matrix_json_rel"
   require_markdown_link "AGENTS.md" "docs/agent/generated-project-verification.md"
   require_markdown_link "AGENTS.md" "docs/template-maintenance.md"
   require_markdown_link "README.md" "docs/agent/generated-project-index.md"
@@ -602,6 +678,8 @@ else
   require_markdown_link "README.md" "$generated_summary_rel"
   require_markdown_link "README.md" "automation/context/metadata-index.generated.json"
   require_markdown_link "README.md" "$generated_policy_rel"
+  require_markdown_link "README.md" "$generated_matrix_md_rel"
+  require_markdown_link "README.md" "$generated_matrix_json_rel"
   require_markdown_link "README.md" "docs/agent/generated-project-verification.md"
   require_markdown_link "README.md" "docs/agent/review.md"
   require_markdown_link "README.md" "env/README.md"
@@ -612,20 +690,30 @@ else
 
   require_contains "AGENTS.md" "generated 1С-project"
   require_contains "AGENTS.md" "generated-project-first onboarding path"
+  require_contains "AGENTS.md" "make codex-onboard"
   require_contains "AGENTS.md" "automation/context/hotspots-summary.generated.md"
   require_contains "AGENTS.md" "automation/context/runtime-profile-policy.json"
+  require_contains "AGENTS.md" "automation/context/runtime-support-matrix.md"
   require_contains "README.md" "generated 1С-проект"
   require_contains "README.md" "Ownership Classes"
+  require_contains "README.md" "make codex-onboard"
   require_contains "README.md" ".template-overlay-version"
   require_contains "README.md" "automation/context/hotspots-summary.generated.md"
   require_contains "README.md" "automation/context/runtime-profile-policy.json"
+  require_contains "README.md" "automation/context/runtime-support-matrix.md"
   require_contains "automation/context/project-map.md" "Ownership Model"
   require_contains "automation/context/project-map.md" "generated-derived"
   require_contains "automation/context/project-map.md" "automation/context/runtime-profile-policy.json"
+  require_contains "automation/context/project-map.md" "automation/context/runtime-support-matrix.md"
   require_contains "openspec/project.md" "generated 1С-проект"
   require_contains "env/AGENTS.md" "automation/context/runtime-profile-policy.json"
   require_contains "tests/AGENTS.md" "scripts/qa/check-agent-docs.sh"
   require_contains "scripts/AGENTS.md" "automation/context/hotspots-summary.generated.md"
+
+  require_no_local_private_runtime_truth "AGENTS.md"
+  require_no_local_private_runtime_truth "README.md"
+  require_no_local_private_runtime_truth "docs/agent/generated-project-index.md"
+  require_no_local_private_runtime_truth "automation/context/project-map.md"
 
   require_no_placeholder_pattern "README.md" '<[[:alnum:]_][^>]*>'
   require_no_placeholder_pattern "automation/context/project-map.md" '<[[:alnum:]_][^>]*>'
@@ -639,6 +727,7 @@ else
   check_generated_metadata_contract
   check_generated_summary_contract
   check_generated_runtime_profile_policy_contract
+  check_generated_runtime_support_matrix_contract
   check_generated_closeout_contract
 
   if ! "$root/scripts/llm/export-context.sh" --check; then

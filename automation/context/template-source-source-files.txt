@@ -45,6 +45,8 @@
 ./automation/context/templates/generated-project-metadata-index.json
 ./automation/context/templates/generated-project-project-map.md
 ./automation/context/templates/generated-project-runtime-profile-policy.json
+./automation/context/templates/generated-project-runtime-support-matrix.json
+./automation/context/templates/generated-project-runtime-support-matrix.md
 ./automation/prompts/README.md
 ./copier.yml
 ./docs/AGENTS.md
@@ -143,6 +145,15 @@
 ./openspec/changes/harden-generated-project-agent-contract/specs/template-ci-contours/spec.md
 ./openspec/changes/harden-generated-project-agent-contract/tasks.md
 ./openspec/changes/harden-generated-project-agent-contract/traceability.md
+./openspec/changes/unify-generated-project-onboarding-truth/design.md
+./openspec/changes/unify-generated-project-onboarding-truth/proposal.md
+./openspec/changes/unify-generated-project-onboarding-truth/specs/generated-context-artifacts/spec.md
+./openspec/changes/unify-generated-project-onboarding-truth/specs/generated-project-agent-guidance/spec.md
+./openspec/changes/unify-generated-project-onboarding-truth/specs/generated-runtime-support-matrix/spec.md
+./openspec/changes/unify-generated-project-onboarding-truth/specs/runtime-profile-schema/spec.md
+./openspec/changes/unify-generated-project-onboarding-truth/specs/template-ci-contours/spec.md
+./openspec/changes/unify-generated-project-onboarding-truth/tasks.md
+./openspec/changes/unify-generated-project-onboarding-truth/traceability.md
 ./openspec/project.md
 ./openspec/specs/agent-runtime-toolkit/spec.md
 ./openspec/specs/generated-context-artifacts/spec.md
@@ -181,6 +192,7 @@
 ./scripts/qa/check-agent-docs.sh
 ./scripts/qa/check-overlay-manifest.sh
 ./scripts/qa/check-skill-bindings.sh
+./scripts/qa/codex-onboard.sh
 ./scripts/qa/format-bsl.sh
 ./scripts/template/check-update.sh
 ./scripts/template/lib-overlay.sh

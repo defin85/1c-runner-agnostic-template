@@ -3,6 +3,7 @@
 Этот документ делит проверки generated project на три слоя: `safe local`, `profile-required`, `provisioned/self-hosted 1C`.
 Runtime profile contract, canonical local profile paths и `local-private` правила описаны в [env/README.md](../../env/README.md).
 Sanctioned checked-in team-shared presets описываются в `automation/context/runtime-profile-policy.json`.
+Checked-in runtime support truth конкретного generated repo живёт в `automation/context/runtime-support-matrix.md` и `automation/context/runtime-support-matrix.json`.
 
 ## Safe Local
 
@@ -10,6 +11,7 @@ Sanctioned checked-in team-shared presets описываются в `automation/
 
 | Command | Purpose | Prerequisites | Side effects | Artifacts |
 | --- | --- | --- | --- | --- |
+| `make codex-onboard` | Read-only first screen для новой Codex-сессии | shell-only | нет | stdout |
 | `make agent-verify` | Базовая проверка docs, OpenSpec, skills и context contract | shell + repo tooling | нет | stdout/stderr процесса |
 | `make template-check-update` | Проверить, доступен ли новый wrapper overlay release | shell + git access к template source | нет | stdout/stderr процесса |
 | `make export-context-preview` | Посмотреть generated-derived inventory без записи | shell-only | нет | preview в stdout |
@@ -18,6 +20,7 @@ Sanctioned checked-in team-shared presets описываются в `automation/
 Минимальный no-1C baseline:
 
 ```bash
+make codex-onboard
 make agent-verify
 make export-context-check
 ```
@@ -35,11 +38,12 @@ make export-context-check
 
 Важно:
 
+- shared runtime truth ищите сначала в `automation/context/runtime-support-matrix.md` / `.json`, а не в ignored local-private profiles;
 - если sanctioned checked-in profile ещё не wired project-specific contour, используйте `unsupportedReason`, а не `echo TODO`;
 - если sanctioned checked-in profile всё же использует `command`, он должен запускать прямой repo-owned entrypoint вроде `./scripts/...` или `make <target>`, а не shell-wrapper / inline / no-op success command;
 - repo-owned entrypoint может опираться на launcher-provided `ONEC_*` env contract из [env/README.md](../../env/README.md), чтобы использовать `--run-root`, profile path и capability metadata без повторной обвязки launcher-а;
 - такой contour завершится fail-closed и должен считаться `unsupported`, а не зелёной проверкой;
-- baseline onboarding не должен рекламировать unsupported contour как safe first pass.
+- contour, живущий только через ignored local-private profile, должен быть классифицирован как `operator-local` в runtime support matrix и не должен маскироваться под shared baseline-ready truth.
 
 ## Provisioned / Self-Hosted 1C
 

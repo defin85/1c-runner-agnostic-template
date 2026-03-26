@@ -31,6 +31,7 @@ Ad-hoc и machine-specific profiles нужно складывать в `env/.loc
 Например: `env/.local/develop.json`, `env/.local/do-rolf.json`, `env/.local/local-ibcmd.json`.
 
 Если generated проект сознательно хранит дополнительный checked-in root-level profile, его нужно явно объявить в `automation/context/runtime-profile-policy.json` через `rootEnvProfiles.sanctionedAdditionalProfiles`.
+Если generated проект рекламирует contour в durable docs, но contour runnable только через ignored `env/local.json`, `env/wsl.json` или `env/.local/*.json`, такой contour нужно явно пометить как `operator-local` в `automation/context/runtime-support-matrix.md` и `automation/context/runtime-support-matrix.json`.
 
 `doctor` проверяет этот layout и пишет `warning` в `summary.json`, если находит неожиданные root-level `env/*.json` вне canonical allowlist и вне sanctioned policy. Baseline QA checks должны использовать тот же policy contract и валить drift механически.
 
@@ -189,6 +190,8 @@ export ONEC_IB_PASSWORD='...'
 - запишет `unsupported` причину в `summary.json`;
 - будет считаться `unsupported` capability в `doctor`;
 - не должен объявляться baseline-ready в sanctioned checked-in profile.
+
+Shared checked-in runtime truth для generated repo должна идти через `automation/context/runtime-support-matrix.md` и `automation/context/runtime-support-matrix.json`, а не через ignored local-private profile как единственный durable source of truth.
 
 Для checked-in example profiles и sanctioned additional presets в `smoke` / `xunit` / `bdd` используйте либо `unsupportedReason`, либо прямой repo-owned entrypoint в `command[0]` вроде `./scripts/...` / `scripts/...`, либо `make <target>`.
 Inline shell snippets и trivial success commands вроде `true`, `echo ...` или `bash -lc "./scripts/... || true"` semantic baseline должен отклонять. Repo-owned path внутри shell-wrapper не считается допустимым checked-in contract.

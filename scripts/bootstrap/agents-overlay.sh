@@ -104,12 +104,16 @@ append_project_agents_overlay() {
 
 - This repository is a generated 1С-project created from `1c-runner-agnostic-template`.
 - Start with [docs/agent/generated-project-index.md](docs/agent/generated-project-index.md) for the generated-project-first onboarding path.
+- Run `make codex-onboard` for a read-only first screen in a generated repo.
 - Use [automation/context/project-map.md](automation/context/project-map.md) as the project-owned repo map.
+- Use [automation/context/runtime-support-matrix.md](automation/context/runtime-support-matrix.md) and [automation/context/runtime-support-matrix.json](automation/context/runtime-support-matrix.json) as the checked-in runtime support truth.
 - Use [automation/context/hotspots-summary.generated.md](automation/context/hotspots-summary.generated.md) as the compact generated-derived map for the first hour.
 - Use [automation/context/metadata-index.generated.json](automation/context/metadata-index.generated.json) as the deeper generated-derived inventory for narrowing the `src/` search space.
 - Use [automation/context/runtime-profile-policy.json](automation/context/runtime-profile-policy.json) for sanctioned checked-in runtime profile policy.
 - Use [docs/agent/generated-project-verification.md](docs/agent/generated-project-verification.md) and `make agent-verify` as the first no-1C verification path.
+- Use `make export-context-check` as the read-only freshness check for generated-derived context after the first baseline pass.
 - Use [docs/agent/review.md](docs/agent/review.md), [env/README.md](env/README.md), [.agents/skills/README.md](.agents/skills/README.md), [.codex/README.md](.codex/README.md), and [docs/exec-plans/README.md](docs/exec-plans/README.md) as the main follow-up routers.
+- After the first baseline pass, use `make export-context-check` as the read-only freshness check for generated-derived context.
 - Use [docs/template-maintenance.md](docs/template-maintenance.md) only for template refresh and maintenance work.
 - Ownership boundaries between template-managed and project-owned artifacts are described in [docs/agent/source-vs-generated.md](docs/agent/source-vs-generated.md).
 

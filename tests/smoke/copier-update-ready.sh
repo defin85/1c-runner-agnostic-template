@@ -252,6 +252,7 @@ assert_exists "$rendered_root/scripts/lib/ibcmd.sh"
 assert_exists "$rendered_root/scripts/AGENTS.md"
 assert_exists "$rendered_root/scripts/qa/agent-verify.sh"
 assert_exists "$rendered_root/scripts/qa/check-agent-docs.sh"
+assert_exists "$rendered_root/scripts/qa/codex-onboard.sh"
 assert_exists "$rendered_root/scripts/platform/dump-src.sh"
 assert_exists "$rendered_root/scripts/platform/diff-src.sh"
 assert_exists "$rendered_root/scripts/diag/doctor.sh"
@@ -259,6 +260,8 @@ assert_exists "$rendered_root/scripts/llm/export-context.sh"
 assert_exists "$rendered_root/scripts/template/migrate-runtime-profile-v2.sh"
 assert_exists "$rendered_root/automation/context/project-map.md"
 assert_exists "$rendered_root/automation/context/runtime-profile-policy.json"
+assert_exists "$rendered_root/automation/context/runtime-support-matrix.json"
+assert_exists "$rendered_root/automation/context/runtime-support-matrix.md"
 assert_exists "$rendered_root/automation/context/source-tree.generated.txt"
 assert_exists "$rendered_root/automation/context/metadata-index.generated.json"
 assert_exists "$rendered_root/automation/context/hotspots-summary.generated.md"
@@ -266,6 +269,8 @@ assert_exists "$rendered_root/automation/context/templates/generated-project-hot
 assert_exists "$rendered_root/automation/context/templates/generated-project-project-map.md"
 assert_exists "$rendered_root/automation/context/templates/generated-project-metadata-index.json"
 assert_exists "$rendered_root/automation/context/templates/generated-project-runtime-profile-policy.json"
+assert_exists "$rendered_root/automation/context/templates/generated-project-runtime-support-matrix.json"
+assert_exists "$rendered_root/automation/context/templates/generated-project-runtime-support-matrix.md"
 assert_exists "$rendered_root/src/AGENTS.md"
 assert_exists "$rendered_root/tests/AGENTS.md"
 assert_exists "$rendered_root/tests/smoke/runtime-capability-contract.sh"
@@ -297,6 +302,7 @@ assert_contains "$rendered_root/Makefile" "template-update:"
 assert_contains "$rendered_root/Makefile" "agent-verify:"
 assert_contains "$rendered_root/Makefile" "check-agent-docs:"
 assert_contains "$rendered_root/Makefile" "check-overlay-manifest:"
+assert_contains "$rendered_root/Makefile" "codex-onboard:"
 assert_contains "$rendered_root/Makefile" "export-context-preview:"
 assert_contains "$rendered_root/Makefile" "export-context-check:"
 assert_contains "$rendered_root/Makefile" "export-context-write:"
@@ -311,6 +317,8 @@ assert_contains "$rendered_root/.codex/config.toml" "mcp_servers.claude-context"
 assert_contains "$rendered_root/.codex/config.toml" "mcp_servers.chrome-devtools"
 assert_contains "$rendered_root/.codex/README.md" "[docs/agent/index.md](../docs/agent/index.md)"
 assert_contains "$rendered_root/.codex/README.md" "[docs/agent/generated-project-index.md](../docs/agent/generated-project-index.md)"
+assert_contains "$rendered_root/.codex/README.md" "make codex-onboard"
+assert_contains "$rendered_root/.codex/README.md" "automation/context/runtime-support-matrix.md"
 assert_contains "$rendered_root/.codex/README.md" "[env/README.md](../env/README.md)"
 assert_contains "$rendered_root/.codex/README.md" "[docs/agent/review.md](../docs/agent/review.md)"
 assert_contains "$rendered_root/.codex/README.md" "[docs/exec-plans/README.md](../docs/exec-plans/README.md)"
@@ -340,6 +348,8 @@ assert_jq "$rendered_root/env/wsl.example.json" '.capabilities.smoke.unsupported
 assert_jq "$rendered_root/env/windows-executor.example.json" '.capabilities.smoke.unsupportedReason != null and .capabilities.xunit.unsupportedReason != null and .capabilities.bdd.unsupportedReason != null and .capabilities.publishHttp.unsupportedReason != null' "windows-example-unsupported"
 assert_contains "$rendered_root/README.md" "generated 1С-проект"
 assert_contains "$rendered_root/README.md" "[docs/agent/generated-project-index.md](docs/agent/generated-project-index.md)"
+assert_contains "$rendered_root/README.md" "[automation/context/runtime-support-matrix.md](automation/context/runtime-support-matrix.md)"
+assert_contains "$rendered_root/README.md" "[automation/context/runtime-support-matrix.json](automation/context/runtime-support-matrix.json)"
 assert_contains "$rendered_root/README.md" "[automation/context/project-map.md](automation/context/project-map.md)"
 assert_contains "$rendered_root/README.md" "[automation/context/hotspots-summary.generated.md](automation/context/hotspots-summary.generated.md)"
 assert_contains "$rendered_root/README.md" "[automation/context/metadata-index.generated.json](automation/context/metadata-index.generated.json)"
@@ -351,6 +361,7 @@ assert_contains "$rendered_root/README.md" "[.agents/skills/README.md](.agents/s
 assert_contains "$rendered_root/README.md" "[.codex/README.md](.codex/README.md)"
 assert_contains "$rendered_root/README.md" "[docs/exec-plans/README.md](docs/exec-plans/README.md)"
 assert_contains "$rendered_root/README.md" "[docs/template-maintenance.md](docs/template-maintenance.md)"
+assert_contains "$rendered_root/README.md" "make codex-onboard"
 assert_contains "$rendered_root/README.md" "make agent-verify"
 assert_contains "$rendered_root/README.md" "Ownership Classes"
 assert_contains "$rendered_root/README.md" ".template-overlay-version"
@@ -364,7 +375,9 @@ assert_contains "$rendered_root/env/README.md" "unsupportedReason"
 assert_contains "$rendered_root/env/README.md" "ONEC_PROJECT_ROOT"
 assert_contains "$rendered_root/env/README.md" "ONEC_CAPABILITY_RUN_ROOT"
 assert_contains "$rendered_root/AGENTS.md" 'Start with [docs/agent/generated-project-index.md](docs/agent/generated-project-index.md) for the generated-project-first onboarding path.'
+assert_contains "$rendered_root/AGENTS.md" 'Run `make codex-onboard` for a read-only first screen in a generated repo.'
 assert_contains "$rendered_root/AGENTS.md" 'Use [automation/context/project-map.md](automation/context/project-map.md) as the project-owned repo map.'
+assert_contains "$rendered_root/AGENTS.md" 'Use [automation/context/runtime-support-matrix.md](automation/context/runtime-support-matrix.md) and [automation/context/runtime-support-matrix.json](automation/context/runtime-support-matrix.json) as the checked-in runtime support truth.'
 assert_contains "$rendered_root/AGENTS.md" 'Use [automation/context/hotspots-summary.generated.md](automation/context/hotspots-summary.generated.md) as the compact generated-derived map for the first hour.'
 assert_contains "$rendered_root/AGENTS.md" 'Use [automation/context/metadata-index.generated.json](automation/context/metadata-index.generated.json) as the deeper generated-derived inventory for narrowing the `src/` search space.'
 assert_contains "$rendered_root/AGENTS.md" 'Use [automation/context/runtime-profile-policy.json](automation/context/runtime-profile-policy.json) for sanctioned checked-in runtime profile policy.'
@@ -386,12 +399,19 @@ assert_line_before \
   "$rendered_root/docs/agent/generated-project-index.md" \
   "automation/context/hotspots-summary.generated.md" \
   "automation/context/metadata-index.generated.json"
+assert_contains "$rendered_root/docs/agent/generated-project-index.md" "make codex-onboard"
+assert_contains "$rendered_root/docs/agent/generated-project-index.md" "automation/context/runtime-support-matrix.md"
+assert_contains "$rendered_root/docs/agent/generated-project-index.md" "OpenSpec -> bd -> docs/exec-plans/README.md"
 assert_contains "$rendered_root/automation/context/project-map.md" "role: generated 1С-проект"
 assert_contains "$rendered_root/automation/context/project-map.md" "generated-derived"
 assert_contains "$rendered_root/automation/context/project-map.md" "automation/context/runtime-profile-policy.json"
+assert_contains "$rendered_root/automation/context/project-map.md" "automation/context/runtime-support-matrix.md"
 assert_contains "$rendered_root/automation/context/project-map.md" "docs/agent/review.md"
 assert_contains "$rendered_root/automation/context/project-map.md" "env/README.md"
 assert_contains "$rendered_root/automation/context/project-map.md" "docs/exec-plans/README.md"
+assert_contains "$rendered_root/automation/context/runtime-support-matrix.md" "# Runtime Support Matrix"
+assert_contains "$rendered_root/automation/context/runtime-support-matrix.md" '`operator-local`'
+assert_jq "$rendered_root/automation/context/runtime-support-matrix.json" '.matrixRole == "project-owned-runtime-support-matrix" and (.statuses | sort) == ["operator-local","provisioned","supported","unsupported"] and ([.contours[].id] | sort) == ["agent-verify","bdd","codex-onboard","doctor","export-context-check","publish-http","smoke","xunit"]' "generated-runtime-support-matrix"
 assert_contains "$rendered_root/automation/context/hotspots-summary.generated.md" "# Generated Hotspots Summary"
 assert_contains "$rendered_root/automation/context/hotspots-summary.generated.md" "## Task-to-Path Routing"
 assert_contains "$rendered_root/automation/context/hotspots-summary.generated.md" "automation/context/runtime-profile-policy.json"
@@ -401,9 +421,12 @@ assert_jq "$rendered_root/automation/context/runtime-profile-policy.json" '.root
 assert_contains "$rendered_root/automation/context/template-managed-paths.txt" "scripts/template/update-template.sh"
 assert_contains "$rendered_root/automation/context/template-managed-paths.txt" "automation/context/templates/generated-project-hotspots-summary.md"
 assert_contains "$rendered_root/automation/context/template-managed-paths.txt" "automation/context/templates/generated-project-runtime-profile-policy.json"
+assert_contains "$rendered_root/automation/context/template-managed-paths.txt" "automation/context/templates/generated-project-runtime-support-matrix.json"
+assert_contains "$rendered_root/automation/context/template-managed-paths.txt" "automation/context/templates/generated-project-runtime-support-matrix.md"
 assert_contains "$rendered_root/automation/context/template-managed-paths.txt" "env/AGENTS.md"
 assert_contains "$rendered_root/automation/context/template-managed-paths.txt" "tests/AGENTS.md"
 assert_contains "$rendered_root/automation/context/template-managed-paths.txt" "scripts/AGENTS.md"
+assert_contains "$rendered_root/automation/context/template-managed-paths.txt" "scripts/qa/codex-onboard.sh"
 assert_contains "$rendered_root/.template-overlay-version" "v0.1.0"
 assert_contains "$rendered_root/src/cf/DataProcessors/TestProcessor/Ext/ObjectModule.bsl" "{{ raw_bsl_expression }}"
 
@@ -421,6 +444,25 @@ assert_contains "$rendered_root/src/cf/DataProcessors/TestProcessor/Ext/ObjectMo
   cd "$rendered_root"
   PATH="$bindir:$PATH" COMMAND_LOG="$command_log" make check-overlay-manifest >/dev/null
 )
+
+status_before_preview="$(git -C "$rendered_root" status --short)"
+codex_onboard_output="$tmpdir/codex-onboard.txt"
+(
+  cd "$rendered_root"
+  PATH="$bindir:$PATH" COMMAND_LOG="$command_log" make codex-onboard >"$codex_onboard_output"
+)
+status_after_onboard="$(git -C "$rendered_root" status --short)"
+if [ "$status_before_preview" != "$status_after_onboard" ]; then
+  printf 'codex-onboard path must not change the worktree\n' >&2
+  printf 'before:\n%s\n' "$status_before_preview" >&2
+  printf 'after:\n%s\n' "$status_after_onboard" >&2
+  exit 1
+fi
+assert_contains "$codex_onboard_output" "Repository role: generated-project"
+assert_contains "$codex_onboard_output" "Canonical onboarding router: docs/agent/generated-project-index.md"
+assert_contains "$codex_onboard_output" "Runtime support matrix (md): automation/context/runtime-support-matrix.md"
+assert_contains "$codex_onboard_output" "make agent-verify"
+assert_contains "$codex_onboard_output" "docs/exec-plans/README.md"
 
 status_before_preview="$(git -C "$rendered_root" status --short)"
 preview_output="$tmpdir/export-context-preview.txt"

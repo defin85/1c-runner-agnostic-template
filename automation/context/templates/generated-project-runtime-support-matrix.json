@@ -1,0 +1,27 @@
+{
+  "projectRole": "generated-project-template",
+  "matrixRole": "project-owned-runtime-support-matrix-reference",
+  "liveMatrixJsonPath": "automation/context/runtime-support-matrix.json",
+  "liveMatrixMarkdownPath": "automation/context/runtime-support-matrix.md",
+  "requiredStatuses": [
+    "supported",
+    "unsupported",
+    "operator-local",
+    "provisioned"
+  ],
+  "requiredContourIds": [
+    "codex-onboard",
+    "agent-verify",
+    "export-context-check",
+    "doctor",
+    "xunit",
+    "bdd",
+    "smoke",
+    "publish-http"
+  ],
+  "notes": [
+    "Treat this matrix as the checked-in runtime truth for generated-project onboarding.",
+    "Operator-local contours may rely on ignored local-private profiles, but they must stay classified as operator-local here.",
+    "Project map and onboarding docs should point here instead of treating env/local.json as shared baseline truth."
+  ]
+}

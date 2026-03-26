@@ -7,6 +7,7 @@
 - Доверьте репозиторий, чтобы Codex подхватил `.codex/config.toml`.
 - В source repo начните с [docs/agent/index.md](../docs/agent/index.md).
 - В generated project начните с [docs/agent/generated-project-index.md](../docs/agent/generated-project-index.md).
+- В generated project для read-only первого экрана используйте `make codex-onboard`.
 - Для первого прогона используйте `make agent-verify`.
 - Для generated project дополнительно сверяйтесь с [env/README.md](../env/README.md), [docs/agent/review.md](../docs/agent/review.md), [.agents/skills/README.md](../.agents/skills/README.md) и [docs/exec-plans/README.md](../docs/exec-plans/README.md).
 - Repeatable workflows лежат в [.agents/skills/README.md](../.agents/skills/README.md).
@@ -15,13 +16,11 @@
 
 Если это generated repo, держите порядок таким:
 
-1. Root `README.md` -> `automation/context/project-map.md` -> `automation/context/hotspots-summary.generated.md`.
-2. `make agent-verify` -> `make export-context-check`.
-3. [env/README.md](../env/README.md) и `automation/context/runtime-profile-policy.json` для runtime profile contract и sanctioned checked-in presets.
-4. [docs/agent/review.md](../docs/agent/review.md) перед code/doc/tooling changes.
-5. [.agents/skills/README.md](../.agents/skills/README.md) для repeatable workflows.
-6. [docs/exec-plans/README.md](../docs/exec-plans/README.md) для long-running work.
-7. `automation/context/metadata-index.generated.json` открывайте только когда compact summary уже не хватает.
+1. `make codex-onboard`.
+2. [docs/agent/generated-project-index.md](../docs/agent/generated-project-index.md) как canonical onboarding router.
+3. `automation/context/runtime-support-matrix.md` и `automation/context/runtime-support-matrix.json` как checked-in runtime truth.
+4. `make agent-verify` -> `make export-context-check`.
+5. `automation/context/metadata-index.generated.json` открывайте только когда compact summary уже не хватает.
 
 ## Closeout
 
@@ -39,8 +38,9 @@
 ### First 15 Minutes
 
 - Соберите identity через `README.md`, `automation/context/project-map.md`, `automation/context/hotspots-summary.generated.md`.
+- Сначала запустите `make codex-onboard`, затем при необходимости откройте `docs/agent/generated-project-index.md`.
 - Пройдите `make agent-verify` и `make export-context-check`.
-- Перед runtime-работой проверьте [env/README.md](../env/README.md) и `automation/context/runtime-profile-policy.json`.
+- Перед runtime-работой проверьте [env/README.md](../env/README.md), `automation/context/runtime-profile-policy.json` и `automation/context/runtime-support-matrix.md`.
 
 ### Long-Running Change
 

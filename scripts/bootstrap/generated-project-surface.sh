@@ -92,19 +92,14 @@ write_generated_readme_router() {
 
 Этот репозиторий является generated 1С-проектом, созданным на шаблоне `1c-runner-agnostic-template`.
 
-- Начните с [docs/agent/generated-project-index.md](docs/agent/generated-project-index.md).
-- Карта проекта и project-owned truth лежат в [automation/context/project-map.md](automation/context/project-map.md).
-- Summary-first generated map лежит в [automation/context/hotspots-summary.generated.md](automation/context/hotspots-summary.generated.md).
-- Raw generated-derived inventory лежит в [automation/context/metadata-index.generated.json](automation/context/metadata-index.generated.json).
-- Sanctioned checked-in profile policy лежит в [automation/context/runtime-profile-policy.json](automation/context/runtime-profile-policy.json).
-- Матрица проверок лежит в [docs/agent/generated-project-verification.md](docs/agent/generated-project-verification.md).
-- Runtime profile contract и local-only profiles описаны в [env/README.md](env/README.md).
-- Review expectations лежат в [docs/agent/review.md](docs/agent/review.md).
-- Repeatable workflows и Codex-first onboarding лежат в [.agents/skills/README.md](.agents/skills/README.md) и [.codex/README.md](.codex/README.md).
-- Для long-running work используйте [docs/exec-plans/README.md](docs/exec-plans/README.md).
+- Canonical onboarding router: [docs/agent/generated-project-index.md](docs/agent/generated-project-index.md).
+- Read-only first screen: `make codex-onboard`.
+- Curated project truth: [automation/context/project-map.md](automation/context/project-map.md).
+- Checked-in runtime support truth: [automation/context/runtime-support-matrix.md](automation/context/runtime-support-matrix.md), [automation/context/runtime-support-matrix.json](automation/context/runtime-support-matrix.json).
+- Generated-derived search aids: [automation/context/hotspots-summary.generated.md](automation/context/hotspots-summary.generated.md), [automation/context/metadata-index.generated.json](automation/context/metadata-index.generated.json).
+- Verification and runtime contracts: [docs/agent/generated-project-verification.md](docs/agent/generated-project-verification.md), [env/README.md](env/README.md), [automation/context/runtime-profile-policy.json](automation/context/runtime-profile-policy.json).
+- Follow-up routers: [docs/agent/review.md](docs/agent/review.md), [.agents/skills/README.md](.agents/skills/README.md), [.codex/README.md](.codex/README.md), [docs/exec-plans/README.md](docs/exec-plans/README.md).
 - Template maintenance path вынесен в [docs/template-maintenance.md](docs/template-maintenance.md) и не является primary feature-delivery workflow.
-- Ownership model и граница `template-managed / project-owned / generated-derived / local-private` описаны в [docs/agent/source-vs-generated.md](docs/agent/source-vs-generated.md).
-- Closeout semantics различаются: `local-only` handoff не должен обещать обязательный push, а `remote-backed` handoff может требовать sync/push после зелёных quality gates.
 <!-- RUNNER_AGNOSTIC_PROJECT:END -->
 EOF
 }
@@ -134,26 +129,27 @@ write_generated_readme_starter() {
 - \`src/\` — основная конфигурация, расширения, обработки и отчеты;
 - \`scripts/\` — канонические entrypoint-скрипты для запуска, тестов и QA;
 - \`automation/context/project-map.md\` — project-owned карта системы;
+- \`automation/context/runtime-support-matrix.md\` и \`automation/context/runtime-support-matrix.json\` — checked-in runtime support truth;
 - \`automation/context/hotspots-summary.generated.md\` — compact summary-first карта hot paths;
 - \`automation/context/metadata-index.generated.json\` — raw generated-derived inventory для deeper narrowing search;
 - \`automation/context/runtime-profile-policy.json\` — policy для sanctioned checked-in runtime profiles;
 - \`openspec/\` — contract-first workspace для требований и изменений;
 - \`tests/\` и \`features/\` — automated checks разных слоёв.
 
-## Безопасный старт
+## Безопасные указатели
 
-1. Прочитайте [docs/agent/generated-project-index.md](docs/agent/generated-project-index.md).
-2. Сверьтесь с [automation/context/project-map.md](automation/context/project-map.md).
-3. Посмотрите [automation/context/hotspots-summary.generated.md](automation/context/hotspots-summary.generated.md), а затем при необходимости углубитесь в [automation/context/metadata-index.generated.json](automation/context/metadata-index.generated.json).
-4. Запустите \`make agent-verify\`.
-5. Сверьтесь с [env/README.md](env/README.md), [automation/context/runtime-profile-policy.json](automation/context/runtime-profile-policy.json), [docs/agent/review.md](docs/agent/review.md), [.agents/skills/README.md](.agents/skills/README.md) и [.codex/README.md](.codex/README.md).
-6. Если работа становится длинной, откройте [docs/exec-plans/README.md](docs/exec-plans/README.md).
-7. Если нужен template maintenance path, отдельно откройте [docs/template-maintenance.md](docs/template-maintenance.md).
+- Read-only first screen: \`make codex-onboard\`.
+- Safe-local baseline: \`make agent-verify\`, затем \`make export-context-check\`.
+- Canonical onboarding route: [docs/agent/generated-project-index.md](docs/agent/generated-project-index.md).
+- Curated project truth: [automation/context/project-map.md](automation/context/project-map.md).
+- Checked-in runtime truth: [automation/context/runtime-support-matrix.md](automation/context/runtime-support-matrix.md), [automation/context/runtime-support-matrix.json](automation/context/runtime-support-matrix.json).
+- Runtime profile contract и sanctioned checked-in presets: [env/README.md](env/README.md), [automation/context/runtime-profile-policy.json](automation/context/runtime-profile-policy.json).
+- Template maintenance path вынесен в [docs/template-maintenance.md](docs/template-maintenance.md) и не является primary feature-delivery workflow.
 
 ## Ownership Classes
 
 - \`template-managed\`: \`scripts/\`, template docs, shared skills, CI contours, managed blocks, \`.template-overlay-version\`.
-- \`seed-once / project-owned\`: \`README.md\`, \`openspec/project.md\`, \`automation/context/project-map.md\`, \`automation/context/runtime-profile-policy.json\`.
+- \`seed-once / project-owned\`: \`README.md\`, \`openspec/project.md\`, \`automation/context/project-map.md\`, \`automation/context/runtime-profile-policy.json\`, \`automation/context/runtime-support-matrix.md\`, \`automation/context/runtime-support-matrix.json\`.
 - \`generated-derived\`: \`automation/context/source-tree.generated.txt\`, \`automation/context/metadata-index.generated.json\`, \`automation/context/hotspots-summary.generated.md\`.
 - \`local-private\`: \`env/local.json\`, \`env/wsl.json\`, \`env/.local/*.json\`, machine-specific MCP/Codex overrides.
 
@@ -231,11 +227,17 @@ write_project_map_starter() {
 
 ## Canonical Entrypoints
 
+- read-only onboarding: \`make codex-onboard\`
 - baseline verify: \`make agent-verify\`
-- runtime doctor: \`./scripts/diag/doctor.sh --profile env/local.json --run-root /tmp/doctor-run\`
+- runtime support truth: \`automation/context/runtime-support-matrix.md\`, \`automation/context/runtime-support-matrix.json\`
 - project-owned sanctioned profile policy: \`automation/context/runtime-profile-policy.json\`
-- xUnit / BDD / smoke: repo entrypoints существуют, но unsupported profile должен fail-closed завершаться, пока проект не wired реальный contour
 - context refresh: \`./scripts/llm/export-context.sh --write\`
+
+## Runtime Support Truth
+
+- checked-in runtime support truth: \`automation/context/runtime-support-matrix.md\`, \`automation/context/runtime-support-matrix.json\`
+- project-owned sanctioned profile policy: \`automation/context/runtime-profile-policy.json\`
+- local-private runtime profiles не должны становиться единственным durable shared source of truth вне runtime support matrix
 
 ## Immediate Routers
 
@@ -281,6 +283,139 @@ write_runtime_profile_policy_starter() {
     "Sanctioned checked-in profiles must not keep smoke/xunit/bdd as success-on-placeholder contours."
   ]
 }
+EOF
+}
+
+write_runtime_support_matrix_json_starter() {
+  local target_file="$1"
+
+  ensure_parent_dir "$target_file"
+  cat >"$target_file" <<'EOF'
+{
+  "matrixRole": "project-owned-runtime-support-matrix",
+  "statuses": [
+    "supported",
+    "unsupported",
+    "operator-local",
+    "provisioned"
+  ],
+  "contours": [
+    {
+      "id": "codex-onboard",
+      "layer": "safe-local",
+      "status": "supported",
+      "entrypoint": "make codex-onboard",
+      "profileProvenance": "none",
+      "runbookPath": "docs/agent/generated-project-index.md",
+      "summary": "Read-only onboarding snapshot for a new Codex session."
+    },
+    {
+      "id": "agent-verify",
+      "layer": "safe-local",
+      "status": "supported",
+      "entrypoint": "make agent-verify",
+      "profileProvenance": "none",
+      "runbookPath": "docs/agent/generated-project-verification.md",
+      "summary": "No-1C baseline verification for docs, OpenSpec, skills, and context."
+    },
+    {
+      "id": "export-context-check",
+      "layer": "safe-local",
+      "status": "supported",
+      "entrypoint": "make export-context-check",
+      "profileProvenance": "none",
+      "runbookPath": "docs/agent/generated-project-verification.md",
+      "summary": "Read-only freshness check for generated-derived context artifacts."
+    },
+    {
+      "id": "doctor",
+      "layer": "profile-required",
+      "status": "operator-local",
+      "entrypoint": "./scripts/diag/doctor.sh --profile env/local.json --run-root /tmp/doctor-run",
+      "profileProvenance": "operator-local env/local.json or explicit --profile",
+      "runbookPath": "env/README.md",
+      "summary": "Runtime readiness check depends on an operator-owned local profile."
+    },
+    {
+      "id": "xunit",
+      "layer": "profile-required",
+      "status": "unsupported",
+      "entrypoint": "./scripts/test/run-xunit.sh --profile env/local.json --run-root /tmp/xunit-run",
+      "profileProvenance": "future sanctioned preset or operator-local repo-owned contour",
+      "runbookPath": "docs/agent/generated-project-verification.md",
+      "summary": "Keep fail-closed until the project wires a real repo-owned xUnit contour."
+    },
+    {
+      "id": "bdd",
+      "layer": "profile-required",
+      "status": "unsupported",
+      "entrypoint": "./scripts/test/run-bdd.sh --profile env/local.json --run-root /tmp/bdd-run",
+      "profileProvenance": "future sanctioned preset or operator-local repo-owned contour",
+      "runbookPath": "docs/agent/generated-project-verification.md",
+      "summary": "Keep fail-closed until the project wires a real repo-owned BDD contour."
+    },
+    {
+      "id": "smoke",
+      "layer": "profile-required",
+      "status": "unsupported",
+      "entrypoint": "./scripts/test/run-smoke.sh --profile env/local.json --run-root /tmp/smoke-run",
+      "profileProvenance": "future sanctioned preset or operator-local repo-owned contour",
+      "runbookPath": "docs/agent/generated-project-verification.md",
+      "summary": "Keep fail-closed until the project wires a real repo-owned smoke contour."
+    },
+    {
+      "id": "publish-http",
+      "layer": "profile-required",
+      "status": "unsupported",
+      "entrypoint": "./scripts/platform/publish-http.sh --profile env/local.json --run-root /tmp/publish-http-run",
+      "profileProvenance": "future sanctioned preset or operator-local repo-owned contour",
+      "runbookPath": "docs/agent/generated-project-verification.md",
+      "summary": "Keep fail-closed until the project wires a real repo-owned publish-http contour."
+    }
+  ]
+}
+EOF
+}
+
+write_runtime_support_matrix_markdown_starter() {
+  local target_file="$1"
+
+  ensure_parent_dir "$target_file"
+  cat >"$target_file" <<'EOF'
+# Runtime Support Matrix
+
+Этот файл является project-owned checked-in truth для runtime contour-ов generated repo.
+
+Статусы:
+
+- `supported` — runnable по checked-in baseline или safe-local contract.
+- `unsupported` — контур пока должен завершаться fail-closed и не считается baseline-ready.
+- `operator-local` — runnable только через ignored local-private profile или operator-owned local setup.
+- `provisioned` — требует provisioned/self-hosted runtime contour и выходит за safe-local baseline.
+
+## Safe Local
+
+| Contour | Status | Profile provenance | Canonical entrypoint | Runbook |
+| --- | --- | --- | --- | --- |
+| `codex-onboard` | `supported` | `none` | `make codex-onboard` | `docs/agent/generated-project-index.md` |
+| `agent-verify` | `supported` | `none` | `make agent-verify` | `docs/agent/generated-project-verification.md` |
+| `export-context-check` | `supported` | `none` | `make export-context-check` | `docs/agent/generated-project-verification.md` |
+
+## Runtime Contours
+
+| Contour | Status | Profile provenance | Canonical entrypoint | Runbook |
+| --- | --- | --- | --- | --- |
+| `doctor` | `operator-local` | `env/local.json` или явный `--profile` | `./scripts/diag/doctor.sh --profile env/local.json --run-root /tmp/doctor-run` | `env/README.md` |
+| `xunit` | `unsupported` | project decides later | `./scripts/test/run-xunit.sh --profile env/local.json --run-root /tmp/xunit-run` | `docs/agent/generated-project-verification.md` |
+| `bdd` | `unsupported` | project decides later | `./scripts/test/run-bdd.sh --profile env/local.json --run-root /tmp/bdd-run` | `docs/agent/generated-project-verification.md` |
+| `smoke` | `unsupported` | project decides later | `./scripts/test/run-smoke.sh --profile env/local.json --run-root /tmp/smoke-run` | `docs/agent/generated-project-verification.md` |
+| `publish-http` | `unsupported` | project decides later | `./scripts/platform/publish-http.sh --profile env/local.json --run-root /tmp/publish-http-run` | `docs/agent/generated-project-verification.md` |
+
+## Rules
+
+- Если durable docs ссылаются на contour, который живёт только через ignored local-private profile, отмечайте его здесь как `operator-local`.
+- `automation/context/project-map.md` и onboarding docs должны ссылаться на этот matrix вместо того, чтобы делать `env/local.json` shared source of truth.
+- Меняйте этот файл синхронно с `automation/context/runtime-profile-policy.json`, `docs/agent/generated-project-index.md` и `docs/agent/generated-project-verification.md`.
 EOF
 }
 
@@ -339,8 +474,8 @@ Project-specific business context, bounded contexts и metadata entrypoint-ы к
 ### Ownership Model
 
 - \`template-managed\`: reusable scripts, shared skills, template docs, CI contours, managed blocks
-- \`seed-once / project-owned\`: \`README.md\`, этот файл, \`automation/context/project-map.md\`
-- \`generated-derived\`: \`automation/context/source-tree.generated.txt\`, \`automation/context/metadata-index.generated.json\`
+- \`seed-once / project-owned\`: \`README.md\`, этот файл, \`automation/context/project-map.md\`, \`automation/context/runtime-support-matrix.md\`, \`automation/context/runtime-support-matrix.json\`
+- \`generated-derived\`: \`automation/context/source-tree.generated.txt\`, \`automation/context/metadata-index.generated.json\`, \`automation/context/hotspots-summary.generated.md\`
 - \`local-private\`: local runtime profiles, local MCP/Codex config, secrets
 
 ### Architecture Patterns
@@ -352,8 +487,9 @@ Project-specific business context, bounded contexts и metadata entrypoint-ы к
 
 ### Testing Strategy
 
-- First-pass no-1C verification path: \`make agent-verify\`.
-- Profile-required runtime contours используют, например, \`--profile env/local.json --run-root /tmp/doctor-run\`.
+- First-pass no-1C verification path: \`make codex-onboard\`, затем \`make agent-verify\`.
+- Shared runtime support truth должна жить в \`automation/context/runtime-support-matrix.md\` и \`automation/context/runtime-support-matrix.json\`.
+- Operator-local contour может использовать \`env/local.json\`, но не должен становиться единственным durable shared source of truth.
 - Provisioned/self-hosted 1C contours запускаются только там, где есть нужный runtime и операторские credentials.
 
 ## Important Constraints
@@ -374,6 +510,8 @@ seed_generated_project_surface_on_copy() {
   write_generated_readme_starter "$root/README.md" "$project_name" "$project_slug" "$project_description"
   write_project_map_starter "$root/automation/context/project-map.md" "$project_name" "$project_slug" "$project_description"
   write_runtime_profile_policy_starter "$root/automation/context/runtime-profile-policy.json"
+  write_runtime_support_matrix_json_starter "$root/automation/context/runtime-support-matrix.json"
+  write_runtime_support_matrix_markdown_starter "$root/automation/context/runtime-support-matrix.md"
   write_openspec_project_starter "$root/openspec/project.md" "$project_name" "$project_slug" "$project_description"
 }
 
@@ -391,6 +529,14 @@ refresh_generated_project_surface_on_update() {
 
   if [ ! -f "$root/automation/context/runtime-profile-policy.json" ]; then
     write_runtime_profile_policy_starter "$root/automation/context/runtime-profile-policy.json"
+  fi
+
+  if [ ! -f "$root/automation/context/runtime-support-matrix.json" ]; then
+    write_runtime_support_matrix_json_starter "$root/automation/context/runtime-support-matrix.json"
+  fi
+
+  if [ ! -f "$root/automation/context/runtime-support-matrix.md" ]; then
+    write_runtime_support_matrix_markdown_starter "$root/automation/context/runtime-support-matrix.md"
   fi
 
   if [ ! -f "$root/openspec/project.md" ] || openspec_project_is_bootstrap_stub "$root/openspec/project.md"; then

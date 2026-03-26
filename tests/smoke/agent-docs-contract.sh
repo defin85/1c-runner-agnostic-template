@@ -257,11 +257,28 @@ assert_fails_with "$generated_missing_link_root" \
   "missing required markdown link in README.md: docs/agent/generated-project-verification.md" \
   "$generated_bindir"
 
+generated_missing_runtime_support_matrix_root="$tmpdir/generated-missing-runtime-support-matrix"
+cp -R "$generated_root" "$generated_missing_runtime_support_matrix_root"
+rm -f \
+  "$generated_missing_runtime_support_matrix_root/automation/context/runtime-support-matrix.json" \
+  "$generated_missing_runtime_support_matrix_root/automation/context/runtime-support-matrix.md"
+assert_fails_with "$generated_missing_runtime_support_matrix_root" \
+  "missing agent-facing path: automation/context/runtime-support-matrix.json" \
+  "$generated_bindir"
+
 generated_missing_overlay_version_root="$tmpdir/generated-missing-overlay-version"
 cp -R "$generated_root" "$generated_missing_overlay_version_root"
 rm -f "$generated_missing_overlay_version_root/.template-overlay-version"
 assert_fails_with "$generated_missing_overlay_version_root" \
   "missing agent-facing path: .template-overlay-version" \
+  "$generated_bindir"
+
+generated_local_private_truth_root="$tmpdir/generated-local-private-truth"
+cp -R "$generated_root" "$generated_local_private_truth_root"
+printf '\n- runtime doctor: `./scripts/diag/doctor.sh --profile env/local.json --run-root /tmp/doctor-run`\n' \
+  >>"$generated_local_private_truth_root/automation/context/project-map.md"
+assert_fails_with "$generated_local_private_truth_root" \
+  "local-private runtime profile must not be advertised as shared truth outside runtime support matrix: automation/context/project-map.md" \
   "$generated_bindir"
 
 generated_placeholder_root="$tmpdir/generated-placeholder"

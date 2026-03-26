@@ -35,6 +35,8 @@ automation/context/templates/generated-project-hotspots-summary.md
 automation/context/templates/generated-project-metadata-index.json
 automation/context/templates/generated-project-project-map.md
 automation/context/templates/generated-project-runtime-profile-policy.json
+automation/context/templates/generated-project-runtime-support-matrix.json
+automation/context/templates/generated-project-runtime-support-matrix.md
 automation/prompts/README.md
 docs/AGENTS.md
 docs/README.md
@@ -87,6 +89,7 @@ scripts/qa/agent-verify.sh
 scripts/qa/analyze-bsl.sh
 scripts/qa/check-agent-docs.sh
 scripts/qa/check-overlay-manifest.sh
+scripts/qa/codex-onboard.sh
 scripts/qa/check-skill-bindings.sh
 scripts/qa/format-bsl.sh
 scripts/template/check-update.sh
