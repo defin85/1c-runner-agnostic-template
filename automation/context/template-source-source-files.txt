@@ -41,10 +41,12 @@
 ./automation/context/template-source-project-map.md
 ./automation/context/template-source-source-files.txt
 ./automation/context/template-source-tree.txt
+./automation/context/templates/generated-project-architecture-map.md
 ./automation/context/templates/generated-project-hotspots-summary.md
 ./automation/context/templates/generated-project-metadata-index.json
 ./automation/context/templates/generated-project-project-map.md
 ./automation/context/templates/generated-project-runtime-profile-policy.json
+./automation/context/templates/generated-project-runtime-quickstart.md
 ./automation/context/templates/generated-project-runtime-support-matrix.json
 ./automation/context/templates/generated-project-runtime-support-matrix.md
 ./automation/prompts/README.md
@@ -58,7 +60,9 @@
 ./docs/agent/review.md
 ./docs/agent/source-vs-generated.md
 ./docs/agent/verify.md
+./docs/exec-plans/EXAMPLE.md
 ./docs/exec-plans/README.md
+./docs/exec-plans/TEMPLATE.md
 ./docs/exec-plans/active/.gitkeep
 ./docs/exec-plans/completed/.gitkeep
 ./docs/migrations/runtime-profile-v2.md
@@ -162,6 +166,14 @@
 ./openspec/changes/archive/2026-03-26-unify-generated-project-onboarding-truth/specs/template-ci-contours/spec.md
 ./openspec/changes/archive/2026-03-26-unify-generated-project-onboarding-truth/tasks.md
 ./openspec/changes/archive/2026-03-26-unify-generated-project-onboarding-truth/traceability.md
+./openspec/changes/expand-generated-project-productivity-surface/design.md
+./openspec/changes/expand-generated-project-productivity-surface/proposal.md
+./openspec/changes/expand-generated-project-productivity-surface/specs/generated-context-artifacts/spec.md
+./openspec/changes/expand-generated-project-productivity-surface/specs/generated-project-agent-guidance/spec.md
+./openspec/changes/expand-generated-project-productivity-surface/specs/generated-runtime-support-matrix/spec.md
+./openspec/changes/expand-generated-project-productivity-surface/specs/template-ci-contours/spec.md
+./openspec/changes/expand-generated-project-productivity-surface/tasks.md
+./openspec/changes/expand-generated-project-productivity-surface/traceability.md
 ./openspec/project.md
 ./openspec/specs/agent-runtime-toolkit/spec.md
 ./openspec/specs/generated-context-artifacts/spec.md
@@ -215,6 +227,7 @@
 ./scripts/test/run-xunit.sh
 ./src/AGENTS.md
 ./src/README.md
+./src/cf/AGENTS.md
 ./src/cf/README.md
 ./src/cfe/README.md
 ./src/epf/README.md
