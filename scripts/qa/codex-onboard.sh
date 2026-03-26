@@ -25,6 +25,15 @@ Architecture guide: docs/agent/architecture.md
 Verification entrypoint: make agent-verify
 Generated-project router reference: docs/agent/generated-project-index.md
 Generated-project support-matrix templates: automation/context/templates/generated-project-runtime-support-matrix.md, automation/context/templates/generated-project-runtime-support-matrix.json
+Generated-project productivity scaffolds: automation/context/templates/generated-project-architecture-map.md, automation/context/templates/generated-project-runtime-quickstart.md
+Execution plan starters: docs/exec-plans/TEMPLATE.md, docs/exec-plans/EXAMPLE.md
+
+Codex controls:
+- /plan -> execution matrix for long-running work
+- /compact -> reduce session size before handoff
+- /review -> focused review pass
+- /ps -> inspect background shell work
+- /mcp -> inspect available MCP tools
 
 Next commands:
 - make agent-verify
@@ -42,17 +51,30 @@ print_generated_repo_onboard() {
   local metadata_path="automation/context/metadata-index.generated.json"
   local summary_path="automation/context/hotspots-summary.generated.md"
   local project_map_path="automation/context/project-map.md"
+  local architecture_map_path="docs/agent/architecture-map.md"
+  local runtime_quickstart_path="docs/agent/runtime-quickstart.md"
   local support_matrix_json="automation/context/runtime-support-matrix.json"
   local support_matrix_md="automation/context/runtime-support-matrix.md"
+  local exec_plan_template_path="docs/exec-plans/TEMPLATE.md"
   local config_name=""
   local contour_line=""
+  local extension_line=""
 
   require_generated_path "$project_map_path"
+  require_generated_path "$architecture_map_path"
+  require_generated_path "$runtime_quickstart_path"
   require_generated_path "$support_matrix_json"
   require_generated_path "$support_matrix_md"
+  require_generated_path "$exec_plan_template_path"
 
   if [ -f "$root/$metadata_path" ]; then
     config_name="$(jq -r '.configuration.name // ""' "$root/$metadata_path")"
+  fi
+
+  if jq -e '.projectSpecificBaselineExtension != null' "$root/$support_matrix_json" >/dev/null 2>&1; then
+    extension_line="$(jq -r '.projectSpecificBaselineExtension | "\(.id) -> \(.entrypoint) (\(.runbookPath))"' "$root/$support_matrix_json")"
+  else
+    extension_line="not declared"
   fi
 
   cat <<EOF
@@ -61,10 +83,14 @@ print_generated_repo_onboard() {
 Repository role: generated-project
 Canonical onboarding router: docs/agent/generated-project-index.md
 Project map: $project_map_path
+Architecture map: $architecture_map_path
+Runtime quick reference: $runtime_quickstart_path
 Runtime support matrix (md): $support_matrix_md
 Runtime support matrix (json): $support_matrix_json
 Summary-first map: $summary_path
 Raw inventory: $metadata_path
+Exec-plan template: $exec_plan_template_path
+Project-specific baseline extension: $extension_line
 EOF
 
   if [ -n "$config_name" ]; then
@@ -86,10 +112,18 @@ EOF
 
   cat <<'EOF'
 
+Codex controls:
+- /plan -> зафиксировать execution matrix до большого multi-session change
+- /compact -> свернуть длинную сессию перед handoff
+- /review -> попросить focused review pass по текущему worktree
+- /ps -> посмотреть фоновые shell/runtime contours
+- /mcp -> подтвердить доступные MCP tools
+
+
 Planning matrix:
 - OpenSpec -> use for new capability, breaking change, architecture shift, or ambiguous intent
 - bd -> use for executable code-change tracking after approval
-- docs/exec-plans/README.md -> use for long-running, multi-session, or cross-cutting work
+- docs/exec-plans/TEMPLATE.md -> copy-ready starter for long-running, multi-session, or cross-cutting work
 
 Follow-up routers:
 - docs/agent/review.md

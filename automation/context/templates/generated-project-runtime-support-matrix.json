@@ -19,9 +19,13 @@
     "smoke",
     "publish-http"
   ],
+  "optionalFields": [
+    "projectSpecificBaselineExtension"
+  ],
   "notes": [
     "Treat this matrix as the checked-in runtime truth for generated-project onboarding.",
     "Operator-local contours may rely on ignored local-private profiles, but they must stay classified as operator-local here.",
-    "Project map and onboarding docs should point here instead of treating env/local.json as shared baseline truth."
+    "Project map, runtime quickstart, and onboarding docs should point here instead of treating env/local.json as shared baseline truth.",
+    "If a project adds an extra no-1C smoke contour, declare it via projectSpecificBaselineExtension and keep it separate from the template baseline."
   ]
 }

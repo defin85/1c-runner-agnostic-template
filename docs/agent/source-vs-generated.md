@@ -27,7 +27,7 @@ Generated project не должен воспринимать source-repo artifac
 ## Ownership Classes
 
 - `template-managed`: reusable scripts, shared docs, shared skills, CI contours, managed blocks, `.template-overlay-version`.
-- `seed-once / project-owned`: root `README.md`, `openspec/project.md`, `automation/context/project-map.md`, `automation/context/runtime-support-matrix.md`, `automation/context/runtime-support-matrix.json`.
+- `seed-once / project-owned`: root `README.md`, `openspec/project.md`, `automation/context/project-map.md`, `docs/agent/architecture-map.md`, `docs/agent/runtime-quickstart.md`, `automation/context/runtime-support-matrix.md`, `automation/context/runtime-support-matrix.json`.
 - `generated-derived`: `automation/context/source-tree.generated.txt`, `automation/context/metadata-index.generated.json`.
 - `local-private`: local runtime profiles, secrets, machine-specific Codex/MCP config.
 
@@ -35,7 +35,7 @@ Generated project не должен воспринимать source-repo artifac
 
 - `automation/context/template-source-*` описывает именно этот template source repo.
 - [automation/context/templates/](../../automation/context/templates/) хранит skeleton files для generated projects.
-- Если вы работаете в generated project, держите curated truth в `automation/context/project-map.md`, checked-in runtime truth в `automation/context/runtime-support-matrix.md` / `.json`, а generated-derived inventory refresh-ите через `./scripts/llm/export-context.sh --write`.
+- Если вы работаете в generated project, держите curated truth в `automation/context/project-map.md`, `docs/agent/architecture-map.md` и `docs/agent/runtime-quickstart.md`, checked-in runtime truth в `automation/context/runtime-support-matrix.md` / `.json`, а generated-derived inventory refresh-ите через `./scripts/llm/export-context.sh --write`.
 
 ## AGENTS Split
 

@@ -266,6 +266,20 @@ assert_fails_with "$generated_missing_runtime_support_matrix_root" \
   "missing agent-facing path: automation/context/runtime-support-matrix.json" \
   "$generated_bindir"
 
+generated_missing_architecture_map_root="$tmpdir/generated-missing-architecture-map"
+cp -R "$generated_root" "$generated_missing_architecture_map_root"
+rm -f "$generated_missing_architecture_map_root/docs/agent/architecture-map.md"
+assert_fails_with "$generated_missing_architecture_map_root" \
+  "missing agent-facing path: docs/agent/architecture-map.md" \
+  "$generated_bindir"
+
+generated_missing_runtime_quickstart_root="$tmpdir/generated-missing-runtime-quickstart"
+cp -R "$generated_root" "$generated_missing_runtime_quickstart_root"
+rm -f "$generated_missing_runtime_quickstart_root/docs/agent/runtime-quickstart.md"
+assert_fails_with "$generated_missing_runtime_quickstart_root" \
+  "missing agent-facing path: docs/agent/runtime-quickstart.md" \
+  "$generated_bindir"
+
 generated_missing_overlay_version_root="$tmpdir/generated-missing-overlay-version"
 cp -R "$generated_root" "$generated_missing_overlay_version_root"
 rm -f "$generated_missing_overlay_version_root/.template-overlay-version"
@@ -480,6 +494,45 @@ refresh_source_context "$generated_sanctioned_direct_entrypoint_root"
   cd "$generated_sanctioned_direct_entrypoint_root"
   PATH="$generated_bindir:$PATH" ./scripts/qa/check-agent-docs.sh >/dev/null
 )
+
+generated_runtime_quickstart_drift_root="$tmpdir/generated-runtime-quickstart-drift"
+cp -R "$generated_root" "$generated_runtime_quickstart_drift_root"
+python - <<'PY' "$generated_runtime_quickstart_drift_root/docs/agent/runtime-quickstart.md"
+from pathlib import Path
+import sys
+
+path = Path(sys.argv[1])
+text = path.read_text()
+old = "| `agent-verify` | `supported` | `make agent-verify` | `shell-only` | `docs/agent/generated-project-verification.md` |"
+new = "| `agent-verify` | `unsupported` | `make agent-verify` | `shell-only` | `docs/agent/generated-project-verification.md` |"
+if old not in text:
+    raise SystemExit("expected runtime quickstart row not found")
+path.write_text(text.replace(old, new, 1))
+PY
+assert_fails_with "$generated_runtime_quickstart_drift_root" \
+  "runtime quick reference drifts from runtime support matrix: docs/agent/runtime-quickstart.md (agent-verify)" \
+  "$generated_bindir"
+
+generated_project_baseline_extension_missing_target_root="$tmpdir/generated-project-baseline-extension-missing-target"
+cp -R "$generated_root" "$generated_project_baseline_extension_missing_target_root"
+python - <<'PY' "$generated_project_baseline_extension_missing_target_root/automation/context/runtime-support-matrix.json"
+from pathlib import Path
+import json
+import sys
+
+path = Path(sys.argv[1])
+data = json.loads(path.read_text())
+data["projectSpecificBaselineExtension"] = {
+    "id": "project-agent-surface-contract",
+    "entrypoint": "tests/smoke/project-agent-surface-contract.sh",
+    "runbookPath": "docs/agent/runtime-quickstart.md",
+    "summary": "Project-owned no-1C smoke for agent/runtime truth."
+}
+path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n")
+PY
+assert_fails_with "$generated_project_baseline_extension_missing_target_root" \
+  "project-specific baseline extension entrypoint is missing: tests/smoke/project-agent-surface-contract.sh" \
+  "$generated_bindir"
 
 generated_empty_identity_root="$tmpdir/generated-empty-identity"
 cp -R "$generated_root" "$generated_empty_identity_root"

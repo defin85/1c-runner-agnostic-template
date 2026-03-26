@@ -6,6 +6,8 @@
 
 - generated-derived summary-first карта для первого часа работы агента;
 - ссылается на `automation/context/project-map.md` как curated truth;
+- ссылается на `docs/agent/architecture-map.md` как project-owned code navigation bridge;
+- ссылается на `docs/agent/runtime-quickstart.md` как project-owned runtime digest;
 - ссылается на `automation/context/runtime-support-matrix.md` как checked-in runtime truth;
 - ссылается на `automation/context/metadata-index.generated.json` как raw inventory;
 - содержит identity, freshness metadata, high-signal counts и task-to-path routing hints;

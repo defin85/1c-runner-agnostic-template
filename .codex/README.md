@@ -18,9 +18,10 @@
 
 1. `make codex-onboard`.
 2. [docs/agent/generated-project-index.md](../docs/agent/generated-project-index.md) как canonical onboarding router.
-3. `automation/context/runtime-support-matrix.md` и `automation/context/runtime-support-matrix.json` как checked-in runtime truth.
-4. `make agent-verify` -> `make export-context-check`.
-5. `automation/context/metadata-index.generated.json` открывайте только когда compact summary уже не хватает.
+3. `docs/agent/architecture-map.md` и `docs/agent/runtime-quickstart.md` как project-owned code/runtime digests.
+4. `automation/context/runtime-support-matrix.md` и `automation/context/runtime-support-matrix.json` как checked-in runtime truth.
+5. `make agent-verify` -> `make export-context-check`.
+6. `automation/context/metadata-index.generated.json` открывайте только когда compact summary уже не хватает.
 
 ## Closeout
 
@@ -44,7 +45,7 @@
 
 ### Long-Running Change
 
-- Откройте [docs/exec-plans/README.md](../docs/exec-plans/README.md) и заведите plan artifact до того, как сессия разрастётся.
+- Скопируйте [docs/exec-plans/TEMPLATE.md](../docs/exec-plans/TEMPLATE.md) и держите рядом [docs/exec-plans/README.md](../docs/exec-plans/README.md) как contract.
 - Используйте `/plan` для фиксации execution matrix и `/compact` перед handoff или длинной веткой исследования.
 
 ### Runtime Investigation

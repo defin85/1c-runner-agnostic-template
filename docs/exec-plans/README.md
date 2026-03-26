@@ -15,6 +15,8 @@
 
 - `docs/exec-plans/active/` — текущие планы;
 - `docs/exec-plans/completed/` — завершённые планы.
+- `docs/exec-plans/TEMPLATE.md` — copy-ready стартовая точка для нового long-running плана.
+- `docs/exec-plans/EXAMPLE.md` — минимальный пример заполненного execution plan artifact.
 
 ## Минимальный шаблон
 
@@ -35,28 +37,8 @@
 - `Decision Log` — какие развилки уже закрыты и почему.
 - `Outcomes & Retrospective` — что в итоге landed, что осталось долгом, какие follow-up нужны.
 
-## Рекомендуемый шаблон
+## Как начинать
 
-```md
-# <Короткое имя плана>
-
-## Goal
-
-## Scope And Non-Goals
-
-## Dependencies And Invariants
-
-## Execution Matrix
-
-## Progress
-
-## Chronological Steps
-
-## Surprises & Discoveries
-
-## Decision Log
-
-## Verification State
-
-## Outcomes & Retrospective
-```
+1. Скопируйте `docs/exec-plans/TEMPLATE.md` в `docs/exec-plans/active/<короткое-имя>.md`.
+2. Если нужен ориентир по уровню детализации, сначала посмотрите `docs/exec-plans/EXAMPLE.md`.
+3. Держите план самодостаточным: новый агент должен понять состояние без скрытого контекста чата.

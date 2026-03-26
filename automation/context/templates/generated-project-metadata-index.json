@@ -3,6 +3,8 @@
   "inventoryRole": "generated-derived-reference",
   "liveInventoryPath": "automation/context/metadata-index.generated.json",
   "liveSummaryPath": "automation/context/hotspots-summary.generated.md",
+  "architectureMapPath": "docs/agent/architecture-map.md",
+  "runtimeQuickstartPath": "docs/agent/runtime-quickstart.md",
   "runtimeSupportMatrixJsonPath": "automation/context/runtime-support-matrix.json",
   "runtimeSupportMatrixMarkdownPath": "automation/context/runtime-support-matrix.md",
   "sourceRoots": {
@@ -22,6 +24,8 @@
   "notes": [
     "Refresh the live generated-derived inventory with ./scripts/llm/export-context.sh --write.",
     "Keep curated business/domain context in automation/context/project-map.md.",
+    "Use docs/agent/architecture-map.md as the project-owned bridge from change scenario to likely code paths.",
+    "Use docs/agent/runtime-quickstart.md as the short runtime digest before reading the full env contract.",
     "Use automation/context/hotspots-summary.generated.md as the compact onboarding route before diving into raw inventory.",
     "Use automation/context/runtime-support-matrix.md as the checked-in runtime truth before trusting local-private profiles.",
     "When src/cf/Configuration.xml exists, configuration.name must not stay empty.",

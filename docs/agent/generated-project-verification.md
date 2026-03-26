@@ -4,6 +4,7 @@
 Runtime profile contract, canonical local profile paths и `local-private` правила описаны в [env/README.md](../../env/README.md).
 Sanctioned checked-in team-shared presets описываются в `automation/context/runtime-profile-policy.json`.
 Checked-in runtime support truth конкретного generated repo живёт в `automation/context/runtime-support-matrix.md` и `automation/context/runtime-support-matrix.json`.
+Короткий project-specific digest для первого runtime-вопроса должен жить в `docs/agent/runtime-quickstart.md`.
 
 ## Safe Local
 
@@ -24,6 +25,12 @@ make codex-onboard
 make agent-verify
 make export-context-check
 ```
+
+Optional project-specific baseline extension:
+
+- если `automation/context/runtime-support-matrix.json` объявляет `projectSpecificBaselineExtension`, относитесь к нему как к соседнему project-owned contour, а не к template baseline;
+- advertising такого contour-а должно идти через runtime support matrix, `docs/agent/runtime-quickstart.md` и `make codex-onboard`;
+- отсутствие extension по умолчанию не делает generated repo “неполным”.
 
 ## Profile-Required
 

@@ -49,14 +49,13 @@
 ./features/examples
 ./openspec
 ./openspec/changes
-./openspec/changes/add-source-template-release-workflow
 ./openspec/changes/archive
-./openspec/changes/harden-generated-project-agent-contract
-./openspec/changes/unify-generated-project-onboarding-truth
+./openspec/changes/expand-generated-project-productivity-surface
 ./openspec/specs
 ./openspec/specs/agent-runtime-toolkit
 ./openspec/specs/generated-context-artifacts
 ./openspec/specs/generated-project-agent-guidance
+./openspec/specs/generated-runtime-support-matrix
 ./openspec/specs/ibcmd-capability-drivers
 ./openspec/specs/project-scoped-skills
 ./openspec/specs/repository-agent-guidance

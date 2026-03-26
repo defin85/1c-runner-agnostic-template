@@ -279,6 +279,8 @@ render_generated_metadata() {
     printf '  "authoritativeDocs": {\n'
     printf '    "generatedProjectIndex": "docs/agent/generated-project-index.md",\n'
     printf '    "projectMap": "automation/context/project-map.md",\n'
+    printf '    "architectureMap": "docs/agent/architecture-map.md",\n'
+    printf '    "runtimeQuickstart": "docs/agent/runtime-quickstart.md",\n'
     printf '    "verification": "docs/agent/generated-project-verification.md",\n'
     printf '    "review": "docs/agent/review.md",\n'
     printf '    "envReadme": "env/README.md",\n'
@@ -375,7 +377,7 @@ render_generated_hotspots_summary() {
   {
     printf '# Generated Hotspots Summary\n\n'
     printf 'Этот файл является generated-derived summary-first картой для первого часа работы агента.\n'
-    printf 'Raw inventory остаётся в `automation/context/metadata-index.generated.json`, а curated truth — в `automation/context/project-map.md`.\n\n'
+    printf 'Raw inventory остаётся в `automation/context/metadata-index.generated.json`, а следующий curated слой живёт в `automation/context/project-map.md`, `docs/agent/architecture-map.md` и `docs/agent/runtime-quickstart.md`.\n\n'
 
     printf '## Identity\n\n'
     printf -- '- Repository role: `generated-project`\n'
@@ -423,6 +425,8 @@ render_generated_hotspots_summary() {
 
     printf '\n## Follow-Up Routers\n\n'
     printf -- '- Curated project truth: `automation/context/project-map.md`\n'
+    printf -- '- Project-owned code map: `docs/agent/architecture-map.md`\n'
+    printf -- '- Project-specific runtime digest: `docs/agent/runtime-quickstart.md`\n'
     printf -- '- Runtime profile policy: `automation/context/runtime-profile-policy.json`\n'
     printf -- '- Runtime support matrix: `automation/context/runtime-support-matrix.md`, `automation/context/runtime-support-matrix.json`\n'
     printf -- '- Raw inventory for deeper narrowing: `automation/context/metadata-index.generated.json`\n'

@@ -95,6 +95,8 @@ write_generated_readme_router() {
 - Canonical onboarding router: [docs/agent/generated-project-index.md](docs/agent/generated-project-index.md).
 - Read-only first screen: `make codex-onboard`.
 - Curated project truth: [automation/context/project-map.md](automation/context/project-map.md).
+- Project-owned code map: [docs/agent/architecture-map.md](docs/agent/architecture-map.md).
+- Project-specific runtime digest: [docs/agent/runtime-quickstart.md](docs/agent/runtime-quickstart.md).
 - Checked-in runtime support truth: [automation/context/runtime-support-matrix.md](automation/context/runtime-support-matrix.md), [automation/context/runtime-support-matrix.json](automation/context/runtime-support-matrix.json).
 - Generated-derived search aids: [automation/context/hotspots-summary.generated.md](automation/context/hotspots-summary.generated.md), [automation/context/metadata-index.generated.json](automation/context/metadata-index.generated.json).
 - Verification and runtime contracts: [docs/agent/generated-project-verification.md](docs/agent/generated-project-verification.md), [env/README.md](env/README.md), [automation/context/runtime-profile-policy.json](automation/context/runtime-profile-policy.json).
@@ -129,6 +131,8 @@ write_generated_readme_starter() {
 - \`src/\` — основная конфигурация, расширения, обработки и отчеты;
 - \`scripts/\` — канонические entrypoint-скрипты для запуска, тестов и QA;
 - \`automation/context/project-map.md\` — project-owned карта системы;
+- \`docs/agent/architecture-map.md\` — project-owned прикладная карта для typical change scenarios;
+- \`docs/agent/runtime-quickstart.md\` — project-owned короткий digest по runnable contour-ам и prerequisites;
 - \`automation/context/runtime-support-matrix.md\` и \`automation/context/runtime-support-matrix.json\` — checked-in runtime support truth;
 - \`automation/context/hotspots-summary.generated.md\` — compact summary-first карта hot paths;
 - \`automation/context/metadata-index.generated.json\` — raw generated-derived inventory для deeper narrowing search;
@@ -142,6 +146,8 @@ write_generated_readme_starter() {
 - Safe-local baseline: \`make agent-verify\`, затем \`make export-context-check\`.
 - Canonical onboarding route: [docs/agent/generated-project-index.md](docs/agent/generated-project-index.md).
 - Curated project truth: [automation/context/project-map.md](automation/context/project-map.md).
+- Project-owned code map: [docs/agent/architecture-map.md](docs/agent/architecture-map.md).
+- Project-specific runtime digest: [docs/agent/runtime-quickstart.md](docs/agent/runtime-quickstart.md).
 - Checked-in runtime truth: [automation/context/runtime-support-matrix.md](automation/context/runtime-support-matrix.md), [automation/context/runtime-support-matrix.json](automation/context/runtime-support-matrix.json).
 - Runtime profile contract и sanctioned checked-in presets: [env/README.md](env/README.md), [automation/context/runtime-profile-policy.json](automation/context/runtime-profile-policy.json).
 - Template maintenance path вынесен в [docs/template-maintenance.md](docs/template-maintenance.md) и не является primary feature-delivery workflow.
@@ -149,7 +155,7 @@ write_generated_readme_starter() {
 ## Ownership Classes
 
 - \`template-managed\`: \`scripts/\`, template docs, shared skills, CI contours, managed blocks, \`.template-overlay-version\`.
-- \`seed-once / project-owned\`: \`README.md\`, \`openspec/project.md\`, \`automation/context/project-map.md\`, \`automation/context/runtime-profile-policy.json\`, \`automation/context/runtime-support-matrix.md\`, \`automation/context/runtime-support-matrix.json\`.
+- \`seed-once / project-owned\`: \`README.md\`, \`openspec/project.md\`, \`automation/context/project-map.md\`, \`docs/agent/architecture-map.md\`, \`docs/agent/runtime-quickstart.md\`, \`automation/context/runtime-profile-policy.json\`, \`automation/context/runtime-support-matrix.md\`, \`automation/context/runtime-support-matrix.json\`.
 - \`generated-derived\`: \`automation/context/source-tree.generated.txt\`, \`automation/context/metadata-index.generated.json\`, \`automation/context/hotspots-summary.generated.md\`.
 - \`local-private\`: \`env/local.json\`, \`env/wsl.json\`, \`env/.local/*.json\`, machine-specific MCP/Codex overrides.
 
@@ -239,9 +245,17 @@ write_project_map_starter() {
 - project-owned sanctioned profile policy: \`automation/context/runtime-profile-policy.json\`
 - local-private runtime profiles не должны становиться единственным durable shared source of truth вне runtime support matrix
 
+## Project-Owned Digests
+
+- code navigation bridge: \`docs/agent/architecture-map.md\`
+- runtime quick answers: \`docs/agent/runtime-quickstart.md\`
+- оба файла должны оставаться согласованными с \`automation/context/project-map.md\` и runtime support matrix
+
 ## Immediate Routers
 
 - onboarding: \`docs/agent/generated-project-index.md\`
+- code architecture: \`docs/agent/architecture-map.md\`
+- runtime quick reference: \`docs/agent/runtime-quickstart.md\`
 - review: \`docs/agent/review.md\`
 - env contract: \`env/README.md\`
 - repeatable workflows: \`.agents/skills/README.md\`, \`.codex/README.md\`
@@ -250,8 +264,99 @@ write_project_map_starter() {
 ## Next Enrichment Steps
 
 - Зафиксируйте реальные bounded contexts, бизнес-термины и ключевые metadata entrypoint-ы.
+- Перенесите первые ответы “где менять X?” в \`docs/agent/architecture-map.md\`.
+- Держите \`docs/agent/runtime-quickstart.md\` согласованным с \`automation/context/runtime-support-matrix.md\` и \`.json\`.
 - Дополните секции HTTP services, scheduled jobs, forms и extensions по фактическому проекту.
 - Держите этот файл как curated project-owned truth, а generated-derived inventory refresh-ите отдельной командой.
+EOF
+}
+
+write_architecture_map_starter() {
+  local target_file="$1"
+
+  ensure_parent_dir "$target_file"
+  cat >"$target_file" <<'EOF'
+# Architecture Map
+
+Этот файл является project-owned прикладной картой кода generated repo.
+Держите его короче raw inventory и обновляйте тогда, когда команда уже знает реальные hot zones и representative scenarios.
+
+## How To Use
+
+1. Сначала подтвердите bounded context в `automation/context/project-map.md`.
+2. Здесь сузьте поиск до 1-2 вероятных зон.
+3. Для deeper narrowing только после этого открывайте `automation/context/hotspots-summary.generated.md` и `automation/context/metadata-index.generated.json`.
+
+## Representative Change Scenarios
+
+| Scenario | Likely paths | Metadata objects / signals | Runbooks / tests |
+| --- | --- | --- | --- |
+| Изменение shared business logic | `src/cf/CommonModules`, `src/cf/Subsystems` | common modules, subsystems | `docs/agent/runtime-quickstart.md`, `docs/agent/generated-project-verification.md` |
+| Изменение background behavior | `src/cf/ScheduledJobs`, `src/cf/CommonModules` | scheduled jobs, server logic | `automation/context/hotspots-summary.generated.md`, `tests/` |
+| Изменение service edge | `src/cf/HTTPServices`, `src/cf/WebServices`, `src/cf/CommonModules` | service modules, integration points | `docs/agent/runtime-quickstart.md`, `env/README.md` |
+| Изменение interactive tool or processor | `src/cf/DataProcessors`, `src/epf`, `src/erf` | data processors, external processors, reports | `docs/agent/review.md`, `tests/` |
+| Изменение extension-owned behavior | `src/cfe`, nearby `src/cf` roots | extensions, extension touch points | `automation/context/project-map.md`, `automation/context/metadata-index.generated.json` |
+
+## Hot Zones
+
+- `src/cf/CommonModules` — shared business logic and reusable helpers.
+- `src/cf/ScheduledJobs` — background execution and periodic flows.
+- `src/cf/HTTPServices`, `src/cf/WebServices` — service edges and integration contracts.
+- `src/cf/DataProcessors` — operator workflows and tooling surface.
+- `src/cf/Subsystems` — product navigation map and feature grouping.
+
+## Related Truth
+
+- curated repo map: `automation/context/project-map.md`
+- runtime quick answers: `docs/agent/runtime-quickstart.md`
+- summary-first generated map: `automation/context/hotspots-summary.generated.md`
+- raw generated inventory: `automation/context/metadata-index.generated.json`
+- review expectations: `docs/agent/review.md`
+EOF
+}
+
+write_runtime_quickstart_starter() {
+  local target_file="$1"
+
+  ensure_parent_dir "$target_file"
+  cat >"$target_file" <<'EOF'
+# Runtime Quickstart
+
+Этот файл является project-owned коротким digest по runnable contour-ам generated repo.
+Если нужен полный runtime contract, переходите в `env/README.md`; если нужен checked-in status truth, сначала смотрите `automation/context/runtime-support-matrix.md` и `.json`.
+
+## Safe Local First Pass
+
+1. `make codex-onboard`
+2. `make agent-verify`
+3. `make export-context-check`
+
+## Contour Quick Reference
+
+| Contour | Status | Canonical command | Prerequisites | Runbook |
+| --- | --- | --- | --- | --- |
+| `codex-onboard` | `supported` | `make codex-onboard` | `shell-only` | `docs/agent/generated-project-index.md` |
+| `agent-verify` | `supported` | `make agent-verify` | `shell-only` | `docs/agent/generated-project-verification.md` |
+| `export-context-check` | `supported` | `make export-context-check` | `shell-only` | `docs/agent/generated-project-verification.md` |
+| `doctor` | `operator-local` | `./scripts/diag/doctor.sh --profile env/local.json --run-root /tmp/doctor-run` | `1C runtime + operator-owned profile` | `env/README.md` |
+| `xunit` | `unsupported` | `./scripts/test/run-xunit.sh --profile env/local.json --run-root /tmp/xunit-run` | `future project-owned contour or sanctioned preset` | `docs/agent/generated-project-verification.md` |
+| `bdd` | `unsupported` | `./scripts/test/run-bdd.sh --profile env/local.json --run-root /tmp/bdd-run` | `future project-owned contour or sanctioned preset` | `docs/agent/generated-project-verification.md` |
+| `smoke` | `unsupported` | `./scripts/test/run-smoke.sh --profile env/local.json --run-root /tmp/smoke-run` | `future project-owned contour or sanctioned preset` | `docs/agent/generated-project-verification.md` |
+| `publish-http` | `unsupported` | `./scripts/platform/publish-http.sh --profile env/local.json --run-root /tmp/publish-http-run` | `future project-owned contour or sanctioned preset` | `docs/agent/generated-project-verification.md` |
+
+## Optional Project-Specific Baseline Extension
+
+- По умолчанию `projectSpecificBaselineExtension` в `automation/context/runtime-support-matrix.json` не объявлен.
+- Если проект добавляет extra no-1C smoke, описывайте его там как project-specific extension, а не как template baseline.
+- Здесь повторяйте extension только после того, как matrix и runbook уже согласованы.
+
+## Related Truth Sources
+
+- checked-in runtime truth: `automation/context/runtime-support-matrix.md`, `automation/context/runtime-support-matrix.json`
+- sanctioned checked-in profile policy: `automation/context/runtime-profile-policy.json`
+- generated verification guide: `docs/agent/generated-project-verification.md`
+- general runtime contract: `env/README.md`
+- code routing companion: `docs/agent/architecture-map.md`
 EOF
 }
 
@@ -299,6 +404,7 @@ write_runtime_support_matrix_json_starter() {
     "operator-local",
     "provisioned"
   ],
+  "projectSpecificBaselineExtension": null,
   "contours": [
     {
       "id": "codex-onboard",
@@ -411,6 +517,12 @@ write_runtime_support_matrix_markdown_starter() {
 | `smoke` | `unsupported` | project decides later | `./scripts/test/run-smoke.sh --profile env/local.json --run-root /tmp/smoke-run` | `docs/agent/generated-project-verification.md` |
 | `publish-http` | `unsupported` | project decides later | `./scripts/platform/publish-http.sh --profile env/local.json --run-root /tmp/publish-http-run` | `docs/agent/generated-project-verification.md` |
 
+## Optional Project-Specific Baseline Extension
+
+- По умолчанию `projectSpecificBaselineExtension` в `automation/context/runtime-support-matrix.json` остаётся `null`.
+- Если проект добавляет extra no-1C smoke, используйте direct repo-owned entrypoint или `make <target>` и держите его отдельным от template baseline.
+- `docs/agent/runtime-quickstart.md` и `make codex-onboard` должны ссылаться на extension только после того, как он объявлен здесь.
+
 ## Rules
 
 - Если durable docs ссылаются на contour, который живёт только через ignored local-private profile, отмечайте его здесь как `operator-local`.
@@ -509,6 +621,8 @@ seed_generated_project_surface_on_copy() {
 
   write_generated_readme_starter "$root/README.md" "$project_name" "$project_slug" "$project_description"
   write_project_map_starter "$root/automation/context/project-map.md" "$project_name" "$project_slug" "$project_description"
+  write_architecture_map_starter "$root/docs/agent/architecture-map.md"
+  write_runtime_quickstart_starter "$root/docs/agent/runtime-quickstart.md"
   write_runtime_profile_policy_starter "$root/automation/context/runtime-profile-policy.json"
   write_runtime_support_matrix_json_starter "$root/automation/context/runtime-support-matrix.json"
   write_runtime_support_matrix_markdown_starter "$root/automation/context/runtime-support-matrix.md"
@@ -525,6 +639,14 @@ refresh_generated_project_surface_on_update() {
 
   if [ ! -f "$root/automation/context/project-map.md" ]; then
     write_project_map_starter "$root/automation/context/project-map.md" "$project_name" "$project_slug" "$project_description"
+  fi
+
+  if [ ! -f "$root/docs/agent/architecture-map.md" ]; then
+    write_architecture_map_starter "$root/docs/agent/architecture-map.md"
+  fi
+
+  if [ ! -f "$root/docs/agent/runtime-quickstart.md" ]; then
+    write_runtime_quickstart_starter "$root/docs/agent/runtime-quickstart.md"
   fi
 
   if [ ! -f "$root/automation/context/runtime-profile-policy.json" ]; then

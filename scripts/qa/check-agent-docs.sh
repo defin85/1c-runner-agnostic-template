@@ -13,6 +13,10 @@ generated_summary_rel="automation/context/hotspots-summary.generated.md"
 generated_policy_rel="automation/context/runtime-profile-policy.json"
 generated_matrix_json_rel="automation/context/runtime-support-matrix.json"
 generated_matrix_md_rel="automation/context/runtime-support-matrix.md"
+generated_architecture_map_rel="docs/agent/architecture-map.md"
+generated_runtime_quickstart_rel="docs/agent/runtime-quickstart.md"
+exec_plan_template_rel="docs/exec-plans/TEMPLATE.md"
+exec_plan_example_rel="docs/exec-plans/EXAMPLE.md"
 codex_onboard_rel="scripts/qa/codex-onboard.sh"
 
 require_markdown_link() {
@@ -201,6 +205,56 @@ checked_in_command_token_references_repo_path() {
   esac
 }
 
+entrypoint_primary_token() {
+  local entrypoint="$1"
+  printf '%s\n' "${entrypoint%%[[:space:]]*}"
+}
+
+entrypoint_secondary_token() {
+  local entrypoint="$1"
+  local first=""
+  local rest=""
+
+  first="$(entrypoint_primary_token "$entrypoint")"
+  rest="${entrypoint#"$first"}"
+  rest="${rest#"${rest%%[![:space:]]*}"}"
+  printf '%s\n' "${rest%%[[:space:]]*}"
+}
+
+entrypoint_token_looks_repo_relative() {
+  local token="$1"
+
+  case "$token" in
+    ./*|scripts/*|tests/*|features/*|src/*|automation/*|docs/*|env/*|.agents/*|.codex/*|.claude/*|Makefile)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+normalize_markdown_code_cell() {
+  printf '%s' "$1" | sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//; s/^`//; s/`$//'
+}
+
+runtime_quickstart_row() {
+  local rel="$1"
+  local contour="$2"
+
+  awk -F'|' -v contour="\`$contour\`" '
+    /^\|/ {
+      for (i = 1; i <= NF; i++) {
+        gsub(/^[[:space:]]+|[[:space:]]+$/, "", $i)
+      }
+      if ($2 == contour) {
+        print $3 "\t" $4 "\t" $5 "\t" $6
+        exit
+      }
+    }
+  ' "$root/$rel"
+}
+
 checked_in_verification_command_is_repo_owned() {
   local -a command=("$@")
 
@@ -288,6 +342,8 @@ check_generated_metadata_contract() {
   require_contains "automation/context/metadata-index.generated.json" "\"scheduledJobs\""
   require_contains "automation/context/metadata-index.generated.json" "\"commonModules\""
   require_contains "automation/context/metadata-index.generated.json" "\"subsystems\""
+  require_contains "automation/context/metadata-index.generated.json" "\"architectureMap\""
+  require_contains "automation/context/metadata-index.generated.json" "\"runtimeQuickstart\""
   require_contains "automation/context/metadata-index.generated.json" "\"review\""
   require_contains "automation/context/metadata-index.generated.json" "\"envReadme\""
   require_contains "automation/context/metadata-index.generated.json" "\"skills\""
@@ -319,6 +375,8 @@ check_generated_summary_contract() {
   require_contains "$generated_summary_rel" "## Task-to-Path Routing"
   require_contains "$generated_summary_rel" "## Follow-Up Routers"
   require_contains "$generated_summary_rel" "automation/context/project-map.md"
+  require_contains "$generated_summary_rel" "docs/agent/architecture-map.md"
+  require_contains "$generated_summary_rel" "docs/agent/runtime-quickstart.md"
   require_contains "$generated_summary_rel" "automation/context/metadata-index.generated.json"
   require_contains "$generated_summary_rel" "automation/context/runtime-profile-policy.json"
   require_contains "$generated_summary_rel" "automation/context/runtime-support-matrix.md"
@@ -379,7 +437,9 @@ check_generated_runtime_support_matrix_contract() {
   require_contains "$generated_matrix_md_rel" '`unsupported`'
   require_contains "$generated_matrix_md_rel" '`operator-local`'
   require_contains "$generated_matrix_md_rel" '`provisioned`'
+  require_contains "$generated_matrix_md_rel" "## Optional Project-Specific Baseline Extension"
   require_contains "$generated_matrix_md_rel" "automation/context/project-map.md"
+  require_contains "$generated_matrix_md_rel" "docs/agent/runtime-quickstart.md"
   require_contains "$generated_matrix_md_rel" "docs/agent/generated-project-index.md"
   require_contains "$generated_matrix_md_rel" "docs/agent/generated-project-verification.md"
 
@@ -394,6 +454,119 @@ check_generated_runtime_support_matrix_contract() {
   require_jq_expr "$generated_matrix_json_rel" \
     '.contours | type == "array" and length > 0 and all(.[]; (.id | type == "string" and length > 0) and (.status | type == "string" and length > 0) and (.profileProvenance | type == "string" and length > 0) and (((.entrypoint // "") | type == "string" and length > 0) or ((.runbookPath // "") | type == "string" and length > 0)))' \
     "runtime support matrix contours must declare id/status/provenance and entrypoint or runbook"
+  require_jq_expr "$generated_matrix_json_rel" \
+    '.projectSpecificBaselineExtension == null or ((.projectSpecificBaselineExtension.id // "") != "" and (.projectSpecificBaselineExtension.entrypoint // "") != "" and (.projectSpecificBaselineExtension.runbookPath // "") != "" and (.projectSpecificBaselineExtension.summary // "") != "")' \
+    "runtime support matrix projectSpecificBaselineExtension must be null or a complete object"
+}
+
+check_generated_architecture_map_contract() {
+  require_contains "$generated_architecture_map_rel" "# Architecture Map"
+  require_contains "$generated_architecture_map_rel" "## Representative Change Scenarios"
+  require_contains "$generated_architecture_map_rel" "## Hot Zones"
+  require_contains "$generated_architecture_map_rel" "automation/context/project-map.md"
+  require_contains "$generated_architecture_map_rel" "automation/context/hotspots-summary.generated.md"
+  require_contains "$generated_architecture_map_rel" "automation/context/metadata-index.generated.json"
+  require_contains "$generated_architecture_map_rel" "docs/agent/runtime-quickstart.md"
+}
+
+check_generated_runtime_quickstart_contract() {
+  local contour=""
+  local row=""
+  local status_cell=""
+  local entrypoint_cell=""
+  local prerequisites_cell=""
+  local runbook_cell=""
+  local expected_status=""
+  local expected_entrypoint=""
+  local expected_runbook=""
+  local extension_id=""
+  local extension_entrypoint=""
+
+  require_contains "$generated_runtime_quickstart_rel" "# Runtime Quickstart"
+  require_contains "$generated_runtime_quickstart_rel" "## Safe Local First Pass"
+  require_contains "$generated_runtime_quickstart_rel" "## Contour Quick Reference"
+  require_contains "$generated_runtime_quickstart_rel" "## Optional Project-Specific Baseline Extension"
+  require_contains "$generated_runtime_quickstart_rel" "automation/context/runtime-support-matrix.md"
+  require_contains "$generated_runtime_quickstart_rel" "automation/context/runtime-support-matrix.json"
+  require_contains "$generated_runtime_quickstart_rel" "docs/agent/generated-project-verification.md"
+  require_contains "$generated_runtime_quickstart_rel" "env/README.md"
+  require_contains "$generated_runtime_quickstart_rel" "docs/agent/architecture-map.md"
+
+  while IFS= read -r contour; do
+    [ -n "$contour" ] || continue
+    row="$(runtime_quickstart_row "$generated_runtime_quickstart_rel" "$contour")"
+    if [ -z "$row" ]; then
+      printf 'runtime quick reference is missing contour row: %s (%s)\n' \
+        "$generated_runtime_quickstart_rel" "$contour" >&2
+      status=1
+      continue
+    fi
+
+    IFS=$'\t' read -r status_cell entrypoint_cell prerequisites_cell runbook_cell <<<"$row"
+    status_cell="$(normalize_markdown_code_cell "$status_cell")"
+    entrypoint_cell="$(normalize_markdown_code_cell "$entrypoint_cell")"
+    prerequisites_cell="$(normalize_markdown_code_cell "$prerequisites_cell")"
+    runbook_cell="$(normalize_markdown_code_cell "$runbook_cell")"
+
+    expected_status="$(jq -r --arg id "$contour" '.contours[] | select(.id == $id) | .status' "$root/$generated_matrix_json_rel")"
+    expected_entrypoint="$(jq -r --arg id "$contour" '.contours[] | select(.id == $id) | .entrypoint' "$root/$generated_matrix_json_rel")"
+    expected_runbook="$(jq -r --arg id "$contour" '.contours[] | select(.id == $id) | .runbookPath' "$root/$generated_matrix_json_rel")"
+
+    if [ "$status_cell" != "$expected_status" ] || \
+      [ "$entrypoint_cell" != "$expected_entrypoint" ] || \
+      [ "$runbook_cell" != "$expected_runbook" ] || \
+      [ -z "$prerequisites_cell" ]; then
+      printf 'runtime quick reference drifts from runtime support matrix: %s (%s)\n' \
+        "$generated_runtime_quickstart_rel" "$contour" >&2
+      status=1
+    fi
+  done < <(jq -r '.contours[].id' "$root/$generated_matrix_json_rel")
+
+  extension_id="$(jq -r '.projectSpecificBaselineExtension.id // ""' "$root/$generated_matrix_json_rel")"
+  extension_entrypoint="$(jq -r '.projectSpecificBaselineExtension.entrypoint // ""' "$root/$generated_matrix_json_rel")"
+  if [ -n "$extension_id" ]; then
+    require_contains "$generated_runtime_quickstart_rel" "$extension_id"
+    require_contains "$generated_runtime_quickstart_rel" "$extension_entrypoint"
+  fi
+}
+
+check_generated_project_specific_baseline_extension_contract() {
+  local extension_id=""
+  local extension_entrypoint=""
+  local extension_runbook=""
+  local first_token=""
+  local second_token=""
+
+  extension_id="$(jq -r '.projectSpecificBaselineExtension.id // ""' "$root/$generated_matrix_json_rel")"
+  extension_entrypoint="$(jq -r '.projectSpecificBaselineExtension.entrypoint // ""' "$root/$generated_matrix_json_rel")"
+  extension_runbook="$(jq -r '.projectSpecificBaselineExtension.runbookPath // ""' "$root/$generated_matrix_json_rel")"
+
+  [ -n "$extension_id" ] || return 0
+
+  first_token="$(entrypoint_primary_token "$extension_entrypoint")"
+  second_token="$(entrypoint_secondary_token "$extension_entrypoint")"
+
+  if [ "$first_token" = "make" ]; then
+    if [ -z "$second_token" ] || [[ "$second_token" == -* ]]; then
+      printf 'project-specific baseline extension must use repo-owned entrypoint or make <target>: %s\n' \
+        "$extension_entrypoint" >&2
+      status=1
+    fi
+  elif entrypoint_token_looks_repo_relative "$first_token"; then
+    if ! checked_in_command_token_references_repo_path "$first_token"; then
+      printf 'project-specific baseline extension entrypoint is missing: %s\n' "$first_token" >&2
+      status=1
+    fi
+  else
+    printf 'project-specific baseline extension must use repo-owned entrypoint or make <target>: %s\n' \
+      "$extension_entrypoint" >&2
+    status=1
+  fi
+
+  if [ ! -e "$root/$extension_runbook" ]; then
+    printf 'project-specific baseline extension runbook is missing: %s\n' "$extension_runbook" >&2
+    status=1
+  fi
 }
 
 check_generated_closeout_contract() {
@@ -432,6 +605,8 @@ for rel in \
   docs/template-maintenance.md \
   docs/template-release.md \
   docs/exec-plans/README.md \
+  docs/exec-plans/TEMPLATE.md \
+  docs/exec-plans/EXAMPLE.md \
   docs/exec-plans/active/.gitkeep \
   docs/exec-plans/completed/.gitkeep \
   .codex/README.md \
@@ -441,12 +616,15 @@ for rel in \
   tests/AGENTS.md \
   scripts/AGENTS.md \
   src/AGENTS.md \
+  src/cf/AGENTS.md \
   automation/AGENTS.md \
   automation/context/templates/generated-project-hotspots-summary.md \
+  automation/context/templates/generated-project-architecture-map.md \
   automation/context/templates/generated-project-project-map.md \
   automation/context/templates/generated-project-metadata-index.json \
   automation/context/templates/generated-project-runtime-support-matrix.json \
   automation/context/templates/generated-project-runtime-support-matrix.md \
+  automation/context/templates/generated-project-runtime-quickstart.md \
   automation/context/templates/generated-project-runtime-profile-policy.json \
   automation/context/template-managed-paths.txt \
   scripts/qa/codex-onboard.sh; do
@@ -473,6 +651,7 @@ require_markdown_link ".codex/README.md" "../docs/agent/review.md"
 require_markdown_link ".codex/README.md" "../env/README.md"
 require_markdown_link ".codex/README.md" "../.agents/skills/README.md"
 require_markdown_link ".codex/README.md" "../docs/exec-plans/README.md"
+require_markdown_link ".codex/README.md" "../docs/exec-plans/TEMPLATE.md"
 require_markdown_link ".agents/skills/README.md" "../../.claude/skills/README.md"
 require_markdown_link ".claude/skills/README.md" "../../.agents/skills/README.md"
 require_markdown_link "env/AGENTS.md" "README.md"
@@ -481,6 +660,7 @@ require_markdown_link "tests/AGENTS.md" "../env/README.md"
 require_markdown_link "scripts/AGENTS.md" "../docs/agent/generated-project-index.md"
 require_markdown_link "scripts/AGENTS.md" "../env/README.md"
 require_markdown_link "src/AGENTS.md" "../docs/agent/generated-project-index.md"
+require_markdown_link "src/AGENTS.md" "cf/AGENTS.md"
 require_contains "docs/agent/index.md" "docs/agent/architecture.md"
 require_contains "docs/agent/index.md" "docs/agent/generated-project-index.md"
 require_contains "docs/agent/index.md" "docs/agent/source-vs-generated.md"
@@ -514,6 +694,11 @@ require_contains "scripts/AGENTS.md" "scripts/qa/check-agent-docs.sh"
 require_contains "src/AGENTS.md" "automation/context/project-map.md"
 require_contains "src/AGENTS.md" "automation/context/hotspots-summary.generated.md"
 require_contains "src/AGENTS.md" "automation/context/metadata-index.generated.json"
+require_contains "src/AGENTS.md" "src/cf/AGENTS.md"
+require_contains "src/cf/AGENTS.md" "docs/agent/architecture-map.md"
+require_contains "src/cf/AGENTS.md" "docs/agent/runtime-quickstart.md"
+require_contains "src/cf/AGENTS.md" "automation/context/hotspots-summary.generated.md"
+require_contains "src/cf/AGENTS.md" "automation/context/metadata-index.generated.json"
 require_contains "docs/agent/generated-project-index.md" "seed-once / project-owned"
 require_contains "docs/agent/generated-project-index.md" "generated-derived"
 require_contains "docs/agent/generated-project-index.md" "make codex-onboard"
@@ -521,15 +706,23 @@ require_contains "docs/agent/generated-project-index.md" "make template-update"
 require_contains "docs/agent/generated-project-index.md" ".template-overlay-version"
 require_contains "docs/agent/generated-project-index.md" "automation/context/hotspots-summary.generated.md"
 require_contains "docs/agent/generated-project-index.md" "automation/context/metadata-index.generated.json"
+require_contains "docs/agent/generated-project-index.md" "docs/agent/architecture-map.md"
+require_contains "docs/agent/generated-project-index.md" "docs/agent/runtime-quickstart.md"
 require_contains "docs/agent/generated-project-index.md" "automation/context/runtime-profile-policy.json"
 require_contains "docs/agent/generated-project-index.md" "automation/context/runtime-support-matrix.md"
 require_contains "docs/agent/generated-project-index.md" "OpenSpec"
 require_contains "docs/agent/generated-project-index.md" "docs/exec-plans/README.md"
+require_contains "docs/agent/generated-project-index.md" "docs/exec-plans/TEMPLATE.md"
 require_contains "docs/agent/generated-project-index.md" "docs/agent/review.md"
 require_contains "docs/agent/generated-project-index.md" "env/README.md"
 require_contains "docs/agent/generated-project-index.md" ".agents/skills/README.md"
 require_contains "docs/agent/generated-project-index.md" ".codex/README.md"
-require_contains "docs/agent/generated-project-index.md" "docs/exec-plans/README.md"
+require_contains "docs/agent/generated-project-index.md" "project-specific baseline extension"
+require_contains "docs/agent/generated-project-index.md" "/plan"
+require_contains "docs/agent/generated-project-index.md" "/compact"
+require_contains "docs/agent/generated-project-index.md" "/review"
+require_contains "docs/agent/generated-project-index.md" "/ps"
+require_contains "docs/agent/generated-project-index.md" "/mcp"
 require_contains "docs/agent/source-vs-generated.md" "template-managed"
 require_contains "docs/agent/source-vs-generated.md" ".template-overlay-version"
 require_contains "docs/agent/source-vs-generated.md" "generated-derived"
@@ -544,6 +737,8 @@ require_contains "docs/agent/generated-project-verification.md" "./scripts/llm/e
 require_contains "docs/agent/generated-project-verification.md" "unsupportedReason"
 require_contains "docs/agent/generated-project-verification.md" "runtime-profile-policy.json"
 require_contains "docs/agent/generated-project-verification.md" "runtime-support-matrix.md"
+require_contains "docs/agent/generated-project-verification.md" "runtime-quickstart.md"
+require_contains "docs/agent/generated-project-verification.md" "projectSpecificBaselineExtension"
 require_contains "docs/template-maintenance.md" "template maintenance"
 require_contains "docs/template-maintenance.md" "make template-check-update"
 require_contains "docs/template-maintenance.md" "make template-update"
@@ -562,8 +757,10 @@ require_contains "docs/template-release.md" "make agent-verify"
 require_contains ".codex/README.md" "env/README.md"
 require_contains ".codex/README.md" "docs/agent/review.md"
 require_contains ".codex/README.md" "docs/exec-plans/README.md"
+require_contains ".codex/README.md" "docs/exec-plans/TEMPLATE.md"
 require_contains ".codex/README.md" "make codex-onboard"
 require_contains ".codex/README.md" "runtime-support-matrix.md"
+require_contains ".codex/README.md" "docs/agent/runtime-quickstart.md"
 require_contains ".codex/README.md" "First 15 Minutes"
 require_contains ".codex/README.md" "Long-Running Change"
 require_contains ".codex/README.md" "Runtime Investigation"
@@ -573,23 +770,45 @@ require_contains "docs/agent/source-vs-generated.md" "runtime-support-matrix.md"
 require_contains "docs/agent/source-vs-generated.md" "runtime-support-matrix.json"
 require_contains "scripts/qa/codex-onboard.sh" "Repository role: generated-project"
 require_contains "scripts/qa/codex-onboard.sh" "Canonical onboarding router: docs/agent/generated-project-index.md"
+require_contains "scripts/qa/codex-onboard.sh" "Architecture map:"
+require_contains "scripts/qa/codex-onboard.sh" "Runtime quick reference:"
 require_contains "scripts/qa/codex-onboard.sh" "Runtime support matrix (md):"
+require_contains "scripts/qa/codex-onboard.sh" "Project-specific baseline extension:"
+require_contains "scripts/qa/codex-onboard.sh" "Codex controls:"
 require_contains "scripts/qa/codex-onboard.sh" "Planning matrix:"
+require_contains "scripts/qa/codex-onboard.sh" "docs/exec-plans/TEMPLATE.md"
 require_contains "automation/context/templates/generated-project-metadata-index.json" "runtimeSupportMatrixJsonPath"
 require_contains "automation/context/templates/generated-project-metadata-index.json" "runtimeSupportMatrixMarkdownPath"
+require_contains "automation/context/templates/generated-project-metadata-index.json" "architectureMapPath"
+require_contains "automation/context/templates/generated-project-metadata-index.json" "runtimeQuickstartPath"
 require_contains "automation/context/templates/generated-project-hotspots-summary.md" "runtime-support-matrix.md"
+require_contains "automation/context/templates/generated-project-hotspots-summary.md" "docs/agent/architecture-map.md"
+require_contains "automation/context/templates/generated-project-hotspots-summary.md" "docs/agent/runtime-quickstart.md"
+require_contains "automation/context/templates/generated-project-architecture-map.md" "docs/agent/runtime-quickstart.md"
+require_contains "automation/context/templates/generated-project-runtime-quickstart.md" "runtime-support-matrix.md"
 require_contains "automation/context/templates/generated-project-project-map.md" "runtime support truth"
 require_contains "automation/context/templates/generated-project-runtime-support-matrix.json" "requiredContourIds"
 require_contains "automation/context/templates/generated-project-runtime-support-matrix.md" "# Runtime Support Matrix Reference"
+require_contains "automation/context/templates/generated-project-runtime-support-matrix.md" "projectSpecificBaselineExtension"
+require_contains "automation/context/templates/generated-project-runtime-support-matrix.md" "docs/agent/runtime-quickstart.md"
 require_contains "automation/context/template-managed-paths.txt" "automation/context/templates/generated-project-runtime-support-matrix.json"
 require_contains "automation/context/template-managed-paths.txt" "automation/context/templates/generated-project-runtime-support-matrix.md"
+require_contains "automation/context/template-managed-paths.txt" "automation/context/templates/generated-project-architecture-map.md"
+require_contains "automation/context/template-managed-paths.txt" "automation/context/templates/generated-project-runtime-quickstart.md"
 require_contains "automation/context/template-managed-paths.txt" "scripts/qa/codex-onboard.sh"
+require_contains "automation/context/template-managed-paths.txt" "docs/exec-plans/TEMPLATE.md"
+require_contains "automation/context/template-managed-paths.txt" "docs/exec-plans/EXAMPLE.md"
+require_contains "automation/context/template-managed-paths.txt" "src/cf/AGENTS.md"
 require_contains ".agents/skills/README.md" ".claude/skills/"
 require_contains ".claude/skills/README.md" ".agents/skills/"
 require_contains "docs/exec-plans/README.md" "Progress"
 require_contains "docs/exec-plans/README.md" "Surprises & Discoveries"
 require_contains "docs/exec-plans/README.md" "Decision Log"
 require_contains "docs/exec-plans/README.md" "Outcomes & Retrospective"
+require_contains "docs/exec-plans/README.md" "TEMPLATE.md"
+require_contains "docs/exec-plans/README.md" "EXAMPLE.md"
+require_contains "docs/exec-plans/TEMPLATE.md" "Execution Matrix"
+require_contains "docs/exec-plans/EXAMPLE.md" "Example Execution Plan"
 
 for rel in \
   AGENTS.md \
@@ -606,12 +825,15 @@ for rel in \
   docs/template-maintenance.md \
   docs/template-release.md \
   docs/exec-plans/README.md \
+  docs/exec-plans/TEMPLATE.md \
+  docs/exec-plans/EXAMPLE.md \
   automation/AGENTS.md \
   .codex/README.md \
   env/AGENTS.md \
   tests/AGENTS.md \
   scripts/AGENTS.md \
   src/AGENTS.md \
+  src/cf/AGENTS.md \
   .agents/skills/README.md \
   .claude/skills/README.md; do
   check_no_line_specific_links "$rel"
@@ -673,13 +895,28 @@ else
     automation/context/runtime-profile-policy.json \
     automation/context/runtime-support-matrix.json \
     automation/context/runtime-support-matrix.md \
+    docs/agent/architecture-map.md \
+    docs/agent/runtime-quickstart.md \
+    docs/exec-plans/TEMPLATE.md \
+    docs/exec-plans/EXAMPLE.md \
     openspec/project.md \
     env/AGENTS.md \
     tests/AGENTS.md \
     scripts/AGENTS.md \
+    src/cf/AGENTS.md \
     scripts/qa/codex-onboard.sh \
     .template-overlay-version; do
     require_path "$rel"
+  done
+
+  for rel in \
+    docs/agent/architecture-map.md \
+    docs/agent/runtime-quickstart.md \
+    docs/exec-plans/TEMPLATE.md \
+    docs/exec-plans/EXAMPLE.md \
+    src/cf/AGENTS.md; do
+    check_no_line_specific_links "$rel"
+    check_markdown_links "$rel"
   done
 
   require_markdown_link "AGENTS.md" "docs/agent/generated-project-index.md"
@@ -693,6 +930,8 @@ else
   require_markdown_link "AGENTS.md" "docs/template-maintenance.md"
   require_markdown_link "README.md" "docs/agent/generated-project-index.md"
   require_markdown_link "README.md" "automation/context/project-map.md"
+  require_markdown_link "README.md" "docs/agent/architecture-map.md"
+  require_markdown_link "README.md" "docs/agent/runtime-quickstart.md"
   require_markdown_link "README.md" "$generated_summary_rel"
   require_markdown_link "README.md" "automation/context/metadata-index.generated.json"
   require_markdown_link "README.md" "$generated_policy_rel"
@@ -716,6 +955,8 @@ else
   require_contains "README.md" "Ownership Classes"
   require_contains "README.md" "make codex-onboard"
   require_contains "README.md" ".template-overlay-version"
+  require_contains "README.md" "docs/agent/architecture-map.md"
+  require_contains "README.md" "docs/agent/runtime-quickstart.md"
   require_contains "README.md" "automation/context/hotspots-summary.generated.md"
   require_contains "README.md" "automation/context/runtime-profile-policy.json"
   require_contains "README.md" "automation/context/runtime-support-matrix.md"
@@ -723,6 +964,8 @@ else
   require_contains "automation/context/project-map.md" "generated-derived"
   require_contains "automation/context/project-map.md" "automation/context/runtime-profile-policy.json"
   require_contains "automation/context/project-map.md" "automation/context/runtime-support-matrix.md"
+  require_contains "automation/context/project-map.md" "docs/agent/architecture-map.md"
+  require_contains "automation/context/project-map.md" "docs/agent/runtime-quickstart.md"
   require_contains "openspec/project.md" "generated 1С-проект"
   require_contains "env/AGENTS.md" "automation/context/runtime-profile-policy.json"
   require_contains "tests/AGENTS.md" "scripts/qa/check-agent-docs.sh"
@@ -735,6 +978,8 @@ else
 
   require_no_placeholder_pattern "README.md" '<[[:alnum:]_][^>]*>'
   require_no_placeholder_pattern "automation/context/project-map.md" '<[[:alnum:]_][^>]*>'
+  require_no_placeholder_pattern "docs/agent/architecture-map.md" '<[[:alnum:]_][^>]*>'
+  require_no_placeholder_pattern "docs/agent/runtime-quickstart.md" '<[[:alnum:]_][^>]*>'
   require_no_placeholder_pattern "openspec/project.md" '<[[:alnum:]_][^>]*>'
   require_no_placeholder_pattern "README.md" 'template source repo'
   require_no_placeholder_pattern "automation/context/project-map.md" 'template source repo'
@@ -746,6 +991,9 @@ else
   check_generated_summary_contract
   check_generated_runtime_profile_policy_contract
   check_generated_runtime_support_matrix_contract
+  check_generated_architecture_map_contract
+  check_generated_runtime_quickstart_contract
+  check_generated_project_specific_baseline_extension_contract
   check_generated_closeout_contract
 
   if ! "$root/scripts/llm/export-context.sh" --check; then
