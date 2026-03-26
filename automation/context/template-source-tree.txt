@@ -51,6 +51,7 @@
 ./openspec/changes
 ./openspec/changes/archive
 ./openspec/changes/expand-generated-project-productivity-surface
+./openspec/changes/refine-generated-project-curated-truth
 ./openspec/specs
 ./openspec/specs/agent-runtime-toolkit
 ./openspec/specs/generated-context-artifacts

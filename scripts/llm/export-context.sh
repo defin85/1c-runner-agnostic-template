@@ -30,7 +30,8 @@ Repo behavior:
     and automation/context/template-source-source-files.txt.
   - Generated repo refreshes automation/context/source-tree.generated.txt
     automation/context/metadata-index.generated.json,
-    and automation/context/hotspots-summary.generated.md.
+    automation/context/hotspots-summary.generated.md,
+    and automation/context/project-delta-hotspots.generated.md.
 EOF
 }
 
@@ -123,6 +124,7 @@ emit_generated_tree_entries() {
       ! -path "$root/automation/context/source-tree.generated.txt" \
       ! -path "$root/automation/context/metadata-index.generated.json" \
       ! -path "$root/automation/context/hotspots-summary.generated.md" \
+      ! -path "$root/automation/context/project-delta-hotspots.generated.md" \
       | sed "s|^$root|.|" \
       | LC_ALL=C sort
   )
@@ -280,13 +282,17 @@ render_generated_metadata() {
     printf '    "generatedProjectIndex": "docs/agent/generated-project-index.md",\n'
     printf '    "projectMap": "automation/context/project-map.md",\n'
     printf '    "architectureMap": "docs/agent/architecture-map.md",\n'
+    printf '    "codexWorkflows": "docs/agent/codex-workflows.md",\n'
+    printf '    "operatorLocalRunbook": "docs/agent/operator-local-runbook.md",\n'
     printf '    "runtimeQuickstart": "docs/agent/runtime-quickstart.md",\n'
     printf '    "verification": "docs/agent/generated-project-verification.md",\n'
     printf '    "review": "docs/agent/review.md",\n'
     printf '    "envReadme": "env/README.md",\n'
+    printf '    "projectDeltaHints": "automation/context/project-delta-hints.json",\n'
     printf '    "runtimeProfilePolicy": "automation/context/runtime-profile-policy.json",\n'
     printf '    "runtimeSupportMatrixJson": "automation/context/runtime-support-matrix.json",\n'
     printf '    "runtimeSupportMatrixMarkdown": "automation/context/runtime-support-matrix.md",\n'
+    printf '    "projectDeltaHotspots": "automation/context/project-delta-hotspots.generated.md",\n'
     printf '    "hotspotsSummary": "automation/context/hotspots-summary.generated.md",\n'
     printf '    "skills": ".agents/skills/README.md",\n'
     printf '    "codexGuide": ".codex/README.md",\n'
@@ -356,6 +362,114 @@ render_generated_metadata() {
   } >"$target_file"
 }
 
+emit_markdown_list_or_none() {
+  local item=""
+  local count=0
+
+  while IFS= read -r item; do
+    [ -n "$item" ] || continue
+    printf -- '- `%s`\n' "$item"
+    count=$((count + 1))
+  done
+
+  if [ "$count" -eq 0 ]; then
+    printf -- '- none\n'
+  fi
+}
+
+render_generated_project_delta_hotspots() {
+  local target_file="$1"
+  local hints_file="$2"
+  local metadata_file="$3"
+  local hints_checksum=""
+  local metadata_checksum=""
+  local relpath=""
+  local prefix=""
+  local keyword=""
+  local matched=0
+  local has_selectors=0
+  local matches_file=""
+
+  require_command jq
+  matches_file="$(mktemp)"
+
+  hints_checksum="$(file_checksum "$hints_file")"
+  metadata_checksum="$(file_checksum "$metadata_file")"
+
+  while IFS= read -r prefix; do
+    [ -n "$prefix" ] || continue
+    has_selectors=1
+  done < <(jq -r '.selectors.pathPrefixes[]? // empty' "$hints_file")
+
+  while IFS= read -r keyword; do
+    [ -n "$keyword" ] || continue
+    has_selectors=1
+  done < <(jq -r '.selectors.pathKeywords[]? // empty' "$hints_file")
+
+  while IFS= read -r relpath; do
+    [ -n "$relpath" ] || continue
+    relpath="${relpath#./}"
+
+    while IFS= read -r prefix; do
+      [ -n "$prefix" ] || continue
+      if [[ "$relpath" == "$prefix"* ]]; then
+        printf '%s\n' "$relpath" >>"$matches_file"
+      fi
+    done < <(jq -r '.selectors.pathPrefixes[]? // empty' "$hints_file")
+
+    while IFS= read -r keyword; do
+      [ -n "$keyword" ] || continue
+      if [[ "$relpath" == *"$keyword"* ]]; then
+        printf '%s\n' "$relpath" >>"$matches_file"
+      fi
+    done < <(jq -r '.selectors.pathKeywords[]? // empty' "$hints_file")
+  done < <(emit_generated_tree_entries)
+
+  if [ -s "$matches_file" ]; then
+    LC_ALL=C sort -u "$matches_file" -o "$matches_file"
+    matched="$(wc -l <"$matches_file" | tr -d ' ')"
+  fi
+
+  {
+    printf '# Generated Project-Delta Hotspots\n\n'
+    printf 'Этот файл является generated-derived bridge между curated project-owned truth и raw inventory.\n'
+    printf 'Source selectors живут в `automation/context/project-delta-hints.json`, а deeper narrowing при необходимости идёт дальше в `automation/context/hotspots-summary.generated.md` и `automation/context/metadata-index.generated.json`.\n\n'
+
+    printf '## Freshness\n\n'
+    printf -- '- Refresh command: `./scripts/llm/export-context.sh --write`\n'
+    printf -- '- Check command: `./scripts/llm/export-context.sh --check`\n'
+    printf -- '- `project-delta-hints.json` checksum: `%s`\n' "$hints_checksum"
+    printf -- '- `metadata-index.generated.json` checksum: `%s`\n' "$metadata_checksum"
+
+    printf '\n## Declared Selectors\n\n'
+    printf '### Path Prefixes\n\n'
+    jq -r '.selectors.pathPrefixes[]? // empty' "$hints_file" | emit_markdown_list_or_none
+    printf '\n### Path Keywords\n\n'
+    jq -r '.selectors.pathKeywords[]? // empty' "$hints_file" | emit_markdown_list_or_none
+    printf '\n### Representative Paths\n\n'
+    jq -r '.representativePaths[]? // empty' "$hints_file" | emit_markdown_list_or_none
+
+    printf '\n## Matching Hotspots\n\n'
+    if [ "$has_selectors" -eq 0 ]; then
+      printf 'No project-delta selectors are declared yet.\n'
+    elif [ "$matched" -eq 0 ]; then
+      printf 'Selectors are declared, but they do not currently match generated tree entries.\n'
+    else
+      printf -- '- matched entries: `%s`\n\n' "$matched"
+      head -n 20 "$matches_file" | emit_markdown_list_or_none
+    fi
+
+    printf '\n## Follow-Up Routers\n\n'
+    printf -- '- Curated project truth: `automation/context/project-map.md`\n'
+    printf -- '- Project-owned code map: `docs/agent/architecture-map.md`\n'
+    printf -- '- Runtime quick reference: `docs/agent/runtime-quickstart.md`\n'
+    printf -- '- Raw inventory: `automation/context/metadata-index.generated.json`\n'
+    printf -- '- Generic summary-first map: `automation/context/hotspots-summary.generated.md`\n'
+  } >"$target_file"
+
+  rm -f "$matches_file"
+}
+
 render_generated_hotspots_summary() {
   local target_file="$1"
   local metadata_file="$2"
@@ -377,7 +491,8 @@ render_generated_hotspots_summary() {
   {
     printf '# Generated Hotspots Summary\n\n'
     printf 'Этот файл является generated-derived summary-first картой для первого часа работы агента.\n'
-    printf 'Raw inventory остаётся в `automation/context/metadata-index.generated.json`, а следующий curated слой живёт в `automation/context/project-map.md`, `docs/agent/architecture-map.md` и `docs/agent/runtime-quickstart.md`.\n\n'
+    printf 'Raw inventory остаётся в `automation/context/metadata-index.generated.json`, а следующий curated слой живёт в `automation/context/project-map.md`, `docs/agent/architecture-map.md`, `docs/agent/operator-local-runbook.md` и `docs/agent/runtime-quickstart.md`.\n'
+    printf 'Если project-owned selectors уже описаны, сначала откройте `automation/context/project-delta-hotspots.generated.md` как bridge к project-specific customization layer.\n\n'
 
     printf '## Identity\n\n'
     printf -- '- Repository role: `generated-project`\n'
@@ -426,7 +541,9 @@ render_generated_hotspots_summary() {
     printf '\n## Follow-Up Routers\n\n'
     printf -- '- Curated project truth: `automation/context/project-map.md`\n'
     printf -- '- Project-owned code map: `docs/agent/architecture-map.md`\n'
+    printf -- '- Operator-local runtime bridge: `docs/agent/operator-local-runbook.md`\n'
     printf -- '- Project-specific runtime digest: `docs/agent/runtime-quickstart.md`\n'
+    printf -- '- Project-specific delta bridge: `automation/context/project-delta-hotspots.generated.md`\n'
     printf -- '- Runtime profile policy: `automation/context/runtime-profile-policy.json`\n'
     printf -- '- Runtime support matrix: `automation/context/runtime-support-matrix.md`, `automation/context/runtime-support-matrix.json`\n'
     printf -- '- Raw inventory for deeper narrowing: `automation/context/metadata-index.generated.json`\n'
@@ -518,18 +635,23 @@ else
   tree_file="$context_dir/source-tree.generated.txt"
   metadata_file="$context_dir/metadata-index.generated.json"
   summary_file="$context_dir/hotspots-summary.generated.md"
+  project_delta_hints_file="$context_dir/project-delta-hints.json"
+  project_delta_file="$context_dir/project-delta-hotspots.generated.md"
   tmp_tree="$tmpdir/source-tree.generated.txt"
   tmp_metadata="$tmpdir/metadata-index.generated.json"
   tmp_summary="$tmpdir/hotspots-summary.generated.md"
+  tmp_project_delta="$tmpdir/project-delta-hotspots.generated.md"
 
   render_generated_tree "$tmp_tree"
   render_generated_metadata "$tmp_metadata"
+  render_generated_project_delta_hotspots "$tmp_project_delta" "$project_delta_hints_file" "$tmp_metadata"
   render_generated_hotspots_summary "$tmp_summary" "$tmp_metadata" "$tmp_tree"
 
   targets=(
     "$tree_file:$tmp_tree"
     "$metadata_file:$tmp_metadata"
     "$summary_file:$tmp_summary"
+    "$project_delta_file:$tmp_project_delta"
   )
 fi
 

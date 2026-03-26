@@ -34,6 +34,9 @@ automation/context/template-managed-paths.txt
 automation/context/templates/generated-project-architecture-map.md
 automation/context/templates/generated-project-hotspots-summary.md
 automation/context/templates/generated-project-metadata-index.json
+automation/context/templates/generated-project-operator-local-runbook.md
+automation/context/templates/generated-project-project-delta-hints.json
+automation/context/templates/generated-project-project-delta-hotspots.md
 automation/context/templates/generated-project-project-map.md
 automation/context/templates/generated-project-runtime-profile-policy.json
 automation/context/templates/generated-project-runtime-quickstart.md
@@ -43,6 +46,7 @@ automation/prompts/README.md
 docs/AGENTS.md
 docs/README.md
 docs/agent/architecture.md
+docs/agent/codex-workflows.md
 docs/agent/generated-project-index.md
 docs/agent/generated-project-verification.md
 docs/agent/index.md

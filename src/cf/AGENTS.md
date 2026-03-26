@@ -4,6 +4,7 @@
 
 - Сначала откройте `docs/agent/architecture-map.md`, если нужен project-owned ответ на вопрос “где менять X?”.
 - Для короткого runtime ответа держите рядом `docs/agent/runtime-quickstart.md` и `automation/context/runtime-support-matrix.md`.
+- Для project-specific customization layer сначала используйте `automation/context/project-delta-hotspots.generated.md`.
 - Для summary-first narrowing search используйте `automation/context/hotspots-summary.generated.md`; raw inventory `automation/context/metadata-index.generated.json` открывайте уже после этого.
 - Для локального routing по зонам сначала смотрите `src/cf/CommonModules`, `src/cf/ScheduledJobs`, `src/cf/HTTPServices`, `src/cf/WebServices`, `src/cf/DataProcessors`, `src/cf/Subsystems`.
 - Если проект добавит ещё более локальные `AGENTS.md` ниже по дереву, приоритет у ближайшего файла.

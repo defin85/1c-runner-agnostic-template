@@ -241,6 +241,13 @@ assert_fails_with "$generated_stale_summary_root" \
   "stale context file: $generated_stale_summary_root/automation/context/hotspots-summary.generated.md" \
   "$generated_bindir"
 
+generated_stale_project_delta_root="$tmpdir/generated-stale-project-delta"
+cp -R "$generated_root" "$generated_stale_project_delta_root"
+printf '\n- drift\n' >>"$generated_stale_project_delta_root/automation/context/project-delta-hotspots.generated.md"
+assert_fails_with "$generated_stale_project_delta_root" \
+  "stale context file: $generated_stale_project_delta_root/automation/context/project-delta-hotspots.generated.md" \
+  "$generated_bindir"
+
 generated_missing_runbook_root="$tmpdir/generated-missing-runbook"
 cp -R "$generated_root" "$generated_missing_runbook_root"
 sed -i 's/make template-check-update/template-check-update/' \
@@ -280,6 +287,34 @@ assert_fails_with "$generated_missing_runtime_quickstart_root" \
   "missing agent-facing path: docs/agent/runtime-quickstart.md" \
   "$generated_bindir"
 
+generated_missing_codex_workflows_root="$tmpdir/generated-missing-codex-workflows"
+cp -R "$generated_root" "$generated_missing_codex_workflows_root"
+rm -f "$generated_missing_codex_workflows_root/docs/agent/codex-workflows.md"
+assert_fails_with "$generated_missing_codex_workflows_root" \
+  "missing agent-facing path: docs/agent/codex-workflows.md" \
+  "$generated_bindir"
+
+generated_missing_operator_local_runbook_root="$tmpdir/generated-missing-operator-local-runbook"
+cp -R "$generated_root" "$generated_missing_operator_local_runbook_root"
+rm -f "$generated_missing_operator_local_runbook_root/docs/agent/operator-local-runbook.md"
+assert_fails_with "$generated_missing_operator_local_runbook_root" \
+  "missing agent-facing path: docs/agent/operator-local-runbook.md" \
+  "$generated_bindir"
+
+generated_missing_project_delta_hints_root="$tmpdir/generated-missing-project-delta-hints"
+cp -R "$generated_root" "$generated_missing_project_delta_hints_root"
+rm -f "$generated_missing_project_delta_hints_root/automation/context/project-delta-hints.json"
+assert_fails_with "$generated_missing_project_delta_hints_root" \
+  "missing agent-facing path: automation/context/project-delta-hints.json" \
+  "$generated_bindir"
+
+generated_missing_project_delta_hotspots_root="$tmpdir/generated-missing-project-delta-hotspots"
+cp -R "$generated_root" "$generated_missing_project_delta_hotspots_root"
+rm -f "$generated_missing_project_delta_hotspots_root/automation/context/project-delta-hotspots.generated.md"
+assert_fails_with "$generated_missing_project_delta_hotspots_root" \
+  "missing agent-facing path: automation/context/project-delta-hotspots.generated.md" \
+  "$generated_bindir"
+
 generated_missing_overlay_version_root="$tmpdir/generated-missing-overlay-version"
 cp -R "$generated_root" "$generated_missing_overlay_version_root"
 rm -f "$generated_missing_overlay_version_root/.template-overlay-version"
@@ -311,6 +346,42 @@ cat >"$generated_source_centric_docs_root/docs/README.md" <<'EOF'
 EOF
 assert_fails_with "$generated_source_centric_docs_root" \
   "missing expected text in docs/README.md: docs/agent/generated-project-index.md" \
+  "$generated_bindir"
+
+generated_missing_representative_path_root="$tmpdir/generated-missing-representative-path"
+cp -R "$generated_root" "$generated_missing_representative_path_root"
+python - <<'PY' "$generated_missing_representative_path_root/docs/agent/architecture-map.md"
+from pathlib import Path
+import sys
+
+path = Path(sys.argv[1])
+text = path.read_text()
+old = "src/cf"
+new = "src/cf/MissingRepresentativePath"
+if old not in text:
+    raise SystemExit("expected representative path not found")
+path.write_text(text.replace(old, new, 1))
+PY
+assert_fails_with "$generated_missing_representative_path_root" \
+  "representative path is missing: docs/agent/architecture-map.md -> src/cf/MissingRepresentativePath" \
+  "$generated_bindir"
+
+generated_missing_project_map_path_root="$tmpdir/generated-missing-project-map-path"
+cp -R "$generated_root" "$generated_missing_project_map_path_root"
+python - <<'PY' "$generated_missing_project_map_path_root/automation/context/project-map.md"
+from pathlib import Path
+import sys
+
+path = Path(sys.argv[1])
+text = path.read_text()
+old = "src/cf"
+new = "src/cf/MissingProjectMapPath"
+if old not in text:
+    raise SystemExit("expected representative path not found")
+path.write_text(text.replace(old, new, 1))
+PY
+assert_fails_with "$generated_missing_project_map_path_root" \
+  "representative path is missing: automation/context/project-map.md -> src/cf/MissingProjectMapPath" \
   "$generated_bindir"
 
 generated_local_private_leak_root="$tmpdir/generated-local-private-leak"

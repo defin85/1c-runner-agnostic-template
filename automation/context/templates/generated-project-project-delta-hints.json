@@ -1,0 +1,17 @@
+{
+  "projectRole": "generated-project-template",
+  "hintsRole": "project-owned-project-delta-hints-reference",
+  "liveHintsPath": "automation/context/project-delta-hints.json",
+  "liveArtifactPath": "automation/context/project-delta-hotspots.generated.md",
+  "requiredKeys": [
+    "hintsRole",
+    "selectors",
+    "representativePaths",
+    "notes"
+  ],
+  "notes": [
+    "Keep selectors generic and repo-relative; do not encode domain prose into this JSON.",
+    "Use pathPrefixes for stable roots and pathKeywords for naming conventions or object families.",
+    "Refresh the generated delta artifact with ./scripts/llm/export-context.sh --write after changing selectors."
+  ]
+}

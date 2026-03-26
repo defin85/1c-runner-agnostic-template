@@ -6,6 +6,7 @@
 
 - generated-derived summary-first карта для первого часа работы агента;
 - ссылается на `automation/context/project-map.md` как curated truth;
+- ссылается на `automation/context/project-delta-hotspots.generated.md` как bridge к project-specific customization layer;
 - ссылается на `docs/agent/architecture-map.md` как project-owned code navigation bridge;
 - ссылается на `docs/agent/runtime-quickstart.md` как project-owned runtime digest;
 - ссылается на `automation/context/runtime-support-matrix.md` как checked-in runtime truth;

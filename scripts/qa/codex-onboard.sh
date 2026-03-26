@@ -24,8 +24,9 @@ Canonical onboarding router: docs/agent/index.md
 Architecture guide: docs/agent/architecture.md
 Verification entrypoint: make agent-verify
 Generated-project router reference: docs/agent/generated-project-index.md
+Generated-project workflow guide: docs/agent/codex-workflows.md
 Generated-project support-matrix templates: automation/context/templates/generated-project-runtime-support-matrix.md, automation/context/templates/generated-project-runtime-support-matrix.json
-Generated-project productivity scaffolds: automation/context/templates/generated-project-architecture-map.md, automation/context/templates/generated-project-runtime-quickstart.md
+Generated-project productivity scaffolds: automation/context/templates/generated-project-architecture-map.md, automation/context/templates/generated-project-operator-local-runbook.md, automation/context/templates/generated-project-runtime-quickstart.md, automation/context/templates/generated-project-project-delta-hints.json, automation/context/templates/generated-project-project-delta-hotspots.md
 Execution plan starters: docs/exec-plans/TEMPLATE.md, docs/exec-plans/EXAMPLE.md
 
 Codex controls:
@@ -52,9 +53,13 @@ print_generated_repo_onboard() {
   local summary_path="automation/context/hotspots-summary.generated.md"
   local project_map_path="automation/context/project-map.md"
   local architecture_map_path="docs/agent/architecture-map.md"
+  local workflow_path="docs/agent/codex-workflows.md"
+  local operator_local_runbook_path="docs/agent/operator-local-runbook.md"
   local runtime_quickstart_path="docs/agent/runtime-quickstart.md"
   local support_matrix_json="automation/context/runtime-support-matrix.json"
   local support_matrix_md="automation/context/runtime-support-matrix.md"
+  local project_delta_hints_path="automation/context/project-delta-hints.json"
+  local project_delta_hotspots_path="automation/context/project-delta-hotspots.generated.md"
   local exec_plan_template_path="docs/exec-plans/TEMPLATE.md"
   local config_name=""
   local contour_line=""
@@ -62,9 +67,13 @@ print_generated_repo_onboard() {
 
   require_generated_path "$project_map_path"
   require_generated_path "$architecture_map_path"
+  require_generated_path "$workflow_path"
+  require_generated_path "$operator_local_runbook_path"
   require_generated_path "$runtime_quickstart_path"
   require_generated_path "$support_matrix_json"
   require_generated_path "$support_matrix_md"
+  require_generated_path "$project_delta_hints_path"
+  require_generated_path "$project_delta_hotspots_path"
   require_generated_path "$exec_plan_template_path"
 
   if [ -f "$root/$metadata_path" ]; then
@@ -83,10 +92,14 @@ print_generated_repo_onboard() {
 Repository role: generated-project
 Canonical onboarding router: docs/agent/generated-project-index.md
 Project map: $project_map_path
+Workflow guide: $workflow_path
 Architecture map: $architecture_map_path
+Operator-local runbook: $operator_local_runbook_path
 Runtime quick reference: $runtime_quickstart_path
 Runtime support matrix (md): $support_matrix_md
 Runtime support matrix (json): $support_matrix_json
+Project-delta hints: $project_delta_hints_path
+Project-delta hotspots: $project_delta_hotspots_path
 Summary-first map: $summary_path
 Raw inventory: $metadata_path
 Exec-plan template: $exec_plan_template_path
@@ -127,6 +140,8 @@ Planning matrix:
 
 Follow-up routers:
 - docs/agent/review.md
+- docs/agent/codex-workflows.md
+- docs/agent/operator-local-runbook.md
 - env/README.md
 - .agents/skills/README.md
 - .codex/README.md
