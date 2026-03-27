@@ -35,6 +35,17 @@ assert_stderr_contains() {
   fi
 }
 
+assert_contains() {
+  local file="$1"
+  local expected="$2"
+
+  if ! grep -Fq -- "$expected" "$file"; then
+    printf 'expected text not found: %s\n' "$expected" >&2
+    cat "$file" >&2
+    exit 1
+  fi
+}
+
 assert_jq() {
   local file="$1"
   local expr="$2"
@@ -177,6 +188,29 @@ if ! jq -e --arg revset "$range_revset" '.selection.selector.value == $revset' "
 fi
 assert_jq "$range_run_root/summary.json" '.selection.selected_files == ["Catalogs/Items.xml"]' "range-selected-files"
 
+repo_merge="$tmpdir/repo-merge"
+write_fixture_repo "$repo_merge"
+mkdir -p "$repo_merge/src/cf/EventSubscriptions"
+(
+  cd "$repo_merge"
+  git checkout -b feature >/dev/null
+  printf '<merge changed />\n' >src/cf/EventSubscriptions/Task.xml
+  git add src/cf/EventSubscriptions/Task.xml
+  git commit -m "feature work" >/dev/null
+  git checkout master >/dev/null
+  git merge --no-ff feature -m $'merge task\n\nBead: merge.1\nWork-Item: 1002' >/dev/null
+)
+merge_run_root="$tmpdir/run-merge"
+(
+  cd "$repo_merge"
+  ./scripts/platform/load-task-src.sh --profile env/local.json --run-root "$merge_run_root" --bead merge.1 >/dev/null
+)
+assert_jq "$merge_run_root/summary.json" '.status == "success"' "merge-status"
+assert_jq "$merge_run_root/summary.json" '.selection.selector.mode == "bead"' "merge-selector-mode"
+assert_jq "$merge_run_root/summary.json" '.selection.selector.value == "merge.1"' "merge-selector-value"
+assert_jq "$merge_run_root/summary.json" '.selection.selected_files == ["EventSubscriptions/Task.xml"]' "merge-selected-files"
+assert_jq "$merge_run_root/summary.json" '.delegated.capability == "load-src"' "merge-delegated-capability"
+
 repo_deleted="$tmpdir/repo-deleted"
 write_fixture_repo "$repo_deleted"
 (
@@ -229,3 +263,17 @@ run_conflict_root="$tmpdir/run-conflict"
 stderr_conflict="$tmpdir/run-conflict.stderr"
 run_expect_failure "$repo_conflict" "$run_conflict_root" "$stderr_conflict" --bead bead-1 --work-item 1002
 assert_stderr_contains "$stderr_conflict" "load-task-src requires exactly one selector"
+if [ ! -f "$run_conflict_root/summary.json" ]; then
+  printf 'conflict path must still create summary.json\n' >&2
+  exit 1
+fi
+if [ ! -f "$run_conflict_root/stderr.log" ]; then
+  printf 'conflict path must still create stderr.log\n' >&2
+  exit 1
+fi
+assert_jq "$run_conflict_root/summary.json" '.status == "failed"' "conflict-status"
+assert_jq "$run_conflict_root/summary.json" '.selection.selector.mode == "bead"' "conflict-selector-mode"
+assert_jq "$run_conflict_root/summary.json" '.selection.selector.value == "bead-1"' "conflict-selector-value"
+assert_jq "$run_conflict_root/summary.json" '.selection.error == "load-task-src requires exactly one selector"' "conflict-selection-error"
+assert_jq "$run_conflict_root/summary.json" '.delegated == null' "conflict-no-delegation"
+assert_stderr_contains "$run_conflict_root/stderr.log" "load-task-src requires exactly one selector"

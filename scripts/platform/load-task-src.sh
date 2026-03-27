@@ -12,6 +12,22 @@ LOAD_TASK_SELECTED_FILES=()
 LOAD_TASK_IGNORED_FILES=()
 LOAD_TASK_DELETED_PATHS=()
 
+record_load_task_cli_error() {
+  local message="$1"
+  local exit_code="${2:-1}"
+  local error_var_name="$3"
+  local exit_code_var_name="$4"
+  local -n error_ref="$error_var_name"
+  local -n exit_code_ref="$exit_code_var_name"
+
+  if [ -n "$error_ref" ]; then
+    return 0
+  fi
+
+  error_ref="$message"
+  exit_code_ref="$exit_code"
+}
+
 usage() {
   cat <<'EOF'
 Usage: ./scripts/platform/load-task-src.sh [options]
@@ -251,7 +267,7 @@ collect_load_task_paths_for_commit() {
         classify_load_task_path "$repo_root" "$source_dir_rel" "$first_path" "$commit"
         ;;
     esac
-  done < <(git -C "$repo_root" diff-tree --no-commit-id --root --name-status -r "$commit")
+  done < <(git -C "$repo_root" diff-tree --no-commit-id --root --name-status -r -m "$commit")
 }
 
 if capability_help_requested "$@"; then
@@ -264,16 +280,24 @@ run_root_input=""
 dry_run="${DRY_RUN:-0}"
 selector_mode=""
 selector_value=""
+cli_error=""
+cli_exit_code=1
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --profile)
-      [ "$#" -ge 2 ] || die "--profile requires a value"
+      if [ "$#" -lt 2 ]; then
+        record_load_task_cli_error "--profile requires a value" 1 cli_error cli_exit_code
+        break
+      fi
       profile_input="$2"
       shift 2
       ;;
     --run-root)
-      [ "$#" -ge 2 ] || die "--run-root requires a value"
+      if [ "$#" -lt 2 ]; then
+        record_load_task_cli_error "--run-root requires a value" 1 cli_error cli_exit_code
+        break
+      fi
       run_root_input="$2"
       shift 2
       ;;
@@ -282,50 +306,67 @@ while [ "$#" -gt 0 ]; do
       shift
       ;;
     --bead)
-      [ "$#" -ge 2 ] || die "--bead requires a value"
-      [ -z "$selector_mode" ] || die "load-task-src requires exactly one selector"
+      if [ "$#" -lt 2 ]; then
+        record_load_task_cli_error "--bead requires a value" 1 cli_error cli_exit_code
+        break
+      fi
+      if [ -n "$selector_mode" ]; then
+        record_load_task_cli_error "load-task-src requires exactly one selector" 1 cli_error cli_exit_code
+        break
+      fi
       selector_mode="bead"
       selector_value="$2"
       shift 2
       ;;
     --work-item)
-      [ "$#" -ge 2 ] || die "--work-item requires a value"
-      [ -z "$selector_mode" ] || die "load-task-src requires exactly one selector"
+      if [ "$#" -lt 2 ]; then
+        record_load_task_cli_error "--work-item requires a value" 1 cli_error cli_exit_code
+        break
+      fi
+      if [ -n "$selector_mode" ]; then
+        record_load_task_cli_error "load-task-src requires exactly one selector" 1 cli_error cli_exit_code
+        break
+      fi
       selector_mode="work-item"
       selector_value="$2"
       shift 2
       ;;
     --range)
-      [ "$#" -ge 2 ] || die "--range requires a value"
-      [ -z "$selector_mode" ] || die "load-task-src requires exactly one selector"
+      if [ "$#" -lt 2 ]; then
+        record_load_task_cli_error "--range requires a value" 1 cli_error cli_exit_code
+        break
+      fi
+      if [ -n "$selector_mode" ]; then
+        record_load_task_cli_error "load-task-src requires exactly one selector" 1 cli_error cli_exit_code
+        break
+      fi
       selector_mode="range"
       selector_value="$2"
       shift 2
       ;;
     --files)
-      die "load-task-src derives file selection internally; --files is not supported"
+      record_load_task_cli_error "load-task-src derives file selection internally; --files is not supported" 1 cli_error cli_exit_code
+      break
       ;;
     -h|--help)
       usage
       exit 0
       ;;
     *)
-      die "unknown argument: $1"
+      record_load_task_cli_error "unknown argument: $1" 1 cli_error cli_exit_code
+      break
       ;;
   esac
 done
 
-[ -n "$selector_mode" ] || die "load-task-src requires one of --bead, --work-item, or --range"
+if [ -z "$cli_error" ] && [ -z "$selector_mode" ]; then
+  record_load_task_cli_error "load-task-src requires one of --bead, --work-item, or --range" 1 cli_error cli_exit_code
+fi
 
 require_command git
 require_command jq
 
 root="$(project_root)"
-profile_path="$(resolve_runtime_profile_path "$profile_input" "$root")"
-load_runtime_profile "$profile_path"
-require_runtime_profile_loaded
-
-adapter="${RUNNER_ADAPTER:-${RUNTIME_PROFILE_RUNNER_ADAPTER:-direct-platform}}"
 run_root="$(prepare_capability_run_root "load-task-src" "$run_root_input")"
 summary_path="$(capability_summary_path "$run_root")"
 stdout_log="$run_root/stdout.log"
@@ -333,12 +374,12 @@ stderr_log="$run_root/stderr.log"
 : >"$stdout_log"
 : >"$stderr_log"
 
-source_dir="$(capability_string_or_default "load-src" "sourceDir" "./src/cf")"
+source_dir="./src/cf"
 source_dir_rel="$(normalize_capability_selected_file "$source_dir")"
 selected_files_csv=""
 selection_json=""
 delegated_json='{"delegated":null}'
-base_context_json="$(build_redacted_context_json)"
+base_context_json="{}"
 context_json="{}"
 status="success"
 exit_code=0
@@ -350,31 +391,53 @@ selection_output=""
 selection_stderr_tmp=""
 task_trailer_helper="$root/scripts/git/task-trailers.sh"
 
+profile_path="$(resolve_runtime_profile_path "$profile_input" "$root")"
+adapter="${RUNNER_ADAPTER:-direct-platform}"
+
 log "Load task-scoped source changes"
 log "adapter=$adapter"
-log "profile=$profile_path"
+if [ -n "$profile_path" ]; then
+  log "profile=$profile_path"
+fi
 log "run_root=$run_root"
 printf 'source_dir=%s\n' "$source_dir" >>"$stdout_log"
 printf 'selector_mode=%s\n' "$selector_mode" >>"$stdout_log"
 printf 'selector_value=%s\n' "$selector_value" >>"$stdout_log"
 
 started_at="$(timestamp_utc)"
-selection_stderr_tmp="$(mktemp)"
 
-if selection_output="$("$task_trailer_helper" select-commits --repo "$root" "--$selector_mode" "$selector_value" 2>"$selection_stderr_tmp")"; then
-  if [ -n "$selection_output" ]; then
-    while IFS= read -r line; do
-      [ -n "$line" ] || continue
-      LOAD_TASK_SELECTED_COMMITS+=("$line")
-    done <<<"$selection_output"
-  fi
-else
+if [ -n "$cli_error" ]; then
   status="failed"
-  exit_code=66
-  selection_error="$(<"$selection_stderr_tmp")"
-  printf '%s\n' "$selection_error" >>"$stderr_log"
+  exit_code="$cli_exit_code"
+  selection_error="$cli_error"
+  printf 'error: %s\n' "$selection_error" | tee -a "$stderr_log" >&2
+else
+  load_runtime_profile "$profile_path"
+  require_runtime_profile_loaded
+  adapter="${RUNNER_ADAPTER:-${RUNTIME_PROFILE_RUNNER_ADAPTER:-direct-platform}}"
+  source_dir="$(capability_string_or_default "load-src" "sourceDir" "./src/cf")"
+  source_dir_rel="$(normalize_capability_selected_file "$source_dir")"
+  printf 'resolved_source_dir=%s\n' "$source_dir" >>"$stdout_log"
+  base_context_json="$(build_redacted_context_json)"
+  selection_stderr_tmp="$(mktemp)"
 fi
-rm -f "$selection_stderr_tmp"
+
+if [ "$status" != "failed" ]; then
+  if selection_output="$("$task_trailer_helper" select-commits --repo "$root" "--$selector_mode" "$selector_value" 2>"$selection_stderr_tmp")"; then
+    if [ -n "$selection_output" ]; then
+      while IFS= read -r line; do
+        [ -n "$line" ] || continue
+        LOAD_TASK_SELECTED_COMMITS+=("$line")
+      done <<<"$selection_output"
+    fi
+  else
+    status="failed"
+    exit_code=66
+    selection_error="$(<"$selection_stderr_tmp")"
+    printf '%s\n' "$selection_error" >>"$stderr_log"
+  fi
+  rm -f "$selection_stderr_tmp"
+fi
 
 if [ "$status" != "failed" ] && [ "${LOAD_TASK_SELECTED_COMMITS[0]+set}" != "set" ]; then
   status="failed"

@@ -6,6 +6,7 @@
 ./.agents/skills/1c-dump-src/SKILL.md
 ./.agents/skills/1c-load-diff-src/SKILL.md
 ./.agents/skills/1c-load-src/SKILL.md
+./.agents/skills/1c-load-task-src/SKILL.md
 ./.agents/skills/1c-publish-http/SKILL.md
 ./.agents/skills/1c-run-bdd/SKILL.md
 ./.agents/skills/1c-run-smoke/SKILL.md
@@ -23,6 +24,7 @@
 ./.claude/skills/1c-dump-src/SKILL.md
 ./.claude/skills/1c-load-diff-src/SKILL.md
 ./.claude/skills/1c-load-src/SKILL.md
+./.claude/skills/1c-load-task-src/SKILL.md
 ./.claude/skills/1c-publish-http/SKILL.md
 ./.claude/skills/1c-run-bdd/SKILL.md
 ./.claude/skills/1c-run-smoke/SKILL.md
@@ -96,6 +98,13 @@
 ./openspec/changes/add-load-diff-src-bridge/specs/project-scoped-skills/spec.md
 ./openspec/changes/add-load-diff-src-bridge/tasks.md
 ./openspec/changes/add-load-diff-src-bridge/traceability.md
+./openspec/changes/add-load-task-src-bridge/design.md
+./openspec/changes/add-load-task-src-bridge/proposal.md
+./openspec/changes/add-load-task-src-bridge/specs/agent-runtime-toolkit/spec.md
+./openspec/changes/add-load-task-src-bridge/specs/ibcmd-capability-drivers/spec.md
+./openspec/changes/add-load-task-src-bridge/specs/project-scoped-skills/spec.md
+./openspec/changes/add-load-task-src-bridge/tasks.md
+./openspec/changes/add-load-task-src-bridge/traceability.md
 ./openspec/changes/archive/2026-03-18-add-agent-toolkit-and-ci-contours/design.md
 ./openspec/changes/archive/2026-03-18-add-agent-toolkit-and-ci-contours/proposal.md
 ./openspec/changes/archive/2026-03-18-add-agent-toolkit-and-ci-contours/specs/agent-runtime-toolkit/spec.md
@@ -227,6 +236,7 @@
 ./scripts/bootstrap/generated-project-surface.sh
 ./scripts/bootstrap/overlay-post-apply.sh
 ./scripts/diag/doctor.sh
+./scripts/git/task-trailers.sh
 ./scripts/lib/capability.sh
 ./scripts/lib/common.sh
 ./scripts/lib/ibcmd.sh
@@ -239,6 +249,7 @@
 ./scripts/platform/dump-src.sh
 ./scripts/platform/load-diff-src.sh
 ./scripts/platform/load-src.sh
+./scripts/platform/load-task-src.sh
 ./scripts/platform/publish-http.sh
 ./scripts/platform/update-db.sh
 ./scripts/qa/agent-verify.sh
@@ -273,6 +284,7 @@
 ./tests/smoke/agent-docs-contract.sh
 ./tests/smoke/bootstrap-agents-overlay.sh
 ./tests/smoke/copier-update-ready.sh
+./tests/smoke/git-task-trailer-contract.sh
 ./tests/smoke/new-1c-project-current-dir-defaults.sh
 ./tests/smoke/runtime-capability-contract.sh
 ./tests/smoke/runtime-direct-platform-ld-preload-contract.sh
@@ -283,6 +295,8 @@
 ./tests/smoke/runtime-ibcmd-validation-contract.sh
 ./tests/smoke/runtime-load-diff-src-contract.sh
 ./tests/smoke/runtime-load-diff-src-validation-contract.sh
+./tests/smoke/runtime-load-task-src-contract.sh
+./tests/smoke/runtime-load-task-src-validation-contract.sh
 ./tests/smoke/runtime-profile-legacy-rejection.sh
 ./tests/smoke/runtime-profile-migration-helper.sh
 ./tests/smoke/template-release-workflow.sh

@@ -46,6 +46,7 @@ append_json_check() {
 doctor_partial_import_contour_state_json() {
   local contour_id="$1"
   local adapter="$2"
+  local root="$3"
   local reason=""
   local status="present"
   local source="driver-selection"
@@ -63,6 +64,9 @@ doctor_partial_import_contour_state_json() {
       reason="partial load-src requires capabilities.loadSrc.driver=ibcmd"
     else
       reason="$(doctor_capability_failure_reason "load-src" "$adapter")"
+      if [ -z "$reason" ]; then
+        reason="$(doctor_partial_import_repo_dependency_reason "$contour_id" "$root")"
+      fi
     fi
   fi
 
@@ -84,6 +88,56 @@ doctor_partial_import_contour_state_json() {
       driver: (if $driver == "" then null else $driver end),
       reason: (if $reason == "" then null else $reason end)
     }'
+}
+
+doctor_partial_import_repo_dependency_reason() {
+  local contour_id="$1"
+  local root="$2"
+  local rel_path=""
+  local absolute_path=""
+  local -a required_paths=()
+
+  case "$contour_id" in
+    load-diff-src)
+      required_paths=("scripts/platform/load-diff-src.sh")
+      ;;
+    load-task-src)
+      required_paths=("scripts/platform/load-task-src.sh" "scripts/git/task-trailers.sh")
+      ;;
+    *)
+      printf '\n'
+      return 0
+      ;;
+  esac
+
+  for rel_path in "${required_paths[@]}"; do
+    absolute_path="$root/$rel_path"
+    if [ ! -f "$absolute_path" ]; then
+      case "$rel_path" in
+        scripts/git/*)
+          printf 'missing repo helper: %s\n' "$rel_path"
+          ;;
+        *)
+          printf 'missing repo script: %s\n' "$rel_path"
+          ;;
+      esac
+      return 0
+    fi
+
+    if [ ! -x "$absolute_path" ]; then
+      case "$rel_path" in
+        scripts/git/*)
+          printf 'repo helper is not executable: %s\n' "$rel_path"
+          ;;
+        *)
+          printf 'repo script is not executable: %s\n' "$rel_path"
+          ;;
+      esac
+      return 0
+    fi
+  done
+
+  printf '\n'
 }
 
 profile_field_status() {
@@ -362,7 +416,7 @@ EOF
   done
 
   for derived_contour_id in "${derived_contours[@]}"; do
-    derived_state_json="$(doctor_partial_import_contour_state_json "$derived_contour_id" "$adapter")"
+    derived_state_json="$(doctor_partial_import_contour_state_json "$derived_contour_id" "$adapter" "$root")"
     printf '%s\n' "$derived_state_json" >>"$derived_contours_jsonl"
     check_status="$(jq -r '.status' <<<"$derived_state_json")"
     check_reason="$(jq -r '.reason // empty' <<<"$derived_state_json")"

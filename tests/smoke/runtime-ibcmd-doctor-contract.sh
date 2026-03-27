@@ -287,3 +287,78 @@ assert_jq "$create_only_run_root/summary.json" '[.checks.required_profile_fields
 assert_jq "$create_only_run_root/summary.json" '[.checks.required_env_refs[] | select(.name == "ONEC_IBCMD_PASSWORD")] | length == 0' "doctor-create-only-no-ibcmd-env-ref"
 assert_jq "$create_only_run_root/summary.json" '[.checks.required_env_refs[] | select(.name == "ONEC_DBMS_PASSWORD" and .status == "set")] | length == 1' "doctor-create-only-dbms-env-ref"
 assert_jq "$create_only_run_root/summary.json" '[.checks.derived_contours[] | select(.name == "load-task-src" and .status == "missing" and .driver == "designer" and .reason == "partial load-src requires capabilities.loadSrc.driver=ibcmd")] | length == 1' "doctor-create-only-derived-missing"
+
+helper_repo="$tmpdir/doctor-helper-gap-repo"
+cp -R "$SOURCE_ROOT" "$helper_repo"
+rm -f "$helper_repo/scripts/git/task-trailers.sh"
+
+cat >"$helper_repo/env/local.json" <<EOF
+{
+  "schemaVersion": 2,
+  "profileName": "doctor-helper-gap",
+  "runnerAdapter": "direct-platform",
+  "platform": {
+    "binaryPath": "$fake_designer",
+    "ibcmdPath": "$fake_ibcmd"
+  },
+  "infobase": {
+    "mode": "file",
+    "filePath": "/var/tmp/doctor-helper-gap",
+    "auth": {
+      "mode": "os",
+      "user": null,
+      "passwordEnv": null
+    }
+  },
+  "ibcmd": {
+    "runtimeMode": "file-infobase",
+    "serverAccess": {
+      "mode": "data-dir",
+      "dataDir": "$tmpdir/helper-gap-server"
+    },
+    "auth": {
+      "user": "doctor-ibcmd-user",
+      "passwordEnv": "ONEC_IBCMD_PASSWORD"
+    },
+    "fileInfobase": {
+      "databasePath": "$tmpdir/helper-gap-db"
+    }
+  },
+  "capabilities": {
+    "createIb": {
+      "driver": "designer"
+    },
+    "dumpSrc": {
+      "driver": "designer"
+    },
+    "loadSrc": {
+      "driver": "ibcmd",
+      "sourceDir": "./src/cf"
+    },
+    "updateDb": {
+      "driver": "designer"
+    },
+    "diffSrc": {
+      "command": ["git", "diff", "--", "./src"]
+    },
+    "xunit": {
+      "command": ["bash", "-lc", "printf 'xunit-ok\\\\n'"]
+    },
+    "bdd": {
+      "command": ["bash", "-lc", "printf 'bdd-ok\\\\n'"]
+    },
+    "smoke": {
+      "command": ["bash", "-lc", "printf 'smoke-ok\\\\n'"]
+    }
+  }
+}
+EOF
+
+helper_gap_run_root="$tmpdir/doctor-helper-gap-run"
+(
+  cd "$helper_repo"
+  ./scripts/diag/doctor.sh --profile env/local.json --run-root "$helper_gap_run_root" >/dev/null
+)
+
+assert_jq "$helper_gap_run_root/summary.json" '[.checks.derived_contours[] | select(.name == "load-task-src" and .status == "missing" and .driver == "ibcmd" and .reason == "missing repo helper: scripts/git/task-trailers.sh")] | length == 1' "doctor-helper-gap-load-task-derived"
+assert_jq "$helper_gap_run_root/summary.json" '[.checks.derived_contours[] | select(.name == "load-diff-src" and .status == "present" and .driver == "ibcmd")] | length == 1' "doctor-helper-gap-load-diff-present"
