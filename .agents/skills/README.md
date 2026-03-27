@@ -12,6 +12,7 @@ Claude-facing equivalents лежат в [.claude/skills/README.md](../../.claude
 | Выгрузить конфигурацию в исходники | `1c-dump-src` | `1c-dump-src` | `./scripts/platform/dump-src.sh` |
 | Загрузить исходники в ИБ | `1c-load-src` | `1c-load-src` | `./scripts/platform/load-src.sh` |
 | Загрузить в ИБ только текущий diff исходников | `1c-load-diff-src` | `1c-load-diff-src` | `./scripts/platform/load-diff-src.sh` |
+| Загрузить в ИБ уже закомиченные изменения задачи | `1c-load-task-src` | `1c-load-task-src` | `./scripts/platform/load-task-src.sh` |
 | Применить изменения к БД | `1c-update-db` | `1c-update-db` | `./scripts/platform/update-db.sh` |
 | Посмотреть diff исходников | `1c-diff-src` | `1c-diff-src` | `./scripts/platform/diff-src.sh` |
 | Запустить xUnit | `1c-run-xunit` | `1c-run-xunit` | `./scripts/test/run-xunit.sh` |

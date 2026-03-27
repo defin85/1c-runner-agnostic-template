@@ -234,7 +234,9 @@ assert_exists "$rendered_root/.claude/settings.json"
 assert_exists "$rendered_root/.claude/skills/README.md"
 assert_exists "$rendered_root/.claude/skills/1c-doctor/SKILL.md"
 assert_exists "$rendered_root/.agents/skills/1c-load-diff-src/SKILL.md"
+assert_exists "$rendered_root/.agents/skills/1c-load-task-src/SKILL.md"
 assert_exists "$rendered_root/.claude/skills/1c-load-diff-src/SKILL.md"
+assert_exists "$rendered_root/.claude/skills/1c-load-task-src/SKILL.md"
 assert_exists "$rendered_root/.github/workflows/ci.yml"
 assert_exists "$rendered_root/docs/AGENTS.md"
 assert_exists "$rendered_root/docs/agent/index.md"
@@ -266,6 +268,8 @@ assert_exists "$rendered_root/scripts/qa/codex-onboard.sh"
 assert_exists "$rendered_root/scripts/platform/dump-src.sh"
 assert_exists "$rendered_root/scripts/platform/diff-src.sh"
 assert_exists "$rendered_root/scripts/platform/load-diff-src.sh"
+assert_exists "$rendered_root/scripts/platform/load-task-src.sh"
+assert_exists "$rendered_root/scripts/git/task-trailers.sh"
 assert_exists "$rendered_root/scripts/diag/doctor.sh"
 assert_exists "$rendered_root/scripts/llm/export-context.sh"
 assert_exists "$rendered_root/scripts/template/migrate-runtime-profile-v2.sh"
@@ -301,6 +305,9 @@ assert_exists "$rendered_root/tests/smoke/runtime-direct-platform-ld-preload-con
 assert_exists "$rendered_root/tests/smoke/runtime-ibcmd-capability-contract.sh"
 assert_exists "$rendered_root/tests/smoke/runtime-ibcmd-doctor-contract.sh"
 assert_exists "$rendered_root/tests/smoke/runtime-ibcmd-validation-contract.sh"
+assert_exists "$rendered_root/tests/smoke/git-task-trailer-contract.sh"
+assert_exists "$rendered_root/tests/smoke/runtime-load-task-src-contract.sh"
+assert_exists "$rendered_root/tests/smoke/runtime-load-task-src-validation-contract.sh"
 assert_exists "$rendered_root/tests/smoke/runtime-profile-legacy-rejection.sh"
 assert_exists "$rendered_root/tests/smoke/runtime-profile-migration-helper.sh"
 assert_exists "$rendered_root/tests/smoke/agent-docs-contract.sh"
@@ -329,6 +336,7 @@ assert_contains "$rendered_root/Makefile" "check-agent-docs:"
 assert_contains "$rendered_root/Makefile" "check-overlay-manifest:"
 assert_contains "$rendered_root/Makefile" "codex-onboard:"
 assert_contains "$rendered_root/Makefile" "load-diff-src:"
+assert_contains "$rendered_root/Makefile" "load-task-src:"
 assert_contains "$rendered_root/Makefile" "export-context-preview:"
 assert_contains "$rendered_root/Makefile" "export-context-check:"
 assert_contains "$rendered_root/Makefile" "export-context-write:"
@@ -354,10 +362,16 @@ assert_contains "$rendered_root/.codex/README.md" "local-only"
 assert_contains "$rendered_root/.codex/README.md" "remote-backed"
 assert_contains "$rendered_root/.agents/skills/README.md" "repo-agent-verify"
 assert_contains "$rendered_root/.agents/skills/README.md" "1c-load-diff-src"
+assert_contains "$rendered_root/.agents/skills/README.md" "1c-load-task-src"
 assert_contains "$rendered_root/.claude/skills/README.md" "1c-load-diff-src"
+assert_contains "$rendered_root/.claude/skills/README.md" "1c-load-task-src"
 assert_contains "$rendered_root/docs/agent/architecture.md" "./scripts/platform/load-diff-src.sh"
+assert_contains "$rendered_root/docs/agent/architecture.md" "./scripts/platform/load-task-src.sh"
 assert_contains "$rendered_root/docs/agent/generated-project-verification.md" "./scripts/platform/load-diff-src.sh --profile env/local.json --run-root /tmp/load-diff-src-run"
+assert_contains "$rendered_root/docs/agent/generated-project-verification.md" "./scripts/platform/load-task-src.sh --profile env/local.json --bead task.1 --run-root /tmp/load-task-src-run"
 assert_contains "$rendered_root/env/README.md" "./scripts/platform/load-diff-src.sh --profile env/local.json --run-root /tmp/load-diff-src-run"
+assert_contains "$rendered_root/env/README.md" "./scripts/platform/load-task-src.sh --profile env/local.json --bead demo.1 --run-root /tmp/load-task-src-run"
+assert_contains "$rendered_root/env/README.md" "./scripts/git/task-trailers.sh render --bead demo.1 --work-item 93984"
 assert_contains "$rendered_root/.github/workflows/ci.yml" "name: CI"
 assert_contains "$rendered_root/.github/workflows/ci.yml" "name: Runtime doctor"
 assert_contains "$rendered_root/.github/workflows/ci.yml" "name: Check agent docs"
@@ -428,6 +442,7 @@ assert_contains "$rendered_root/AGENTS.md" 'Use [docs/agent/codex-workflows.md](
 assert_contains "$rendered_root/AGENTS.md" 'Use [docs/agent/review.md](docs/agent/review.md), [docs/agent/operator-local-runbook.md](docs/agent/operator-local-runbook.md), [env/README.md](env/README.md), [.agents/skills/README.md](.agents/skills/README.md), [docs/exec-plans/README.md](docs/exec-plans/README.md), and [docs/work-items/README.md](docs/work-items/README.md) as the main follow-up routers.'
 assert_contains "$rendered_root/AGENTS.md" 'Use [docs/template-maintenance.md](docs/template-maintenance.md) only for template refresh and maintenance work.'
 assert_contains "$rendered_root/AGENTS.md" './scripts/platform/load-diff-src.sh --profile <operator-profile> --run-root /tmp/load-diff-src-run'
+assert_contains "$rendered_root/AGENTS.md" './scripts/platform/load-task-src.sh --profile <operator-profile> --bead <id> --run-root /tmp/load-task-src-run'
 assert_contains "$rendered_root/AGENTS.md" 'For remote-backed repos with a writable Git remote, a code-change session is not complete until the verified branch state is pushed.'
 assert_contains "$rendered_root/AGENTS.md" 'For local-only repos or repos without a writable remote, do not invent a push-only closeout path.'
 assert_contains "$rendered_root/docs/README.md" "[docs/agent/generated-project-index.md](agent/generated-project-index.md)"
@@ -471,6 +486,7 @@ assert_contains "$rendered_root/docs/agent/generated-project-index.md" "docs/exe
 assert_contains "$rendered_root/docs/agent/generated-project-index.md" "docs/work-items/README.md"
 assert_contains "$rendered_root/docs/agent/generated-project-index.md" "docs/work-items/TEMPLATE.md"
 assert_contains "$rendered_root/docs/agent/generated-project-index.md" "./scripts/platform/load-diff-src.sh --profile <operator-profile> --run-root /tmp/load-diff-src-run"
+assert_contains "$rendered_root/docs/agent/generated-project-index.md" "./scripts/platform/load-task-src.sh --profile <operator-profile> --bead <id> --run-root /tmp/load-task-src-run"
 assert_contains "$rendered_root/automation/context/project-map.md" "role: generated 1С-проект"
 assert_contains "$rendered_root/automation/context/project-map.md" "generated-derived"
 assert_contains "$rendered_root/automation/context/project-map.md" "automation/context/runtime-profile-policy.json"
@@ -487,7 +503,7 @@ assert_contains "$rendered_root/automation/context/project-map.md" "docs/exec-pl
 assert_contains "$rendered_root/automation/context/runtime-support-matrix.md" "# Runtime Support Matrix"
 assert_contains "$rendered_root/automation/context/runtime-support-matrix.md" '`operator-local`'
 assert_contains "$rendered_root/automation/context/runtime-support-matrix.md" "## Optional Project-Specific Baseline Extension"
-assert_jq "$rendered_root/automation/context/runtime-support-matrix.json" '.matrixRole == "project-owned-runtime-support-matrix" and (.statuses | sort) == ["operator-local","provisioned","supported","unsupported"] and ([.contours[].id] | sort) == ["agent-verify","bdd","codex-onboard","doctor","export-context-check","publish-http","smoke","xunit"] and .projectSpecificBaselineExtension == null and (.contours[] | select(.id == "doctor") | .runbookPath) == "docs/agent/operator-local-runbook.md"' "generated-runtime-support-matrix"
+assert_jq "$rendered_root/automation/context/runtime-support-matrix.json" '.matrixRole == "project-owned-runtime-support-matrix" and (.statuses | sort) == ["operator-local","provisioned","supported","unsupported"] and ([.contours[].id] | sort) == ["agent-verify","bdd","codex-onboard","doctor","export-context-check","load-diff-src","load-task-src","publish-http","smoke","xunit"] and .projectSpecificBaselineExtension == null and (.contours[] | select(.id == "doctor") | .runbookPath) == "docs/agent/operator-local-runbook.md" and (.contours[] | select(.id == "load-diff-src") | .runbookPath) == "docs/agent/operator-local-runbook.md" and (.contours[] | select(.id == "load-task-src") | .runbookPath) == "docs/agent/operator-local-runbook.md"' "generated-runtime-support-matrix"
 assert_contains "$rendered_root/automation/context/hotspots-summary.generated.md" "# Generated Hotspots Summary"
 assert_contains "$rendered_root/automation/context/hotspots-summary.generated.md" "## Task-to-Path Routing"
 assert_contains "$rendered_root/automation/context/hotspots-summary.generated.md" "automation/context/runtime-profile-policy.json"
@@ -997,6 +1013,8 @@ assert_jq "$rendered_root/env/local.json" '.platform.ibcmdPath == $ARGS.position
 
 assert_jq "$runtime_doctor_run/summary.json" '.status == "success"' "runtime-doctor-status"
 assert_jq "$runtime_doctor_run/summary.json" '.capability_drivers["load-src"].driver == "ibcmd"' "runtime-doctor-load-driver"
+assert_jq "$runtime_doctor_run/summary.json" '[.checks.derived_contours[] | select(.name == "load-diff-src" and .status == "present" and .driver == "ibcmd")] | length == 1' "runtime-doctor-load-diff-derived"
+assert_jq "$runtime_doctor_run/summary.json" '[.checks.derived_contours[] | select(.name == "load-task-src" and .status == "present" and .driver == "ibcmd")] | length == 1' "runtime-doctor-load-task-derived"
 assert_jq "$runtime_doctor_run/summary.json" '.capability_drivers["load-src"].context.runtime_mode == "file-infobase"' "runtime-doctor-runtime-mode"
 assert_jq "$runtime_doctor_run/summary.json" '[.checks.required_env_refs[] | select(.name == "ONEC_IBCMD_PASSWORD" and .status == "set")] | length == 1' "runtime-doctor-env-ref"
 
@@ -1061,6 +1079,31 @@ assert_jq "$runtime_load_diff_run/summary.json" '.delegated.capability == "load-
 assert_jq "$runtime_load_diff_run/load-src/summary.json" '.driver_context.partial_import == true' "runtime-load-diff-partial"
 assert_contains "$runtime_load_diff_run/load-src/stdout.log" "Configuration.xml"
 assert_contains "$runtime_load_diff_run/load-src/stdout.log" "EventSubscriptions/LoadDiff.xml"
+
+(
+  cd "$rendered_root"
+  git add src/cf/Configuration.xml src/cf/EventSubscriptions/LoadDiff.xml
+  git commit -qm $'task-scoped runtime smoke\n\nBead: copier-runtime.1\nWork-Item: 93984'
+)
+
+runtime_load_task_run="$tmpdir/runtime-load-task-run"
+
+(
+  cd "$rendered_root"
+  PATH="$bindir:$PATH" ONEC_IBCMD_PASSWORD="copier-smoke-ibcmd-secret" ./scripts/platform/load-task-src.sh \
+    --profile env/local.json \
+    --run-root "$runtime_load_task_run" \
+    --bead copier-runtime.1 >/dev/null
+)
+
+assert_jq "$runtime_load_task_run/summary.json" '.status == "success"' "runtime-load-task-status"
+assert_jq "$runtime_load_task_run/summary.json" '.selection.selector.mode == "bead"' "runtime-load-task-selector-mode"
+assert_jq "$runtime_load_task_run/summary.json" '.selection.selector.value == "copier-runtime.1"' "runtime-load-task-selector-value"
+assert_jq "$runtime_load_task_run/summary.json" '.selection.selected_files | sort == ["Configuration.xml", "EventSubscriptions/LoadDiff.xml"]' "runtime-load-task-selected"
+assert_jq "$runtime_load_task_run/summary.json" '.delegated.capability == "load-src"' "runtime-load-task-delegated"
+assert_jq "$runtime_load_task_run/load-src/summary.json" '.driver_context.partial_import == true' "runtime-load-task-partial"
+assert_contains "$runtime_load_task_run/load-src/stdout.log" "Configuration.xml"
+assert_contains "$runtime_load_task_run/load-src/stdout.log" "EventSubscriptions/LoadDiff.xml"
 
 jq \
   --arg binary_path "$runtime_fake_wsl_designer" \

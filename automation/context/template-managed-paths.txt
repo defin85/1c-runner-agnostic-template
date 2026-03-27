@@ -3,6 +3,7 @@
 .agents/skills/1c-doctor/SKILL.md
 .agents/skills/1c-dump-src/SKILL.md
 .agents/skills/1c-load-diff-src/SKILL.md
+.agents/skills/1c-load-task-src/SKILL.md
 .agents/skills/1c-load-src/SKILL.md
 .agents/skills/1c-publish-http/SKILL.md
 .agents/skills/1c-run-bdd/SKILL.md
@@ -17,6 +18,7 @@
 .claude/skills/1c-doctor/SKILL.md
 .claude/skills/1c-dump-src/SKILL.md
 .claude/skills/1c-load-diff-src/SKILL.md
+.claude/skills/1c-load-task-src/SKILL.md
 .claude/skills/1c-load-src/SKILL.md
 .claude/skills/1c-publish-http/SKILL.md
 .claude/skills/1c-run-bdd/SKILL.md
@@ -85,6 +87,7 @@ scripts/bootstrap/copier-post-update.sh
 scripts/bootstrap/generated-project-surface.sh
 scripts/bootstrap/overlay-post-apply.sh
 scripts/diag/doctor.sh
+scripts/git/task-trailers.sh
 scripts/lib/capability.sh
 scripts/lib/common.sh
 scripts/lib/ibcmd.sh
@@ -96,6 +99,7 @@ scripts/platform/create-ib.sh
 scripts/platform/diff-src.sh
 scripts/platform/dump-src.sh
 scripts/platform/load-diff-src.sh
+scripts/platform/load-task-src.sh
 scripts/platform/load-src.sh
 scripts/platform/publish-http.sh
 scripts/platform/update-db.sh
@@ -131,8 +135,11 @@ tests/smoke/runtime-doctor-contract.sh
 tests/smoke/runtime-ibcmd-capability-contract.sh
 tests/smoke/runtime-ibcmd-doctor-contract.sh
 tests/smoke/runtime-ibcmd-validation-contract.sh
+tests/smoke/git-task-trailer-contract.sh
 tests/smoke/runtime-load-diff-src-contract.sh
 tests/smoke/runtime-load-diff-src-validation-contract.sh
+tests/smoke/runtime-load-task-src-contract.sh
+tests/smoke/runtime-load-task-src-validation-contract.sh
 tests/smoke/runtime-profile-legacy-rejection.sh
 tests/smoke/runtime-profile-migration-helper.sh
 tests/smoke/update-1c-project-wrapper.sh

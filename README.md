@@ -105,6 +105,8 @@ Generated projects получают отдельный стартовый сло
 - `./scripts/platform/create-ib.sh`
 - `./scripts/platform/dump-src.sh`
 - `./scripts/platform/load-src.sh`
+- `./scripts/platform/load-diff-src.sh`
+- `./scripts/platform/load-task-src.sh`
 - `./scripts/platform/update-db.sh`
 - `./scripts/platform/diff-src.sh`
 - `./scripts/platform/publish-http.sh`
@@ -173,6 +175,7 @@ Backend выбирается через `RUNNER_ADAPTER`:
 - `dump-src`
 - `load-src`
 - `load-diff-src`
+- `load-task-src`
 - `update-db`
 - `diff-src`
 - `run-xunit`
@@ -189,6 +192,7 @@ export ONEC_IBCMD_PASSWORD='...'
 ./scripts/platform/load-src.sh --profile env/local.json --run-root /tmp/load-src-run
 ./scripts/platform/load-src.sh --profile env/local.json --files "Catalogs/Items.xml,Forms/List.xml"
 ./scripts/platform/load-diff-src.sh --profile env/local.json --run-root /tmp/load-diff-src-run
+./scripts/platform/load-task-src.sh --profile env/local.json --bead demo.1 --run-root /tmp/load-task-src-run
 ```
 
 Для WSL/Linux isolated GUI launches:
@@ -213,6 +217,7 @@ cp env/local.example.json env/.local/develop.json
 - `driver` и `command` нельзя смешивать в одной capability;
 - checked-in `env/local.example.json` уже wired для partial import через `loadSrc.driver=ibcmd`;
 - `load-diff-src` строит git-backed selection внутри `src/cf` и делегирует actual import в `load-src --files`;
+- `load-task-src` строит committed task selection по trailers `Bead:` / `Work-Item:` или по explicit `--range` и тоже делегирует actual import в `load-src --files`;
 - `summary.json` для `create-ib`, `dump-src`, `load-src`, `update-db` теперь отражает выбранный `driver`;
 - direct-platform contour с `platform.xvfb.enabled=true` требует локальные `xvfb-run` и `xauth`, а capability/doctor summary публикуют structured `adapter_context`;
 - direct-platform contour с `platform.ldPreload.enabled=true` требует валидные absolute library paths, а capability/doctor summary публикуют structured `adapter_context.ld_preload` без сырого `LD_PRELOAD=` shell prefix;

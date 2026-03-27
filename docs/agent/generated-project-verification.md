@@ -63,6 +63,7 @@ Optional project-specific baseline extension:
 | `./scripts/platform/create-ib.sh --profile env/local.json --run-root /tmp/create-ib-run` | Создание ИБ | runtime + writable target | меняет runtime target | run-root logs и summary |
 | `./scripts/platform/load-src.sh --profile env/local.json --run-root /tmp/load-src-run` | Загрузка source tree в ИБ | runtime + prepared infobase | меняет ИБ | run-root logs и summary |
 | `./scripts/platform/load-diff-src.sh --profile env/local.json --run-root /tmp/load-diff-src-run` | Загрузка только текущего git-backed diff внутри `src/cf` | runtime + prepared infobase + git worktree | меняет ИБ только через delegated `load-src --files` | wrapper run-root logs и delegated `load-src` summary |
+| `./scripts/platform/load-task-src.sh --profile env/local.json --bead task.1 --run-root /tmp/load-task-src-run` | Загрузка уже закомиченного scope задачи по `Bead:` / `Work-Item:` или `--range` | runtime + prepared infobase + git history с canonical trailers или явным revset | меняет ИБ только через delegated `load-src --files` | wrapper run-root logs и delegated `load-src` summary |
 | `./scripts/platform/update-db.sh --profile env/local.json --run-root /tmp/update-db-run` | Обновление DB configuration | runtime + prepared infobase | меняет ИБ | run-root logs и summary |
 | `./scripts/platform/dump-src.sh --profile env/local.json --run-root /tmp/dump-src-run` | Выгрузка исходников | runtime + prepared infobase | меняет target source tree или run-root по контракту capability | run-root logs и summary |
 

@@ -27,6 +27,7 @@ Runtime and test:
 - `./scripts/platform/dump-src.sh`
 - `./scripts/platform/load-src.sh`
 - `./scripts/platform/load-diff-src.sh`
+- `./scripts/platform/load-task-src.sh`
 - `./scripts/platform/update-db.sh`
 - `./scripts/platform/diff-src.sh`
 - `./scripts/platform/publish-http.sh`

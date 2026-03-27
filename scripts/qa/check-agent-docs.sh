@@ -543,7 +543,7 @@ check_generated_runtime_support_matrix_contract() {
     '(.statuses | sort) == ["operator-local","provisioned","supported","unsupported"]' \
     "runtime support matrix must define the canonical status set"
   require_jq_expr "$generated_matrix_json_rel" \
-    '(.contours | map(.id)) as $ids | ["codex-onboard","agent-verify","export-context-check","doctor","xunit","bdd","smoke","publish-http"] | all(. as $id | $ids | index($id))' \
+    '(.contours | map(.id)) as $ids | ["codex-onboard","agent-verify","export-context-check","doctor","xunit","bdd","smoke","publish-http","load-diff-src","load-task-src"] | all(. as $id | $ids | index($id))' \
     "runtime support matrix must cover the required contour ids"
   require_jq_expr "$generated_matrix_json_rel" \
     '.contours | type == "array" and length > 0 and all(.[]; (.id | type == "string" and length > 0) and (.status | type == "string" and length > 0) and (.profileProvenance | type == "string" and length > 0) and (((.entrypoint // "") | type == "string" and length > 0) or ((.runbookPath // "") | type == "string" and length > 0)))' \
@@ -879,6 +879,7 @@ require_contains "docs/agent/generated-project-index.md" ".agents/skills/README.
 require_contains "docs/agent/generated-project-index.md" ".codex/README.md"
 require_contains "docs/agent/generated-project-index.md" "project-specific baseline extension"
 require_contains "docs/agent/generated-project-index.md" "./scripts/platform/load-diff-src.sh --profile <operator-profile> --run-root /tmp/load-diff-src-run"
+require_contains "docs/agent/generated-project-index.md" "./scripts/platform/load-task-src.sh --profile <operator-profile> --bead <id> --run-root /tmp/load-task-src-run"
 require_absent_regex "docs/agent/generated-project-index.md" '^## Codex Controls$' \
   "generated-project index must delegate detailed controls to the canonical workflow doc"
 require_contains "docs/agent/source-vs-generated.md" "template-managed"
@@ -995,6 +996,10 @@ require_absent_regex "automation/context/template-managed-paths.txt" '^docs/work
   "project-owned work-item template must not become template-managed"
 require_contains ".agents/skills/README.md" ".claude/skills/"
 require_contains ".claude/skills/README.md" ".agents/skills/"
+require_contains ".agents/skills/README.md" "1c-load-task-src"
+require_contains ".agents/skills/README.md" "./scripts/platform/load-task-src.sh"
+require_contains ".claude/skills/README.md" "1c-load-task-src"
+require_contains ".claude/skills/README.md" "./scripts/platform/load-task-src.sh"
 require_contains "docs/exec-plans/README.md" "Progress"
 require_contains "docs/exec-plans/README.md" "Surprises & Discoveries"
 require_contains "docs/exec-plans/README.md" "Decision Log"
@@ -1165,6 +1170,7 @@ else
   require_contains "AGENTS.md" "automation/context/runtime-profile-policy.json"
   require_contains "AGENTS.md" "automation/context/runtime-support-matrix.md"
   require_contains "AGENTS.md" "./scripts/platform/load-diff-src.sh --profile <operator-profile> --run-root /tmp/load-diff-src-run"
+  require_contains "AGENTS.md" "./scripts/platform/load-task-src.sh --profile <operator-profile> --bead <id> --run-root /tmp/load-task-src-run"
   require_contains "README.md" "generated 1С-проект"
   require_contains "README.md" "Ownership Classes"
   require_contains "README.md" "make codex-onboard"

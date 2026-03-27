@@ -21,7 +21,7 @@
 14. Если задача длинная, копируйте [docs/exec-plans/TEMPLATE.md](../exec-plans/TEMPLATE.md) и держите рядом [docs/work-items/README.md](../work-items/README.md) как companion workspace для supporting artifacts.
 15. Если работа касается только template refresh, отдельно откройте [docs/template-maintenance.md](../template-maintenance.md).
 
-Короткая runtime-шпаргалка: `./scripts/platform/load-diff-src.sh --profile <operator-profile> --run-root /tmp/load-diff-src-run` загружает в ИБ только текущий git-backed diff внутри `src/cf`; prerequisites и fail-closed semantics остаются в `docs/agent/operator-local-runbook.md` и `env/README.md`.
+Короткая runtime-шпаргалка: `./scripts/platform/load-diff-src.sh --profile <operator-profile> --run-root /tmp/load-diff-src-run` загружает в ИБ только текущий git-backed diff внутри `src/cf`, а `./scripts/platform/load-task-src.sh --profile <operator-profile> --bead <id> --run-root /tmp/load-task-src-run` загружает уже закомиченный scope задачи по `Bead:` / `Work-Item:` trailers или по `--range`; prerequisites и fail-closed semantics остаются в `docs/agent/operator-local-runbook.md` и `env/README.md`.
 
 ## Что считается source of truth
 

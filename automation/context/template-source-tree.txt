@@ -9,6 +9,7 @@
 ./.agents/skills/1c-dump-src
 ./.agents/skills/1c-load-diff-src
 ./.agents/skills/1c-load-src
+./.agents/skills/1c-load-task-src
 ./.agents/skills/1c-publish-http
 ./.agents/skills/1c-run-bdd
 ./.agents/skills/1c-run-smoke
@@ -25,6 +26,7 @@
 ./.claude/skills/1c-dump-src
 ./.claude/skills/1c-load-diff-src
 ./.claude/skills/1c-load-src
+./.claude/skills/1c-load-task-src
 ./.claude/skills/1c-publish-http
 ./.claude/skills/1c-run-bdd
 ./.claude/skills/1c-run-smoke
@@ -55,6 +57,7 @@
 ./openspec
 ./openspec/changes
 ./openspec/changes/add-load-diff-src-bridge
+./openspec/changes/add-load-task-src-bridge
 ./openspec/changes/archive
 ./openspec/specs
 ./openspec/specs/agent-runtime-toolkit
@@ -71,6 +74,7 @@
 ./scripts/adapters
 ./scripts/bootstrap
 ./scripts/diag
+./scripts/git
 ./scripts/lib
 ./scripts/llm
 ./scripts/platform

@@ -137,6 +137,8 @@ assert_jq "$run_root/summary.json" '[.checks.required_profile_fields[] | select(
 assert_jq "$run_root/summary.json" '[.checks.required_env_refs[] | select(.name == "ONEC_DBMS_PASSWORD" and .status == "set")] | length == 1' "doctor-dbms-env-ref"
 assert_jq "$run_root/summary.json" '[.checks.required_env_refs[] | select(.name == "ONEC_IBCMD_PASSWORD" and .status == "set")] | length == 1' "doctor-ibcmd-env-ref"
 assert_jq "$run_root/summary.json" '[.checks.required_capabilities[] | select(.status != "present")] | length == 0' "doctor-required-capabilities"
+assert_jq "$run_root/summary.json" '[.checks.derived_contours[] | select(.name == "load-diff-src" and .status == "present" and .driver == "ibcmd" and .reason == null)] | length == 1' "doctor-load-diff-derived-present"
+assert_jq "$run_root/summary.json" '[.checks.derived_contours[] | select(.name == "load-task-src" and .status == "present" and .driver == "ibcmd" and .reason == null)] | length == 1' "doctor-load-task-derived-present"
 
 if [ ! -f "$run_root/stdout.log" ] || [ ! -f "$run_root/stderr.log" ]; then
   printf 'doctor run must create stdout.log and stderr.log\n' >&2
@@ -284,3 +286,4 @@ assert_jq "$create_only_run_root/summary.json" '[.checks.required_profile_fields
 assert_jq "$create_only_run_root/summary.json" '[.checks.required_profile_fields[] | select(.name == "ibcmd.auth.passwordEnv")] | length == 0' "doctor-create-only-no-auth-password-field"
 assert_jq "$create_only_run_root/summary.json" '[.checks.required_env_refs[] | select(.name == "ONEC_IBCMD_PASSWORD")] | length == 0' "doctor-create-only-no-ibcmd-env-ref"
 assert_jq "$create_only_run_root/summary.json" '[.checks.required_env_refs[] | select(.name == "ONEC_DBMS_PASSWORD" and .status == "set")] | length == 1' "doctor-create-only-dbms-env-ref"
+assert_jq "$create_only_run_root/summary.json" '[.checks.derived_contours[] | select(.name == "load-task-src" and .status == "missing" and .driver == "designer" and .reason == "partial load-src requires capabilities.loadSrc.driver=ibcmd")] | length == 1' "doctor-create-only-derived-missing"

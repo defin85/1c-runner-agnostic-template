@@ -14,6 +14,8 @@
     "agent-verify",
     "export-context-check",
     "doctor",
+    "load-diff-src",
+    "load-task-src",
     "xunit",
     "bdd",
     "smoke",

@@ -111,6 +111,8 @@ assert_jq "$run_root/summary.json" '[.checks.required_profile_fields[] | select(
 assert_jq "$run_root/summary.json" '[.checks.required_env_refs[] | select(.status != "set")] | length == 0' "doctor-required-env-refs"
 assert_jq "$run_root/summary.json" '[.checks.required_capabilities[] | select(.status != "present")] | length == 0' "doctor-required-capabilities"
 assert_jq "$run_root/summary.json" '[.checks.required_tools[] | select(.status != "present")] | length == 0' "doctor-required-tools"
+assert_jq "$run_root/summary.json" '[.checks.derived_contours[] | select(.name == "load-diff-src" and .status == "missing" and .driver == "designer" and .reason == "partial load-src requires capabilities.loadSrc.driver=ibcmd")] | length == 1' "doctor-load-diff-derived-missing"
+assert_jq "$run_root/summary.json" '[.checks.derived_contours[] | select(.name == "load-task-src" and .status == "missing" and .driver == "designer" and .reason == "partial load-src requires capabilities.loadSrc.driver=ibcmd")] | length == 1' "doctor-load-task-derived-missing"
 
 if [ ! -f "$run_root/stdout.log" ] || [ ! -f "$run_root/stderr.log" ]; then
   printf 'doctor run must create stdout.log and stderr.log\n' >&2
@@ -273,6 +275,8 @@ assert_jq "$command_override_run_root/summary.json" '.capability_drivers["create
 assert_jq "$command_override_run_root/summary.json" '.capability_drivers["create-ib"].driver == null' "doctor-command-create-driver"
 assert_jq "$command_override_run_root/summary.json" '.capability_drivers["load-src"].source == "profile-command"' "doctor-command-load-source"
 assert_jq "$command_override_run_root/summary.json" '.capability_drivers["load-src"].driver == null' "doctor-command-load-driver"
+assert_jq "$command_override_run_root/summary.json" '[.checks.derived_contours[] | select(.name == "load-diff-src" and .status == "missing" and .source == "profile-command" and .driver == null and .reason == "partial load-src is not supported when capabilities.loadSrc.command override is set")] | length == 1' "doctor-command-load-diff-derived"
+assert_jq "$command_override_run_root/summary.json" '[.checks.derived_contours[] | select(.name == "load-task-src" and .status == "missing" and .source == "profile-command" and .driver == null and .reason == "partial load-src is not supported when capabilities.loadSrc.command override is set")] | length == 1' "doctor-command-load-task-derived"
 
 cat >"$ld_preload_profile_path" <<EOF
 {

@@ -43,6 +43,49 @@ append_json_check() {
     }' >>"$jsonl_path"
 }
 
+doctor_partial_import_contour_state_json() {
+  local contour_id="$1"
+  local adapter="$2"
+  local reason=""
+  local status="present"
+  local source="driver-selection"
+  local load_src_driver=""
+
+  if capability_has_profile_unsupported_reason "load-src"; then
+    source="unsupported-profile"
+    reason="$(require_profile_string "$(capability_unsupported_reason_expr "load-src") // empty" "$(capability_unsupported_reason_expr "load-src")")"
+  elif capability_has_profile_command "load-src"; then
+    source="profile-command"
+    reason="partial load-src is not supported when capabilities.loadSrc.command override is set"
+  else
+    load_src_driver="$(resolve_capability_driver "load-src")"
+    if [ "$load_src_driver" != "ibcmd" ]; then
+      reason="partial load-src requires capabilities.loadSrc.driver=ibcmd"
+    else
+      reason="$(doctor_capability_failure_reason "load-src" "$adapter")"
+    fi
+  fi
+
+  if [ -n "$reason" ]; then
+    status="missing"
+  fi
+
+  jq -cn \
+    --arg name "$contour_id" \
+    --arg status "$status" \
+    --arg source "$source" \
+    --arg driver "$load_src_driver" \
+    --arg reason "$reason" \
+    '{
+      name: $name,
+      status: $status,
+      required: false,
+      source: (if $source == "" then null else $source end),
+      driver: (if $driver == "" then null else $driver end),
+      reason: (if $reason == "" then null else $reason end)
+    }'
+}
+
 profile_field_status() {
   local field_name="$1"
 
@@ -172,6 +215,7 @@ main() {
   local required_env_refs_jsonl=""
   local required_capabilities_jsonl=""
   local optional_capabilities_jsonl=""
+  local derived_contours_jsonl=""
   local capability_drivers_json="{}"
   local required_tools_json="[]"
   local optional_tools_json="[]"
@@ -179,14 +223,17 @@ main() {
   local required_env_refs_json="[]"
   local required_capabilities_json="[]"
   local optional_capabilities_json="[]"
+  local derived_contours_json="[]"
   local status="success"
   local layout_warning_json="{}"
   local tool_name=""
   local field_name=""
   local env_name=""
   local capability_id=""
+  local derived_contour_id=""
   local check_status=""
   local check_reason=""
+  local derived_state_json=""
   local warning_path_list=""
   local -a layout_drift_paths=()
   local -a required_tools=(git jq rg)
@@ -195,6 +242,7 @@ main() {
   local -a required_env_refs=()
   local -a required_capabilities=(create-ib dump-src load-src update-db diff-src run-xunit run-bdd run-smoke)
   local -a optional_capabilities=(publish-http)
+  local -a derived_contours=(load-diff-src load-task-src)
 
   parse_capability_cli_args "$@"
   if [ "$CAPABILITY_SHOW_HELP" = "1" ]; then
@@ -221,6 +269,7 @@ main() {
   required_env_refs_jsonl="$run_root/required-env-refs.jsonl"
   required_capabilities_jsonl="$run_root/required-capabilities.jsonl"
   optional_capabilities_jsonl="$run_root/optional-capabilities.jsonl"
+  derived_contours_jsonl="$run_root/derived-contours.jsonl"
   : >"$stdout_log"
   : >"$stderr_log"
   : >"$required_tools_jsonl"
@@ -229,6 +278,7 @@ main() {
   : >"$required_env_refs_jsonl"
   : >"$required_capabilities_jsonl"
   : >"$optional_capabilities_jsonl"
+  : >"$derived_contours_jsonl"
 
   exec 3>&1 4>&2
   exec > >(tee -a "$stdout_log" >&3) 2> >(tee -a "$stderr_log" >&4)
@@ -311,12 +361,23 @@ EOF
     append_json_check "$optional_capabilities_jsonl" "$capability_id" "$check_status" false "$check_reason"
   done
 
+  for derived_contour_id in "${derived_contours[@]}"; do
+    derived_state_json="$(doctor_partial_import_contour_state_json "$derived_contour_id" "$adapter")"
+    printf '%s\n' "$derived_state_json" >>"$derived_contours_jsonl"
+    check_status="$(jq -r '.status' <<<"$derived_state_json")"
+    check_reason="$(jq -r '.reason // empty' <<<"$derived_state_json")"
+    if [ "$check_status" = "missing" ]; then
+      log "operator-local contour not ready: $derived_contour_id ($check_reason)"
+    fi
+  done
+
   required_tools_json="$(jq -s '.' "$required_tools_jsonl")"
   optional_tools_json="$(jq -s '.' "$optional_tools_jsonl")"
   required_fields_json="$(jq -s '.' "$required_fields_jsonl")"
   required_env_refs_json="$(jq -s '.' "$required_env_refs_jsonl")"
   required_capabilities_json="$(jq -s '.' "$required_capabilities_jsonl")"
   optional_capabilities_json="$(jq -s '.' "$optional_capabilities_jsonl")"
+  derived_contours_json="$(jq -s '.' "$derived_contours_jsonl")"
   capability_drivers_json="$(build_doctor_capability_drivers_json "$adapter")"
 
   jq -n \
@@ -333,6 +394,7 @@ EOF
     --argjson required_env_refs "$required_env_refs_json" \
     --argjson required_capabilities "$required_capabilities_json" \
     --argjson optional_capabilities "$optional_capabilities_json" \
+    --argjson derived_contours "$derived_contours_json" \
     --argjson capability_drivers "$capability_drivers_json" \
     --argjson warnings "$layout_warning_json" \
     --argjson context "$(build_doctor_context_json "$adapter")" \
@@ -357,7 +419,8 @@ EOF
         required_profile_fields: $required_profile_fields,
         required_env_refs: $required_env_refs,
         required_capabilities: $required_capabilities,
-        optional_capabilities: $optional_capabilities
+        optional_capabilities: $optional_capabilities,
+        derived_contours: $derived_contours
       },
       warnings: $warnings
     } + $context' >"$summary_path"

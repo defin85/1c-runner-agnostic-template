@@ -1,6 +1,6 @@
 SHELL := bash
 
-.PHONY: help agent-verify qa analyze-bsl format-bsl check-agent-docs check-skill-bindings check-overlay-manifest codex-onboard create-ib dump-src load-src load-diff-src update-db diff-src doctor test-xunit test-bdd smoke export-context export-context-preview export-context-check export-context-write verify-traceability template-check-update template-update
+.PHONY: help agent-verify qa analyze-bsl format-bsl check-agent-docs check-skill-bindings check-overlay-manifest codex-onboard create-ib dump-src load-src load-diff-src load-task-src update-db diff-src doctor test-xunit test-bdd smoke export-context export-context-preview export-context-check export-context-write verify-traceability template-check-update template-update
 
 help:
 	@printf '%s\n' \
@@ -17,6 +17,7 @@ help:
 		'  make dump-src' \
 		'  make load-src' \
 		'  make load-diff-src' \
+		'  make load-task-src' \
 		'  make update-db' \
 		'  make diff-src' \
 		'  make doctor' \
@@ -65,6 +66,9 @@ load-src:
 
 load-diff-src:
 	@./scripts/platform/load-diff-src.sh
+
+load-task-src:
+	@./scripts/platform/load-task-src.sh
 
 update-db:
 	@./scripts/platform/update-db.sh
