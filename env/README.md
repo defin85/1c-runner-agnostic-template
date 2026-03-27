@@ -257,6 +257,19 @@ Partial import поддерживается для `load-src` с `driver=ibcmd` 
 ./scripts/platform/load-src.sh --profile env/local.json --files "Catalogs/Items.xml,Forms/List.xml"
 ```
 
+Для git-backed workflow шаблон также поставляет repo-owned bridge:
+
+```bash
+./scripts/platform/load-diff-src.sh --profile env/local.json --run-root /tmp/load-diff-src-run
+```
+
+Этот wrapper:
+
+- сам вычисляет changed files из git-backed worktree;
+- фильтрует только существующие paths внутри configured `sourceDir`;
+- fail-closed завершается, если eligible selection пуст;
+- делегирует actual import в `./scripts/platform/load-src.sh --files ...`.
+
 Если брать за основу `env/local.example.json`, дополнительная правка `loadSrc.driver` не нужна.
 
 ## Safety Warning For DBMS-Backed Contour

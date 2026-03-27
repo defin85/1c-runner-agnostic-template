@@ -233,6 +233,8 @@ assert_exists "$rendered_root/.agents/skills/repo-agent-verify/SKILL.md"
 assert_exists "$rendered_root/.claude/settings.json"
 assert_exists "$rendered_root/.claude/skills/README.md"
 assert_exists "$rendered_root/.claude/skills/1c-doctor/SKILL.md"
+assert_exists "$rendered_root/.agents/skills/1c-load-diff-src/SKILL.md"
+assert_exists "$rendered_root/.claude/skills/1c-load-diff-src/SKILL.md"
 assert_exists "$rendered_root/.github/workflows/ci.yml"
 assert_exists "$rendered_root/docs/AGENTS.md"
 assert_exists "$rendered_root/docs/agent/index.md"
@@ -263,6 +265,7 @@ assert_exists "$rendered_root/scripts/qa/check-agent-docs.sh"
 assert_exists "$rendered_root/scripts/qa/codex-onboard.sh"
 assert_exists "$rendered_root/scripts/platform/dump-src.sh"
 assert_exists "$rendered_root/scripts/platform/diff-src.sh"
+assert_exists "$rendered_root/scripts/platform/load-diff-src.sh"
 assert_exists "$rendered_root/scripts/diag/doctor.sh"
 assert_exists "$rendered_root/scripts/llm/export-context.sh"
 assert_exists "$rendered_root/scripts/template/migrate-runtime-profile-v2.sh"
@@ -325,6 +328,7 @@ assert_contains "$rendered_root/Makefile" "agent-verify:"
 assert_contains "$rendered_root/Makefile" "check-agent-docs:"
 assert_contains "$rendered_root/Makefile" "check-overlay-manifest:"
 assert_contains "$rendered_root/Makefile" "codex-onboard:"
+assert_contains "$rendered_root/Makefile" "load-diff-src:"
 assert_contains "$rendered_root/Makefile" "export-context-preview:"
 assert_contains "$rendered_root/Makefile" "export-context-check:"
 assert_contains "$rendered_root/Makefile" "export-context-write:"
@@ -349,6 +353,11 @@ assert_contains "$rendered_root/.codex/README.md" "[docs/work-items/README.md](.
 assert_contains "$rendered_root/.codex/README.md" "local-only"
 assert_contains "$rendered_root/.codex/README.md" "remote-backed"
 assert_contains "$rendered_root/.agents/skills/README.md" "repo-agent-verify"
+assert_contains "$rendered_root/.agents/skills/README.md" "1c-load-diff-src"
+assert_contains "$rendered_root/.claude/skills/README.md" "1c-load-diff-src"
+assert_contains "$rendered_root/docs/agent/architecture.md" "./scripts/platform/load-diff-src.sh"
+assert_contains "$rendered_root/docs/agent/generated-project-verification.md" "./scripts/platform/load-diff-src.sh --profile env/local.json --run-root /tmp/load-diff-src-run"
+assert_contains "$rendered_root/env/README.md" "./scripts/platform/load-diff-src.sh --profile env/local.json --run-root /tmp/load-diff-src-run"
 assert_contains "$rendered_root/.github/workflows/ci.yml" "name: CI"
 assert_contains "$rendered_root/.github/workflows/ci.yml" "name: Runtime doctor"
 assert_contains "$rendered_root/.github/workflows/ci.yml" "name: Check agent docs"
@@ -1031,6 +1040,25 @@ assert_contains "$runtime_load_run/stdout.log" "--base-dir=./src/cf"
 assert_contains "$runtime_load_run/stdout.log" "--partial"
 assert_contains "$runtime_load_run/stdout.log" "Catalogs/Items.xml"
 assert_contains "$runtime_load_run/stdout.log" "Forms/List.xml"
+
+mkdir -p "$rendered_root/src/cf/EventSubscriptions"
+printf '<config changed />\n' >"$rendered_root/src/cf/Configuration.xml"
+printf '<subscription new />\n' >"$rendered_root/src/cf/EventSubscriptions/LoadDiff.xml"
+runtime_load_diff_run="$tmpdir/runtime-load-diff-run"
+
+(
+  cd "$rendered_root"
+  PATH="$bindir:$PATH" ONEC_IBCMD_PASSWORD="copier-smoke-ibcmd-secret" ./scripts/platform/load-diff-src.sh \
+    --profile env/local.json \
+    --run-root "$runtime_load_diff_run" >/dev/null
+)
+
+assert_jq "$runtime_load_diff_run/summary.json" '.status == "success"' "runtime-load-diff-status"
+assert_jq "$runtime_load_diff_run/summary.json" '.selection.selected_files | sort == ["Configuration.xml", "EventSubscriptions/LoadDiff.xml"]' "runtime-load-diff-selected"
+assert_jq "$runtime_load_diff_run/summary.json" '.delegated.capability == "load-src"' "runtime-load-diff-delegated"
+assert_jq "$runtime_load_diff_run/load-src/summary.json" '.driver_context.partial_import == true' "runtime-load-diff-partial"
+assert_contains "$runtime_load_diff_run/load-src/stdout.log" "Configuration.xml"
+assert_contains "$runtime_load_diff_run/load-src/stdout.log" "EventSubscriptions/LoadDiff.xml"
 
 jq \
   --arg binary_path "$runtime_fake_wsl_designer" \

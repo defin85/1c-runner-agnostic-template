@@ -7,6 +7,7 @@
 ./.agents/skills/1c-diff-src
 ./.agents/skills/1c-doctor
 ./.agents/skills/1c-dump-src
+./.agents/skills/1c-load-diff-src
 ./.agents/skills/1c-load-src
 ./.agents/skills/1c-publish-http
 ./.agents/skills/1c-run-bdd
@@ -22,6 +23,7 @@
 ./.claude/skills/1c-diff-src
 ./.claude/skills/1c-doctor
 ./.claude/skills/1c-dump-src
+./.claude/skills/1c-load-diff-src
 ./.claude/skills/1c-load-src
 ./.claude/skills/1c-publish-http
 ./.claude/skills/1c-run-bdd
@@ -52,6 +54,7 @@
 ./features/examples
 ./openspec
 ./openspec/changes
+./openspec/changes/add-load-diff-src-bridge
 ./openspec/changes/archive
 ./openspec/specs
 ./openspec/specs/agent-runtime-toolkit

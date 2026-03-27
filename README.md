@@ -172,6 +172,7 @@ Backend выбирается через `RUNNER_ADAPTER`:
 - `create-ib`
 - `dump-src`
 - `load-src`
+- `load-diff-src`
 - `update-db`
 - `diff-src`
 - `run-xunit`
@@ -187,6 +188,7 @@ export ONEC_IBCMD_PASSWORD='...'
 ./scripts/diag/doctor.sh --profile env/local.json
 ./scripts/platform/load-src.sh --profile env/local.json --run-root /tmp/load-src-run
 ./scripts/platform/load-src.sh --profile env/local.json --files "Catalogs/Items.xml,Forms/List.xml"
+./scripts/platform/load-diff-src.sh --profile env/local.json --run-root /tmp/load-diff-src-run
 ```
 
 Для WSL/Linux isolated GUI launches:
@@ -210,6 +212,7 @@ cp env/local.example.json env/.local/develop.json
 
 - `driver` и `command` нельзя смешивать в одной capability;
 - checked-in `env/local.example.json` уже wired для partial import через `loadSrc.driver=ibcmd`;
+- `load-diff-src` строит git-backed selection внутри `src/cf` и делегирует actual import в `load-src --files`;
 - `summary.json` для `create-ib`, `dump-src`, `load-src`, `update-db` теперь отражает выбранный `driver`;
 - direct-platform contour с `platform.xvfb.enabled=true` требует локальные `xvfb-run` и `xauth`, а capability/doctor summary публикуют structured `adapter_context`;
 - direct-platform contour с `platform.ldPreload.enabled=true` требует валидные absolute library paths, а capability/doctor summary публикуют structured `adapter_context.ld_preload` без сырого `LD_PRELOAD=` shell prefix;
