@@ -4,6 +4,7 @@
 ./.agents/skills/1c-diff-src/SKILL.md
 ./.agents/skills/1c-doctor/SKILL.md
 ./.agents/skills/1c-dump-src/SKILL.md
+./.agents/skills/1c-load-diff-src/SKILL.md
 ./.agents/skills/1c-load-src/SKILL.md
 ./.agents/skills/1c-publish-http/SKILL.md
 ./.agents/skills/1c-run-bdd/SKILL.md
@@ -20,6 +21,7 @@
 ./.claude/skills/1c-diff-src/SKILL.md
 ./.claude/skills/1c-doctor/SKILL.md
 ./.claude/skills/1c-dump-src/SKILL.md
+./.claude/skills/1c-load-diff-src/SKILL.md
 ./.claude/skills/1c-load-src/SKILL.md
 ./.claude/skills/1c-publish-http/SKILL.md
 ./.claude/skills/1c-run-bdd/SKILL.md
@@ -87,6 +89,13 @@
 ./features/README.md
 ./features/examples/tdd-starter.feature
 ./openspec/AGENTS.md
+./openspec/changes/add-load-diff-src-bridge/design.md
+./openspec/changes/add-load-diff-src-bridge/proposal.md
+./openspec/changes/add-load-diff-src-bridge/specs/agent-runtime-toolkit/spec.md
+./openspec/changes/add-load-diff-src-bridge/specs/ibcmd-capability-drivers/spec.md
+./openspec/changes/add-load-diff-src-bridge/specs/project-scoped-skills/spec.md
+./openspec/changes/add-load-diff-src-bridge/tasks.md
+./openspec/changes/add-load-diff-src-bridge/traceability.md
 ./openspec/changes/archive/2026-03-18-add-agent-toolkit-and-ci-contours/design.md
 ./openspec/changes/archive/2026-03-18-add-agent-toolkit-and-ci-contours/proposal.md
 ./openspec/changes/archive/2026-03-18-add-agent-toolkit-and-ci-contours/specs/agent-runtime-toolkit/spec.md
@@ -228,6 +237,7 @@
 ./scripts/platform/create-ib.sh
 ./scripts/platform/diff-src.sh
 ./scripts/platform/dump-src.sh
+./scripts/platform/load-diff-src.sh
 ./scripts/platform/load-src.sh
 ./scripts/platform/publish-http.sh
 ./scripts/platform/update-db.sh
@@ -271,6 +281,8 @@
 ./tests/smoke/runtime-ibcmd-capability-contract.sh
 ./tests/smoke/runtime-ibcmd-doctor-contract.sh
 ./tests/smoke/runtime-ibcmd-validation-contract.sh
+./tests/smoke/runtime-load-diff-src-contract.sh
+./tests/smoke/runtime-load-diff-src-validation-contract.sh
 ./tests/smoke/runtime-profile-legacy-rejection.sh
 ./tests/smoke/runtime-profile-migration-helper.sh
 ./tests/smoke/template-release-workflow.sh
