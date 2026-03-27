@@ -23,6 +23,7 @@ The template SHALL keep generated root guidance concise and link it to the most 
 - **THEN** it MUST see `docs/agent/generated-project-index.md` identified as the canonical onboarding router
 - **AND** root `AGENTS.md`, root `README.md`, and `.codex/README.md` MUST stay role-specific pointer surfaces instead of duplicating the full onboarding sequence inline
 - **AND** the canonical onboarding router MUST contain the explicit matrix for when to use OpenSpec, `bd`, and `docs/exec-plans/README.md`
+- **AND** any detailed Codex workflow explanation beyond the first routing step MUST be delegated to one canonical generated-project workflow document rather than repeated across all root surfaces
 
 ### Requirement: Codex-First Generated Runbook
 
@@ -33,7 +34,7 @@ The template SHALL ship a generated-project-first runbook for the first minutes 
 - **WHEN** a Codex agent starts in a generated repository and has not yet built project context
 - **THEN** the repository MUST provide a read-only onboarding entrypoint such as `make codex-onboard`
 - **AND** that entrypoint MUST print repo identity, safe-local verification commands, runtime support status pointers, key documentation routers, and next commands without mutating checked-in files
-- **AND** the onboarding docs MUST explain how the read-only onboarding path relates to OpenSpec, `bd`, and long-running execution plans
+- **AND** the onboarding docs MUST explain how the read-only onboarding path relates to `OpenSpec`, `bd`, long-running execution plans, and project-owned work-item artifacts
 
 ### Requirement: Generated-Project Root Entry Point
 
@@ -96,9 +97,76 @@ The template SHALL provide side-effect-transparent utilities for inspecting and 
 
 Шаблон MUST поставлять краткий directory-local routing guidance для generated-project work в самых friction-heavy рабочих зонах.
 
-#### Scenario: Agent enters env, tests, or scripts in a generated repository
+#### Scenario: Agent enters env, tests, scripts, or dense source roots in a generated repository
 
-- **WHEN** агент открывает `env/`, `tests/` или `scripts/` внутри generated repository
+- **WHEN** агент открывает `env/`, `tests/`, `scripts/` или `src/cf/` внутри generated repository
 - **THEN** локальный `AGENTS.md` ДОЛЖЕН маршрутизировать агента к релевантным truth sources и guardrails для этой области
 - **AND** локальный guidance ДОЛЖЕН оставаться уже root router, а не дублировать весь repository manual
+
+### Requirement: Project-Owned Code Architecture Map
+
+The template SHALL seed a project-owned code architecture map for generated repositories.
+
+#### Scenario: New generated repo needs a practical code navigation bridge
+
+- **WHEN** a generated repository is created or refreshed from the template
+- **THEN** it MUST include a project-owned `docs/agent/architecture-map.md` scaffold
+- **AND** that scaffold MUST be designed to capture representative change scenarios, likely paths, relevant metadata objects, and nearby runbooks or tests
+- **AND** generated onboarding docs MUST treat that file as curated project-owned truth rather than as a template-managed manual
+
+### Requirement: Project-Specific Runtime Quick Reference
+
+The template SHALL seed a concise runtime quick reference for generated repositories.
+
+#### Scenario: Agent asks what can be run and with which prerequisites
+
+- **WHEN** an agent needs a short answer for runtime status, canonical commands, and required env vars in a generated repository
+- **THEN** the repository MUST include a project-owned `docs/agent/runtime-quickstart.md` scaffold
+- **AND** that quick reference MUST point back to `automation/context/runtime-support-matrix.md` and `.json` as the checked-in runtime truth
+- **AND** it MUST distinguish `supported`, `operator-local`, `unsupported`, and `provisioned` contours without forcing the agent to read the entire general-purpose runtime contract first
+
+### Requirement: Project-Specific Baseline Extension Slot
+
+The template SHALL provide a documented extension slot for project-owned no-1C baseline smoke in generated repositories.
+
+#### Scenario: Generated repo adds project-owned agent/runtime smoke
+
+- **WHEN** a generated repository defines an extra project-owned no-1C smoke contour beyond the shared template baseline
+- **THEN** generated onboarding and read-only onboarding output MUST be able to advertise that contour as a project-specific extension
+- **AND** the extension MUST remain clearly separate from the template-managed baseline path
+- **AND** the absence of a project-specific extension MUST NOT make the generated repository look incomplete by default
+
+### Requirement: Canonical Codex Workflow Guide For Generated Repositories
+
+The template SHALL ship one canonical Codex workflow guide for generated repositories.
+
+#### Scenario: Agent needs the detailed Codex workflow after the first router step
+
+- **WHEN** an agent already knows the generated-project onboarding router and needs concrete Codex-native workflow guidance
+- **THEN** the repository MUST provide one canonical doc such as `docs/agent/codex-workflows.md`
+- **AND** that doc MUST cover session controls, review-only flow, long-running flow, skills or MCP pointers, and the relationship between `OpenSpec`, `bd`, and execution plans
+- **AND** root pointer surfaces MAY link to that doc but MUST NOT duplicate its detailed control lists inline
+
+### Requirement: Operator-Local Runtime Decision Runbook
+
+The template SHALL seed a project-owned operator-local runtime runbook for generated repositories.
+
+#### Scenario: Agent asks whether an operator-local contour is runnable here
+
+- **WHEN** a generated repository contains operator-local contours such as `doctor` or `xunit`
+- **THEN** the repository MUST include a project-owned scaffold such as `docs/agent/operator-local-runbook.md`
+- **AND** that runbook MUST be designed to capture preflight checks, required env vars, expected fail-closed states, and canonical entrypoints for operator-local contours
+- **AND** `docs/agent/runtime-quickstart.md`, generated onboarding docs, and read-only onboarding output MUST be able to route to that runbook without forcing the agent to assemble the answer from multiple unrelated docs
+
+### Requirement: Project-Owned Work-Item Workspace For Generated Repositories
+
+The template SHALL seed a project-owned workspace for long-running task artifacts in generated repositories.
+
+#### Scenario: Agent needs a canonical place for task-local supporting materials
+
+- **WHEN** a generated-repo task needs extracted notes, bulky inputs, task-local evidence, attachment summaries, or other supporting artifacts that should not live in `OpenSpec`, one exec-plan file, or `src/`
+- **THEN** the repository MUST provide a project-owned workspace such as `docs/work-items/`
+- **AND** that workspace MUST include a short role guide and a copy-ready starter template
+- **AND** the canonical workflow docs MUST explain that `docs/exec-plans/` carries living progress while `docs/work-items/<task-id>/` carries supporting artifacts
+- **AND** onboarding output MUST route to this distinction before the agent invents ad-hoc folders like `tasks/roadmap`
 

@@ -1,0 +1,23 @@
+name: Setup OpenSpec CLI
+description: Install Node.js and the OpenSpec CLI for CI jobs.
+
+inputs:
+  node-version:
+    description: Node.js version for the OpenSpec CLI runtime.
+    required: false
+    default: "22"
+  openspec-version:
+    description: Version suffix passed to @fission-ai/openspec.
+    required: false
+    default: "latest"
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v5
+      with:
+        node-version: ${{ inputs.node-version }}
+
+    - name: Install OpenSpec CLI
+      shell: bash
+      run: npm install -g "@fission-ai/openspec@${{ inputs.openspec-version }}"

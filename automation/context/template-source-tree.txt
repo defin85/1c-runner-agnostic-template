@@ -31,6 +31,8 @@
 ./.codex
 ./.githooks
 ./.github
+./.github/actions
+./.github/actions/setup-openspec
 ./.github/workflows
 ./automation
 ./automation/checklists
@@ -50,10 +52,7 @@
 ./features/examples
 ./openspec
 ./openspec/changes
-./openspec/changes/add-generated-project-work-item-workspace
 ./openspec/changes/archive
-./openspec/changes/expand-generated-project-productivity-surface
-./openspec/changes/refine-generated-project-curated-truth
 ./openspec/specs
 ./openspec/specs/agent-runtime-toolkit
 ./openspec/specs/generated-context-artifacts
