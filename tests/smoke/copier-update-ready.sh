@@ -427,6 +427,7 @@ assert_contains "$rendered_root/AGENTS.md" 'Use [docs/agent/generated-project-ve
 assert_contains "$rendered_root/AGENTS.md" 'Use [docs/agent/codex-workflows.md](docs/agent/codex-workflows.md) as the canonical Codex workflow guide after the first router step.'
 assert_contains "$rendered_root/AGENTS.md" 'Use [docs/agent/review.md](docs/agent/review.md), [docs/agent/operator-local-runbook.md](docs/agent/operator-local-runbook.md), [env/README.md](env/README.md), [.agents/skills/README.md](.agents/skills/README.md), [docs/exec-plans/README.md](docs/exec-plans/README.md), and [docs/work-items/README.md](docs/work-items/README.md) as the main follow-up routers.'
 assert_contains "$rendered_root/AGENTS.md" 'Use [docs/template-maintenance.md](docs/template-maintenance.md) only for template refresh and maintenance work.'
+assert_contains "$rendered_root/AGENTS.md" './scripts/platform/load-diff-src.sh --profile <operator-profile> --run-root /tmp/load-diff-src-run'
 assert_contains "$rendered_root/AGENTS.md" 'For remote-backed repos with a writable Git remote, a code-change session is not complete until the verified branch state is pushed.'
 assert_contains "$rendered_root/AGENTS.md" 'For local-only repos or repos without a writable remote, do not invent a push-only closeout path.'
 assert_contains "$rendered_root/docs/README.md" "[docs/agent/generated-project-index.md](agent/generated-project-index.md)"
@@ -469,6 +470,7 @@ assert_contains "$rendered_root/docs/agent/generated-project-index.md" "OpenSpec
 assert_contains "$rendered_root/docs/agent/generated-project-index.md" "docs/exec-plans/TEMPLATE.md"
 assert_contains "$rendered_root/docs/agent/generated-project-index.md" "docs/work-items/README.md"
 assert_contains "$rendered_root/docs/agent/generated-project-index.md" "docs/work-items/TEMPLATE.md"
+assert_contains "$rendered_root/docs/agent/generated-project-index.md" "./scripts/platform/load-diff-src.sh --profile <operator-profile> --run-root /tmp/load-diff-src-run"
 assert_contains "$rendered_root/automation/context/project-map.md" "role: generated 1С-проект"
 assert_contains "$rendered_root/automation/context/project-map.md" "generated-derived"
 assert_contains "$rendered_root/automation/context/project-map.md" "automation/context/runtime-profile-policy.json"

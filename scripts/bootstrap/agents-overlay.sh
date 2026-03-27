@@ -116,6 +116,7 @@ append_project_agents_overlay() {
 - Use [docs/agent/review.md](docs/agent/review.md), [docs/agent/operator-local-runbook.md](docs/agent/operator-local-runbook.md), [env/README.md](env/README.md), [.agents/skills/README.md](.agents/skills/README.md), [docs/exec-plans/README.md](docs/exec-plans/README.md), and [docs/work-items/README.md](docs/work-items/README.md) as the main follow-up routers.
 - Use [docs/template-maintenance.md](docs/template-maintenance.md) only for template refresh and maintenance work.
 - Ownership boundaries between template-managed and project-owned artifacts are described in [docs/agent/source-vs-generated.md](docs/agent/source-vs-generated.md).
+- Quick runtime shortcut: `./scripts/platform/load-diff-src.sh --profile <operator-profile> --run-root /tmp/load-diff-src-run` loads only the current git-backed diff inside `src/cf`; operator-local prerequisites stay in [docs/agent/operator-local-runbook.md](docs/agent/operator-local-runbook.md) and [env/README.md](env/README.md).
 
 # Unified Workflow
 
