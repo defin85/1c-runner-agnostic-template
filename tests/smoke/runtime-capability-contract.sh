@@ -15,6 +15,7 @@ run_root_update="$tmpdir/run-update"
 run_root_xunit="$tmpdir/run-xunit"
 run_root_unsupported="$tmpdir/run-unsupported"
 fake_binary="$tmpdir/fake-1cv8"
+expected_src_cf="$(realpath -m "$SOURCE_ROOT/src/cf")"
 
 cat >"$fake_binary" <<'EOF'
 #!/usr/bin/env bash
@@ -154,7 +155,7 @@ assert_jq "$run_root_load/summary.json" '.status == "success"' "load-status"
 assert_jq "$run_root_load/summary.json" '.driver == "designer"' "load-driver"
 assert_jq "$run_root_load/summary.json" '.execution.source == "standard-builder"' "load-execution-source"
 assert_contains "$run_root_load/stdout.log" "/LoadConfigFromFiles"
-assert_contains "$run_root_load/stdout.log" "./src/cf"
+assert_contains "$run_root_load/stdout.log" "$expected_src_cf"
 
 (
   cd "$SOURCE_ROOT"

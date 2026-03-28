@@ -59,6 +59,21 @@ capability_supports_driver_selection() {
   esac
 }
 
+resolve_project_tree_path() {
+  local candidate="$1"
+  local root=""
+
+  case "$candidate" in
+    /*)
+      canonical_path "$candidate"
+      ;;
+    *)
+      root="$(project_root)"
+      canonical_path "$root/$candidate"
+      ;;
+  esac
+}
+
 capability_has_profile_driver() {
   profile_has_nonnull "$(capability_driver_expr "$1")"
 }
@@ -896,6 +911,7 @@ prepare_dump_src_command() {
 
   driver="$(resolve_capability_driver "$capability_id")"
   output_dir="$(capability_string_or_default "$capability_id" "outputDir" "./src/cf")"
+  output_dir="$(resolve_project_tree_path "$output_dir")"
   case "$driver" in
     designer)
       ;;
@@ -941,6 +957,7 @@ prepare_load_src_command() {
 
   driver="$(resolve_capability_driver "$capability_id")"
   source_dir="$(capability_string_or_default "$capability_id" "sourceDir" "./src/cf")"
+  source_dir="$(resolve_project_tree_path "$source_dir")"
   if capability_selected_files_requested && [ "$driver" != "ibcmd" ]; then
     die "partial load-src is supported only for ibcmd driver"
   fi

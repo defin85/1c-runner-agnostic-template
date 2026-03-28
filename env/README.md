@@ -257,6 +257,8 @@ Partial import поддерживается для `load-src` с `driver=ibcmd` 
 ./scripts/platform/load-src.sh --profile env/local.json --files "Catalogs/Items.xml,Forms/List.xml"
 ```
 
+Для `dump-src` и `load-src` configured `outputDir`/`sourceDir` в runtime profile трактуются как пути относительно корня репозитория, если заданы не absolute path. Это делает launcher независимым от текущей рабочей директории.
+
 Для git-backed workflow шаблон также поставляет repo-owned bridge:
 
 ```bash

@@ -13,6 +13,7 @@ standalone_profile="$tmpdir/standalone-profile.json"
 file_profile="$tmpdir/file-profile.json"
 dbms_profile="$tmpdir/dbms-profile.json"
 mixed_profile="$tmpdir/mixed-profile.json"
+expected_src_cf="$(realpath -m "$SOURCE_ROOT/src/cf")"
 
 export ONEC_IBCMD_PASSWORD="ibcmd-secret"
 export ONEC_DBMS_PASSWORD="dbms-secret"
@@ -233,8 +234,8 @@ assert_contains "$standalone_dump_run/stdout.log" "--data=$tmpdir/standalone"
 assert_contains "$standalone_dump_run/stdout.log" "--database-path=$tmpdir/standalone/db"
 assert_contains "$standalone_dump_run/stdout.log" "--user=ibcmd-user"
 assert_contains "$standalone_dump_run/stdout.log" "--password=ibcmd-secret"
-assert_contains "$standalone_dump_run/stdout.log" "./src/cf"
-assert_not_contains "$standalone_dump_run/stdout.log" "--dir=./src/cf"
+assert_contains "$standalone_dump_run/stdout.log" "$expected_src_cf"
+assert_not_contains "$standalone_dump_run/stdout.log" "--dir=$expected_src_cf"
 assert_not_contains "$standalone_dump_run/stdout.log" "--format=hierarchical"
 
 run_capability "$standalone_profile" "$standalone_load_full_run" ./scripts/platform/load-src.sh
@@ -244,8 +245,8 @@ assert_contains "$standalone_load_full_run/stdout.log" "import"
 assert_contains "$standalone_load_full_run/stdout.log" "--database-path=$tmpdir/standalone/db"
 assert_contains "$standalone_load_full_run/stdout.log" "--user=ibcmd-user"
 assert_contains "$standalone_load_full_run/stdout.log" "--password=ibcmd-secret"
-assert_contains "$standalone_load_full_run/stdout.log" "./src/cf"
-assert_not_contains "$standalone_load_full_run/stdout.log" "--dir=./src/cf"
+assert_contains "$standalone_load_full_run/stdout.log" "$expected_src_cf"
+assert_not_contains "$standalone_load_full_run/stdout.log" "--dir=$expected_src_cf"
 assert_not_contains "$standalone_load_full_run/stdout.log" "--format=hierarchical"
 
 (
@@ -260,7 +261,7 @@ assert_jq "$standalone_load_partial_run/summary.json" '.driver_context.partial_i
 assert_contains "$standalone_load_partial_run/stdout.log" "config"
 assert_contains "$standalone_load_partial_run/stdout.log" "import"
 assert_contains "$standalone_load_partial_run/stdout.log" "files"
-assert_contains "$standalone_load_partial_run/stdout.log" "--base-dir=./src/cf"
+assert_contains "$standalone_load_partial_run/stdout.log" "--base-dir=$expected_src_cf"
 assert_contains "$standalone_load_partial_run/stdout.log" "--partial"
 assert_contains "$standalone_load_partial_run/stdout.log" "Catalogs/Items.xml"
 assert_contains "$standalone_load_partial_run/stdout.log" "Forms/List.xml"
@@ -288,12 +289,12 @@ run_capability "$file_profile" "$file_dump_run" ./scripts/platform/dump-src.sh
 assert_ibcmd_summary "$file_dump_run/summary.json" "file-infobase"
 assert_contains "$file_dump_run/stdout.log" "--database-path=$tmpdir/file-ib/db"
 assert_contains "$file_dump_run/stdout.log" "--user=ibcmd-user"
-assert_contains "$file_dump_run/stdout.log" "./src/cf"
+assert_contains "$file_dump_run/stdout.log" "$expected_src_cf"
 
 run_capability "$file_profile" "$file_load_run" ./scripts/platform/load-src.sh
 assert_ibcmd_summary "$file_load_run/summary.json" "file-infobase"
 assert_contains "$file_load_run/stdout.log" "--database-path=$tmpdir/file-ib/db"
-assert_contains "$file_load_run/stdout.log" "./src/cf"
+assert_contains "$file_load_run/stdout.log" "$expected_src_cf"
 
 run_capability "$file_profile" "$file_update_run" ./scripts/platform/update-db.sh
 assert_ibcmd_summary "$file_update_run/summary.json" "file-infobase"
@@ -330,14 +331,14 @@ assert_contains "$dbms_dump_run/stdout.log" "--db-user=db-admin"
 assert_contains "$dbms_dump_run/stdout.log" "--db-pwd=dbms-secret"
 assert_contains "$dbms_dump_run/stdout.log" "--user=ibcmd-user"
 assert_contains "$dbms_dump_run/stdout.log" "--password=ibcmd-secret"
-assert_contains "$dbms_dump_run/stdout.log" "./src/cf"
+assert_contains "$dbms_dump_run/stdout.log" "$expected_src_cf"
 
 run_capability "$dbms_profile" "$dbms_load_run" ./scripts/platform/load-src.sh
 assert_ibcmd_summary "$dbms_load_run/summary.json" "dbms-infobase"
 assert_contains "$dbms_load_run/stdout.log" "--dbms=PostgreSQL"
 assert_contains "$dbms_load_run/stdout.log" "--db-pwd=dbms-secret"
 assert_contains "$dbms_load_run/stdout.log" "--user=ibcmd-user"
-assert_contains "$dbms_load_run/stdout.log" "./src/cf"
+assert_contains "$dbms_load_run/stdout.log" "$expected_src_cf"
 
 run_capability "$dbms_profile" "$dbms_update_run" ./scripts/platform/update-db.sh
 assert_ibcmd_summary "$dbms_update_run/summary.json" "dbms-infobase"
