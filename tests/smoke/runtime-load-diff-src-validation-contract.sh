@@ -50,6 +50,7 @@ assert_jq() {
 
 write_fixture_repo() {
   local repo_root="$1"
+  local init_git="${2:-yes}"
 
   mkdir -p "$repo_root"
   cp -R "$SOURCE_ROOT/scripts" "$repo_root/scripts"
@@ -107,14 +108,16 @@ EOF
 
   printf '<items baseline />\n' >"$repo_root/src/cf/Catalogs/Items.xml"
 
-  (
-    cd "$repo_root"
-    git init >/dev/null
-    git config user.name "Smoke Fixture"
-    git config user.email "smoke@example.invalid"
-    git add .
-    git commit -m "fixture baseline" >/dev/null
-  )
+  if [ "$init_git" = "yes" ]; then
+    (
+      cd "$repo_root"
+      git init >/dev/null
+      git config user.name "Smoke Fixture"
+      git config user.email "smoke@example.invalid"
+      git add .
+      git commit -m "fixture baseline" >/dev/null
+    )
+  fi
 }
 
 run_expect_failure() {
@@ -173,3 +176,41 @@ assert_jq "$run_clean_root/summary.json" '.status == "failed"' "clean-status"
 assert_jq "$run_clean_root/summary.json" '.selection.selected_files == []' "clean-selected-empty"
 assert_jq "$run_clean_root/summary.json" '.selection.ignored_files == []' "clean-ignored-empty"
 assert_jq "$run_clean_root/summary.json" '.delegated == null' "clean-no-delegation"
+
+repo_nongit="$tmpdir/repo-nongit"
+write_fixture_repo "$repo_nongit" "no"
+printf '<config changed />\n' >"$repo_nongit/src/cf/Catalogs/Items.xml"
+run_nongit_root="$tmpdir/run-nongit"
+stderr_nongit="$tmpdir/run-nongit.stderr"
+run_expect_failure "$repo_nongit" "$run_nongit_root" "$stderr_nongit"
+assert_stderr_contains "$stderr_nongit" "git-backed diff requires a git worktree"
+assert_jq "$run_nongit_root/summary.json" '.status == "failed"' "nongit-status"
+assert_jq "$run_nongit_root/summary.json" '.selection.error == "git-backed diff requires a git worktree"' "nongit-selection-error"
+assert_jq "$run_nongit_root/summary.json" '.delegated == null' "nongit-no-delegation"
+
+repo_delegated_failure="$tmpdir/repo-delegated-failure"
+write_fixture_repo "$repo_delegated_failure"
+jq '.capabilities.loadSrc = {"command":["bash","-lc","printf '\''load-src override\n'\''"]}' \
+  "$repo_delegated_failure/env/local.json" >"$repo_delegated_failure/env/local.json.tmp"
+mv "$repo_delegated_failure/env/local.json.tmp" "$repo_delegated_failure/env/local.json"
+printf '<config changed />\n' >"$repo_delegated_failure/src/cf/Catalogs/Items.xml"
+run_delegated_failure_root="$tmpdir/run-delegated-failure"
+stderr_delegated_failure="$tmpdir/run-delegated-failure.stderr"
+run_expect_failure "$repo_delegated_failure" "$run_delegated_failure_root" "$stderr_delegated_failure"
+assert_stderr_contains "$run_delegated_failure_root/stderr.log" "partial load-src is not supported when capabilities.loadSrc.command override is set"
+assert_jq "$run_delegated_failure_root/summary.json" '.status == "failed"' "delegated-failure-status"
+assert_jq "$run_delegated_failure_root/summary.json" '.selection.selected_files == ["Catalogs/Items.xml"]' "delegated-failure-selected"
+assert_jq "$run_delegated_failure_root/summary.json" '.delegated.capability == "load-src"' "delegated-failure-capability"
+assert_jq "$run_delegated_failure_root/summary.json" '.delegated.run_root == $ARGS.positional[0]' "delegated-failure-run-root" \
+  --args "$run_delegated_failure_root/load-src"
+assert_jq "$run_delegated_failure_root/summary.json" '.delegated.summary_json == $ARGS.positional[0]' "delegated-failure-summary-json" \
+  --args "$run_delegated_failure_root/load-src/summary.json"
+assert_jq "$run_delegated_failure_root/summary.json" '.delegated.stdout_log == $ARGS.positional[0]' "delegated-failure-stdout-log" \
+  --args "$run_delegated_failure_root/load-src/stdout.log"
+assert_jq "$run_delegated_failure_root/summary.json" '.delegated.stderr_log == $ARGS.positional[0]' "delegated-failure-stderr-log" \
+  --args "$run_delegated_failure_root/load-src/stderr.log"
+if [ -e "$run_delegated_failure_root/load-src/summary.json" ]; then
+  printf 'delegated load-src summary.json unexpectedly exists\n' >&2
+  cat "$run_delegated_failure_root/summary.json" >&2
+  exit 1
+fi

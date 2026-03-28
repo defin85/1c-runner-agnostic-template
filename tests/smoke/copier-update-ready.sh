@@ -24,7 +24,7 @@ copy_template_repo() {
       while IFS= read -r -d '' relpath; do
         [ -e "$relpath" ] || continue
         printf '%s\0' "$relpath" >>"$manifest"
-      done < <(git ls-files -z --cached --others --exclude-standard)
+      done < <(git ls-files -z --cached --others --modified --exclude-standard)
       tar --null -T "$manifest" -cf -
       rm -f "$manifest"
     ) | (
@@ -530,6 +530,8 @@ assert_contains "$rendered_root/docs/agent/codex-workflows.md" "docs/work-items/
 assert_contains "$rendered_root/docs/agent/codex-workflows.md" "docs/work-items/TEMPLATE.md"
 assert_contains "$rendered_root/docs/agent/operator-local-runbook.md" "# Operator-Local Runbook"
 assert_contains "$rendered_root/docs/agent/operator-local-runbook.md" "automation/context/runtime-support-matrix.md"
+assert_contains "$rendered_root/docs/agent/operator-local-runbook.md" "./scripts/platform/load-diff-src.sh --profile env/local.json --run-root /tmp/load-diff-src-run"
+assert_contains "$rendered_root/docs/agent/operator-local-runbook.md" "./scripts/platform/load-task-src.sh --profile env/local.json --bead task.1 --run-root /tmp/load-task-src-run"
 assert_contains "$rendered_root/docs/agent/operator-local-runbook.md" "docs/work-items/README.md"
 assert_contains "$rendered_root/docs/agent/runtime-quickstart.md" "## Contour Quick Reference"
 assert_contains "$rendered_root/docs/agent/runtime-quickstart.md" "automation/context/runtime-support-matrix.md"
@@ -855,9 +857,16 @@ assert_count "$command_log" "copier copy --trust --defaults" "1"
 git -C "$rendered_root" add -A
 git -C "$rendered_root" commit -qm "generated v0.2.0"
 
-rm -f "$rendered_root/README.md"
-git -C "$rendered_root" add README.md
-git -C "$rendered_root" commit -qm "remove readme"
+rm -f \
+  "$rendered_root/README.md" \
+  "$rendered_root/scripts/platform/load-diff-src.sh" \
+  "$rendered_root/.agents/skills/1c-load-diff-src/SKILL.md" \
+  "$rendered_root/.claude/skills/1c-load-diff-src/SKILL.md" \
+  "$rendered_root/docs/agent/generated-project-index.md" \
+  "$rendered_root/docs/agent/generated-project-verification.md"
+
+git -C "$rendered_root" add -A
+git -C "$rendered_root" commit -qm "remove readme and load-diff-src surface"
 
 cat >"$template_root/docs/template-update-v3-note.txt" <<'EOF'
 This file is added in template v0.3.0 to verify README recovery.
@@ -890,9 +899,19 @@ template_update_recovery_output="$tmpdir/template-update-v0.3.0.txt"
 assert_contains "$template_update_recovery_output" "Target overlay release: v0.3.0"
 assert_exists "$rendered_root/README.md"
 assert_exists "$rendered_root/docs/template-update-v3-note.txt"
+assert_exists "$rendered_root/scripts/platform/load-diff-src.sh"
+assert_exists "$rendered_root/.agents/skills/1c-load-diff-src/SKILL.md"
+assert_exists "$rendered_root/.claude/skills/1c-load-diff-src/SKILL.md"
+assert_exists "$rendered_root/docs/agent/generated-project-index.md"
+assert_exists "$rendered_root/docs/agent/generated-project-verification.md"
 assert_contains "$rendered_root/README.md" "# Smoke Project"
 assert_not_contains "$rendered_root/README.md" "# 1c-runner-agnostic-template"
 assert_contains "$rendered_root/.template-overlay-version" "v0.3.0"
+assert_contains "$rendered_root/scripts/platform/load-diff-src.sh" "load-diff-src"
+assert_contains "$rendered_root/.agents/skills/1c-load-diff-src/SKILL.md" "./scripts/platform/load-diff-src.sh"
+assert_contains "$rendered_root/.claude/skills/1c-load-diff-src/SKILL.md" "./scripts/platform/load-diff-src.sh"
+assert_contains "$rendered_root/docs/agent/generated-project-index.md" "./scripts/platform/load-diff-src.sh --profile <operator-profile> --run-root /tmp/load-diff-src-run"
+assert_contains "$rendered_root/docs/agent/generated-project-verification.md" "./scripts/platform/load-diff-src.sh --profile env/local.json --run-root /tmp/load-diff-src-run"
 
 (
   cd "$rendered_root"

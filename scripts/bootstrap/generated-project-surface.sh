@@ -372,6 +372,8 @@ write_operator_local_runbook_starter() {
 | Contour | Status | Canonical entrypoint | Profile / env vars | Expected fail-closed state | Related docs |
 | --- | --- | --- | --- | --- | --- |
 | `doctor` | `operator-local` | `./scripts/diag/doctor.sh --profile env/local.json --run-root /tmp/doctor-run` | `env/local.json` или явный `--profile`; runtime binaries по `env/README.md` | non-zero + summary/stderr, если profile или runtime не готовы | `env/README.md`, `docs/agent/generated-project-verification.md` |
+| `load-diff-src` | `operator-local` | `./scripts/platform/load-diff-src.sh --profile env/local.json --run-root /tmp/load-diff-src-run` | `env/local.json` или явный `--profile`; prepared infobase + git worktree | non-zero + summary/stderr, если diff selection пустой или runtime не ready | `env/README.md`, `docs/agent/generated-project-index.md` |
+| `load-task-src` | `operator-local` | `./scripts/platform/load-task-src.sh --profile env/local.json --bead task.1 --run-root /tmp/load-task-src-run` | `env/local.json` или явный `--profile`; prepared infobase + git history with task markers or explicit revset | non-zero + summary/stderr, если task selection пустой или runtime не ready | `env/README.md`, `docs/agent/generated-project-index.md` |
 
 ## Project Extensions
 

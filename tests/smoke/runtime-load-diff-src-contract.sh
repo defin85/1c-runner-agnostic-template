@@ -153,3 +153,16 @@ assert_contains "$run_root/load-src/stdout.log" "files"
 assert_contains "$run_root/load-src/stdout.log" "--partial"
 assert_contains "$run_root/load-src/stdout.log" "Configuration.xml"
 assert_contains "$run_root/load-src/stdout.log" "EventSubscriptions/LoadDiff.xml"
+
+dry_run_root="$tmpdir/run-dry-run"
+
+(
+  cd "$fixture_root"
+  ./scripts/platform/load-diff-src.sh --profile env/local.json --run-root "$dry_run_root" --dry-run >/dev/null
+)
+
+assert_jq "$dry_run_root/summary.json" '.status == "dry-run"' "wrapper-dry-run-status"
+assert_jq "$dry_run_root/summary.json" '.selection.selected_files == ["Configuration.xml", "EventSubscriptions/LoadDiff.xml"]' "wrapper-dry-run-selected-files"
+assert_jq "$dry_run_root/summary.json" '.delegated.capability == "load-src"' "wrapper-dry-run-delegated-capability"
+assert_jq "$dry_run_root/load-src/summary.json" '.status == "dry-run"' "delegated-dry-run-status"
+assert_jq "$dry_run_root/load-src/summary.json" '.driver_context.partial_import == true' "delegated-dry-run-partial-import"

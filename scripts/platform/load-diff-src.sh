@@ -185,8 +185,9 @@ join_load_diff_selected_files() {
 build_load_diff_selection_json() {
   local source_dir="$1"
   local base_ref="$2"
-  local selected_name="$3"
-  local ignored_name="$4"
+  local selection_error="$3"
+  local selected_name="$4"
+  local ignored_name="$5"
   local selected_json=""
   local ignored_json=""
 
@@ -196,14 +197,16 @@ build_load_diff_selection_json() {
   jq -cn \
     --arg source_dir "$source_dir" \
     --arg base_ref "$base_ref" \
+    --arg selection_error "$selection_error" \
     --argjson selected_files "$selected_json" \
     --argjson ignored_files "$ignored_json" \
     '{
       selection: {
         source_dir: $source_dir,
-        base_ref: $base_ref,
+        base_ref: (if $base_ref == "" then null else $base_ref end),
         selected_files: $selected_files,
-        ignored_files: $ignored_files
+        ignored_files: $ignored_files,
+        error: (if $selection_error == "" then null else $selection_error end)
       }
     }'
 }
@@ -212,7 +215,7 @@ build_load_diff_delegated_json() {
   local delegated_summary_path="${1:-}"
   local delegated_run_root="${2:-}"
 
-  if [ -z "$delegated_summary_path" ] || [ ! -f "$delegated_summary_path" ]; then
+  if [ -z "$delegated_run_root" ]; then
     printf '{"delegated":null}\n'
     return 0
   fi
@@ -231,6 +234,22 @@ build_load_diff_delegated_json() {
         stderr_log: $delegated_stderr
       }
     }'
+}
+
+ensure_load_diff_git_worktree() {
+  local repo_root="$1"
+  local git_error=""
+
+  if git -C "$repo_root" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    return 0
+  fi
+
+  git_error="$(git -C "$repo_root" rev-parse --is-inside-work-tree 2>&1 || true)"
+  if [ -n "$git_error" ]; then
+    printf '%s\n' "$git_error" >&2
+  fi
+
+  return 1
 }
 
 if capability_help_requested "$@"; then
@@ -266,15 +285,21 @@ stderr_log="$run_root/stderr.log"
 
 source_dir="$(capability_string_or_default "load-src" "sourceDir" "./src/cf")"
 source_dir_rel="$(normalize_capability_selected_file "$source_dir")"
-base_ref="$(resolve_load_diff_base_ref "$root")"
-collect_load_diff_raw_paths "$root" "$base_ref" LOAD_DIFF_RAW_PATHS
-classify_load_diff_paths "$root" "$source_dir_rel" LOAD_DIFF_RAW_PATHS LOAD_DIFF_SELECTED_FILES LOAD_DIFF_IGNORED_FILES
+base_ref=""
+selection_error=""
+
+if ensure_load_diff_git_worktree "$root" 2>>"$stderr_log"; then
+  base_ref="$(resolve_load_diff_base_ref "$root")"
+  collect_load_diff_raw_paths "$root" "$base_ref" LOAD_DIFF_RAW_PATHS
+  classify_load_diff_paths "$root" "$source_dir_rel" LOAD_DIFF_RAW_PATHS LOAD_DIFF_SELECTED_FILES LOAD_DIFF_IGNORED_FILES
+else
+  selection_error="git-backed diff requires a git worktree"
+fi
 
 selected_files_csv="$(join_load_diff_selected_files LOAD_DIFF_SELECTED_FILES)"
-selection_json="$(build_load_diff_selection_json "$source_dir" "$base_ref" LOAD_DIFF_SELECTED_FILES LOAD_DIFF_IGNORED_FILES)"
 delegated_json='{"delegated":null}'
 base_context_json="$(build_redacted_context_json)"
-context_json="$selection_json"
+context_json='{}'
 status="success"
 exit_code=0
 driver=""
@@ -291,10 +316,15 @@ printf 'selected_files=%s\n' "$selected_files_csv" >>"$stdout_log"
 
 started_at="$(timestamp_utc)"
 
-if [ "${LOAD_DIFF_SELECTED_FILES[0]+set}" != "set" ]; then
+if [ -n "$selection_error" ]; then
+  status="failed"
+  exit_code=66
+  printf 'error: %s\n' "$selection_error" | tee -a "$stderr_log" >&2
+elif [ "${LOAD_DIFF_SELECTED_FILES[0]+set}" != "set" ]; then
   status="failed"
   exit_code=65
-  printf 'error: no eligible changed files inside source tree\n' | tee -a "$stderr_log" >&2
+  selection_error="no eligible changed files inside source tree"
+  printf 'error: %s\n' "$selection_error" | tee -a "$stderr_log" >&2
 else
   delegate_cmd=("$root/scripts/platform/load-src.sh" "--profile" "$profile_path" "--run-root" "$delegated_run_root" "--files" "$selected_files_csv")
   if [ "$CAPABILITY_DRY_RUN" = "1" ]; then
@@ -318,6 +348,7 @@ else
 fi
 
 finished_at="$(timestamp_utc)"
+selection_json="$(build_load_diff_selection_json "$source_dir" "$base_ref" "$selection_error" LOAD_DIFF_SELECTED_FILES LOAD_DIFF_IGNORED_FILES)"
 context_json="$(jq -cs 'reduce .[] as $item ({}; . * $item)' <<<"$base_context_json
 $selection_json
 $delegated_json")"

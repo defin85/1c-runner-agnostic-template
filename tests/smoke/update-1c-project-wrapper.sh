@@ -31,19 +31,20 @@ git -C "$project_dir" commit -qm "seed generated repo"
 update_log="$tmpdir/update-call.txt"
 
 assert_has_line() {
-  local expected="$1"
+  local file="$1"
+  local expected="$2"
 
-  if ! grep -Fx -- "$expected" "$update_log" >/dev/null 2>&1; then
+  if ! grep -Fx -- "$expected" "$file" >/dev/null 2>&1; then
     printf 'expected line not found: %s\n' "$expected" >&2
     printf 'actual call:\n' >&2
-    cat "$update_log" >&2
+    cat "$file" >&2
     exit 1
   fi
 }
 
 UPDATE_LOG="$update_log" "$HELPER" "$project_dir" --vcs-ref v0.1.1 --pretend >/dev/null
 
-assert_has_line "cwd=$project_dir"
-assert_has_line "--vcs-ref"
-assert_has_line "v0.1.1"
-assert_has_line "--pretend"
+assert_has_line "$update_log" "cwd=$project_dir"
+assert_has_line "$update_log" "--vcs-ref"
+assert_has_line "$update_log" "v0.1.1"
+assert_has_line "$update_log" "--pretend"
