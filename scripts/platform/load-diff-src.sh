@@ -62,8 +62,8 @@ collect_load_diff_raw_paths() {
 
   out_ref=()
 
-  mapfile -t tracked_paths < <(git -C "$repo_root" diff --name-only "$base_ref" -- .)
-  mapfile -t untracked_paths < <(git -C "$repo_root" ls-files --others --exclude-standard -- .)
+  mapfile -t tracked_paths < <(git_with_unquoted_paths -C "$repo_root" diff --name-only "$base_ref" -- .)
+  mapfile -t untracked_paths < <(git_with_unquoted_paths -C "$repo_root" ls-files --others --exclude-standard -- .)
 
   for path in "${tracked_paths[@]}"; do
     [ -n "$path" ] || continue

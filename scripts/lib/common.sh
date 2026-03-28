@@ -38,6 +38,10 @@ canonical_path() {
   realpath -m "$1"
 }
 
+git_with_unquoted_paths() {
+  git -c core.quotepath=false "$@"
+}
+
 timestamp_utc() {
   date -u +"%Y-%m-%dT%H:%M:%SZ"
 }

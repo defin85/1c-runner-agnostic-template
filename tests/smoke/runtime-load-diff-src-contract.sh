@@ -18,7 +18,8 @@ mkdir -p \
   "$fixture_root/env" \
   "$fixture_root/src/cf/Catalogs" \
   "$fixture_root/src/cf/Forms" \
-  "$fixture_root/src/cf/EventSubscriptions"
+  "$fixture_root/src/cf/EventSubscriptions" \
+  "$fixture_root/src/cf/CommonModules/рлф_Тест/Ext"
 
 cat >"$fake_designer" <<'EOF'
 #!/usr/bin/env bash
@@ -97,6 +98,7 @@ printf '<config baseline />\n' >"$fixture_root/src/cf/Configuration.xml"
 (
   cd "$fixture_root"
   git init >/dev/null
+  git config core.quotepath true
   git config user.name "Smoke Fixture"
   git config user.email "smoke@example.invalid"
   git add .
@@ -105,6 +107,7 @@ printf '<config baseline />\n' >"$fixture_root/src/cf/Configuration.xml"
 
 printf '<config changed />\n' >"$fixture_root/src/cf/Configuration.xml"
 printf '<subscription new />\n' >"$fixture_root/src/cf/EventSubscriptions/LoadDiff.xml"
+printf 'Процедура Тест() Экспорт\nКонецПроцедуры\n' >"$fixture_root/src/cf/CommonModules/рлф_Тест/Ext/Module.bsl"
 
 export ONEC_IBCMD_PASSWORD="load-diff-secret"
 
@@ -151,7 +154,7 @@ assert_jq() {
 assert_jq "$run_root/summary.json" '.status == "success"' "wrapper-status"
 assert_jq "$run_root/summary.json" '.capability.id == "load-diff-src"' "wrapper-capability"
 assert_jq "$run_root/summary.json" '.execution.source == "git-diff-to-load-src"' "wrapper-source"
-assert_jq "$run_root/summary.json" '.selection.selected_files == ["Configuration.xml", "EventSubscriptions/LoadDiff.xml"]' "wrapper-selected-files"
+assert_jq "$run_root/summary.json" '(.selection.selected_files | sort) == ["CommonModules/рлф_Тест/Ext/Module.bsl", "Configuration.xml", "EventSubscriptions/LoadDiff.xml"]' "wrapper-selected-files"
 assert_jq "$run_root/summary.json" '.selection.ignored_files == []' "wrapper-no-ignored-files"
 assert_jq "$run_root/summary.json" '.delegated.capability == "load-src"' "wrapper-delegated-capability"
 assert_jq "$run_root/summary.json" '.delegated.run_root == $ARGS.positional[0]' "wrapper-delegated-run-root" \
@@ -169,6 +172,7 @@ assert_contains "$run_root/load-src/stdout.log" "config"
 assert_contains "$run_root/load-src/stdout.log" "import"
 assert_contains "$run_root/load-src/stdout.log" "files"
 assert_contains "$run_root/load-src/stdout.log" "--partial"
+assert_contains "$run_root/load-src/stdout.log" "CommonModules/рлф_Тест/Ext/Module.bsl"
 assert_contains "$run_root/load-src/stdout.log" "Configuration.xml"
 assert_contains "$run_root/load-src/stdout.log" "EventSubscriptions/LoadDiff.xml"
 
@@ -180,7 +184,7 @@ dry_run_root="$tmpdir/run-dry-run"
 )
 
 assert_jq "$dry_run_root/summary.json" '.status == "dry-run"' "wrapper-dry-run-status"
-assert_jq "$dry_run_root/summary.json" '.selection.selected_files == ["Configuration.xml", "EventSubscriptions/LoadDiff.xml"]' "wrapper-dry-run-selected-files"
+assert_jq "$dry_run_root/summary.json" '(.selection.selected_files | sort) == ["CommonModules/рлф_Тест/Ext/Module.bsl", "Configuration.xml", "EventSubscriptions/LoadDiff.xml"]' "wrapper-dry-run-selected-files"
 assert_jq "$dry_run_root/summary.json" '.delegated.capability == "load-src"' "wrapper-dry-run-delegated-capability"
 assert_jq "$dry_run_root/summary.json" '.delegated.run_root == $ARGS.positional[0]' "wrapper-dry-run-delegated-run-root" \
   --args "$dry_run_root/load-src"
@@ -214,6 +218,6 @@ independent_run_root="$tmpdir/run-independent"
 )
 
 assert_jq "$independent_run_root/summary.json" '.status == "success"' "wrapper-independent-status"
-assert_jq "$independent_run_root/summary.json" '.selection.selected_files == ["Configuration.xml", "EventSubscriptions/LoadDiff.xml"]' "wrapper-independent-selected-files"
+assert_jq "$independent_run_root/summary.json" '(.selection.selected_files | sort) == ["CommonModules/рлф_Тест/Ext/Module.bsl", "Configuration.xml", "EventSubscriptions/LoadDiff.xml"]' "wrapper-independent-selected-files"
 assert_not_contains "$independent_run_root/stderr.log" "profile-defined diffSrc must not run"
 assert_not_contains "$independent_run_root/stderr.log" "repo diff-src entrypoint must not run"

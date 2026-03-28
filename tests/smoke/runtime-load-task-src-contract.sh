@@ -19,7 +19,8 @@ mkdir -p \
   "$fixture_root/env" \
   "$fixture_root/src/cf/Catalogs" \
   "$fixture_root/src/cf/Forms" \
-  "$fixture_root/src/cf/EventSubscriptions"
+  "$fixture_root/src/cf/EventSubscriptions" \
+  "$fixture_root/src/cf/CommonModules/рлф_Тест/Ext"
 
 cat >"$fake_designer" <<'EOF'
 #!/usr/bin/env bash
@@ -98,6 +99,7 @@ printf '<config baseline />\n' >"$fixture_root/src/cf/Configuration.xml"
 (
   cd "$fixture_root"
   git init >/dev/null
+  git config core.quotepath true
   git config user.name "Smoke Fixture"
   git config user.email "smoke@example.invalid"
   git add .
@@ -106,9 +108,10 @@ printf '<config baseline />\n' >"$fixture_root/src/cf/Configuration.xml"
 
 printf '<config changed />\n' >"$fixture_root/src/cf/Configuration.xml"
 printf '<subscription new />\n' >"$fixture_root/src/cf/EventSubscriptions/LoadTask.xml"
+printf 'Процедура Тест() Экспорт\nКонецПроцедуры\n' >"$fixture_root/src/cf/CommonModules/рлф_Тест/Ext/Module.bsl"
 (
   cd "$fixture_root"
-  git add src/cf/Configuration.xml src/cf/EventSubscriptions/LoadTask.xml
+  git add src/cf/Configuration.xml src/cf/EventSubscriptions/LoadTask.xml src/cf/CommonModules/рлф_Тест/Ext/Module.bsl
   git commit -m $'task commit one\n\nBead: do-rolf-sdd-jiy.3\nWork-Item: 93984' >/dev/null
 )
 
@@ -163,7 +166,7 @@ assert_jq "$run_bead_root/summary.json" '.execution.source == "git-task-to-load-
 assert_jq "$run_bead_root/summary.json" '.selection.selector.mode == "bead"' "bead-selector-mode"
 assert_jq "$run_bead_root/summary.json" '.selection.selector.value == "do-rolf-sdd-jiy.3"' "bead-selector-value"
 assert_jq "$run_bead_root/summary.json" '.selection.selected_commits | length == 1' "bead-selected-commit-count"
-assert_jq "$run_bead_root/summary.json" '.selection.selected_files == ["Configuration.xml", "EventSubscriptions/LoadTask.xml"]' "bead-selected-files"
+assert_jq "$run_bead_root/summary.json" '(.selection.selected_files | sort) == ["CommonModules/рлф_Тест/Ext/Module.bsl", "Configuration.xml", "EventSubscriptions/LoadTask.xml"]' "bead-selected-files"
 assert_jq "$run_bead_root/summary.json" '.selection.ignored_files == []' "bead-ignored-empty"
 assert_jq "$run_bead_root/summary.json" '.selection.deleted_paths == []' "bead-deleted-empty"
 assert_jq "$run_bead_root/summary.json" '.delegated.capability == "load-src"' "bead-delegated-capability"
@@ -178,6 +181,7 @@ assert_jq "$run_bead_root/summary.json" '.delegated.stderr_log == $ARGS.position
 assert_jq "$run_bead_root/load-src/summary.json" '.driver == "ibcmd"' "bead-delegated-driver"
 assert_jq "$run_bead_root/load-src/summary.json" '.driver_context.partial_import == true' "bead-partial-import"
 assert_contains "$run_bead_root/load-src/stdout.log" "--partial"
+assert_contains "$run_bead_root/load-src/stdout.log" "CommonModules/рлф_Тест/Ext/Module.bsl"
 assert_contains "$run_bead_root/load-src/stdout.log" "Configuration.xml"
 assert_contains "$run_bead_root/load-src/stdout.log" "EventSubscriptions/LoadTask.xml"
 
@@ -190,7 +194,7 @@ assert_jq "$run_work_item_root/summary.json" '.status == "success"' "work-item-s
 assert_jq "$run_work_item_root/summary.json" '.selection.selector.mode == "work-item"' "work-item-selector-mode"
 assert_jq "$run_work_item_root/summary.json" '.selection.selector.value == "93984"' "work-item-selector-value"
 assert_jq "$run_work_item_root/summary.json" '.selection.selected_commits | length == 2' "work-item-selected-commit-count"
-assert_jq "$run_work_item_root/summary.json" '.selection.selected_files == ["Configuration.xml", "EventSubscriptions/LoadTask.xml", "Catalogs/Items.xml"]' "work-item-selected-files"
+assert_jq "$run_work_item_root/summary.json" '(.selection.selected_files | sort) == ["Catalogs/Items.xml", "CommonModules/рлф_Тест/Ext/Module.bsl", "Configuration.xml", "EventSubscriptions/LoadTask.xml"]' "work-item-selected-files"
 assert_jq "$run_work_item_root/summary.json" '.selection.ignored_files == []' "work-item-ignored-empty"
 assert_jq "$run_work_item_root/summary.json" '.delegated.capability == "load-src"' "work-item-delegated-capability"
 assert_jq "$run_work_item_root/summary.json" '.delegated.run_root == $ARGS.positional[0]' "work-item-delegated-run-root" \
@@ -202,5 +206,6 @@ assert_jq "$run_work_item_root/summary.json" '.delegated.stdout_log == $ARGS.pos
 assert_jq "$run_work_item_root/summary.json" '.delegated.stderr_log == $ARGS.positional[0]' "work-item-delegated-stderr-log" \
   --args "$run_work_item_root/load-src/stderr.log"
 assert_contains "$run_work_item_root/load-src/stdout.log" "Catalogs/Items.xml"
+assert_contains "$run_work_item_root/load-src/stdout.log" "CommonModules/рлф_Тест/Ext/Module.bsl"
 assert_contains "$run_work_item_root/load-src/stdout.log" "Configuration.xml"
 assert_contains "$run_work_item_root/load-src/stdout.log" "EventSubscriptions/LoadTask.xml"

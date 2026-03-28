@@ -422,7 +422,7 @@ collect_load_task_paths_for_commit() {
         classify_load_task_path "$repo_root" "$source_dir_rel" "$first_path" "$commit"
         ;;
     esac
-  done < <(git -C "$repo_root" diff-tree --no-commit-id --root --name-status -r -m "$commit")
+  done < <(git_with_unquoted_paths -C "$repo_root" diff-tree --no-commit-id --root --name-status -r -m "$commit")
 }
 
 if capability_help_requested "$@"; then
