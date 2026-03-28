@@ -80,6 +80,14 @@ jobs:
         if: hashFiles('tests/smoke/runtime-load-task-src-validation-contract.sh') != ''
         run: bash tests/smoke/runtime-load-task-src-validation-contract.sh
 
+      - name: Runtime load-diff-src contract
+        if: hashFiles('tests/smoke/runtime-load-diff-src-contract.sh') != ''
+        run: bash tests/smoke/runtime-load-diff-src-contract.sh
+
+      - name: Runtime load-diff-src validation contract
+        if: hashFiles('tests/smoke/runtime-load-diff-src-validation-contract.sh') != ''
+        run: bash tests/smoke/runtime-load-diff-src-validation-contract.sh
+
       - name: Runtime direct-platform Xvfb contract
         if: hashFiles('tests/smoke/runtime-direct-platform-xvfb-contract.sh') != ''
         run: bash tests/smoke/runtime-direct-platform-xvfb-contract.sh

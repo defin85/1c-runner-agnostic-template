@@ -95,6 +95,7 @@ doctor_partial_import_repo_dependency_reason() {
   local root="$2"
   local rel_path=""
   local absolute_path=""
+  local git_error=""
   local -a required_paths=()
 
   case "$contour_id" in
@@ -136,6 +137,14 @@ doctor_partial_import_repo_dependency_reason() {
       return 0
     fi
   done
+
+  if ! git -C "$root" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    git_error="$(git -C "$root" rev-parse --is-inside-work-tree 2>&1 || true)"
+    if [ -n "$git_error" ]; then
+      printf 'git-backed contour requires a git worktree\n'
+      return 0
+    fi
+  fi
 
   printf '\n'
 }

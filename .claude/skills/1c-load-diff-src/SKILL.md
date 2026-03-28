@@ -23,7 +23,7 @@ Repo script: `./scripts/platform/load-diff-src.sh`
 
 ```bash
 ./scripts/platform/load-diff-src.sh --profile env/local.json
-./scripts/platform/load-diff-src.sh --profile env/ci.json --run-root /tmp/load-diff-src-run
+./scripts/platform/load-diff-src.sh --profile env/local.json --run-root /tmp/load-diff-src-run
 ./scripts/platform/load-diff-src.sh --profile env/local.json --dry-run
 ```
 

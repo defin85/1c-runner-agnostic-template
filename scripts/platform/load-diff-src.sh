@@ -11,6 +11,8 @@ LOAD_DIFF_RAW_PATHS=()
 LOAD_DIFF_SELECTED_FILES=()
 LOAD_DIFF_IGNORED_FILES=()
 
+LOAD_DIFF_BOOTSTRAP_ERROR=""
+
 usage() {
   cat <<'EOF'
 Usage: ./scripts/platform/load-diff-src.sh [options]
@@ -236,6 +238,154 @@ build_load_diff_delegated_json() {
     }'
 }
 
+json_escape_load_diff() {
+  local value="${1-}"
+
+  value="${value//\\/\\\\}"
+  value="${value//\"/\\\"}"
+  value="${value//$'\n'/\\n}"
+  value="${value//$'\r'/\\r}"
+  value="${value//$'\t'/\\t}"
+  printf '%s' "$value"
+}
+
+json_bool_load_diff() {
+  case "${1:-0}" in
+    1|true)
+      printf 'true'
+      ;;
+    *)
+      printf 'false'
+      ;;
+  esac
+}
+
+json_string_or_null_load_diff() {
+  local value="${1-}"
+
+  if [ -z "$value" ]; then
+    printf 'null'
+    return 0
+  fi
+
+  printf '"%s"' "$(json_escape_load_diff "$value")"
+}
+
+write_load_diff_bootstrap_summary() {
+  local summary_path="$1"
+  local status="$2"
+  local adapter="$3"
+  local profile_path="$4"
+  local run_root="$5"
+  local exit_code="$6"
+  local started_at="$7"
+  local finished_at="$8"
+  local stdout_log="$9"
+  local stderr_log="${10}"
+  local dry_run="${11}"
+  local error_message="${12}"
+  local summary_dir=""
+
+  summary_dir="${summary_path%/*}"
+  if [ "$summary_dir" = "$summary_path" ]; then
+    summary_dir="."
+  fi
+  mkdir -p "$summary_dir"
+
+  {
+    printf '{\n'
+    printf '  "status": "%s",\n' "$(json_escape_load_diff "$status")"
+    printf '  "capability": {\n'
+    printf '    "id": "load-diff-src",\n'
+    printf '    "label": "Load source diff"\n'
+    printf '  },\n'
+    printf '  "adapter": %s,\n' "$(json_string_or_null_load_diff "$adapter")"
+    printf '  "driver": null,\n'
+    printf '  "profile_path": %s,\n' "$(json_string_or_null_load_diff "$profile_path")"
+    printf '  "run_root": "%s",\n' "$(json_escape_load_diff "$run_root")"
+    printf '  "started_at": "%s",\n' "$(json_escape_load_diff "$started_at")"
+    printf '  "finished_at": "%s",\n' "$(json_escape_load_diff "$finished_at")"
+    printf '  "exit_code": %s,\n' "$exit_code"
+    printf '  "dry_run": %s,\n' "$(json_bool_load_diff "$dry_run")"
+    printf '  "execution": {\n'
+    printf '    "source": "git-diff-to-load-src",\n'
+    printf '    "executor": "delegated-script"\n'
+    printf '  },\n'
+    printf '  "artifacts": {\n'
+    printf '    "summary_json": "%s",\n' "$(json_escape_load_diff "$summary_path")"
+    printf '    "stdout_log": "%s",\n' "$(json_escape_load_diff "$stdout_log")"
+    printf '    "stderr_log": "%s"\n' "$(json_escape_load_diff "$stderr_log")"
+    printf '  },\n'
+    printf '  "selection": {\n'
+    printf '    "source_dir": null,\n'
+    printf '    "base_ref": null,\n'
+    printf '    "selected_files": [],\n'
+    printf '    "ignored_files": [],\n'
+    printf '    "error": %s\n' "$(json_string_or_null_load_diff "$error_message")"
+    printf '  },\n'
+    printf '  "delegated": null\n'
+    printf '}\n'
+  } >"$summary_path"
+}
+
+probe_load_diff_bootstrap() {
+  local root="$1"
+  local profile_path="$2"
+
+  if capability_selected_files_requested; then
+    die "load-diff-src derives file selection internally; --files is not supported"
+  fi
+
+  require_command git
+  require_command jq
+  load_runtime_profile "$profile_path"
+  require_runtime_profile_loaded
+  printf 'bootstrap-ok\n'
+}
+
+capture_load_diff_bootstrap_error() {
+  local probe_stderr_path="$1"
+  local line=""
+
+  LOAD_DIFF_BOOTSTRAP_ERROR=""
+  while IFS= read -r line || [ -n "$line" ]; do
+    if [ -n "$line" ]; then
+      LOAD_DIFF_BOOTSTRAP_ERROR="$line"
+      printf '%s\n' "$line" >>"$stderr_log"
+    fi
+  done <"$probe_stderr_path"
+
+  LOAD_DIFF_BOOTSTRAP_ERROR="${LOAD_DIFF_BOOTSTRAP_ERROR#error: }"
+  if [ -z "$LOAD_DIFF_BOOTSTRAP_ERROR" ]; then
+    LOAD_DIFF_BOOTSTRAP_ERROR="load-diff-src bootstrap failed"
+  fi
+}
+
+fail_load_diff_bootstrap() {
+  local error_message="$1"
+  local profile_path="$2"
+  local exit_code="${3:-1}"
+  local finished_at=""
+
+  printf 'error: %s\n' "$error_message" >&2
+  printf 'error: %s\n' "$error_message" >>"$stderr_log"
+  finished_at="$(timestamp_utc)"
+  write_load_diff_bootstrap_summary \
+    "$summary_path" \
+    "failed" \
+    "${adapter-}" \
+    "$profile_path" \
+    "$run_root" \
+    "$exit_code" \
+    "$started_at" \
+    "$finished_at" \
+    "$stdout_log" \
+    "$stderr_log" \
+    "$CAPABILITY_DRY_RUN" \
+    "$error_message"
+  exit "$exit_code"
+}
+
 ensure_load_diff_git_worktree() {
   local repo_root="$1"
   local git_error=""
@@ -263,25 +413,30 @@ if [ "$CAPABILITY_SHOW_HELP" = "1" ]; then
   exit 0
 fi
 
-if capability_selected_files_requested; then
-  die "load-diff-src derives file selection internally; --files is not supported"
-fi
-
-require_command git
-require_command jq
-
 root="$(project_root)"
-profile_path="$(resolve_runtime_profile_path "$CAPABILITY_PROFILE_INPUT" "$root")"
-load_runtime_profile "$profile_path"
-require_runtime_profile_loaded
-
-adapter="${RUNNER_ADAPTER:-${RUNTIME_PROFILE_RUNNER_ADAPTER:-direct-platform}}"
 run_root="$(prepare_capability_run_root "load-diff-src" "$CAPABILITY_RUN_ROOT_INPUT")"
 summary_path="$(capability_summary_path "$run_root")"
 stdout_log="$run_root/stdout.log"
 stderr_log="$run_root/stderr.log"
 : >"$stdout_log"
 : >"$stderr_log"
+started_at="$(timestamp_utc)"
+
+profile_path="$(resolve_runtime_profile_path "$CAPABILITY_PROFILE_INPUT" "$root")"
+bootstrap_probe_stderr="$run_root/bootstrap-probe.stderr"
+: >"$bootstrap_probe_stderr"
+if ! (probe_load_diff_bootstrap "$root" "$profile_path") >/dev/null 2>"$bootstrap_probe_stderr"; then
+  capture_load_diff_bootstrap_error "$bootstrap_probe_stderr"
+  fail_load_diff_bootstrap "$LOAD_DIFF_BOOTSTRAP_ERROR" "$profile_path"
+fi
+rm -f "$bootstrap_probe_stderr"
+
+require_command git
+require_command jq
+load_runtime_profile "$profile_path"
+require_runtime_profile_loaded
+
+adapter="${RUNNER_ADAPTER:-${RUNTIME_PROFILE_RUNNER_ADAPTER:-direct-platform}}"
 
 source_dir="$(capability_string_or_default "load-src" "sourceDir" "./src/cf")"
 source_dir_rel="$(normalize_capability_selected_file "$source_dir")"
@@ -313,8 +468,6 @@ log "run_root=$run_root"
 printf 'source_dir=%s\n' "$source_dir" >>"$stdout_log"
 printf 'base_ref=%s\n' "$base_ref" >>"$stdout_log"
 printf 'selected_files=%s\n' "$selected_files_csv" >>"$stdout_log"
-
-started_at="$(timestamp_utc)"
 
 if [ -n "$selection_error" ]; then
   status="failed"

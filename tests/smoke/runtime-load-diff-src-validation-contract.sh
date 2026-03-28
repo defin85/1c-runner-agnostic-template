@@ -35,6 +35,15 @@ assert_stderr_contains() {
   fi
 }
 
+assert_exists() {
+  local path="$1"
+
+  if [ ! -e "$path" ]; then
+    printf 'expected path to exist: %s\n' "$path" >&2
+    exit 1
+  fi
+}
+
 assert_jq() {
   local file="$1"
   local expr="$2"
@@ -46,6 +55,17 @@ assert_jq() {
     cat "$file" >&2
     exit 1
   fi
+}
+
+create_minimal_path() {
+  local target_dir="$1"
+  shift
+  local tool=""
+
+  mkdir -p "$target_dir"
+  for tool in "$@"; do
+    ln -s "$(command -v "$tool")" "$target_dir/$tool"
+  done
 }
 
 write_fixture_repo() {
@@ -125,10 +145,23 @@ run_expect_failure() {
   local run_root="$2"
   local stderr_path="$3"
 
+  run_expect_failure_with_args \
+    "$repo_root" \
+    "$stderr_path" \
+    --profile env/local.json \
+    --run-root "$run_root"
+}
+
+run_expect_failure_with_args() {
+  local repo_root="$1"
+  local stderr_path="$2"
+  shift 2
+  local status=0
+
   set +e
   (
     cd "$repo_root"
-    ./scripts/platform/load-diff-src.sh --profile env/local.json --run-root "$run_root" >/dev/null
+    ./scripts/platform/load-diff-src.sh "$@" >/dev/null
   ) 2>"$stderr_path"
   status=$?
   set -e
@@ -214,3 +247,97 @@ if [ -e "$run_delegated_failure_root/load-src/summary.json" ]; then
   cat "$run_delegated_failure_root/summary.json" >&2
   exit 1
 fi
+
+repo_cli_guard="$tmpdir/repo-cli-guard"
+write_fixture_repo "$repo_cli_guard"
+run_cli_guard_root="$tmpdir/run-cli-guard"
+stderr_cli_guard="$tmpdir/run-cli-guard.stderr"
+run_expect_failure_with_args \
+  "$repo_cli_guard" \
+  "$stderr_cli_guard" \
+  --profile env/local.json \
+  --run-root "$run_cli_guard_root" \
+  --files "Catalogs/Items.xml"
+assert_stderr_contains "$stderr_cli_guard" "load-diff-src derives file selection internally; --files is not supported"
+assert_exists "$run_cli_guard_root/summary.json"
+assert_jq "$run_cli_guard_root/summary.json" '.status == "failed"' "cli-guard-status"
+assert_jq "$run_cli_guard_root/summary.json" '.selection.selected_files == []' "cli-guard-selected-empty"
+assert_jq "$run_cli_guard_root/summary.json" '.selection.error == "load-diff-src derives file selection internally; --files is not supported"' "cli-guard-error"
+assert_jq "$run_cli_guard_root/summary.json" '.delegated == null' "cli-guard-no-delegation"
+
+repo_missing_profile="$tmpdir/repo-missing-profile"
+write_fixture_repo "$repo_missing_profile"
+run_missing_profile_root="$tmpdir/run-missing-profile"
+stderr_missing_profile="$tmpdir/run-missing-profile.stderr"
+run_expect_failure_with_args \
+  "$repo_missing_profile" \
+  "$stderr_missing_profile" \
+  --profile env/missing.json \
+  --run-root "$run_missing_profile_root"
+assert_stderr_contains "$stderr_missing_profile" "runtime profile not found:"
+assert_exists "$run_missing_profile_root/summary.json"
+assert_jq "$run_missing_profile_root/summary.json" '.status == "failed"' "missing-profile-status"
+assert_jq "$run_missing_profile_root/summary.json" '.selection.error | startswith("runtime profile not found: ")' "missing-profile-error"
+assert_jq "$run_missing_profile_root/summary.json" '.delegated == null' "missing-profile-no-delegation"
+
+repo_invalid_profile="$tmpdir/repo-invalid-profile"
+write_fixture_repo "$repo_invalid_profile"
+printf '[]\n' >"$repo_invalid_profile/env/invalid.json"
+run_invalid_profile_root="$tmpdir/run-invalid-profile"
+stderr_invalid_profile="$tmpdir/run-invalid-profile.stderr"
+run_expect_failure_with_args \
+  "$repo_invalid_profile" \
+  "$stderr_invalid_profile" \
+  --profile env/invalid.json \
+  --run-root "$run_invalid_profile_root"
+assert_stderr_contains "$stderr_invalid_profile" "runtime profile root must be an object:"
+assert_exists "$run_invalid_profile_root/summary.json"
+assert_jq "$run_invalid_profile_root/summary.json" '.status == "failed"' "invalid-profile-status"
+assert_jq "$run_invalid_profile_root/summary.json" '.selection.error | startswith("runtime profile root must be an object: ")' "invalid-profile-error"
+assert_jq "$run_invalid_profile_root/summary.json" '.delegated == null' "invalid-profile-no-delegation"
+
+repo_missing_git="$tmpdir/repo-missing-git"
+write_fixture_repo "$repo_missing_git"
+run_missing_git_root="$tmpdir/run-missing-git"
+stderr_missing_git="$tmpdir/run-missing-git.stderr"
+missing_git_path="$tmpdir/path-no-git"
+create_minimal_path "$missing_git_path" dirname realpath mkdir date jq
+set +e
+(
+  cd "$repo_missing_git"
+  PATH="$missing_git_path" "$BASH" ./scripts/platform/load-diff-src.sh --profile env/local.json --run-root "$run_missing_git_root" >/dev/null
+) 2>"$stderr_missing_git"
+status=$?
+set -e
+if [ "$status" -eq 0 ]; then
+  printf 'load-diff-src unexpectedly succeeded without git in PATH\n' >&2
+  exit 1
+fi
+assert_stderr_contains "$stderr_missing_git" "command not found: git"
+assert_exists "$run_missing_git_root/summary.json"
+assert_jq "$run_missing_git_root/summary.json" '.status == "failed"' "missing-git-status"
+assert_jq "$run_missing_git_root/summary.json" '.selection.error == "command not found: git"' "missing-git-error"
+assert_jq "$run_missing_git_root/summary.json" '.delegated == null' "missing-git-no-delegation"
+
+repo_missing_jq="$tmpdir/repo-missing-jq"
+write_fixture_repo "$repo_missing_jq"
+run_missing_jq_root="$tmpdir/run-missing-jq"
+stderr_missing_jq="$tmpdir/run-missing-jq.stderr"
+missing_jq_path="$tmpdir/path-no-jq"
+create_minimal_path "$missing_jq_path" dirname realpath mkdir date git
+set +e
+(
+  cd "$repo_missing_jq"
+  PATH="$missing_jq_path" "$BASH" ./scripts/platform/load-diff-src.sh --profile env/local.json --run-root "$run_missing_jq_root" >/dev/null
+) 2>"$stderr_missing_jq"
+status=$?
+set -e
+if [ "$status" -eq 0 ]; then
+  printf 'load-diff-src unexpectedly succeeded without jq in PATH\n' >&2
+  exit 1
+fi
+assert_stderr_contains "$stderr_missing_jq" "command not found: jq"
+assert_exists "$run_missing_jq_root/summary.json"
+assert_jq "$run_missing_jq_root/summary.json" '.status == "failed"' "missing-jq-status"
+assert_jq "$run_missing_jq_root/summary.json" '.selection.error == "command not found: jq"' "missing-jq-error"
+assert_jq "$run_missing_jq_root/summary.json" '.delegated == null' "missing-jq-no-delegation"

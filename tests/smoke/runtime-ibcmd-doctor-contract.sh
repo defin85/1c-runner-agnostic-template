@@ -9,6 +9,8 @@ trap 'rm -rf "$tmpdir"' EXIT
 
 profile_path="$tmpdir/doctor-ibcmd-profile.json"
 run_root="$tmpdir/doctor-ibcmd-run"
+non_git_root="$tmpdir/doctor-ibcmd-nongit-repo"
+non_git_run_root="$tmpdir/doctor-ibcmd-nongit-run"
 invalid_profile_path="$tmpdir/doctor-ibcmd-invalid-profile.json"
 invalid_run_root="$tmpdir/doctor-ibcmd-invalid-run"
 create_only_profile_path="$tmpdir/doctor-ibcmd-create-only-profile.json"
@@ -139,6 +141,80 @@ assert_jq "$run_root/summary.json" '[.checks.required_env_refs[] | select(.name 
 assert_jq "$run_root/summary.json" '[.checks.required_capabilities[] | select(.status != "present")] | length == 0' "doctor-required-capabilities"
 assert_jq "$run_root/summary.json" '[.checks.derived_contours[] | select(.name == "load-diff-src" and .status == "present" and .driver == "ibcmd" and .reason == null)] | length == 1' "doctor-load-diff-derived-present"
 assert_jq "$run_root/summary.json" '[.checks.derived_contours[] | select(.name == "load-task-src" and .status == "present" and .driver == "ibcmd" and .reason == null)] | length == 1' "doctor-load-task-derived-present"
+
+mkdir -p "$non_git_root"
+cp -R "$SOURCE_ROOT/scripts" "$non_git_root/scripts"
+mkdir -p "$non_git_root/env"
+
+cat >"$non_git_root/env/local.json" <<EOF
+{
+  "schemaVersion": 2,
+  "profileName": "doctor-ibcmd-nongit",
+  "runnerAdapter": "direct-platform",
+  "platform": {
+    "binaryPath": "$fake_designer",
+    "ibcmdPath": "$fake_ibcmd"
+  },
+  "infobase": {
+    "mode": "file",
+    "filePath": "/var/tmp/doctor-ibcmd-nongit",
+    "auth": {
+      "mode": "os",
+      "user": null,
+      "passwordEnv": null
+    }
+  },
+  "ibcmd": {
+    "runtimeMode": "dbms-infobase",
+    "serverAccess": {
+      "mode": "data-dir",
+      "dataDir": "$tmpdir/dbms-server"
+    },
+    "auth": {
+      "user": "doctor-ibcmd-user",
+      "passwordEnv": "ONEC_IBCMD_PASSWORD"
+    },
+    "dbmsInfobase": {
+      "kind": "PostgreSQL",
+      "server": "127.0.0.1 port=5432;",
+      "name": "doctor_runtime",
+      "user": "doctor-db-admin",
+      "passwordEnv": "ONEC_DBMS_PASSWORD"
+    }
+  },
+  "capabilities": {
+    "createIb": {
+      "driver": "ibcmd"
+    },
+    "dumpSrc": {
+      "driver": "ibcmd"
+    },
+    "loadSrc": {
+      "driver": "ibcmd"
+    },
+    "updateDb": {
+      "driver": "ibcmd"
+    },
+    "xunit": {
+      "command": ["bash", "-lc", "printf 'xunit-ok\\\\n'"]
+    },
+    "bdd": {
+      "command": ["bash", "-lc", "printf 'bdd-ok\\\\n'"]
+    },
+    "smoke": {
+      "command": ["bash", "-lc", "printf 'smoke-ok\\\\n'"]
+    }
+  }
+}
+EOF
+
+(
+  cd "$non_git_root"
+  ./scripts/diag/doctor.sh --profile env/local.json --run-root "$non_git_run_root" >/dev/null
+)
+
+assert_jq "$non_git_run_root/summary.json" '[.checks.derived_contours[] | select(.name == "load-diff-src" and .status == "missing" and .driver == "ibcmd" and .reason == "git-backed contour requires a git worktree")] | length == 1' "doctor-load-diff-derived-nongit"
+assert_jq "$non_git_run_root/summary.json" '[.checks.derived_contours[] | select(.name == "load-task-src" and .status == "missing" and .driver == "ibcmd" and .reason == "git-backed contour requires a git worktree")] | length == 1' "doctor-load-task-derived-nongit"
 
 if [ ! -f "$run_root/stdout.log" ] || [ ! -f "$run_root/stderr.log" ]; then
   printf 'doctor run must create stdout.log and stderr.log\n' >&2

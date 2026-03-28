@@ -119,6 +119,17 @@ assert_contains() {
   fi
 }
 
+assert_not_contains() {
+  local file="$1"
+  local unexpected="$2"
+
+  if grep -Fq -- "$unexpected" "$file"; then
+    printf 'unexpected text found: %s\n' "$unexpected" >&2
+    cat "$file" >&2
+    exit 1
+  fi
+}
+
 assert_jq() {
   local file="$1"
   local expr="$2"
@@ -166,3 +177,28 @@ assert_jq "$dry_run_root/summary.json" '.selection.selected_files == ["Configura
 assert_jq "$dry_run_root/summary.json" '.delegated.capability == "load-src"' "wrapper-dry-run-delegated-capability"
 assert_jq "$dry_run_root/load-src/summary.json" '.status == "dry-run"' "delegated-dry-run-status"
 assert_jq "$dry_run_root/load-src/summary.json" '.driver_context.partial_import == true' "delegated-dry-run-partial-import"
+
+jq '.capabilities.diffSrc = {"command":["bash","-lc","printf '\''profile-defined diffSrc must not run\n'\'' >&2; exit 42"]}' \
+  "$fixture_root/env/local.json" >"$fixture_root/env/local.json.tmp"
+mv "$fixture_root/env/local.json.tmp" "$fixture_root/env/local.json"
+
+cat >"$fixture_root/scripts/platform/diff-src.sh" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+printf 'repo diff-src entrypoint must not run\n' >&2
+exit 42
+EOF
+
+chmod +x "$fixture_root/scripts/platform/diff-src.sh"
+
+independent_run_root="$tmpdir/run-independent"
+
+(
+  cd "$fixture_root"
+  ./scripts/platform/load-diff-src.sh --profile env/local.json --run-root "$independent_run_root" >/dev/null
+)
+
+assert_jq "$independent_run_root/summary.json" '.status == "success"' "wrapper-independent-status"
+assert_jq "$independent_run_root/summary.json" '.selection.selected_files == ["Configuration.xml", "EventSubscriptions/LoadDiff.xml"]' "wrapper-independent-selected-files"
+assert_not_contains "$independent_run_root/stderr.log" "profile-defined diffSrc must not run"
+assert_not_contains "$independent_run_root/stderr.log" "repo diff-src entrypoint must not run"
