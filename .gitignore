@@ -32,3 +32,4 @@ env/ci.json
 env/windows-executor.json
 env/.local/*.json
 env/.local/**/*.json
+src/cf/Ext/ParentConfigurations/
