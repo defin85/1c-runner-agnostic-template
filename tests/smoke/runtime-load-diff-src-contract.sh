@@ -154,7 +154,14 @@ assert_jq "$run_root/summary.json" '.execution.source == "git-diff-to-load-src"'
 assert_jq "$run_root/summary.json" '.selection.selected_files == ["Configuration.xml", "EventSubscriptions/LoadDiff.xml"]' "wrapper-selected-files"
 assert_jq "$run_root/summary.json" '.selection.ignored_files == []' "wrapper-no-ignored-files"
 assert_jq "$run_root/summary.json" '.delegated.capability == "load-src"' "wrapper-delegated-capability"
-assert_jq "$run_root/summary.json" '.delegated.summary_json | type == "string"' "wrapper-delegated-summary"
+assert_jq "$run_root/summary.json" '.delegated.run_root == $ARGS.positional[0]' "wrapper-delegated-run-root" \
+  --args "$run_root/load-src"
+assert_jq "$run_root/summary.json" '.delegated.summary_json == $ARGS.positional[0]' "wrapper-delegated-summary" \
+  --args "$run_root/load-src/summary.json"
+assert_jq "$run_root/summary.json" '.delegated.stdout_log == $ARGS.positional[0]' "wrapper-delegated-stdout-log" \
+  --args "$run_root/load-src/stdout.log"
+assert_jq "$run_root/summary.json" '.delegated.stderr_log == $ARGS.positional[0]' "wrapper-delegated-stderr-log" \
+  --args "$run_root/load-src/stderr.log"
 assert_jq "$run_root/load-src/summary.json" '.status == "success"' "delegated-status"
 assert_jq "$run_root/load-src/summary.json" '.driver == "ibcmd"' "delegated-driver"
 assert_jq "$run_root/load-src/summary.json" '.driver_context.partial_import == true' "delegated-partial-import"
@@ -175,6 +182,14 @@ dry_run_root="$tmpdir/run-dry-run"
 assert_jq "$dry_run_root/summary.json" '.status == "dry-run"' "wrapper-dry-run-status"
 assert_jq "$dry_run_root/summary.json" '.selection.selected_files == ["Configuration.xml", "EventSubscriptions/LoadDiff.xml"]' "wrapper-dry-run-selected-files"
 assert_jq "$dry_run_root/summary.json" '.delegated.capability == "load-src"' "wrapper-dry-run-delegated-capability"
+assert_jq "$dry_run_root/summary.json" '.delegated.run_root == $ARGS.positional[0]' "wrapper-dry-run-delegated-run-root" \
+  --args "$dry_run_root/load-src"
+assert_jq "$dry_run_root/summary.json" '.delegated.summary_json == $ARGS.positional[0]' "wrapper-dry-run-delegated-summary" \
+  --args "$dry_run_root/load-src/summary.json"
+assert_jq "$dry_run_root/summary.json" '.delegated.stdout_log == $ARGS.positional[0]' "wrapper-dry-run-delegated-stdout-log" \
+  --args "$dry_run_root/load-src/stdout.log"
+assert_jq "$dry_run_root/summary.json" '.delegated.stderr_log == $ARGS.positional[0]' "wrapper-dry-run-delegated-stderr-log" \
+  --args "$dry_run_root/load-src/stderr.log"
 assert_jq "$dry_run_root/load-src/summary.json" '.status == "dry-run"' "delegated-dry-run-status"
 assert_jq "$dry_run_root/load-src/summary.json" '.driver_context.partial_import == true' "delegated-dry-run-partial-import"
 
