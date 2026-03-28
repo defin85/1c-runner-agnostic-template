@@ -27,6 +27,7 @@ make template-update
 `template-check-update` сверяет текущую checked-in версию wrapper overlay в `.template-overlay-version`
 с latest tagged release шаблона или с явно переданным `--vcs-ref`.
 `template-update` materialize-ит выбранный template ref и применяет только manifest template-managed paths из `automation/context/template-managed-paths.txt`.
+Дополнительно migration cleanup может удалить retired template-seeded routing docs из deployable `src/cf`, например legacy `src/cf/AGENTS.md` и `src/cf/README.md`.
 
 ## Ownership Boundary
 
@@ -59,7 +60,8 @@ bash tests/smoke/copier-update-ready.sh
 
 1. Проверьте root `README.md`, `AGENTS.md` и project-owned context.
 2. Убедитесь, что `.template-overlay-version` обновился до ожидаемого release ref.
-3. При необходимости refresh-ните generated-derived inventory:
+3. Если репозиторий обновлялся со старого шаблона, подтвердите, что stale `src/cf/AGENTS.md` и `src/cf/README.md` исчезли и `src/cf` снова остаётся чистым importable source tree.
+4. При необходимости refresh-ните generated-derived inventory:
 
 ```bash
 ./scripts/llm/export-context.sh --write

@@ -56,9 +56,8 @@
 ./features/examples
 ./openspec
 ./openspec/changes
-./openspec/changes/add-load-diff-src-bridge
-./openspec/changes/add-load-task-src-bridge
 ./openspec/changes/archive
+./openspec/changes/remove-deployable-source-agent-docs
 ./openspec/specs
 ./openspec/specs/agent-runtime-toolkit
 ./openspec/specs/generated-context-artifacts

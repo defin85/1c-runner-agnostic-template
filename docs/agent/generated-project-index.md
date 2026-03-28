@@ -14,12 +14,13 @@
 7. Если проект уже описал свои customization selectors, откройте `automation/context/project-delta-hotspots.generated.md`.
 8. Откройте `automation/context/hotspots-summary.generated.md`, чтобы получить compact summary-first карту hot paths.
 9. При необходимости углубитесь в `automation/context/metadata-index.generated.json`, чтобы точнее сузить поиск по `src/`.
-10. Для Codex-native workflow after the first router step откройте [docs/agent/codex-workflows.md](codex-workflows.md).
-11. Пройдите safe-local baseline из [docs/agent/generated-project-verification.md](generated-project-verification.md), [env/README.md](../../env/README.md) и `automation/context/runtime-profile-policy.json`.
-12. Если change затрагивает код или agent-facing surface, откройте [docs/agent/review.md](review.md).
-13. Для repeatable workflows используйте [.agents/skills/README.md](../../.agents/skills/README.md) и [.codex/README.md](../../.codex/README.md).
-14. Если задача длинная, копируйте [docs/exec-plans/TEMPLATE.md](../exec-plans/TEMPLATE.md) и держите рядом [docs/work-items/README.md](../work-items/README.md) как companion workspace для supporting artifacts.
-15. Если работа касается только template refresh, отдельно откройте [docs/template-maintenance.md](../template-maintenance.md).
+10. Если вопрос касается основной конфигурации, используйте `src/AGENTS.md` как ближайший shared router над deployable `src/cf`; для первого прохода обычно достаточно `src/cf/CommonModules`, `src/cf/ScheduledJobs`, `src/cf/HTTPServices`, `src/cf/WebServices`, `src/cf/DataProcessors` и `src/cf/Subsystems`.
+11. Для Codex-native workflow after the first router step откройте [docs/agent/codex-workflows.md](codex-workflows.md).
+12. Пройдите safe-local baseline из [docs/agent/generated-project-verification.md](generated-project-verification.md), [env/README.md](../../env/README.md) и `automation/context/runtime-profile-policy.json`.
+13. Если change затрагивает код или agent-facing surface, откройте [docs/agent/review.md](review.md).
+14. Для repeatable workflows используйте [.agents/skills/README.md](../../.agents/skills/README.md) и [.codex/README.md](../../.codex/README.md).
+15. Если задача длинная, копируйте [docs/exec-plans/TEMPLATE.md](../exec-plans/TEMPLATE.md) и держите рядом [docs/work-items/README.md](../work-items/README.md) как companion workspace для supporting artifacts.
+16. Если работа касается только template refresh, отдельно откройте [docs/template-maintenance.md](../template-maintenance.md).
 
 Короткая runtime-шпаргалка: `./scripts/platform/load-diff-src.sh --profile <operator-profile> --run-root /tmp/load-diff-src-run` загружает в ИБ только текущий git-backed diff внутри `src/cf`, а `./scripts/platform/load-task-src.sh --profile <operator-profile> --bead <id> --run-root /tmp/load-task-src-run` загружает уже закомиченный scope задачи по `Bead:` / `Work-Item:` trailers или по `--range`; prerequisites и fail-closed semantics в generated project живут в `docs/agent/operator-local-runbook.md`, а в source repo описаны в `automation/context/templates/generated-project-operator-local-runbook.md` и `env/README.md`.
 
@@ -56,12 +57,13 @@
 3. Уточните code routing по `docs/agent/architecture-map.md`.
 4. Если runtime contour operator-local, в generated project сначала откройте `docs/agent/operator-local-runbook.md`; в source repo используйте `automation/context/templates/generated-project-operator-local-runbook.md`, затем подтверждайте answer через `docs/agent/runtime-quickstart.md` и `automation/context/runtime-support-matrix.md` / `.json`.
 5. Если проект уже знает stable customization selectors, сначала откройте `automation/context/project-delta-hotspots.generated.md`, а уже потом `automation/context/hotspots-summary.generated.md`.
-6. Raw inventory `automation/context/metadata-index.generated.json` открывайте только когда curated и summary-first layers уже не хватает.
-7. Для детальных Codex-native workflows переходите в [docs/agent/codex-workflows.md](codex-workflows.md).
-8. Пройдите safe-local baseline: `make agent-verify`, затем `make export-context-check`.
-9. Перед изменениями поведения сверяйтесь с `openspec/project.md` и [docs/agent/review.md](review.md).
-10. Если работа становится multi-session, скопируйте [docs/exec-plans/TEMPLATE.md](../exec-plans/TEMPLATE.md) и держите supporting artifacts через [docs/work-items/README.md](../work-items/README.md).
-11. Для repeatable действий ищите готовый workflow в [.agents/skills/README.md](../../.agents/skills/README.md) и [.codex/README.md](../../.codex/README.md).
+6. Если change живёт в основной конфигурации, держите routing выше deployable `src/cf`: используйте `src/AGENTS.md` и начинайте с `src/cf/CommonModules`, `src/cf/ScheduledJobs`, `src/cf/HTTPServices`, `src/cf/WebServices`, `src/cf/DataProcessors`, `src/cf/Subsystems`, не ожидая local markdown-файлов внутри `src/cf`.
+7. Raw inventory `automation/context/metadata-index.generated.json` открывайте только когда curated и summary-first layers уже не хватает.
+8. Для детальных Codex-native workflows переходите в [docs/agent/codex-workflows.md](codex-workflows.md).
+9. Пройдите safe-local baseline: `make agent-verify`, затем `make export-context-check`.
+10. Перед изменениями поведения сверяйтесь с `openspec/project.md` и [docs/agent/review.md](review.md).
+11. Если работа становится multi-session, скопируйте [docs/exec-plans/TEMPLATE.md](../exec-plans/TEMPLATE.md) и держите supporting artifacts через [docs/work-items/README.md](../work-items/README.md).
+12. Для repeatable действий ищите готовый workflow в [.agents/skills/README.md](../../.agents/skills/README.md) и [.codex/README.md](../../.codex/README.md).
 
 ## Planning Matrix
 
@@ -92,6 +94,7 @@
 - `make template-update` может обновлять только `template-managed` слой и managed blocks.
 - `make template-check-update` сверяет `.template-overlay-version` с доступным release ref без записи в репозиторий.
 - Если root `AGENTS.md` или `README.md` отсутствует, template update должен восстановить generated-project entry surface перед refresh managed overlay/router.
+- Template update может удалять retired template-seeded routing docs из deployable `src/cf`, например legacy `src/cf/AGENTS.md` и `src/cf/README.md`.
 - Project-owned identity и доменная карта не должны silently перетираться шаблоном.
 - Generated-derived inventory refresh-ится явной командой `./scripts/llm/export-context.sh --write`.
 - Template maintenance не является primary feature-delivery workflow и не заменяет project-owned changes.

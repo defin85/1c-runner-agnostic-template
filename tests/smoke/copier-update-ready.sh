@@ -296,7 +296,8 @@ assert_exists "$rendered_root/automation/context/templates/generated-project-run
 assert_exists "$rendered_root/automation/context/templates/generated-project-work-items-readme.md"
 assert_exists "$rendered_root/automation/context/templates/generated-project-work-items-template.md"
 assert_exists "$rendered_root/src/AGENTS.md"
-assert_exists "$rendered_root/src/cf/AGENTS.md"
+assert_not_exists "$rendered_root/src/cf/AGENTS.md"
+assert_not_exists "$rendered_root/src/cf/README.md"
 assert_exists "$rendered_root/tests/AGENTS.md"
 assert_exists "$rendered_root/tests/smoke/runtime-capability-contract.sh"
 assert_exists "$rendered_root/tests/smoke/runtime-doctor-contract.sh"
@@ -461,15 +462,17 @@ assert_contains "$rendered_root/env/AGENTS.md" "automation/context/runtime-profi
 assert_contains "$rendered_root/tests/AGENTS.md" "scripts/qa/check-agent-docs.sh"
 assert_contains "$rendered_root/scripts/AGENTS.md" "automation/context/hotspots-summary.generated.md"
 assert_contains "$rendered_root/src/AGENTS.md" "[docs/agent/generated-project-index.md](../docs/agent/generated-project-index.md)"
-assert_contains "$rendered_root/src/AGENTS.md" "[src/cf/AGENTS.md](cf/AGENTS.md)"
+assert_contains "$rendered_root/src/AGENTS.md" "docs/agent/architecture-map.md"
+assert_contains "$rendered_root/src/AGENTS.md" "docs/agent/runtime-quickstart.md"
 assert_contains "$rendered_root/src/AGENTS.md" "automation/context/project-map.md"
 assert_contains "$rendered_root/src/AGENTS.md" "automation/context/hotspots-summary.generated.md"
 assert_contains "$rendered_root/src/AGENTS.md" "automation/context/project-delta-hotspots.generated.md"
 assert_contains "$rendered_root/src/AGENTS.md" "automation/context/metadata-index.generated.json"
-assert_contains "$rendered_root/src/cf/AGENTS.md" "docs/agent/architecture-map.md"
-assert_contains "$rendered_root/src/cf/AGENTS.md" "docs/agent/runtime-quickstart.md"
-assert_contains "$rendered_root/src/cf/AGENTS.md" "automation/context/hotspots-summary.generated.md"
-assert_contains "$rendered_root/src/cf/AGENTS.md" "automation/context/project-delta-hotspots.generated.md"
+assert_contains "$rendered_root/src/AGENTS.md" "src/cf/CommonModules"
+assert_contains "$rendered_root/src/AGENTS.md" "src/cf/ScheduledJobs"
+assert_contains "$rendered_root/src/README.md" "LoadConfigFromFiles"
+assert_contains "$rendered_root/src/README.md" "статического анализа BSL"
+assert_contains "$rendered_root/src/README.md" "сравнения изменений в Git"
 assert_line_before \
   "$rendered_root/docs/agent/generated-project-index.md" \
   "docs/agent/architecture-map.md" \
@@ -568,7 +571,7 @@ assert_contains "$rendered_root/automation/context/template-managed-paths.txt" "
 assert_contains "$rendered_root/automation/context/template-managed-paths.txt" "tests/AGENTS.md"
 assert_contains "$rendered_root/automation/context/template-managed-paths.txt" "scripts/AGENTS.md"
 assert_contains "$rendered_root/automation/context/template-managed-paths.txt" "scripts/qa/codex-onboard.sh"
-assert_contains "$rendered_root/automation/context/template-managed-paths.txt" "src/cf/AGENTS.md"
+assert_not_contains "$rendered_root/automation/context/template-managed-paths.txt" "src/cf/AGENTS.md"
 assert_contains "$rendered_root/.template-overlay-version" "v0.1.0"
 assert_contains "$rendered_root/src/cf/DataProcessors/TestProcessor/Ext/ObjectModule.bsl" "{{ raw_bsl_expression }}"
 
@@ -868,6 +871,15 @@ rm -f \
 git -C "$rendered_root" add -A
 git -C "$rendered_root" commit -qm "remove readme and load-diff-src surface"
 
+cat >"$rendered_root/src/cf/AGENTS.md" <<'EOF'
+# Legacy local router
+EOF
+cat >"$rendered_root/src/cf/README.md" <<'EOF'
+# Legacy source note
+EOF
+git -C "$rendered_root" add -A
+git -C "$rendered_root" commit -qm "reintroduce legacy source-root docs"
+
 cat >"$template_root/docs/template-update-v3-note.txt" <<'EOF'
 This file is added in template v0.3.0 to verify README recovery.
 EOF
@@ -904,6 +916,8 @@ assert_exists "$rendered_root/.agents/skills/1c-load-diff-src/SKILL.md"
 assert_exists "$rendered_root/.claude/skills/1c-load-diff-src/SKILL.md"
 assert_exists "$rendered_root/docs/agent/generated-project-index.md"
 assert_exists "$rendered_root/docs/agent/generated-project-verification.md"
+assert_not_exists "$rendered_root/src/cf/AGENTS.md"
+assert_not_exists "$rendered_root/src/cf/README.md"
 assert_contains "$rendered_root/README.md" "# Smoke Project"
 assert_not_contains "$rendered_root/README.md" "# 1c-runner-agnostic-template"
 assert_contains "$rendered_root/.template-overlay-version" "v0.3.0"

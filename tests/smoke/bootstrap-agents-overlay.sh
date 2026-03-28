@@ -76,6 +76,15 @@ assert_contains() {
   fi
 }
 
+assert_not_exists() {
+  local path="$1"
+
+  if [ -e "$path" ]; then
+    printf 'path should not exist: %s\n' "$path" >&2
+    exit 1
+  fi
+}
+
 assert_jq() {
   local file="$1"
   local expr="$2"
@@ -161,6 +170,7 @@ tests_agents_file="$project_root/tests/AGENTS.md"
 scripts_agents_file="$project_root/scripts/AGENTS.md"
 src_agents_file="$project_root/src/AGENTS.md"
 cf_agents_file="$project_root/src/cf/AGENTS.md"
+cf_readme_file="$project_root/src/cf/README.md"
 
 assert_contains "$agents_file" "We operate in a cycle: **OpenSpec (What) -> Beads (How) -> Code (Implementation)**."
 assert_contains "$agents_file" 'This repository is a generated 1С-project created from `1c-runner-agnostic-template`.'
@@ -270,16 +280,16 @@ assert_contains "$tests_agents_file" "scripts/qa/check-agent-docs.sh"
 assert_contains "$scripts_agents_file" "[docs/agent/generated-project-index.md](../docs/agent/generated-project-index.md)"
 assert_contains "$scripts_agents_file" "automation/context/hotspots-summary.generated.md"
 assert_contains "$src_agents_file" "[docs/agent/generated-project-index.md](../docs/agent/generated-project-index.md)"
-assert_contains "$src_agents_file" "[src/cf/AGENTS.md](cf/AGENTS.md)"
+assert_contains "$src_agents_file" "docs/agent/architecture-map.md"
+assert_contains "$src_agents_file" "docs/agent/runtime-quickstart.md"
 assert_contains "$src_agents_file" "automation/context/project-map.md"
 assert_contains "$src_agents_file" "automation/context/hotspots-summary.generated.md"
 assert_contains "$src_agents_file" "automation/context/project-delta-hotspots.generated.md"
 assert_contains "$src_agents_file" "automation/context/metadata-index.generated.json"
-assert_contains "$cf_agents_file" "docs/agent/architecture-map.md"
-assert_contains "$cf_agents_file" "docs/agent/runtime-quickstart.md"
-assert_contains "$cf_agents_file" "automation/context/hotspots-summary.generated.md"
-assert_contains "$cf_agents_file" "automation/context/project-delta-hotspots.generated.md"
-assert_contains "$cf_agents_file" "automation/context/metadata-index.generated.json"
+assert_contains "$src_agents_file" "src/cf/CommonModules"
+assert_contains "$src_agents_file" "src/cf/ScheduledJobs"
+assert_not_exists "$cf_agents_file"
+assert_not_exists "$cf_readme_file"
 assert_jq "$project_delta_hints_file" '.hintsRole == "project-owned-project-delta-hints" and (.selectors.pathPrefixes | type == "array") and (.selectors.pathKeywords | type == "array") and (.representativePaths | type == "array")' "project-delta-hints-default"
 assert_jq "$runtime_policy_file" '.rootEnvProfiles.sanctionedAdditionalProfiles == []' "runtime-policy-default"
 assert_jq "$runtime_matrix_json_file" '.projectSpecificBaselineExtension == null and (.contours[] | select(.id == "doctor") | .runbookPath) == "docs/agent/operator-local-runbook.md"' "runtime-matrix-default-extension"

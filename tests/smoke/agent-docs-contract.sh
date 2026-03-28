@@ -213,6 +213,15 @@ render_generated_repo "$generated_template_root" "$generated_root" "$generated_b
   PATH="$generated_bindir:$PATH" ./scripts/qa/check-agent-docs.sh >/dev/null
 )
 
+generated_forbidden_src_cf_doc_root="$tmpdir/generated-forbidden-src-cf-doc"
+cp -R "$generated_root" "$generated_forbidden_src_cf_doc_root"
+cat >"$generated_forbidden_src_cf_doc_root/src/cf/AGENTS.md" <<'EOF'
+# Forbidden local router
+EOF
+assert_fails_with "$generated_forbidden_src_cf_doc_root" \
+  "forbidden non-1C markdown artifact inside deployable src/cf: src/cf/AGENTS.md" \
+  "$generated_bindir"
+
 generated_curated_project_map_root="$tmpdir/generated-curated-project-map"
 cp -R "$generated_root" "$generated_curated_project_map_root"
 python - <<'PY' "$generated_curated_project_map_root/automation/context/project-map.md"

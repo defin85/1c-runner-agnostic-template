@@ -19,6 +19,24 @@ ensure_parent_dir() {
   mkdir -p "$(dirname "$1")"
 }
 
+ensure_generated_source_roots() {
+  local root="$1"
+
+  mkdir -p \
+    "$root/src/cf" \
+    "$root/src/cfe" \
+    "$root/src/epf" \
+    "$root/src/erf"
+}
+
+remove_retired_source_root_docs() {
+  local root="$1"
+
+  rm -f \
+    "$root/src/cf/AGENTS.md" \
+    "$root/src/cf/README.md"
+}
+
 sync_template_nested_readmes() {
   local template_root="$1"
   local target_root="$2"
@@ -840,6 +858,8 @@ seed_generated_project_surface_on_copy() {
   local project_slug="$3"
   local project_description="$4"
 
+  ensure_generated_source_roots "$root"
+  remove_retired_source_root_docs "$root"
   write_generated_readme_starter "$root/README.md" "$project_name" "$project_slug" "$project_description"
   write_project_map_starter "$root/automation/context/project-map.md" "$project_name" "$project_slug" "$project_description"
   write_architecture_map_starter "$root/docs/agent/architecture-map.md"
@@ -860,6 +880,8 @@ refresh_generated_project_surface_on_update() {
   local project_slug="$3"
   local project_description="$4"
 
+  ensure_generated_source_roots "$root"
+  remove_retired_source_root_docs "$root"
   refresh_generated_readme_router "$root/README.md" "$project_name" "$project_slug" "$project_description"
 
   if [ ! -f "$root/automation/context/project-map.md" ]; then

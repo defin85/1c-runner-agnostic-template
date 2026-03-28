@@ -64,6 +64,20 @@ require_absent_regex() {
   fi
 }
 
+check_forbidden_src_cf_docs() {
+  local relpath=""
+
+  [ -d "$root/src/cf" ] || return 0
+
+  while IFS= read -r relpath; do
+    [ -n "$relpath" ] || continue
+    printf 'forbidden non-1C markdown artifact inside deployable src/cf: %s\n' "$relpath" >&2
+    status=1
+  done < <(
+    cd "$root" && find src/cf -type f -name '*.md' | LC_ALL=C sort
+  )
+}
+
 require_no_local_private_runtime_truth() {
   local rel="$1"
 
@@ -761,7 +775,6 @@ for rel in \
   tests/AGENTS.md \
   scripts/AGENTS.md \
   src/AGENTS.md \
-  src/cf/AGENTS.md \
   automation/AGENTS.md \
   automation/context/templates/generated-project-hotspots-summary.md \
   automation/context/templates/generated-project-architecture-map.md \
@@ -812,7 +825,6 @@ require_markdown_link "tests/AGENTS.md" "../env/README.md"
 require_markdown_link "scripts/AGENTS.md" "../docs/agent/generated-project-index.md"
 require_markdown_link "scripts/AGENTS.md" "../env/README.md"
 require_markdown_link "src/AGENTS.md" "../docs/agent/generated-project-index.md"
-require_markdown_link "src/AGENTS.md" "cf/AGENTS.md"
 require_contains "docs/agent/index.md" "docs/agent/architecture.md"
 require_contains "docs/agent/index.md" "docs/agent/generated-project-index.md"
 require_contains "docs/agent/index.md" "docs/agent/source-vs-generated.md"
@@ -847,12 +859,15 @@ require_contains "src/AGENTS.md" "automation/context/project-map.md"
 require_contains "src/AGENTS.md" "automation/context/hotspots-summary.generated.md"
 require_contains "src/AGENTS.md" "automation/context/project-delta-hotspots.generated.md"
 require_contains "src/AGENTS.md" "automation/context/metadata-index.generated.json"
-require_contains "src/AGENTS.md" "src/cf/AGENTS.md"
-require_contains "src/cf/AGENTS.md" "docs/agent/architecture-map.md"
-require_contains "src/cf/AGENTS.md" "docs/agent/runtime-quickstart.md"
-require_contains "src/cf/AGENTS.md" "automation/context/hotspots-summary.generated.md"
-require_contains "src/cf/AGENTS.md" "automation/context/project-delta-hotspots.generated.md"
-require_contains "src/cf/AGENTS.md" "automation/context/metadata-index.generated.json"
+require_contains "src/AGENTS.md" "docs/agent/architecture-map.md"
+require_contains "src/AGENTS.md" "docs/agent/runtime-quickstart.md"
+require_contains "src/AGENTS.md" "src/cf/CommonModules"
+require_contains "src/AGENTS.md" "src/cf/ScheduledJobs"
+require_absent_regex "src/AGENTS.md" '(^|[^[:alnum:]_./-])cf/AGENTS\.md|src/cf/AGENTS\.md' \
+  "src router must stay above deployable src/cf"
+require_contains "src/README.md" "LoadConfigFromFiles"
+require_contains "src/README.md" "статического анализа BSL"
+require_contains "src/README.md" "сравнения изменений в Git"
 require_contains "docs/agent/generated-project-index.md" "seed-once / project-owned"
 require_contains "docs/agent/generated-project-index.md" "generated-derived"
 require_contains "docs/agent/generated-project-index.md" "make codex-onboard"
@@ -866,6 +881,8 @@ require_contains "docs/agent/generated-project-index.md" "automation/context/pro
 require_contains "docs/agent/generated-project-index.md" "automation/context/metadata-index.generated.json"
 require_contains "docs/agent/generated-project-index.md" "docs/agent/architecture-map.md"
 require_contains "docs/agent/generated-project-index.md" "docs/agent/runtime-quickstart.md"
+require_contains "docs/agent/generated-project-index.md" "src/AGENTS.md"
+require_contains "docs/agent/generated-project-index.md" "src/cf/CommonModules"
 require_contains "docs/agent/generated-project-index.md" "automation/context/runtime-profile-policy.json"
 require_contains "docs/agent/generated-project-index.md" "automation/context/runtime-support-matrix.md"
 require_contains "docs/agent/generated-project-index.md" "OpenSpec"
@@ -906,6 +923,8 @@ require_contains "docs/template-maintenance.md" "./scripts/template/check-update
 require_contains "docs/template-maintenance.md" "./scripts/template/update-template.sh"
 require_contains "docs/template-maintenance.md" ".template-overlay-version"
 require_contains "docs/template-maintenance.md" "automation/context/template-managed-paths.txt"
+require_contains "docs/template-maintenance.md" "src/cf/AGENTS.md"
+require_contains "docs/template-maintenance.md" "src/cf/README.md"
 require_contains "docs/template-maintenance.md" "./scripts/llm/export-context.sh --write"
 require_contains "docs/template-maintenance.md" "tests/smoke/copier-update-ready.sh"
 require_contains "docs/template-release.md" "source repo шаблона"
@@ -991,7 +1010,8 @@ require_contains "automation/context/template-managed-paths.txt" "automation/con
 require_contains "automation/context/template-managed-paths.txt" "scripts/qa/codex-onboard.sh"
 require_contains "automation/context/template-managed-paths.txt" "docs/exec-plans/TEMPLATE.md"
 require_contains "automation/context/template-managed-paths.txt" "docs/exec-plans/EXAMPLE.md"
-require_contains "automation/context/template-managed-paths.txt" "src/cf/AGENTS.md"
+require_absent_regex "automation/context/template-managed-paths.txt" '^src/cf/AGENTS\.md$' \
+  "deployable src/cf router must not stay template-managed"
 require_absent_regex "automation/context/template-managed-paths.txt" '^docs/work-items/README\.md$' \
   "project-owned work-item guide must not become template-managed"
 require_absent_regex "automation/context/template-managed-paths.txt" '^docs/work-items/TEMPLATE\.md$' \
@@ -1051,12 +1071,13 @@ for rel in \
   tests/AGENTS.md \
   scripts/AGENTS.md \
   src/AGENTS.md \
-  src/cf/AGENTS.md \
   .agents/skills/README.md \
   .claude/skills/README.md; do
   check_no_line_specific_links "$rel"
   check_markdown_links "$rel"
 done
+
+check_forbidden_src_cf_docs
 
 if is_source_repo; then
   require_markdown_link "AGENTS.md" "docs/agent/index.md"
@@ -1127,7 +1148,7 @@ else
     env/AGENTS.md \
     tests/AGENTS.md \
     scripts/AGENTS.md \
-    src/cf/AGENTS.md \
+    src/AGENTS.md \
     scripts/qa/codex-onboard.sh \
     .template-overlay-version; do
     require_path "$rel"
@@ -1142,7 +1163,7 @@ else
     docs/work-items/TEMPLATE.md \
     docs/exec-plans/TEMPLATE.md \
     docs/exec-plans/EXAMPLE.md \
-    src/cf/AGENTS.md; do
+    src/AGENTS.md; do
     check_no_line_specific_links "$rel"
     check_markdown_links "$rel"
   done
