@@ -11,6 +11,7 @@ LOAD_TASK_SELECTED_COMMITS=()
 LOAD_TASK_SELECTED_FILES=()
 LOAD_TASK_IGNORED_FILES=()
 LOAD_TASK_DELETED_PATHS=()
+LOAD_TASK_BOOTSTRAP_ERROR=""
 
 record_load_task_cli_error() {
   local message="$1"
@@ -205,6 +206,160 @@ build_load_task_delegated_json() {
     }'
 }
 
+json_escape_load_task() {
+  local value="${1-}"
+
+  value="${value//\\/\\\\}"
+  value="${value//\"/\\\"}"
+  value="${value//$'\n'/\\n}"
+  value="${value//$'\r'/\\r}"
+  value="${value//$'\t'/\\t}"
+  printf '%s' "$value"
+}
+
+json_bool_load_task() {
+  case "${1:-0}" in
+    1|true)
+      printf 'true'
+      ;;
+    *)
+      printf 'false'
+      ;;
+  esac
+}
+
+json_string_or_null_load_task() {
+  local value="${1-}"
+
+  if [ -z "$value" ]; then
+    printf 'null'
+    return 0
+  fi
+
+  printf '"%s"' "$(json_escape_load_task "$value")"
+}
+
+write_load_task_bootstrap_summary() {
+  local summary_path="$1"
+  local status="$2"
+  local adapter="$3"
+  local profile_path="$4"
+  local run_root="$5"
+  local exit_code="$6"
+  local started_at="$7"
+  local finished_at="$8"
+  local stdout_log="$9"
+  local stderr_log="${10}"
+  local dry_run="${11}"
+  local selector_mode="${12}"
+  local selector_value="${13}"
+  local error_message="${14}"
+  local summary_dir=""
+
+  summary_dir="${summary_path%/*}"
+  if [ "$summary_dir" = "$summary_path" ]; then
+    summary_dir="."
+  fi
+  mkdir -p "$summary_dir"
+
+  {
+    printf '{\n'
+    printf '  "status": "%s",\n' "$(json_escape_load_task "$status")"
+    printf '  "capability": {\n'
+    printf '    "id": "load-task-src",\n'
+    printf '    "label": "Load task-scoped source changes"\n'
+    printf '  },\n'
+    printf '  "adapter": %s,\n' "$(json_string_or_null_load_task "$adapter")"
+    printf '  "driver": null,\n'
+    printf '  "profile_path": %s,\n' "$(json_string_or_null_load_task "$profile_path")"
+    printf '  "run_root": "%s",\n' "$(json_escape_load_task "$run_root")"
+    printf '  "started_at": "%s",\n' "$(json_escape_load_task "$started_at")"
+    printf '  "finished_at": "%s",\n' "$(json_escape_load_task "$finished_at")"
+    printf '  "exit_code": %s,\n' "$exit_code"
+    printf '  "dry_run": %s,\n' "$(json_bool_load_task "$dry_run")"
+    printf '  "execution": {\n'
+    printf '    "source": "git-task-to-load-src",\n'
+    printf '    "executor": "delegated-script"\n'
+    printf '  },\n'
+    printf '  "artifacts": {\n'
+    printf '    "summary_json": "%s",\n' "$(json_escape_load_task "$summary_path")"
+    printf '    "stdout_log": "%s",\n' "$(json_escape_load_task "$stdout_log")"
+    printf '    "stderr_log": "%s"\n' "$(json_escape_load_task "$stderr_log")"
+    printf '  },\n'
+    printf '  "selection": {\n'
+    printf '    "source_dir": null,\n'
+    printf '    "selector": {\n'
+    printf '      "mode": %s,\n' "$(json_string_or_null_load_task "$selector_mode")"
+    printf '      "value": %s\n' "$(json_string_or_null_load_task "$selector_value")"
+    printf '    },\n'
+    printf '    "selected_commits": [],\n'
+    printf '    "selected_files": [],\n'
+    printf '    "ignored_files": [],\n'
+    printf '    "deleted_paths": [],\n'
+    printf '    "error": %s\n' "$(json_string_or_null_load_task "$error_message")"
+    printf '  },\n'
+    printf '  "delegated": null\n'
+    printf '}\n'
+  } >"$summary_path"
+}
+
+probe_load_task_bootstrap() {
+  local profile_path="$1"
+
+  require_command git
+  require_command jq
+  load_runtime_profile "$profile_path"
+  require_runtime_profile_loaded
+  printf 'bootstrap-ok\n'
+}
+
+capture_load_task_bootstrap_error() {
+  local probe_stderr_path="$1"
+  local line=""
+
+  LOAD_TASK_BOOTSTRAP_ERROR=""
+  while IFS= read -r line || [ -n "$line" ]; do
+    if [ -n "$line" ]; then
+      LOAD_TASK_BOOTSTRAP_ERROR="$line"
+      printf '%s\n' "$line" >>"$stderr_log"
+    fi
+  done <"$probe_stderr_path"
+
+  LOAD_TASK_BOOTSTRAP_ERROR="${LOAD_TASK_BOOTSTRAP_ERROR#error: }"
+  if [ -z "$LOAD_TASK_BOOTSTRAP_ERROR" ]; then
+    LOAD_TASK_BOOTSTRAP_ERROR="load-task-src bootstrap failed"
+  fi
+}
+
+fail_load_task_bootstrap() {
+  local error_message="$1"
+  local profile_path="$2"
+  local selector_mode="$3"
+  local selector_value="$4"
+  local exit_code="${5:-1}"
+  local finished_at=""
+
+  printf 'error: %s\n' "$error_message" >&2
+  printf 'error: %s\n' "$error_message" >>"$stderr_log"
+  finished_at="$(timestamp_utc)"
+  write_load_task_bootstrap_summary \
+    "$summary_path" \
+    "failed" \
+    "${adapter-}" \
+    "$profile_path" \
+    "$run_root" \
+    "$exit_code" \
+    "$started_at" \
+    "$finished_at" \
+    "$stdout_log" \
+    "$stderr_log" \
+    "$dry_run" \
+    "$selector_mode" \
+    "$selector_value" \
+    "$error_message"
+  exit "$exit_code"
+}
+
 classify_load_task_path() {
   local repo_root="$1"
   local source_dir_rel="$2"
@@ -363,9 +518,6 @@ if [ -z "$cli_error" ] && [ -z "$selector_mode" ]; then
   record_load_task_cli_error "load-task-src requires one of --bead, --work-item, or --range" 1 cli_error cli_exit_code
 fi
 
-require_command git
-require_command jq
-
 root="$(project_root)"
 run_root="$(prepare_capability_run_root "load-task-src" "$run_root_input")"
 summary_path="$(capability_summary_path "$run_root")"
@@ -373,6 +525,7 @@ stdout_log="$run_root/stdout.log"
 stderr_log="$run_root/stderr.log"
 : >"$stdout_log"
 : >"$stderr_log"
+started_at="$(timestamp_utc)"
 
 source_dir="./src/cf"
 source_dir_rel="$(normalize_capability_selected_file "$source_dir")"
@@ -393,7 +546,6 @@ task_trailer_helper="$root/scripts/git/task-trailers.sh"
 
 profile_path="$(resolve_runtime_profile_path "$profile_input" "$root")"
 adapter="${RUNNER_ADAPTER:-direct-platform}"
-
 log "Load task-scoped source changes"
 log "adapter=$adapter"
 if [ -n "$profile_path" ]; then
@@ -404,7 +556,15 @@ printf 'source_dir=%s\n' "$source_dir" >>"$stdout_log"
 printf 'selector_mode=%s\n' "$selector_mode" >>"$stdout_log"
 printf 'selector_value=%s\n' "$selector_value" >>"$stdout_log"
 
-started_at="$(timestamp_utc)"
+if [ -z "$cli_error" ]; then
+  bootstrap_probe_stderr="$run_root/bootstrap-probe.stderr"
+  : >"$bootstrap_probe_stderr"
+  if ! (probe_load_task_bootstrap "$profile_path") >/dev/null 2>"$bootstrap_probe_stderr"; then
+    capture_load_task_bootstrap_error "$bootstrap_probe_stderr"
+    fail_load_task_bootstrap "$LOAD_TASK_BOOTSTRAP_ERROR" "$profile_path" "$selector_mode" "$selector_value"
+  fi
+  rm -f "$bootstrap_probe_stderr"
+fi
 
 if [ -n "$cli_error" ]; then
   status="failed"
@@ -412,6 +572,8 @@ if [ -n "$cli_error" ]; then
   selection_error="$cli_error"
   printf 'error: %s\n' "$selection_error" | tee -a "$stderr_log" >&2
 else
+  require_command git
+  require_command jq
   load_runtime_profile "$profile_path"
   require_runtime_profile_loaded
   adapter="${RUNNER_ADAPTER:-${RUNTIME_PROFILE_RUNNER_ADAPTER:-direct-platform}}"

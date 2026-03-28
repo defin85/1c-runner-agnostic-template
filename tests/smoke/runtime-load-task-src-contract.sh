@@ -167,6 +167,14 @@ assert_jq "$run_bead_root/summary.json" '.selection.selected_files == ["Configur
 assert_jq "$run_bead_root/summary.json" '.selection.ignored_files == []' "bead-ignored-empty"
 assert_jq "$run_bead_root/summary.json" '.selection.deleted_paths == []' "bead-deleted-empty"
 assert_jq "$run_bead_root/summary.json" '.delegated.capability == "load-src"' "bead-delegated-capability"
+assert_jq "$run_bead_root/summary.json" '.delegated.run_root == $ARGS.positional[0]' "bead-delegated-run-root" \
+  --args "$run_bead_root/load-src"
+assert_jq "$run_bead_root/summary.json" '.delegated.summary_json == $ARGS.positional[0]' "bead-delegated-summary-json" \
+  --args "$run_bead_root/load-src/summary.json"
+assert_jq "$run_bead_root/summary.json" '.delegated.stdout_log == $ARGS.positional[0]' "bead-delegated-stdout-log" \
+  --args "$run_bead_root/load-src/stdout.log"
+assert_jq "$run_bead_root/summary.json" '.delegated.stderr_log == $ARGS.positional[0]' "bead-delegated-stderr-log" \
+  --args "$run_bead_root/load-src/stderr.log"
 assert_jq "$run_bead_root/load-src/summary.json" '.driver == "ibcmd"' "bead-delegated-driver"
 assert_jq "$run_bead_root/load-src/summary.json" '.driver_context.partial_import == true' "bead-partial-import"
 assert_contains "$run_bead_root/load-src/stdout.log" "--partial"
@@ -185,6 +193,14 @@ assert_jq "$run_work_item_root/summary.json" '.selection.selected_commits | leng
 assert_jq "$run_work_item_root/summary.json" '.selection.selected_files == ["Configuration.xml", "EventSubscriptions/LoadTask.xml", "Catalogs/Items.xml"]' "work-item-selected-files"
 assert_jq "$run_work_item_root/summary.json" '.selection.ignored_files == []' "work-item-ignored-empty"
 assert_jq "$run_work_item_root/summary.json" '.delegated.capability == "load-src"' "work-item-delegated-capability"
+assert_jq "$run_work_item_root/summary.json" '.delegated.run_root == $ARGS.positional[0]' "work-item-delegated-run-root" \
+  --args "$run_work_item_root/load-src"
+assert_jq "$run_work_item_root/summary.json" '.delegated.summary_json == $ARGS.positional[0]' "work-item-delegated-summary-json" \
+  --args "$run_work_item_root/load-src/summary.json"
+assert_jq "$run_work_item_root/summary.json" '.delegated.stdout_log == $ARGS.positional[0]' "work-item-delegated-stdout-log" \
+  --args "$run_work_item_root/load-src/stdout.log"
+assert_jq "$run_work_item_root/summary.json" '.delegated.stderr_log == $ARGS.positional[0]' "work-item-delegated-stderr-log" \
+  --args "$run_work_item_root/load-src/stderr.log"
 assert_contains "$run_work_item_root/load-src/stdout.log" "Catalogs/Items.xml"
 assert_contains "$run_work_item_root/load-src/stdout.log" "Configuration.xml"
 assert_contains "$run_work_item_root/load-src/stdout.log" "EventSubscriptions/LoadTask.xml"

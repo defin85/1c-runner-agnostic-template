@@ -20,5 +20,4 @@
 - `bash tests/smoke/runtime-ibcmd-doctor-contract.sh`
 - `bash tests/smoke/runtime-ibcmd-capability-contract.sh`
 - `bash tests/smoke/copier-update-ready.sh`
-- `make export-context-write`
 - `make agent-verify`
