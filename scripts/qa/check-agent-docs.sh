@@ -1010,6 +1010,7 @@ require_contains "automation/context/template-managed-paths.txt" "automation/con
 require_contains "automation/context/template-managed-paths.txt" "scripts/qa/codex-onboard.sh"
 require_contains "automation/context/template-managed-paths.txt" "docs/exec-plans/TEMPLATE.md"
 require_contains "automation/context/template-managed-paths.txt" "docs/exec-plans/EXAMPLE.md"
+require_contains "automation/context/template-managed-paths.txt" "src/README.md"
 require_absent_regex "automation/context/template-managed-paths.txt" '^src/cf/AGENTS\.md$' \
   "deployable src/cf router must not stay template-managed"
 require_absent_regex "automation/context/template-managed-paths.txt" '^docs/work-items/README\.md$' \
@@ -1149,6 +1150,7 @@ else
     tests/AGENTS.md \
     scripts/AGENTS.md \
     src/AGENTS.md \
+    src/README.md \
     scripts/qa/codex-onboard.sh \
     .template-overlay-version; do
     require_path "$rel"

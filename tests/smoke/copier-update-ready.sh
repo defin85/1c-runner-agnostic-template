@@ -571,6 +571,7 @@ assert_contains "$rendered_root/automation/context/template-managed-paths.txt" "
 assert_contains "$rendered_root/automation/context/template-managed-paths.txt" "tests/AGENTS.md"
 assert_contains "$rendered_root/automation/context/template-managed-paths.txt" "scripts/AGENTS.md"
 assert_contains "$rendered_root/automation/context/template-managed-paths.txt" "scripts/qa/codex-onboard.sh"
+assert_contains "$rendered_root/automation/context/template-managed-paths.txt" "src/README.md"
 assert_not_contains "$rendered_root/automation/context/template-managed-paths.txt" "src/cf/AGENTS.md"
 assert_contains "$rendered_root/.template-overlay-version" "v0.1.0"
 assert_contains "$rendered_root/src/cf/DataProcessors/TestProcessor/Ext/ObjectModule.bsl" "{{ raw_bsl_expression }}"
@@ -871,6 +872,27 @@ rm -f \
 git -C "$rendered_root" add -A
 git -C "$rendered_root" commit -qm "remove readme and load-diff-src surface"
 
+cat >"$rendered_root/src/README.md" <<'EOF'
+# Source Tree
+
+`src/` — это единственный источник deployable исходников.
+
+Сюда не складываются:
+
+- временные заметки;
+- архив задач;
+- traceability;
+- тестовые отчеты;
+- ad-hoc выгрузки для обсуждения.
+
+Подкаталоги:
+
+- `cf/` — исходники основной конфигурации
+- `cfe/` — исходники расширений
+- `epf/` — внешние обработки
+- `erf/` — внешние отчеты
+EOF
+
 cat >"$rendered_root/src/cf/AGENTS.md" <<'EOF'
 # Legacy local router
 EOF
@@ -916,6 +938,9 @@ assert_exists "$rendered_root/.agents/skills/1c-load-diff-src/SKILL.md"
 assert_exists "$rendered_root/.claude/skills/1c-load-diff-src/SKILL.md"
 assert_exists "$rendered_root/docs/agent/generated-project-index.md"
 assert_exists "$rendered_root/docs/agent/generated-project-verification.md"
+assert_contains "$rendered_root/src/README.md" "LoadConfigFromFiles"
+assert_contains "$rendered_root/src/README.md" "статического анализа BSL"
+assert_contains "$rendered_root/src/README.md" "сравнения изменений в Git"
 assert_not_exists "$rendered_root/src/cf/AGENTS.md"
 assert_not_exists "$rendered_root/src/cf/README.md"
 assert_contains "$rendered_root/README.md" "# Smoke Project"

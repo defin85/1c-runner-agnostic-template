@@ -222,6 +222,15 @@ assert_fails_with "$generated_forbidden_src_cf_doc_root" \
   "forbidden non-1C markdown artifact inside deployable src/cf: src/cf/AGENTS.md" \
   "$generated_bindir"
 
+generated_forbidden_src_cf_readme_root="$tmpdir/generated-forbidden-src-cf-readme"
+cp -R "$generated_root" "$generated_forbidden_src_cf_readme_root"
+cat >"$generated_forbidden_src_cf_readme_root/src/cf/README.md" <<'EOF'
+# Forbidden source note
+EOF
+assert_fails_with "$generated_forbidden_src_cf_readme_root" \
+  "forbidden non-1C markdown artifact inside deployable src/cf: src/cf/README.md" \
+  "$generated_bindir"
+
 generated_curated_project_map_root="$tmpdir/generated-curated-project-map"
 cp -R "$generated_root" "$generated_curated_project_map_root"
 python - <<'PY' "$generated_curated_project_map_root/automation/context/project-map.md"

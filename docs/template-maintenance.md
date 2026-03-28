@@ -27,7 +27,7 @@ make template-update
 `template-check-update` сверяет текущую checked-in версию wrapper overlay в `.template-overlay-version`
 с latest tagged release шаблона или с явно переданным `--vcs-ref`.
 `template-update` materialize-ит выбранный template ref и применяет только manifest template-managed paths из `automation/context/template-managed-paths.txt`.
-Дополнительно migration cleanup может удалить retired template-seeded routing docs из deployable `src/cf`, например legacy `src/cf/AGENTS.md` и `src/cf/README.md`.
+Дополнительно migration cleanup удаляет retired template-seeded routing docs из deployable `src/cf`, если они остались от старых template release, например legacy `src/cf/AGENTS.md` и `src/cf/README.md`.
 
 ## Ownership Boundary
 

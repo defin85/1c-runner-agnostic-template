@@ -348,7 +348,7 @@ update-1c-project /path/to/generated-project --vcs-ref v0.1.1
 ```
 
 `template-check-update` сверяет `.template-overlay-version` с latest tagged release шаблона или с явно переданным `--vcs-ref`.
-`template-update` materialize-ит выбранный template ref, обновляет только manifest-declared template-managed assets, refresh-ит generated README router и managed-блок в `AGENTS.md`, при необходимости восстанавливает missing root entrypoint files, может удалить retired template-seeded routing docs из deployable `src/cf`, и не переинициализирует `openspec`, `git` и `bd`.
+`template-update` materialize-ит выбранный template ref, обновляет только manifest-declared template-managed assets, refresh-ит generated README router и managed-блок в `AGENTS.md`, при необходимости восстанавливает missing root entrypoint files, удаляет legacy `src/cf/AGENTS.md` и `src/cf/README.md`, если они остались от старых template release, и не переинициализирует `openspec`, `git` и `bd`.
 
 ## Make targets
 
