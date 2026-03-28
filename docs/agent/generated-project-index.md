@@ -8,7 +8,7 @@
 1. Запустите `make codex-onboard`, если нужен read-only первый экран новой Codex-сессии.
 2. Зафиксируйте project-owned truth по `automation/context/project-map.md`.
 3. Откройте `docs/agent/architecture-map.md`, если нужен project-owned ответ на вопрос “где менять X?”.
-4. Если вопрос упирается в local-private/runtime contour, откройте `docs/agent/operator-local-runbook.md`.
+4. Если вопрос упирается в local-private/runtime contour, в generated project откройте project-owned `docs/agent/operator-local-runbook.md`, а в source repo сверяйтесь с template contract в `automation/context/templates/generated-project-operator-local-runbook.md`.
 5. Откройте `docs/agent/runtime-quickstart.md`, если нужен короткий ответ “что здесь можно запустить и с какими prerequisites?”.
 6. Сверьтесь с `automation/context/runtime-support-matrix.md` и `automation/context/runtime-support-matrix.json`, чтобы подтвердить статусы `supported`, `unsupported`, `operator-local`, `provisioned`.
 7. Если проект уже описал свои customization selectors, откройте `automation/context/project-delta-hotspots.generated.md`.
@@ -21,7 +21,7 @@
 14. Если задача длинная, копируйте [docs/exec-plans/TEMPLATE.md](../exec-plans/TEMPLATE.md) и держите рядом [docs/work-items/README.md](../work-items/README.md) как companion workspace для supporting artifacts.
 15. Если работа касается только template refresh, отдельно откройте [docs/template-maintenance.md](../template-maintenance.md).
 
-Короткая runtime-шпаргалка: `./scripts/platform/load-diff-src.sh --profile <operator-profile> --run-root /tmp/load-diff-src-run` загружает в ИБ только текущий git-backed diff внутри `src/cf`, а `./scripts/platform/load-task-src.sh --profile <operator-profile> --bead <id> --run-root /tmp/load-task-src-run` загружает уже закомиченный scope задачи по `Bead:` / `Work-Item:` trailers или по `--range`; prerequisites и fail-closed semantics остаются в `docs/agent/operator-local-runbook.md` и `env/README.md`.
+Короткая runtime-шпаргалка: `./scripts/platform/load-diff-src.sh --profile <operator-profile> --run-root /tmp/load-diff-src-run` загружает в ИБ только текущий git-backed diff внутри `src/cf`, а `./scripts/platform/load-task-src.sh --profile <operator-profile> --bead <id> --run-root /tmp/load-task-src-run` загружает уже закомиченный scope задачи по `Bead:` / `Work-Item:` trailers или по `--range`; prerequisites и fail-closed semantics в generated project живут в `docs/agent/operator-local-runbook.md`, а в source repo описаны в `automation/context/templates/generated-project-operator-local-runbook.md` и `env/README.md`.
 
 ## Что считается source of truth
 
@@ -30,7 +30,7 @@
 | Что это за система? | `automation/context/project-map.md` |
 | Где искать прикладной change scenario -> code path map? | `docs/agent/architecture-map.md` |
 | Где лежит canonical Codex workflow guide? | `docs/agent/codex-workflows.md` |
-| Где принимать решение по operator-local contour-ам? | `docs/agent/operator-local-runbook.md` |
+| Где принимать решение по operator-local contour-ам? | generated project: `docs/agent/operator-local-runbook.md`; source repo: `automation/context/templates/generated-project-operator-local-runbook.md` |
 | Где держать короткий runtime digest? | `docs/agent/runtime-quickstart.md` |
 | Где лежит checked-in runtime truth? | `automation/context/runtime-support-matrix.md`, `automation/context/runtime-support-matrix.json` |
 | Где смотреть optional project-specific baseline extension? | `automation/context/runtime-support-matrix.json`, `docs/agent/runtime-quickstart.md`, `make codex-onboard` |
@@ -54,7 +54,7 @@
 1. Запустите `make codex-onboard`, чтобы собрать identity, safe-local commands, runtime status и следующие команды без записи в repo.
 2. Подтвердите curated truth через `automation/context/project-map.md`.
 3. Уточните code routing по `docs/agent/architecture-map.md`.
-4. Если runtime contour operator-local, сначала откройте `docs/agent/operator-local-runbook.md`, затем подтвердите answer через `docs/agent/runtime-quickstart.md` и `automation/context/runtime-support-matrix.md` / `.json`.
+4. Если runtime contour operator-local, в generated project сначала откройте `docs/agent/operator-local-runbook.md`; в source repo используйте `automation/context/templates/generated-project-operator-local-runbook.md`, затем подтверждайте answer через `docs/agent/runtime-quickstart.md` и `automation/context/runtime-support-matrix.md` / `.json`.
 5. Если проект уже знает stable customization selectors, сначала откройте `automation/context/project-delta-hotspots.generated.md`, а уже потом `automation/context/hotspots-summary.generated.md`.
 6. Raw inventory `automation/context/metadata-index.generated.json` открывайте только когда curated и summary-first layers уже не хватает.
 7. Для детальных Codex-native workflows переходите в [docs/agent/codex-workflows.md](codex-workflows.md).

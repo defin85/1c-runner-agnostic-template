@@ -410,3 +410,33 @@ assert_jq "$run_conflict_root/summary.json" '.selection.selector.value == "bead-
 assert_jq "$run_conflict_root/summary.json" '.selection.error == "load-task-src requires exactly one selector"' "conflict-selection-error"
 assert_jq "$run_conflict_root/summary.json" '.delegated == null' "conflict-no-delegation"
 assert_stderr_contains "$run_conflict_root/stderr.log" "load-task-src requires exactly one selector"
+
+repo_conflict_missing_jq="$tmpdir/repo-conflict-missing-jq"
+write_fixture_repo "$repo_conflict_missing_jq"
+run_conflict_missing_jq_root="$tmpdir/run-conflict-missing-jq"
+stderr_conflict_missing_jq="$tmpdir/run-conflict-missing-jq.stderr"
+missing_jq_conflict_path="$tmpdir/path-no-jq-conflict"
+create_minimal_path "$missing_jq_conflict_path" dirname realpath basename mkdir date tee git
+set +e
+(
+  cd "$repo_conflict_missing_jq"
+  PATH="$missing_jq_conflict_path" "$BASH" ./scripts/platform/load-task-src.sh \
+    --profile env/local.json \
+    --run-root "$run_conflict_missing_jq_root" \
+    --bead bead-1 \
+    --work-item 1002 >/dev/null
+) 2>"$stderr_conflict_missing_jq"
+status=$?
+set -e
+if [ "$status" -eq 0 ]; then
+  printf 'load-task-src unexpectedly succeeded for selector conflict without jq in PATH\n' >&2
+  exit 1
+fi
+assert_stderr_contains "$stderr_conflict_missing_jq" "load-task-src requires exactly one selector"
+assert_exists "$run_conflict_missing_jq_root/summary.json"
+assert_exists "$run_conflict_missing_jq_root/stderr.log"
+assert_jq "$run_conflict_missing_jq_root/summary.json" '.status == "failed"' "conflict-missing-jq-status"
+assert_jq "$run_conflict_missing_jq_root/summary.json" '.selection.selector.mode == "bead"' "conflict-missing-jq-selector-mode"
+assert_jq "$run_conflict_missing_jq_root/summary.json" '.selection.selector.value == "bead-1"' "conflict-missing-jq-selector-value"
+assert_jq "$run_conflict_missing_jq_root/summary.json" '.selection.error == "load-task-src requires exactly one selector"' "conflict-missing-jq-selection-error"
+assert_jq "$run_conflict_missing_jq_root/summary.json" '.delegated == null' "conflict-missing-jq-no-delegation"

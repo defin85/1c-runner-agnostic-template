@@ -55,6 +55,6 @@
 
 - Repeatable repo-owned entrypoints описаны в `.agents/skills/README.md`.
 - `.codex/README.md` остаётся коротким companion для repo trust, config и pointers.
-- Operator-local runtime decisions держите в `docs/agent/operator-local-runbook.md`.
+- Operator-local runtime decisions в generated project держите в `docs/agent/operator-local-runbook.md`, а в source repo сверяйте с `automation/context/templates/generated-project-operator-local-runbook.md`.
 - Long-running task artifacts держите в `docs/work-items/README.md`, а не в ad-hoc папках вроде `tasks/roadmap`.
 - Full runtime contract и sanctioned profile policy живут в `env/README.md` и `automation/context/runtime-profile-policy.json`.

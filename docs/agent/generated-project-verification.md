@@ -5,7 +5,7 @@ Runtime profile contract, canonical local profile paths и `local-private` пр�
 Sanctioned checked-in team-shared presets описываются в `automation/context/runtime-profile-policy.json`.
 Checked-in runtime support truth конкретного generated repo живёт в `automation/context/runtime-support-matrix.md` и `automation/context/runtime-support-matrix.json`.
 Короткий project-specific digest для первого runtime-вопроса должен жить в `docs/agent/runtime-quickstart.md`.
-Operator-local decision bridge для local-private contour-ов должен жить в `docs/agent/operator-local-runbook.md`.
+Operator-local decision bridge для local-private contour-ов в generated project должен жить в `docs/agent/operator-local-runbook.md`; в source repo его template contract лежит в `automation/context/templates/generated-project-operator-local-runbook.md`.
 
 ## Safe Local
 
@@ -47,7 +47,7 @@ Optional project-specific baseline extension:
 Важно:
 
 - shared runtime truth ищите сначала в `automation/context/runtime-support-matrix.md` / `.json`, а не в ignored local-private profiles;
-- если contour отмечен как `operator-local`, первым project-owned bridge должен быть `docs/agent/operator-local-runbook.md`;
+- если contour отмечен как `operator-local`, в generated project первым project-owned bridge должен быть `docs/agent/operator-local-runbook.md`, а в source repo смотрите `automation/context/templates/generated-project-operator-local-runbook.md`;
 - если sanctioned checked-in profile ещё не wired project-specific contour, используйте `unsupportedReason`, а не `echo TODO`;
 - если sanctioned checked-in profile всё же использует `command`, он должен запускать прямой repo-owned entrypoint вроде `./scripts/...` или `make <target>`, а не shell-wrapper / inline / no-op success command;
 - repo-owned entrypoint может опираться на launcher-provided `ONEC_*` env contract из [env/README.md](../../env/README.md), чтобы использовать `--run-root`, profile path и capability metadata без повторной обвязки launcher-а;

@@ -567,11 +567,10 @@ if [ -z "$cli_error" ]; then
 fi
 
 if [ -n "$cli_error" ]; then
-  status="failed"
-  exit_code="$cli_exit_code"
-  selection_error="$cli_error"
-  printf 'error: %s\n' "$selection_error" | tee -a "$stderr_log" >&2
-else
+  fail_load_task_bootstrap "$cli_error" "$profile_path" "$selector_mode" "$selector_value" "$cli_exit_code"
+fi
+
+if [ "$status" != "failed" ]; then
   require_command git
   require_command jq
   load_runtime_profile "$profile_path"
