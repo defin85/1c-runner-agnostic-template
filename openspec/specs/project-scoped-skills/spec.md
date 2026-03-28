@@ -45,3 +45,26 @@ The repository SHALL provide repo-local Codex customization artifacts that help 
 - **AND** the default checked-in Codex configuration MUST remain safe on machines that do not have local MCP binaries or host-specific paths
 - **AND** Codex customization MUST point back to repo-owned scripts or agent docs instead of duplicating runtime logic inline
 
+### Requirement: Intent Mapping For Diff-To-Load Workflow
+
+Шаблон MUST документировать и поставлять agent-facing mapping для намерения "загрузить в ИБ только текущие source changes".
+
+#### Scenario: Agent looks for a repeatable diff-to-load workflow
+
+- **WHEN** пользователь просит загрузить в ИБ только текущий diff исходников
+- **THEN** repository MUST поставлять project-scoped skill или обновлённый skill contract для этого workflow
+- **AND** skill ДОЛЖЕН указывать на repo-owned wrapper, а не на ad hoc shell snippet
+- **AND** mapping ДОЛЖЕН оставаться updateable через template updates
+
+### Requirement: Intent Mapping For Task-To-Load Workflow
+
+Шаблон MUST документировать и поставлять agent-facing mapping для намерения "загрузить в ИБ уже закомиченные изменения задачи".
+
+#### Scenario: Agent looks for a repeatable task-to-load workflow
+
+- **WHEN** пользователь просит загрузить в ИБ изменения конкретной задачи, уже попавшие в commit history
+- **THEN** repository MUST поставлять project-scoped skill или обновлённый skill contract для этого workflow
+- **AND** skill ДОЛЖЕН указывать на repo-owned wrapper, а не на ad hoc shell snippet
+- **AND** mapping ДОЛЖЕН документировать canonical selectors `--bead`, `--work-item` и `--range`
+- **AND** mapping ДОЛЖЕН оставаться updateable через template updates
+
