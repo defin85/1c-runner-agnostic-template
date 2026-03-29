@@ -33,6 +33,9 @@ Runtime and test:
 - `./scripts/platform/publish-http.sh`
 - `./scripts/diag/doctor.sh`
 - `./scripts/test/run-xunit.sh`
+- `./scripts/test/run-xunit-direct-platform.sh`
+- `./scripts/test/build-xunit-epf.sh`
+- `./scripts/test/tdd-xunit.sh`
 - `./scripts/test/run-bdd.sh`
 - `./scripts/test/run-smoke.sh`
 

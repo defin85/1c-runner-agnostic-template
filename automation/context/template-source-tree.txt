@@ -49,6 +49,7 @@
 ./docs/exec-plans/active
 ./docs/exec-plans/completed
 ./docs/migrations
+./docs/testing
 ./docs/work-items
 ./env
 ./env/.local
@@ -56,6 +57,7 @@
 ./features/examples
 ./openspec
 ./openspec/changes
+./openspec/changes/add-template-xunit-tdd-contour
 ./openspec/changes/archive
 ./openspec/changes/remove-deployable-source-agent-docs
 ./openspec/specs
@@ -85,6 +87,7 @@
 ./src/cf
 ./src/cfe
 ./src/epf
+./src/epf/TemplateXUnitHarness
 ./src/erf
 ./tests
 ./tests/fixtures

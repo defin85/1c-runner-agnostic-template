@@ -171,6 +171,7 @@ write_generated_readme_starter() {
 
 - Read-only first screen: \`make codex-onboard\`.
 - Safe-local baseline: \`make agent-verify\`, затем \`make export-context-check\`.
+- Operator-local xUnit TDD loop для fresh \`src/cf\` diff: \`make tdd-xunit\`.
 - Canonical onboarding route: [docs/agent/generated-project-index.md](docs/agent/generated-project-index.md).
 - Curated project truth: [automation/context/project-map.md](automation/context/project-map.md).
 - Project-owned code map: [docs/agent/architecture-map.md](docs/agent/architecture-map.md).
@@ -392,16 +393,18 @@ write_operator_local_runbook_starter() {
 | `doctor` | `operator-local` | `./scripts/diag/doctor.sh --profile env/local.json --run-root /tmp/doctor-run` | `env/local.json` или явный `--profile`; runtime binaries по `env/README.md` | non-zero + summary/stderr, если profile или runtime не готовы | `env/README.md`, `docs/agent/generated-project-verification.md` |
 | `load-diff-src` | `operator-local` | `./scripts/platform/load-diff-src.sh --profile env/local.json --run-root /tmp/load-diff-src-run` | `env/local.json` или явный `--profile`; prepared infobase + git worktree | non-zero + summary/stderr, если diff selection пустой или runtime не ready | `env/README.md`, `docs/agent/generated-project-index.md` |
 | `load-task-src` | `operator-local` | `./scripts/platform/load-task-src.sh --profile env/local.json --bead task.1 --run-root /tmp/load-task-src-run` | `env/local.json` или явный `--profile`; prepared infobase + git history with task markers or explicit revset | non-zero + summary/stderr, если task selection пустой или runtime не ready | `env/README.md`, `docs/agent/generated-project-index.md` |
+| `xunit` | `operator-local` | `./scripts/test/run-xunit.sh --profile env/local.json --run-root /tmp/xunit-run` | `direct-platform profile с wired addRoot + local 1C runtime`; для fresh `src/cf` diff используйте `./scripts/test/tdd-xunit.sh` | non-zero + summary/stderr, если profile не wired или delete/rename delta требует manual full sync | `docs/testing/xunit-direct-platform.md`, `env/README.md` |
 
 ## Project Extensions
 
-- Если проект wires operator-local `xunit`, `smoke`, `bdd` или другой contour, добавляйте сюда отдельную строку и синхронно обновляйте `automation/context/runtime-support-matrix.md`, `.json` и `docs/agent/runtime-quickstart.md`.
+- Если проект wires дополнительные operator-local `smoke`, `bdd` или другие contour-ы сверх template-shipped `xunit`, добавляйте сюда отдельную строку и синхронно обновляйте `automation/context/runtime-support-matrix.md`, `.json` и `docs/agent/runtime-quickstart.md`.
 - Если contour перестал быть operator-local и стал checked-in baseline-ready, переносите truth обратно в runtime support matrix и baseline docs.
 
 ## Related Truth
 
 - checked-in runtime truth: `automation/context/runtime-support-matrix.md`, `automation/context/runtime-support-matrix.json`
 - runtime digest: `docs/agent/runtime-quickstart.md`
+- xUnit contour details: `docs/testing/xunit-direct-platform.md`
 - long-running companion workspace: `docs/work-items/README.md`
 - general runtime contract: `env/README.md`
 - verification semantics: `docs/agent/generated-project-verification.md`
@@ -435,7 +438,7 @@ write_runtime_quickstart_starter() {
 | `doctor` | `operator-local` | `./scripts/diag/doctor.sh --profile env/local.json --run-root /tmp/doctor-run` | `1C runtime + operator-owned profile` | `docs/agent/operator-local-runbook.md` |
 | `load-diff-src` | `operator-local` | `./scripts/platform/load-diff-src.sh --profile env/local.json --run-root /tmp/load-diff-src-run` | `ibcmd-ready operator-owned profile + prepared infobase + git worktree` | `docs/agent/operator-local-runbook.md` |
 | `load-task-src` | `operator-local` | `./scripts/platform/load-task-src.sh --profile env/local.json --bead task.1 --run-root /tmp/load-task-src-run` | `ibcmd-ready operator-owned profile + prepared infobase + task markers or explicit revset` | `docs/agent/operator-local-runbook.md` |
-| `xunit` | `unsupported` | `./scripts/test/run-xunit.sh --profile env/local.json --run-root /tmp/xunit-run` | `future project-owned contour or sanctioned preset` | `docs/agent/generated-project-verification.md` |
+| `xunit` | `operator-local` | `./scripts/test/run-xunit.sh --profile env/local.json --run-root /tmp/xunit-run` | `direct-platform profile with wired addRoot + local 1C runtime` | `docs/testing/xunit-direct-platform.md` |
 | `bdd` | `unsupported` | `./scripts/test/run-bdd.sh --profile env/local.json --run-root /tmp/bdd-run` | `future project-owned contour or sanctioned preset` | `docs/agent/generated-project-verification.md` |
 | `smoke` | `unsupported` | `./scripts/test/run-smoke.sh --profile env/local.json --run-root /tmp/smoke-run` | `future project-owned contour or sanctioned preset` | `docs/agent/generated-project-verification.md` |
 | `publish-http` | `unsupported` | `./scripts/platform/publish-http.sh --profile env/local.json --run-root /tmp/publish-http-run` | `future project-owned contour or sanctioned preset` | `docs/agent/generated-project-verification.md` |
@@ -680,11 +683,11 @@ write_runtime_support_matrix_json_starter() {
     {
       "id": "xunit",
       "layer": "profile-required",
-      "status": "unsupported",
+      "status": "operator-local",
       "entrypoint": "./scripts/test/run-xunit.sh --profile env/local.json --run-root /tmp/xunit-run",
-      "profileProvenance": "future sanctioned preset or operator-local repo-owned contour",
-      "runbookPath": "docs/agent/generated-project-verification.md",
-      "summary": "Keep fail-closed until the project wires a real repo-owned xUnit contour."
+      "profileProvenance": "operator-local direct-platform profile with addRoot and a local 1C runtime",
+      "runbookPath": "docs/testing/xunit-direct-platform.md",
+      "summary": "Template-managed direct-platform xUnit contour with a local TDD wrapper for git-backed src/cf changes."
     },
     {
       "id": "bdd",
@@ -749,7 +752,7 @@ write_runtime_support_matrix_markdown_starter() {
 | `doctor` | `operator-local` | `env/local.json` или явный `--profile` | `./scripts/diag/doctor.sh --profile env/local.json --run-root /tmp/doctor-run` | `docs/agent/operator-local-runbook.md` |
 | `load-diff-src` | `operator-local` | `env/local.json` с ready partial-import contour или явный `--profile` | `./scripts/platform/load-diff-src.sh --profile env/local.json --run-root /tmp/load-diff-src-run` | `docs/agent/operator-local-runbook.md` |
 | `load-task-src` | `operator-local` | `env/local.json` с ready partial-import contour или явный `--profile` | `./scripts/platform/load-task-src.sh --profile env/local.json --bead task.1 --run-root /tmp/load-task-src-run` | `docs/agent/operator-local-runbook.md` |
-| `xunit` | `unsupported` | project decides later | `./scripts/test/run-xunit.sh --profile env/local.json --run-root /tmp/xunit-run` | `docs/agent/generated-project-verification.md` |
+| `xunit` | `operator-local` | `env/local.json`, `env/wsl.json`, `env/ci.json` или явный `--profile` с wired `capabilities.xunit` | `./scripts/test/run-xunit.sh --profile env/local.json --run-root /tmp/xunit-run` | `docs/testing/xunit-direct-platform.md` |
 | `bdd` | `unsupported` | project decides later | `./scripts/test/run-bdd.sh --profile env/local.json --run-root /tmp/bdd-run` | `docs/agent/generated-project-verification.md` |
 | `smoke` | `unsupported` | project decides later | `./scripts/test/run-smoke.sh --profile env/local.json --run-root /tmp/smoke-run` | `docs/agent/generated-project-verification.md` |
 | `publish-http` | `unsupported` | project decides later | `./scripts/platform/publish-http.sh --profile env/local.json --run-root /tmp/publish-http-run` | `docs/agent/generated-project-verification.md` |

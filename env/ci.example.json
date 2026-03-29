@@ -7,7 +7,8 @@
   "notes": [
     "Этот preset показывает shape для dbms-infobase contour.",
     "DBMS-backed contour является safety-sensitive, если целевая БД обычно принадлежит cluster-managed topology.",
-    "По умолчанию core capabilities оставлены на designer; перевод на ibcmd делайте осознанно и только при operator-owned isolation."
+    "По умолчанию core capabilities оставлены на designer; перевод на ibcmd делайте осознанно и только при operator-owned isolation.",
+    "Template-managed xUnit contour уже wired на ./scripts/test/run-xunit-direct-platform.sh, но addRoot нужно заменить на реальный локальный ADD path."
   ],
   "runnerAdapter": "direct-platform",
   "platform": {
@@ -62,7 +63,11 @@
       "command": ["git", "diff", "--", "./src"]
     },
     "xunit": {
-      "unsupportedReason": "CI xUnit contour is project-specific; wire a real command before treating this profile as green."
+      "command": ["./scripts/test/run-xunit-direct-platform.sh"],
+      "addRoot": "/opt/onec/add",
+      "harnessSourceDir": "./src/epf/TemplateXUnitHarness",
+      "configPath": "./tests/xunit/smoke.quickstart.json",
+      "timeoutSeconds": 900
     },
     "bdd": {
       "unsupportedReason": "CI BDD contour is project-specific; wire a real command before treating this profile as green."

@@ -41,7 +41,7 @@ Optional project-specific baseline extension:
 | --- | --- | --- | --- | --- |
 | `./scripts/diag/doctor.sh --profile env/local.json --run-root /tmp/doctor-run` | Проверка readiness runtime profile | 1С binaries и profile | пишет только run-root | `summary.json`, `stdout.log`, `stderr.log` |
 | `./scripts/test/run-smoke.sh --profile env/local.json --run-root /tmp/smoke-run` | Короткий runtime smoke contour | подготовленный profile | пишет только run-root | run-root logs и summary |
-| `./scripts/test/run-xunit.sh --profile env/local.json --run-root /tmp/xunit-run` | xUnit contour | подготовленный profile | пишет только run-root | run-root logs и summary |
+| `./scripts/test/run-xunit.sh --profile env/local.json --run-root /tmp/xunit-run` | Template-managed direct-platform xUnit contour | direct-platform profile с wired `capabilities.xunit` | пишет только run-root | run-root logs и summary |
 | `./scripts/test/run-bdd.sh --profile env/local.json --run-root /tmp/bdd-run` | BDD contour | подготовленный profile | пишет только run-root | run-root logs и summary |
 
 Важно:
@@ -51,6 +51,8 @@ Optional project-specific baseline extension:
 - если sanctioned checked-in profile ещё не wired project-specific contour, используйте `unsupportedReason`, а не `echo TODO`;
 - если sanctioned checked-in profile всё же использует `command`, он должен запускать прямой repo-owned entrypoint вроде `./scripts/...` или `make <target>`, а не shell-wrapper / inline / no-op success command;
 - repo-owned entrypoint может опираться на launcher-provided `ONEC_*` env contract из [env/README.md](../../env/README.md), чтобы использовать `--run-root`, profile path и capability metadata без повторной обвязки launcher-а;
+- generated repositories получают template-managed xUnit contour через `./scripts/test/run-xunit-direct-platform.sh`; canonical local loop для свежих `src/cf` изменений идёт через `./scripts/test/tdd-xunit.sh` и описан в `docs/testing/xunit-direct-platform.md`;
+- `./scripts/test/tdd-xunit.sh` intentionally fail-closed останавливается на delete/rename/conflict-style delta shape под `src/cf`; в этом случае используйте manual `load-src -> update-db -> run-xunit` path из `docs/testing/xunit-direct-platform.md`;
 - такой contour завершится fail-closed и должен считаться `unsupported`, а не зелёной проверкой;
 - contour, живущий только через ignored local-private profile, должен быть классифицирован как `operator-local` в runtime support matrix и не должен маскироваться под shared baseline-ready truth.
 

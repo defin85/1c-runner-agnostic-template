@@ -66,6 +66,7 @@ docs/exec-plans/TEMPLATE.md
 docs/exec-plans/active/.gitkeep
 docs/exec-plans/completed/.gitkeep
 docs/migrations/runtime-profile-v2.md
+docs/testing/xunit-direct-platform.md
 docs/template-maintenance.md
 docs/template-release.md
 env/.local/README.md
@@ -114,11 +115,16 @@ scripts/template/check-update.sh
 scripts/template/lib-overlay.sh
 scripts/template/migrate-runtime-profile-v2.sh
 scripts/template/update-template.sh
+scripts/test/build-xunit-epf.sh
+scripts/test/run-xunit-direct-platform.sh
+scripts/test/tdd-xunit.sh
 scripts/test/run-bdd.sh
 scripts/test/run-smoke.sh
 scripts/test/run-xunit.sh
 src/AGENTS.md
 src/README.md
+src/epf/TemplateXUnitHarness/TemplateXUnitHarness.xml
+src/epf/TemplateXUnitHarness/TemplateXUnitHarness/Ext/ObjectModule.bsl
 tests/AGENTS.md
 tests/README.md
 tests/fixtures/README.md
@@ -142,5 +148,8 @@ tests/smoke/runtime-load-task-src-contract.sh
 tests/smoke/runtime-load-task-src-validation-contract.sh
 tests/smoke/runtime-profile-legacy-rejection.sh
 tests/smoke/runtime-profile-migration-helper.sh
+tests/smoke/tdd-xunit-wrapper-contract.sh
+tests/smoke/template-xunit-contour-contract.sh
 tests/smoke/update-1c-project-wrapper.sh
 tests/xunit/README.md
+tests/xunit/smoke.quickstart.json

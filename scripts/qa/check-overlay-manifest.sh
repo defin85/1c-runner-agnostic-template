@@ -16,7 +16,7 @@ trap 'rm -f "$expected_file" "$actual_file"' EXIT
 if [ ! -f "$root/automation/context/template-source-project-map.md" ]; then
   if awk '
     /^(openspec\/|tooling\/|AGENTS\.md$|README\.md$|copier\.yml$)/ { exit 0 }
-    /^src\// && $0 != "src/AGENTS.md" && $0 != "src/README.md" { exit 0 }
+    /^src\// && $0 != "src/AGENTS.md" && $0 != "src/README.md" && $0 !~ /^src\/epf\/TemplateXUnitHarness(\/|$)/ { exit 0 }
     END { exit 1 }
   ' "$manifest"; then
     printf 'generated-project overlay manifest must not manage source-only or project-owned paths\n' >&2
@@ -42,7 +42,7 @@ git -C "$root" ls-files --cached --others --exclude-standard \
       /^\.githooks\// { next }
       /^scripts\/release\// { next }
       /^tests\/smoke\/template-release-workflow\.sh$/ { next }
-      /^src\// && $0 != "src/AGENTS.md" && $0 != "src/README.md" { next }
+      /^src\// && $0 != "src/AGENTS.md" && $0 != "src/README.md" && $0 !~ /^src\/epf\/TemplateXUnitHarness(\/|$)/ { next }
       { print }
     ' \
   | LC_ALL=C sort >"$expected_file"

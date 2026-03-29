@@ -1,6 +1,6 @@
 SHELL := bash
 
-.PHONY: help agent-verify qa analyze-bsl format-bsl check-agent-docs check-skill-bindings check-overlay-manifest codex-onboard create-ib dump-src load-src load-diff-src load-task-src update-db diff-src doctor test-xunit test-bdd smoke export-context export-context-preview export-context-check export-context-write verify-traceability template-check-update template-update
+.PHONY: help agent-verify qa analyze-bsl format-bsl check-agent-docs check-skill-bindings check-overlay-manifest codex-onboard create-ib dump-src load-src load-diff-src load-task-src update-db diff-src doctor test-xunit tdd-xunit test-bdd smoke export-context export-context-preview export-context-check export-context-write verify-traceability template-check-update template-update
 
 help:
 	@printf '%s\n' \
@@ -22,6 +22,7 @@ help:
 		'  make diff-src' \
 		'  make doctor' \
 		'  make test-xunit' \
+		'  make tdd-xunit' \
 		'  make test-bdd' \
 		'  make smoke' \
 		'  make export-context' \
@@ -81,6 +82,9 @@ doctor:
 
 test-xunit:
 	@./scripts/test/run-xunit.sh
+
+tdd-xunit:
+	@./scripts/test/tdd-xunit.sh
 
 test-bdd:
 	@./scripts/test/run-bdd.sh

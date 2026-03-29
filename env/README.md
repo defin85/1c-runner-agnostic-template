@@ -158,13 +158,17 @@ export ONEC_IB_PASSWORD='...'
    Если `driver` опущен, используется `designer`.
 
 2. profile-defined command array
-   Для project-specific contour вроде `xunit`, `bdd`, `smoke`, `publishHttp` profile задаёт `command` как массив строк:
+   Для repo-owned contour вроде template-managed `xunit` или project-specific `bdd`, `smoke`, `publishHttp` profile задаёт `command` как массив строк:
 
 ```json
 {
   "capabilities": {
     "xunit": {
-      "command": ["bash", "./scripts/project/run-xunit.sh"]
+      "command": ["./scripts/test/run-xunit-direct-platform.sh"],
+      "addRoot": "/opt/onec/add",
+      "harnessSourceDir": "./src/epf/TemplateXUnitHarness",
+      "configPath": "./tests/xunit/smoke.quickstart.json",
+      "timeoutSeconds": 900
     }
   }
 }
@@ -213,13 +217,29 @@ Profile-defined `command` запускается с repo-owned launcher env cont
 {
   "capabilities": {
     "xunit": {
-      "command": ["./scripts/test/run-xunit-project.sh"]
+      "command": ["./scripts/test/run-xunit-direct-platform.sh"],
+      "addRoot": "/opt/onec/add"
     }
   }
 }
 ```
 
 Такой repo-owned entrypoint может читать `ONEC_*` переменные из окружения и, если contour пишет временные артефакты, по умолчанию складывать их в `ONEC_CAPABILITY_RUN_ROOT`.
+
+Для template-managed direct-platform xUnit contour canonical local loop такой:
+
+```bash
+./scripts/test/tdd-xunit.sh --profile env/local.json --run-root /tmp/tdd-xunit-run
+```
+
+Wrapper синхронизирует add/modify/untracked diff под `src/cf` через `load-diff-src`, затем делает `update-db` и только после этого запускает `run-xunit`.
+Если под `src/cf` есть delete/rename/conflict-style изменения, wrapper останавливается fail-closed и просит manual full path:
+
+```bash
+./scripts/platform/load-src.sh --profile env/local.json --run-root /tmp/load-src-run
+./scripts/platform/update-db.sh --profile env/local.json --run-root /tmp/update-db-run
+./scripts/test/run-xunit.sh --profile env/local.json --run-root /tmp/xunit-run
+```
 
 `diffSrc.command` тоже можно задать явно, но по умолчанию script использует `git diff -- ./src`.
 
