@@ -46,6 +46,7 @@
 ./automation/context/template-source-project-map.md
 ./automation/context/template-source-source-files.txt
 ./automation/context/template-source-tree.txt
+./automation/context/template-update-preserve-paths.txt
 ./automation/context/templates/generated-project-architecture-map.md
 ./automation/context/templates/generated-project-hotspots-summary.md
 ./automation/context/templates/generated-project-metadata-index.json
