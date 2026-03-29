@@ -27,6 +27,7 @@ make template-update
 `template-check-update` сверяет текущую checked-in версию wrapper overlay в `.template-overlay-version`
 с latest tagged release шаблона или с явно переданным `--vcs-ref`.
 `template-update` materialize-ит выбранный template ref и применяет только manifest template-managed paths из `automation/context/template-managed-paths.txt`.
+Если путь был демотирован из template-managed в project-owned, update path сохраняет текущий project file по списку `automation/context/template-update-preserve-paths.txt`, а не удаляет его.
 Дополнительно migration cleanup удаляет retired template-seeded routing docs из deployable `src/cf`, если они остались от старых template release, например legacy `src/cf/AGENTS.md` и `src/cf/README.md`.
 
 ## Ownership Boundary
@@ -35,7 +36,7 @@ make template-update
 - `.template-overlay-version` хранит текущий applied wrapper overlay release;
 - `template-managed` слой обновляется через versioned overlay apply, а не через reconciliation product source tree;
 - если root `AGENTS.md` или `README.md` отсутствует, `template-update` восстанавливает generated-project entry surface перед refresh managed overlay/router;
-- `seed-once / project-owned` артефакты вроде root `README.md`, `openspec/project.md` и `automation/context/project-map.md` должны оставаться под контролем команды проекта;
+- `seed-once / project-owned` артефакты вроде root `README.md`, `openspec/project.md`, `.codex/config.toml` и `automation/context/project-map.md` должны оставаться под контролем команды проекта;
 - `generated-derived` артефакты refresh-ятся отдельной repo-owned командой `./scripts/llm/export-context.sh --write`;
 - `local-private` machine-specific настройки не входят в checked-in template contract.
 

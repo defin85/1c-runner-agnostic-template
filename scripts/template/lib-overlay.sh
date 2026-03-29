@@ -6,11 +6,17 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/../lib/common.sh"
 
 overlay_manifest_relpath="automation/context/template-managed-paths.txt"
+overlay_preserve_relpath="automation/context/template-update-preserve-paths.txt"
 overlay_version_relpath=".template-overlay-version"
 
 overlay_manifest_file() {
   local root="$1"
   printf '%s/%s\n' "$root" "$overlay_manifest_relpath"
+}
+
+overlay_preserve_manifest_file() {
+  local root="$1"
+  printf '%s/%s\n' "$root" "$overlay_preserve_relpath"
 }
 
 overlay_version_file() {
@@ -151,6 +157,14 @@ manifest_has_entry() {
   grep -Fqx -- "$relpath" "$manifest_file"
 }
 
+preserve_manifest_has_entry() {
+  local manifest_file="$1"
+  local relpath="$2"
+
+  [ -f "$manifest_file" ] || return 1
+  grep -Fqx -- "$relpath" "$manifest_file"
+}
+
 prune_empty_parent_dirs() {
   local root="$1"
   local current="$2"
@@ -200,6 +214,7 @@ sync_overlay_manifests() {
   local target_root="$2"
   local previous_manifest="$3"
   local next_manifest="$4"
+  local preserve_manifest="${5:-}"
   local union_file relpath
 
   [ -f "$next_manifest" ] || die "overlay manifest is missing in release: $next_manifest"
@@ -215,6 +230,8 @@ sync_overlay_manifests() {
 
     if manifest_has_entry "$next_manifest" "$relpath"; then
       copy_manifest_entry_from_source "$source_root" "$target_root" "$relpath"
+    elif preserve_manifest_has_entry "$preserve_manifest" "$relpath"; then
+      continue
     else
       remove_manifest_entry_target "$target_root" "$relpath"
     fi

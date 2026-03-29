@@ -187,9 +187,9 @@ write_generated_readme_starter() {
 ## Ownership Classes
 
 - \`template-managed\`: \`scripts/\`, template docs, shared skills, CI contours, managed blocks, \`.template-overlay-version\`.
-- \`seed-once / project-owned\`: \`README.md\`, \`openspec/project.md\`, \`automation/context/project-map.md\`, \`docs/agent/architecture-map.md\`, \`docs/agent/operator-local-runbook.md\`, \`docs/agent/runtime-quickstart.md\`, \`docs/work-items/README.md\`, \`docs/work-items/TEMPLATE.md\`, \`automation/context/project-delta-hints.json\`, \`automation/context/runtime-profile-policy.json\`, \`automation/context/runtime-support-matrix.md\`, \`automation/context/runtime-support-matrix.json\`.
+- \`seed-once / project-owned\`: \`README.md\`, \`openspec/project.md\`, \`.codex/config.toml\`, \`automation/context/project-map.md\`, \`docs/agent/architecture-map.md\`, \`docs/agent/operator-local-runbook.md\`, \`docs/agent/runtime-quickstart.md\`, \`docs/work-items/README.md\`, \`docs/work-items/TEMPLATE.md\`, \`automation/context/project-delta-hints.json\`, \`automation/context/runtime-profile-policy.json\`, \`automation/context/runtime-support-matrix.md\`, \`automation/context/runtime-support-matrix.json\`.
 - \`generated-derived\`: \`automation/context/source-tree.generated.txt\`, \`automation/context/metadata-index.generated.json\`, \`automation/context/hotspots-summary.generated.md\`, \`automation/context/project-delta-hotspots.generated.md\`.
-- \`local-private\`: \`env/local.json\`, \`env/wsl.json\`, \`env/.local/*.json\`, machine-specific MCP/Codex overrides.
+- \`local-private\`: \`env/local.json\`, \`env/wsl.json\`, \`env/.local/*.json\`, host-specific MCP/Codex overrides вне checked-in \`.codex/config.toml\`.
 
 ## Closeout Semantics
 
@@ -262,7 +262,7 @@ write_project_map_starter() {
 - \`project-owned policy\`: \`automation/context/runtime-profile-policy.json\`
 - \`project-owned hints\`: \`automation/context/project-delta-hints.json\`
 - \`generated-derived\`: \`automation/context/source-tree.generated.txt\`, \`automation/context/metadata-index.generated.json\`, \`automation/context/hotspots-summary.generated.md\`, \`automation/context/project-delta-hotspots.generated.md\`
-- \`local-private\`: \`env/local.json\`, \`env/wsl.json\`, \`env/.local/*.json\`, machine-specific Codex/MCP config
+- \`local-private\`: \`env/local.json\`, \`env/wsl.json\`, \`env/.local/*.json\`, host-specific Codex/MCP overrides вне checked-in \`.codex/config.toml\`
 
 ## Canonical Entrypoints
 
@@ -828,7 +828,7 @@ Project-specific business context, bounded contexts и metadata entrypoint-ы к
 - \`template-managed\`: reusable scripts, shared skills, template docs, CI contours, managed blocks
 - \`seed-once / project-owned\`: \`README.md\`, этот файл, \`automation/context/project-map.md\`, \`automation/context/runtime-support-matrix.md\`, \`automation/context/runtime-support-matrix.json\`
 - \`generated-derived\`: \`automation/context/source-tree.generated.txt\`, \`automation/context/metadata-index.generated.json\`, \`automation/context/hotspots-summary.generated.md\`
-- \`local-private\`: local runtime profiles, local MCP/Codex config, secrets
+- \`local-private\`: local runtime profiles, host-specific MCP/Codex overrides вне checked-in \`.codex/config.toml\`, secrets
 
 ### Architecture Patterns
 

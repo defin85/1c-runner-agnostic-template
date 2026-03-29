@@ -28,7 +28,6 @@
 .claude/skills/README.md
 .codex/.gitkeep
 .codex/README.md
-.codex/config.toml
 .github/actions/setup-openspec/action.yml
 .github/workflows/ci.yml
 .gitignore

@@ -351,6 +351,7 @@ assert_contains "$rendered_root/.gitignore" "env/.local/*.json"
 assert_contains "$rendered_root/.gitignore" "src/cf/Ext/ParentConfigurations/"
 assert_contains "$rendered_root/.codex/config.toml" "mcp_servers.claude-context"
 assert_contains "$rendered_root/.codex/config.toml" "mcp_servers.chrome-devtools"
+assert_not_contains "$rendered_root/automation/context/template-managed-paths.txt" ".codex/config.toml"
 assert_contains "$rendered_root/.codex/README.md" "[docs/agent/index.md](../docs/agent/index.md)"
 assert_contains "$rendered_root/.codex/README.md" "[docs/agent/generated-project-index.md](../docs/agent/generated-project-index.md)"
 assert_contains "$rendered_root/.codex/README.md" "[docs/agent/codex-workflows.md](../docs/agent/codex-workflows.md)"
@@ -705,7 +706,13 @@ cat >>"$rendered_root/openspec/project.md" <<'EOF'
 - openspec marker must survive template overlay apply.
 EOF
 
-git -C "$rendered_root" add README.md automation/context/project-map.md openspec/project.md
+cat >>"$rendered_root/.codex/config.toml" <<'EOF'
+
+# Project-owned Smoke Marker
+LOCAL_SMOKE_MARKER = "must survive template overlay apply"
+EOF
+
+git -C "$rendered_root" add README.md automation/context/project-map.md openspec/project.md .codex/config.toml
 git -C "$rendered_root" commit -qm "project-owned edits"
 
 rm -f "$rendered_root/src/cf/DataProcessors/TestProcessor/Ext/ObjectModule.bsl"
@@ -862,6 +869,7 @@ assert_contains "$rendered_root/README.md" "Generated-derived inventory refresh-
 assert_contains "$rendered_root/README.md" "README marker must survive template overlay apply."
 assert_contains "$rendered_root/automation/context/project-map.md" "project-map marker must survive template overlay apply."
 assert_contains "$rendered_root/openspec/project.md" "openspec marker must survive template overlay apply."
+assert_contains "$rendered_root/.codex/config.toml" "LOCAL_SMOKE_MARKER = \"must survive template overlay apply\""
 assert_exists "$rendered_root/src/cf/DataProcessors/ReimportedProcessor/Ext/ObjectModule.bsl"
 assert_not_exists "$rendered_root/src/cf/DataProcessors/TestProcessor/Ext/ObjectModule.bsl"
 assert_contains "$rendered_root/.template-overlay-version" "v0.2.0"
@@ -965,6 +973,7 @@ assert_not_exists "$rendered_root/src/cf/AGENTS.md"
 assert_not_exists "$rendered_root/src/cf/README.md"
 assert_contains "$rendered_root/README.md" "# Smoke Project"
 assert_not_contains "$rendered_root/README.md" "# 1c-runner-agnostic-template"
+assert_contains "$rendered_root/.codex/config.toml" "LOCAL_SMOKE_MARKER = \"must survive template overlay apply\""
 assert_contains "$rendered_root/.template-overlay-version" "v0.3.0"
 assert_contains "$rendered_root/scripts/platform/load-diff-src.sh" "load-diff-src"
 assert_contains "$rendered_root/.agents/skills/1c-load-diff-src/SKILL.md" "./scripts/platform/load-diff-src.sh"

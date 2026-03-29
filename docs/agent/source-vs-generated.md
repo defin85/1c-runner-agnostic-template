@@ -29,9 +29,9 @@ Generated project не должен воспринимать source-repo artifac
 ## Ownership Classes
 
 - `template-managed`: reusable scripts, shared docs, shared skills, CI contours, managed blocks, `.template-overlay-version`, и template-owned starter assets вроде `src/epf/TemplateXUnitHarness/`.
-- `seed-once / project-owned`: root `README.md`, `openspec/project.md`, `automation/context/project-map.md`, `docs/agent/architecture-map.md`, `docs/agent/runtime-quickstart.md`, `docs/work-items/README.md`, `docs/work-items/TEMPLATE.md`, `automation/context/runtime-support-matrix.md`, `automation/context/runtime-support-matrix.json`.
+- `seed-once / project-owned`: root `README.md`, `openspec/project.md`, `.codex/config.toml`, `automation/context/project-map.md`, `docs/agent/architecture-map.md`, `docs/agent/runtime-quickstart.md`, `docs/work-items/README.md`, `docs/work-items/TEMPLATE.md`, `automation/context/runtime-support-matrix.md`, `automation/context/runtime-support-matrix.json`.
 - `generated-derived`: `automation/context/source-tree.generated.txt`, `automation/context/metadata-index.generated.json`.
-- `local-private`: local runtime profiles, secrets, machine-specific Codex/MCP config.
+- `local-private`: local runtime profiles, secrets, host-specific Codex/MCP overrides вне checked-in `.codex/config.toml`.
 
 ## Automation Context Split
 

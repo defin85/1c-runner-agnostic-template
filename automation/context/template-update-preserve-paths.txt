@@ -1,0 +1,3 @@
+# Paths that left the template-managed overlay but must stay untouched in
+# generated repositories during template-update migration.
+.codex/config.toml

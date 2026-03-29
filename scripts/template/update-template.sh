@@ -96,7 +96,8 @@ if [ "$pretend" -eq 1 ]; then
     "$release_root" \
     "$root" \
     "$(overlay_manifest_file "$root")" \
-    "$(overlay_manifest_file "$release_root")"
+    "$(overlay_manifest_file "$release_root")" \
+    "$(overlay_preserve_manifest_file "$release_root")"
   printf 'would refresh generated overlay surfaces\n'
   exit 0
 fi
@@ -105,7 +106,8 @@ sync_overlay_manifests \
   "$release_root" \
   "$root" \
   "$(overlay_manifest_file "$root")" \
-  "$(overlay_manifest_file "$release_root")"
+  "$(overlay_manifest_file "$release_root")" \
+  "$(overlay_preserve_manifest_file "$release_root")"
 
 write_overlay_version "$root" "$target_ref"
 

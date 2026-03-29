@@ -36,8 +36,10 @@ git -C "$root" ls-files --cached --others --exclude-standard \
       /^copier\.yml$/ { next }
       /^openspec\// { next }
       /^\.claude\/commands\// { next }
+      /^\.codex\/config\.toml$/ { next }
       /^tooling\// { next }
       /^automation\/context\/template-source-(metadata-index\.json|project-map\.md|source-files\.txt|tree\.txt)$/ { next }
+      /^automation\/context\/template-update-preserve-paths\.txt$/ { next }
       /^docs\/work-items\/(README|TEMPLATE)\.md$/ { next }
       /^\.githooks\// { next }
       /^scripts\/release\// { next }
