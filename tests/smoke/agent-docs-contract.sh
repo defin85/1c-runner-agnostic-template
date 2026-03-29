@@ -122,6 +122,29 @@ refresh_source_context "$healthy_root"
   ./scripts/qa/check-agent-docs.sh >/dev/null
 )
 
+source_clean_checkout_root="$tmpdir/source-clean-checkout"
+copy_repo "$source_clean_checkout_root"
+mkdir -p "$source_clean_checkout_root/local-empty-dir/cache"
+if [ -d "$source_clean_checkout_root/src/cf" ]; then
+  printf 'copy_repo should simulate a clean checkout without empty src/cf\n' >&2
+  exit 1
+fi
+(
+  cd "$source_clean_checkout_root"
+  ./scripts/qa/check-agent-docs.sh >/dev/null
+  ./scripts/llm/export-context.sh --write >/dev/null
+)
+if grep -Fq './local-empty-dir' \
+  "$source_clean_checkout_root/automation/context/template-source-tree.txt"; then
+  printf 'template source tree leaked a local-only empty directory\n' >&2
+  exit 1
+fi
+if ! grep -Fq './src/cf' \
+  "$source_clean_checkout_root/automation/context/template-source-tree.txt"; then
+  printf 'template source tree must retain canonical empty src/cf\n' >&2
+  exit 1
+fi
+
 tracked_source_root="$tmpdir/tracked-source"
 copy_repo "$tracked_source_root"
 (

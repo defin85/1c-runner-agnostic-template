@@ -45,35 +45,95 @@ json_escape() {
   printf '%s' "$1" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g'
 }
 
+source_repo_inventory_roots=(
+  AGENTS.md
+  README.md
+  Makefile
+  copier.yml
+  .agents
+  .claude
+  .codex
+  .github
+  automation
+  docs
+  env
+  features
+  openspec
+  scripts
+  src
+  tests
+)
+
+emit_source_repo_files() {
+  local path
+
+  if git -C "$root" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    for path in "${source_repo_inventory_roots[@]}"; do
+      git -C "$root" ls-files -- "$path"
+    done | sed 's|^|./|' | LC_ALL=C sort -u
+    return 0
+  fi
+
+  for path in "${source_repo_inventory_roots[@]}"; do
+    if [ -d "$root/$path" ]; then
+      find "$root/$path" -type f
+    elif [ -f "$root/$path" ]; then
+      printf '%s\n' "$root/$path"
+    fi
+  done | sed "s|^$root/|./|" | LC_ALL=C sort -u
+}
+
+emit_source_repo_canonical_empty_dirs() {
+  printf '%s\n' './.githooks'
+  printf '%s\n' './src/cf'
+  printf '%s\n' './tooling'
+}
+
+is_source_tree_dir_in_scope() {
+  local relpath="${1#./}"
+
+  case "$relpath" in
+    */*/*/*)
+      return 1
+      ;;
+    *)
+      return 0
+      ;;
+  esac
+}
+
+emit_source_tree_entries() {
+  local relpath=""
+  local dir=""
+
+  {
+    printf '.\n'
+    while IFS= read -r relpath; do
+      [ -n "$relpath" ] || continue
+      dir="$(dirname "$relpath")"
+      while [ "$dir" != "." ] && [ "$dir" != "./" ]; do
+        if is_source_tree_dir_in_scope "$dir"; then
+          printf '%s\n' "$dir"
+        fi
+        dir="$(dirname "$dir")"
+      done
+    done < <(emit_source_repo_files)
+    # Keep the checked-in maxdepth-3 tree stable across clean checkouts.
+    emit_source_repo_canonical_empty_dirs
+  } | LC_ALL=C sort -u
+}
+
 render_source_tree() {
   {
     printf '# Template Source Tree\n\n'
-    find "$root" -maxdepth 3 -type d \
-      ! -path "$root/.git" \
-      ! -path "$root/.git/*" \
-      ! -path "$root/.beads" \
-      ! -path "$root/.beads/*" \
-      | sed "s|^$root|.|" \
-      | LC_ALL=C sort
+    emit_source_tree_entries
   } >"$1"
 }
 
 render_source_files() {
   {
     printf '# Template Source Files\n\n'
-    if git -C "$root" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-      for path in AGENTS.md README.md Makefile copier.yml .agents .claude .codex .github automation docs env features openspec scripts src tests; do
-        git -C "$root" ls-files -- "$path"
-      done | sed 's|^|./|' | LC_ALL=C sort -u
-    else
-      for path in AGENTS.md README.md Makefile copier.yml .agents .claude .codex .github automation docs env features openspec scripts src tests; do
-        if [ -d "$root/$path" ]; then
-          find "$root/$path" -type f
-        elif [ -f "$root/$path" ]; then
-          printf '%s\n' "$root/$path"
-        fi
-      done | sed "s|^$root/|./|" | LC_ALL=C sort -u
-    fi
+    emit_source_repo_files
   } >"$1"
 }
 
