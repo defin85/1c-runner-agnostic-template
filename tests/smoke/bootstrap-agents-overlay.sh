@@ -341,8 +341,8 @@ assert_contains "$metadata_index_file" '"scheduledJobs": ["src/cf/ScheduledJobs/
 assert_contains "$metadata_index_file" '"commonModules": ["src/cf/CommonModules/Shared"]'
 assert_contains "$metadata_index_file" '"subsystems": ["src/cf/Subsystems/Backoffice"]'
 assert_contains "$metadata_index_file" '"extensions": ["src/cfe/MainExtension"]'
-assert_contains "$metadata_index_file" '"externalProcessors": ["src/epf/ImportWizard"]'
 assert_contains "$metadata_index_file" '"reports": ["src/erf/RevenueReport"]'
+assert_jq "$metadata_index_file" '.entrypointInventory.externalProcessors == ["src/epf/ImportWizard", "src/epf/TemplateXUnitHarness"]' "generated-metadata-external-processors"
 assert_jq "$metadata_index_file" '.authoritativeDocs.runtimeProfilePolicy == "automation/context/runtime-profile-policy.json" and .authoritativeDocs.hotspotsSummary == "automation/context/hotspots-summary.generated.md" and .authoritativeDocs.architectureMap == "docs/agent/architecture-map.md" and .authoritativeDocs.runtimeQuickstart == "docs/agent/runtime-quickstart.md" and .authoritativeDocs.codexWorkflows == "docs/agent/codex-workflows.md" and .authoritativeDocs.operatorLocalRunbook == "docs/agent/operator-local-runbook.md" and .authoritativeDocs.workItemsGuide == "docs/work-items/README.md" and .authoritativeDocs.workItemsTemplate == "docs/work-items/TEMPLATE.md" and .authoritativeDocs.projectDeltaHints == "automation/context/project-delta-hints.json" and .authoritativeDocs.projectDeltaHotspots == "automation/context/project-delta-hotspots.generated.md"' "generated-metadata-authoritative-docs"
 assert_contains "$hotspots_summary_file" 'Configuration name: `SmokeConfiguration`'
 assert_contains "$hotspots_summary_file" '`metadata-index.generated.json` checksum:'
