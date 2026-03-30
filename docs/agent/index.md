@@ -24,6 +24,7 @@
 | Как делать review в этом репозитории? | [docs/agent/review.md](review.md) |
 | Где вести long-running execution plans? | [docs/exec-plans/README.md](../exec-plans/README.md) |
 | Где держать bulky supporting artifacts длинных задач? | [docs/work-items/README.md](../work-items/README.md) |
+| Где лежит operator-local runbook для hidden `Designer` через `xpra`? | [docs/testing/designer-hidden-xpra.md](../testing/designer-hidden-xpra.md) |
 | Где лежат repeatable repo skills? | [.agents/skills/README.md](../../.agents/skills/README.md) |
 | Где Codex-specific repo guidance? | [.codex/README.md](../../.codex/README.md) |
 | Где описан isolated template maintenance path для generated repos? | [docs/template-maintenance.md](../template-maintenance.md) |

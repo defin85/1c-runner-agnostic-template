@@ -65,6 +65,7 @@ docs/exec-plans/TEMPLATE.md
 docs/exec-plans/active/.gitkeep
 docs/exec-plans/completed/.gitkeep
 docs/migrations/runtime-profile-v2.md
+docs/testing/designer-hidden-xpra.md
 docs/testing/xunit-direct-platform.md
 docs/template-maintenance.md
 docs/template-release.md
