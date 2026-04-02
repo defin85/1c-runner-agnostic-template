@@ -19,5 +19,5 @@ runs:
         node-version: ${{ inputs.node-version }}
 
     - name: Install OpenSpec CLI
-      shell: bash
+      shell: pwsh
       run: npm install -g "@fission-ai/openspec@${{ inputs.openspec-version }}"

@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 2,
+  "profileName": "windows-local",
+  "projectName": "[[[ project_name ]]]",
+  "projectSlug": "[[[ project_slug ]]]",
+  "description": "Native Windows direct-platform profile without WSL/Git Bash requirements",
+  "runnerAdapter": "direct-platform",
+  "notes": [
+    "Этот preset предназначен для нативного PowerShell запуска на Windows.",
+    "platform.xvfb и platform.ldPreload оставлены только для POSIX direct-platform contour-ов и не должны включаться здесь.",
+    "Template-managed xUnit contour на Windows по умолчанию остаётся fail-closed, пока проект не wired repo-owned capabilities.xunit.command."
+  ],
+  "platform": {
+    "binaryPath": "C:/Program Files/1cv8/8.3.27.1859/bin/1cv8.exe",
+    "ibcmdPath": "C:/Program Files/1cv8/8.3.27.1859/bin/ibcmd.exe"
+  },
+  "infobase": {
+    "mode": "file",
+    "filePath": "./.artifacts/[[[ project_slug ]]]",
+    "connectionStringOverride": null,
+    "auth": {
+      "mode": "os",
+      "user": null,
+      "passwordEnv": null
+    }
+  },
+  "ibcmd": {
+    "runtimeMode": "file-infobase",
+    "serverAccess": {
+      "mode": "data-dir",
+      "dataDir": "./.artifacts/[[[ project_slug ]]]-ibcmd"
+    },
+    "auth": {
+      "user": "ibcmd-admin",
+      "passwordEnv": "ONEC_IBCMD_PASSWORD"
+    },
+    "fileInfobase": {
+      "databasePath": "./.artifacts/[[[ project_slug ]]]-file-ib"
+    }
+  },
+  "capabilities": {
+    "createIb": {
+      "driver": "designer"
+    },
+    "dumpSrc": {
+      "driver": "designer",
+      "outputDir": "./src/cf"
+    },
+    "loadSrc": {
+      "driver": "ibcmd",
+      "sourceDir": "./src/cf"
+    },
+    "updateDb": {
+      "driver": "designer"
+    },
+    "diffSrc": {
+      "command": ["git", "diff", "--", "./src"]
+    },
+    "xunit": {
+      "unsupportedReason": "Windows xUnit contour is project-specific; wire a repo-owned capabilities.xunit.command before treating this profile as green."
+    },
+    "bdd": {
+      "unsupportedReason": "Windows BDD contour is project-specific; wire a real command before treating this profile as green."
+    },
+    "smoke": {
+      "unsupportedReason": "Windows smoke contour is project-specific; wire a real command before treating this profile as green."
+    },
+    "publishHttp": {
+      "unsupportedReason": "Windows publish contour is project-specific; wire a real command before treating this profile as green."
+    }
+  }
+}

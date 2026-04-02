@@ -120,6 +120,8 @@ Generated projects получают отдельный стартовый сло
 - `./scripts/qa/analyze-bsl.sh`
 - `./scripts/qa/format-bsl.sh`
 
+Для Windows рядом добавлены симметричные PowerShell entrypoint-ы `./scripts/**.ps1` и корневой `./make.ps1`.
+
 Backend выбирается через `RUNNER_ADAPTER`:
 
 - `direct-platform`
@@ -141,7 +143,7 @@ Backend выбирается через `RUNNER_ADAPTER`:
 Канонический способ конфигурации launcher-скриптов теперь это runtime profile JSON:
 
 - versioned examples лежат в `env/*.example.json`;
-- локальные канонические профили можно хранить только в `env/local.json`, `env/wsl.json`, `env/ci.json`, `env/windows-executor.json`, и они уже исключены из Git;
+- локальные канонические профили можно хранить только в `env/local.json`, `env/wsl.json`, `env/ci.json`, `env/windows-executor.json`, `env/windows-local.json`, и они уже исключены из Git;
 - ad-hoc и machine-specific profiles нужно складывать в `env/.local/*.json`;
 - любой capability entrypoint принимает `--profile <file>` и `--run-root <dir>`;
 - если `--profile` не указан, скрипт пытается использовать `ONEC_PROFILE`, затем `env/local.json`;
@@ -282,7 +284,7 @@ npm install -g @fission-ai/openspec@latest
 ```
 
 3. Если в вопросах Copier выбрать `git init = no`, beads в интерактивном сценарии будет автоматически отключен. Для уже существующего git-репозитория beads можно явно включить через `-d init_beads=true`.
-4. Настройте команды окружения на базе `env/wsl.example.json`, `env/local.example.json` или `env/windows-executor.example.json`.
+4. Настройте команды окружения на базе `env/wsl.example.json`, `env/local.example.json`, `env/windows-local.example.json` или `env/windows-executor.example.json`.
 5. При необходимости добавьте свой adapter в `scripts/adapters/`.
 6. Если нужен live project context, возьмите skeleton files из `automation/context/templates/` и создайте на их основе свои project-specific context artifacts.
 7. Создайте первый change в `openspec/changes/`.

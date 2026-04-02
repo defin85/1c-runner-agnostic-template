@@ -9,19 +9,40 @@ on:
 
 jobs:
   static:
-    name: static
-    runs-on: ubuntu-latest
+    name: static (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
     steps:
       - uses: actions/checkout@v5
 
       - uses: ./.github/actions/setup-openspec
 
       - name: Shell syntax
+        if: runner.os != 'Windows'
         run: |
           mapfile -t files < <(find scripts tests -type f -name '*.sh' | LC_ALL=C sort)
           if [ "${files[0]+set}" = "set" ]; then
             bash -n "${files[@]}"
           fi
+
+      - name: PowerShell syntax
+        shell: pwsh
+        run: |
+          $errors = @()
+          $psFiles = @((Resolve-Path make.ps1).Path)
+          $psFiles += Get-ChildItem scripts, tooling -Recurse -Filter *.ps1 | Select-Object -ExpandProperty FullName
+          $psFiles | ForEach-Object {
+            $null = [System.Management.Automation.Language.Parser]::ParseFile($_, [ref]$null, [ref]$errors)
+          }
+          if ($errors.Count -gt 0) {
+            $errors | ForEach-Object { Write-Error $_.Message }
+            exit 1
+          }
 
       - name: Validate OpenSpec
         if: hashFiles('openspec/**') != ''
@@ -29,20 +50,44 @@ jobs:
 
       - name: Verify traceability layout
         if: hashFiles('openspec/changes/**') != ''
-        run: ./scripts/llm/verify-traceability.sh
+        shell: pwsh
+        run: |
+          if ($env:RUNNER_OS -eq 'Windows') {
+            ./scripts/llm/verify-traceability.ps1
+          } else {
+            bash ./scripts/llm/verify-traceability.sh
+          }
 
       - name: Check skill bindings
         if: hashFiles('.claude/skills/**', '.agents/skills/**') != ''
-        run: ./scripts/qa/check-skill-bindings.sh
+        shell: pwsh
+        run: |
+          if ($env:RUNNER_OS -eq 'Windows') {
+            ./scripts/qa/check-skill-bindings.ps1
+          } else {
+            bash ./scripts/qa/check-skill-bindings.sh
+          }
 
       - name: Check agent docs
         if: hashFiles('docs/agent/**', 'docs/exec-plans/**', 'automation/context/**', '.codex/**') != ''
-        run: ./scripts/qa/check-agent-docs.sh
+        shell: pwsh
+        run: |
+          if ($env:RUNNER_OS -eq 'Windows') {
+            ./scripts/qa/check-agent-docs.ps1
+          } else {
+            bash ./scripts/qa/check-agent-docs.sh
+          }
 
   fixture:
-    name: fixture
-    runs-on: ubuntu-latest
+    name: fixture (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
     needs: static
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
     steps:
       - uses: actions/checkout@v5
 
@@ -53,6 +98,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install fixture runtime tools
+        if: runner.os != 'Windows'
         run: |
           sudo apt-get update
           sudo apt-get install -y jq ripgrep
@@ -60,65 +106,8 @@ jobs:
       - name: Install Copier
         run: python -m pip install --upgrade pip copier
 
-      - name: Runtime capability contract
-        if: hashFiles('tests/smoke/runtime-capability-contract.sh') != ''
-        run: bash tests/smoke/runtime-capability-contract.sh
-
-      - name: Runtime doctor contract
-        if: hashFiles('tests/smoke/runtime-doctor-contract.sh') != ''
-        run: bash tests/smoke/runtime-doctor-contract.sh
-
-      - name: Git task trailer contract
-        if: hashFiles('tests/smoke/git-task-trailer-contract.sh') != ''
-        run: bash tests/smoke/git-task-trailer-contract.sh
-
-      - name: Runtime load-task-src contract
-        if: hashFiles('tests/smoke/runtime-load-task-src-contract.sh') != ''
-        run: bash tests/smoke/runtime-load-task-src-contract.sh
-
-      - name: Runtime load-task-src validation contract
-        if: hashFiles('tests/smoke/runtime-load-task-src-validation-contract.sh') != ''
-        run: bash tests/smoke/runtime-load-task-src-validation-contract.sh
-
-      - name: Runtime load-diff-src contract
-        if: hashFiles('tests/smoke/runtime-load-diff-src-contract.sh') != ''
-        run: bash tests/smoke/runtime-load-diff-src-contract.sh
-
-      - name: Runtime load-diff-src validation contract
-        if: hashFiles('tests/smoke/runtime-load-diff-src-validation-contract.sh') != ''
-        run: bash tests/smoke/runtime-load-diff-src-validation-contract.sh
-
-      - name: Runtime direct-platform Xvfb contract
-        if: hashFiles('tests/smoke/runtime-direct-platform-xvfb-contract.sh') != ''
-        run: bash tests/smoke/runtime-direct-platform-xvfb-contract.sh
-
-      - name: Runtime direct-platform LD_PRELOAD contract
-        if: hashFiles('tests/smoke/runtime-direct-platform-ld-preload-contract.sh') != ''
-        run: bash tests/smoke/runtime-direct-platform-ld-preload-contract.sh
-
-      - name: Legacy runtime profile rejection
-        if: hashFiles('tests/smoke/runtime-profile-legacy-rejection.sh') != ''
-        run: bash tests/smoke/runtime-profile-legacy-rejection.sh
-
-      - name: Runtime profile migration helper
-        if: hashFiles('tests/smoke/runtime-profile-migration-helper.sh') != ''
-        run: bash tests/smoke/runtime-profile-migration-helper.sh
-
-      - name: Bootstrap AGENTS overlay
-        if: hashFiles('tests/smoke/bootstrap-agents-overlay.sh') != ''
-        run: bash tests/smoke/bootstrap-agents-overlay.sh
-
-      - name: Agent docs contract
-        if: hashFiles('tests/smoke/agent-docs-contract.sh') != ''
-        run: bash tests/smoke/agent-docs-contract.sh
-
-      - name: Template release workflow
-        if: hashFiles('tests/smoke/template-release-workflow.sh') != ''
-        run: bash tests/smoke/template-release-workflow.sh
-
-      - name: Copier update-ready smoke
-        if: hashFiles('tests/smoke/copier-update-ready.sh') != ''
-        run: bash tests/smoke/copier-update-ready.sh
+      - name: Cross-platform Python smoke
+        run: python -m unittest tests.python.test_cross_platform
 
   runtime-gate:
     name: runtime-gate

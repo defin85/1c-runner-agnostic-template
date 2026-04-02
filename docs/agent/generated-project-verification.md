@@ -27,6 +27,8 @@ make agent-verify
 make export-context-check
 ```
 
+Windows path использует те же contour ids через `./make.ps1 codex-onboard`, `./make.ps1 agent-verify` и `./make.ps1 export-context-check`.
+
 Optional project-specific baseline extension:
 
 - если `automation/context/runtime-support-matrix.json` объявляет `projectSpecificBaselineExtension`, относитесь к нему как к соседнему project-owned contour, а не к template baseline;

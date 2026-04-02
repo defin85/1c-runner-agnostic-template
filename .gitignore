@@ -2,8 +2,11 @@ build/
 reports/
 out/
 dist/
+.artifacts/
 tmp/
 .tmp/
+__pycache__/
+*.pyc
 
 *.log
 *.tmp
@@ -30,6 +33,7 @@ env/local.json
 env/wsl.json
 env/ci.json
 env/windows-executor.json
+env/windows-local.json
 env/.local/*.json
 env/.local/**/*.json
 src/cf/Ext/ParentConfigurations/

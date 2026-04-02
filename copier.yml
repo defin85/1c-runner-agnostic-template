@@ -37,7 +37,7 @@ _message_before_update: |-
     - после миграции ongoing maintenance должен идти через `./scripts/template/update-template.sh`.
 _tasks:
   - command: >-
-      bash ./scripts/bootstrap/copier-post-copy.sh
+      python -m scripts.python.cli copier-post-copy
       "[[[ _src_path ]]]"
       "[[[ project_name ]]]"
       "[[[ project_slug ]]]"
@@ -49,7 +49,7 @@ _tasks:
       "[[[ beads_prefix ]]]"
     when: "[[[ _copier_operation == 'copy' ]]]"
   - command: >-
-      bash ./scripts/bootstrap/copier-post-update.sh
+      python -m scripts.python.cli copier-post-update
       "[[[ _src_path ]]]"
       "[[[ project_name ]]]"
       "[[[ project_slug ]]]"

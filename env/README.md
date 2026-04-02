@@ -18,6 +18,7 @@ Launcher-скрипты могут загрузить runtime profile напря
 
 Versioned файлы `*.example.json` являются source of truth для формата профиля.
 Рабочие профили `env/local.json`, `env/ci.json`, `env/wsl.json`, `env/windows-executor.json` не коммитятся.
+Для native Windows direct-platform contour добавлен `env/windows-local.json`, он тоже не коммитится.
 
 Канонический allowlist для root-level runtime profiles в `env/` такой:
 
@@ -26,6 +27,7 @@ Versioned файлы `*.example.json` являются source of truth для ф
 - `env/wsl.json`;
 - `env/ci.json`;
 - `env/windows-executor.json`.
+- `env/windows-local.json`.
 
 Ad-hoc и machine-specific profiles нужно складывать в `env/.local/`.
 Например: `env/.local/develop.json`, `env/.local/do-rolf.json`, `env/.local/local-ibcmd.json`.
@@ -199,6 +201,12 @@ Shared checked-in runtime truth для generated repo должна идти че
 
 Для checked-in example profiles и sanctioned additional presets в `smoke` / `xunit` / `bdd` используйте либо `unsupportedReason`, либо прямой repo-owned entrypoint в `command[0]` вроде `./scripts/...` / `scripts/...`, либо `make <target>`.
 Inline shell snippets и trivial success commands вроде `true`, `echo ...` или `bash -lc "./scripts/... || true"` semantic baseline должен отклонять. Repo-owned path внутри shell-wrapper не считается допустимым checked-in contract.
+
+Native Windows direct-platform contour:
+
+- `env/windows-local.example.json` показывает canonical PowerShell-first preset без WSL/Git Bash;
+- `platform.xvfb` и `platform.ldPreload` остаются только для POSIX direct-platform contour-ов;
+- launcher и `doctor` fail-closed завершаются, если эти поля включены в Windows profile.
 
 Profile-defined `command` запускается с repo-owned launcher env contract:
 
