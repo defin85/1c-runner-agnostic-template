@@ -6,7 +6,7 @@ import re
 from pathlib import Path
 from typing import Any
 
-from .common import canonical_path, die, ensure_dir, project_root, write_text
+from .common import canonical_path, die, ensure_dir, project_root, run_process, write_text
 
 
 def is_source_repo(root: Path | None = None) -> bool:
@@ -29,7 +29,37 @@ def _iter_files(root: Path, rel: str) -> list[Path]:
         return [base]
     if not base.is_dir():
         return []
-    return sorted(path for path in base.rglob("*") if path.is_file())
+    return sorted(
+        path
+        for path in base.rglob("*")
+        if path.is_file() and "__pycache__" not in path.parts and path.suffix != ".pyc"
+    )
+
+
+def _tracked_source_files(root: Path, roots: list[str]) -> list[Path] | None:
+    probe = run_process(["git", "-C", str(root), "rev-parse", "--is-inside-work-tree"], check=False)
+    if probe.returncode != 0:
+        return None
+
+    result = run_process(["git", "-C", str(root), "ls-files", "--", *roots], check=True)
+    files: list[Path] = []
+    for line in result.stdout.splitlines():
+        rel = line.strip()
+        if not rel:
+            continue
+        files.append(root / Path(rel))
+    return sorted(files)
+
+
+def _source_repo_files(root: Path, roots: list[str]) -> list[Path]:
+    tracked = _tracked_source_files(root, roots)
+    if tracked is not None:
+        return tracked
+
+    files: list[Path] = []
+    for rel in roots:
+        files.extend(_iter_files(root, rel))
+    return sorted(files)
 
 
 def render_source_tree(root: Path) -> str:
@@ -52,14 +82,13 @@ def render_source_tree(root: Path) -> str:
         "tests",
     ]
     entries = {"."}
-    for rel in roots:
-        for path in _iter_files(root, rel):
-            parent = path.parent
-            while parent != root:
-                rel_parent = _repo_rel(parent, root)
-                if rel_parent.count("/") <= 3:
-                    entries.add(rel_parent)
-                parent = parent.parent
+    for path in _source_repo_files(root, roots):
+        parent = path.parent
+        while parent != root:
+            rel_parent = _repo_rel(parent, root)
+            if rel_parent.count("/") <= 3:
+                entries.add(rel_parent)
+            parent = parent.parent
     entries.update({"./.githooks", "./src/cf", "./tooling"})
     return "# Template Source Tree\n\n" + "\n".join(sorted(entries)) + "\n"
 
@@ -83,9 +112,7 @@ def render_source_files(root: Path) -> str:
         "src",
         "tests",
     ]
-    files: list[str] = []
-    for rel in roots:
-        files.extend(_repo_rel(path, root) for path in _iter_files(root, rel))
+    files = [_repo_rel(path, root) for path in _source_repo_files(root, roots)]
     return "# Template Source Files\n\n" + "\n".join(sorted(set(files))) + "\n"
 
 

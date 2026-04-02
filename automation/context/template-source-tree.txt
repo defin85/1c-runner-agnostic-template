@@ -72,7 +72,6 @@
 ./openspec/specs/template-ci-contours
 ./openspec/specs/template-overlay-delivery
 ./scripts
-./scripts/__pycache__
 ./scripts/adapters
 ./scripts/bootstrap
 ./scripts/diag
@@ -81,7 +80,6 @@
 ./scripts/llm
 ./scripts/platform
 ./scripts/python
-./scripts/python/__pycache__
 ./scripts/qa
 ./scripts/release
 ./scripts/template
@@ -95,7 +93,6 @@
 ./tests
 ./tests/fixtures
 ./tests/python
-./tests/python/__pycache__
 ./tests/shell-fixtures
 ./tests/smoke
 ./tests/xunit

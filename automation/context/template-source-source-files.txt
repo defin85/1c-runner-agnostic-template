@@ -246,7 +246,6 @@
 ./openspec/specs/template-overlay-delivery/spec.md
 ./scripts/AGENTS.md
 ./scripts/__init__.py
-./scripts/__pycache__/__init__.cpython-313.pyc
 ./scripts/adapters/direct-platform.ps1
 ./scripts/adapters/direct-platform.sh
 ./scripts/adapters/remote-windows.ps1
@@ -293,13 +292,6 @@
 ./scripts/platform/update-db.ps1
 ./scripts/platform/update-db.sh
 ./scripts/python/__init__.py
-./scripts/python/__pycache__/__init__.cpython-313.pyc
-./scripts/python/__pycache__/cli.cpython-313.pyc
-./scripts/python/__pycache__/common.cpython-313.pyc
-./scripts/python/__pycache__/context.cpython-313.pyc
-./scripts/python/__pycache__/qa.cpython-313.pyc
-./scripts/python/__pycache__/runtime.cpython-313.pyc
-./scripts/python/__pycache__/template_tools.cpython-313.pyc
 ./scripts/python/cli.py
 ./scripts/python/common.py
 ./scripts/python/context.py
@@ -358,8 +350,6 @@
 ./tests/README.md
 ./tests/fixtures/README.md
 ./tests/python/__init__.py
-./tests/python/__pycache__/__init__.cpython-313.pyc
-./tests/python/__pycache__/test_cross_platform.cpython-313.pyc
 ./tests/python/test_cross_platform.py
 ./tests/shell-fixtures/README.md
 ./tests/smoke/README.md
