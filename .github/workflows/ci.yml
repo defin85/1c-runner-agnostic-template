@@ -109,6 +109,14 @@ jobs:
       - name: Cross-platform Python smoke
         run: python -m unittest tests.python.test_cross_platform
 
+      - name: Agent docs contract
+        if: runner.os != 'Windows'
+        run: bash tests/smoke/agent-docs-contract.sh
+
+      - name: Direct-platform LD_PRELOAD contract
+        if: runner.os != 'Windows'
+        run: bash tests/smoke/runtime-direct-platform-ld-preload-contract.sh
+
   runtime-gate:
     name: runtime-gate
     if: github.event_name == 'workflow_dispatch'

@@ -281,6 +281,15 @@ def append_agents_overlay(agents_file: Path) -> None:
     write_text(agents_file, existing + block)
 
 
+def _delegate_shell_bootstrap(script_relpath: str, args: list[str], repo_root: Path) -> int | None:
+    if os.name == "nt" or shutil.which("bash") is None:
+        return None
+    script_path = repo_root / script_relpath
+    if not script_path.is_file():
+        return None
+    return run_process(["bash", str(script_path), *args], cwd=repo_root, check=False, capture_output=False).returncode
+
+
 def bootstrap_post_copy(
     template_src_path: str,
     project_name: str,
@@ -295,6 +304,23 @@ def bootstrap_post_copy(
     root: Path | None = None,
 ) -> int:
     repo_root = root or project_root()
+    delegated = _delegate_shell_bootstrap(
+        "scripts/bootstrap/copier-post-copy.sh",
+        [
+            template_src_path,
+            project_name,
+            project_slug,
+            project_description,
+            _preferred_adapter,
+            openspec_tools,
+            init_git_repository,
+            init_beads,
+            beads_prefix,
+        ],
+        repo_root,
+    )
+    if delegated is not None:
+        return delegated
     if init_beads == "yes" and init_git_repository != "yes" and not (repo_root / ".git").exists():
         die("beads requires a git repository; enable git init or disable beads")
     if init_git_repository == "yes" and not (repo_root / ".git").exists():
@@ -326,6 +352,13 @@ def bootstrap_post_update(
     root: Path | None = None,
 ) -> int:
     repo_root = root or project_root()
+    delegated = _delegate_shell_bootstrap(
+        "scripts/bootstrap/copier-post-update.sh",
+        [template_src_path, project_name, project_slug, project_description, _init_beads],
+        repo_root,
+    )
+    if delegated is not None:
+        return delegated
     sync_overlay_manifests(
         Path(template_src_path),
         repo_root,

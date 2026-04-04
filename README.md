@@ -243,9 +243,13 @@ cp env/local.example.json env/.local/develop.json
 - `.claude/skills/` для Claude.
 
 - Skills являются thin-wrapper над repo-owned scripts и не должны дублировать runtime logic.
+- Помимо native runner-agnostic pack, template-managed compatibility pack из `cc-1c-skills` vendored в `automation/vendor/cc-1c-skills/`.
+- Generated imported facades используют repo-owned dispatcher `./scripts/skills/run-imported-skill.sh <skill>` вместо inline upstream snippets.
+- Для overlapping runtime workflows предпочитайте native `1c-*` skills, а imported pack используйте как compatibility/reference surface.
 - Каноническая таблица соответствия `intent -> Codex skill -> Claude skill -> repo entrypoint` лежит в `.agents/skills/README.md`.
 - `.claude/skills/README.md` повторяет тот же mapping для Claude-facing navigation.
 - Базовая project policy для Claude находится в `.claude/settings.json`.
+- Refresh imported pack: `python -m scripts.python.cli sync-imported-skills --source /path/to/cc-1c-skills`.
 - Первый lightweight verification path для repo/doc/tooling changes: `make agent-verify`.
 
 Проверка связки skills:
