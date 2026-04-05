@@ -20,4 +20,15 @@ runs:
 
     - name: Install OpenSpec CLI
       shell: pwsh
-      run: npm install -g "@fission-ai/openspec@${{ inputs.openspec-version }}"
+      run: |
+        $installRoot = if ($env:RUNNER_TEMP) {
+          Join-Path $env:RUNNER_TEMP "openspec-cli"
+        } else {
+          Join-Path $env:HOME ".cache/openspec-cli"
+        }
+        $binDir = Join-Path (Join-Path $installRoot "node_modules") ".bin"
+        if (Test-Path $installRoot) {
+          Remove-Item -Recurse -Force $installRoot
+        }
+        npm install --prefix $installRoot "@fission-ai/openspec@${{ inputs.openspec-version }}"
+        $binDir | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append

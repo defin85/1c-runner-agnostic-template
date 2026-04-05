@@ -481,6 +481,8 @@ scripts/python/run-python.ps1
 scripts/python/run-python.sh
 scripts/python/runtime.py
 scripts/python/template_tools.py
+scripts/qa/act-preflight.ps1
+scripts/qa/act-preflight.sh
 scripts/qa/agent-verify.ps1
 scripts/qa/agent-verify.sh
 scripts/qa/analyze-bsl.ps1

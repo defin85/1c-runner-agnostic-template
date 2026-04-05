@@ -4,12 +4,21 @@ set -euo pipefail
 canonical_command="./scripts/release/publish-overlay-release.sh --tag vX.Y.Z"
 runbook_path="docs/template-release.md"
 allow_push="${TEMPLATE_SOURCE_RELEASE_ALLOW_PUSH:-0}"
+preflight_command="./scripts/qa/act-preflight.sh"
+allow_preflight="${TEMPLATE_SOURCE_ACT_PRE_PUSH:-1}"
+dryrun_preflight="${TEMPLATE_SOURCE_ACT_PRE_PUSH_DRYRUN:-0}"
 blocked=0
+needs_preflight=0
 
 while read -r _local_ref _local_oid remote_ref _remote_oid; do
   [ -n "${remote_ref:-}" ] || continue
 
   case "$remote_ref" in
+    refs/heads/*)
+      if [ -n "${_local_oid:-}" ] && [ "${_local_oid}" != "0000000000000000000000000000000000000000" ]; then
+        needs_preflight=1
+      fi
+      ;;
     refs/tags/v*)
       if [ "$allow_push" = "1" ]; then
         continue
@@ -22,4 +31,25 @@ while read -r _local_ref _local_oid remote_ref _remote_oid; do
   esac
 done
 
-exit "$blocked"
+if [ "$blocked" -ne 0 ]; then
+  exit "$blocked"
+fi
+
+if [ "$allow_preflight" != "1" ] || [ "$needs_preflight" -ne 1 ]; then
+  exit 0
+fi
+
+preflight_args=()
+if [ "$dryrun_preflight" = "1" ]; then
+  preflight_args+=(--dryrun)
+fi
+
+printf '[pre-push] running local GitHub Actions preflight via %s\n' "$preflight_command" >&2
+if ! "$preflight_command" "${preflight_args[@]}"; then
+  printf 'error: local GitHub Actions preflight failed; fix the workflow or rerun %s before pushing\n' \
+    "$preflight_command" >&2
+  printf 'error: set TEMPLATE_SOURCE_ACT_PRE_PUSH=0 only if you intentionally need to bypass the hook\n' >&2
+  exit 1
+fi
+
+exit 0

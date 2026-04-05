@@ -42,6 +42,7 @@ Runtime and test:
 Agent and repository checks:
 
 - `./scripts/qa/agent-verify.sh`
+- `./scripts/qa/act-preflight.sh`
 - `./scripts/qa/check-agent-docs.sh`
 - `./scripts/qa/check-skill-bindings.sh`
 - `./scripts/llm/export-context.sh --preview|--check|--write`
@@ -61,6 +62,7 @@ Template lifecycle:
 
 - Если нужно понять repo contract, начните с [openspec/project.md](../../openspec/project.md).
 - Если нужно быстро проверить repo integrity, используйте [docs/agent/verify.md](verify.md) и `make agent-verify`.
+- Если нужно поймать Linux-reproducible GitHub Actions drift до push, используйте `make act-preflight`.
 - Если нужно выпустить новый overlay release tag source repo, переходите в [docs/template-release.md](../template-release.md).
 - Если задача длинная или кросс-файловая, создайте execution plan в [docs/exec-plans/README.md](../exec-plans/README.md).
 - Если длинной задаче нужны bulky supporting artifacts рядом с exec-plan, используйте [docs/work-items/README.md](../work-items/README.md).

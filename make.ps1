@@ -20,6 +20,7 @@ function Resolve-TargetScript {
 
 $targets = @{
     "agent-verify" = @((Resolve-TargetScript "scripts\qa\agent-verify.ps1"))
+    "act-preflight" = @((Resolve-TargetScript "scripts\qa\act-preflight.ps1"))
     "qa" = @((Resolve-TargetScript "scripts\qa\agent-verify.ps1"))
     "analyze-bsl" = @((Resolve-TargetScript "scripts\qa\analyze-bsl.ps1"))
     "format-bsl" = @((Resolve-TargetScript "scripts\qa\format-bsl.ps1"))
@@ -53,6 +54,7 @@ if ($Target -eq "help") {
     @(
         "Available targets:",
         "  ./make.ps1 agent-verify",
+        "  ./make.ps1 act-preflight",
         "  ./make.ps1 qa",
         "  ./make.ps1 analyze-bsl",
         "  ./make.ps1 format-bsl",

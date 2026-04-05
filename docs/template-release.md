@@ -41,6 +41,8 @@
 
 - repo-owned hook живёт в `.githooks/pre-push`;
 - hook блокирует прямой push `refs/tags/v*`, включая случайный `git push --follow-tags`;
+- тот же hook перед обычным branch push запускает `./scripts/qa/act-preflight.sh`, чтобы локально поймать Linux-reproducible GitHub Actions regressions до отправки в remote;
+- bypass для branch preflight допускается только через явный `TEMPLATE_SOURCE_ACT_PRE_PUSH=0`;
 - сообщение об ошибке должно отправлять обратно к `./scripts/release/publish-overlay-release.sh --tag ...` и этому runbook.
 
 ## После публикации
