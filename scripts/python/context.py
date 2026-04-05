@@ -123,6 +123,7 @@ def _is_generated_private(rel: str) -> bool:
         "./env/ci.json",
         "./env/windows-executor.json",
         "./env/windows-local.json",
+        "./env/.local",
     } or rel.startswith("./env/.local/")
 
 

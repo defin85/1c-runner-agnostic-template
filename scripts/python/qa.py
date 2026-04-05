@@ -172,6 +172,31 @@ def check_agent_docs(root: Path | None = None) -> int:
             status = 1
     if export_context("--check", repo_root) != 0:
         status = 1
+    if not is_source_repo(repo_root):
+        tree_file = repo_root / "automation" / "context" / "source-tree.generated.txt"
+        metadata_file = repo_root / "automation" / "context" / "metadata-index.generated.json"
+        for line in tree_file.read_text(encoding="utf-8").splitlines():
+            rel = line.strip()
+            if rel in {
+                "./env/local.json",
+                "./env/wsl.json",
+                "./env/ci.json",
+                "./env/windows-executor.json",
+                "./env/.local",
+            } or rel.startswith("./env/.local/"):
+                print(f"local-private path leaked into generated context: {rel.removeprefix('./')}", file=os.sys.stderr)
+                status = 1
+            if rel.startswith("./.codex/") and rel not in {
+                "./.codex/.gitkeep",
+                "./.codex/README.md",
+                "./.codex/config.toml",
+            }:
+                print(f"local-private path leaked into generated context: {rel.removeprefix('./')}", file=os.sys.stderr)
+                status = 1
+        metadata_text = metadata_file.read_text(encoding="utf-8")
+        if re.search(r'"env/(local|wsl|ci|windows-executor)\.json"|env/\.local/', metadata_text):
+            print("generated metadata leaked local-private runtime profile paths", file=os.sys.stderr)
+            status = 1
     return status
 
 

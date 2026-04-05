@@ -575,6 +575,7 @@ assert_contains "$rendered_root/automation/context/hotspots-summary.generated.md
 assert_contains "$rendered_root/automation/context/hotspots-summary.generated.md" "docs/work-items/README.md"
 assert_contains "$rendered_root/automation/context/hotspots-summary.generated.md" "automation/context/project-delta-hotspots.generated.md"
 assert_contains "$rendered_root/automation/context/source-tree.generated.txt" "# Generated Project Tree"
+assert_not_contains "$rendered_root/automation/context/source-tree.generated.txt" "./env/.local"
 assert_jq "$rendered_root/automation/context/project-delta-hints.json" '.hintsRole == "project-owned-project-delta-hints" and (.selectors.pathPrefixes | type == "array") and (.selectors.pathKeywords | type == "array") and (.representativePaths | type == "array")' "generated-project-delta-hints"
 assert_contains "$rendered_root/automation/context/project-delta-hotspots.generated.md" "# Generated Project-Delta Hotspots"
 assert_contains "$rendered_root/automation/context/project-delta-hotspots.generated.md" "automation/context/project-delta-hints.json"

@@ -8,6 +8,8 @@ import sys
 import unittest
 from pathlib import Path
 
+from scripts.python.context import render_generated_tree
+
 
 ROOT = Path(__file__).resolve().parents[2]
 ARTIFACTS = ROOT / ".artifacts" / "tests"
@@ -72,6 +74,20 @@ class CrossPlatformSmokeTests(unittest.TestCase):
         else:
             result = run_command(["bash", "-lc", "./scripts/llm/export-context.sh --check"])
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_python_generated_tree_excludes_local_sandbox_dir(self) -> None:
+        generated_root = ARTIFACTS / "generated-tree-private-filter"
+        shutil.rmtree(generated_root, ignore_errors=True)
+        (generated_root / "env" / ".local").mkdir(parents=True, exist_ok=True)
+        (generated_root / "env" / ".local" / "README.md").write_text("private\n", encoding="utf-8")
+        (generated_root / "env" / "README.md").write_text("shared\n", encoding="utf-8")
+
+        rendered = render_generated_tree(generated_root)
+
+        self.assertIn("./env", rendered)
+        self.assertIn("./env/README.md", rendered)
+        self.assertNotIn("./env/.local\n", rendered)
+        self.assertNotIn("./env/.local/README.md", rendered)
 
     def test_doctor_dry_run_summary(self) -> None:
         run_root = ARTIFACTS / "doctor"
