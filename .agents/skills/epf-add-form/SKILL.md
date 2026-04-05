@@ -1,8 +1,8 @@
 ---
 name: epf-add-form
-description: Импортированный compatibility skill из `cc-1c-skills`: Добавить управляемую форму к внешней обработке 1С
+description: "Импортированный compatibility skill из `cc-1c-skills`: Добавить управляемую форму к внешней обработке 1С"
 metadata:
-  short-description: Добавить управляемую форму к внешней обработке 1С
+  short-description: "Добавить управляемую форму к внешней обработке 1С"
 ---
 
 <!-- GENERATED: sync-imported-skills -->
@@ -27,10 +27,13 @@ Repo script: `./scripts/skills/run-imported-skill.sh epf-add-form`
 
 - Vendored upstream source: `automation/vendor/cc-1c-skills/skills/epf-add-form/SKILL.md`
 - Runtime kind: `python`
+- Readiness target: `make imported-skills-readiness`
+- Direct readiness command: `./scripts/skills/run-imported-skill.sh --readiness`
 - Исполнение идёт через repo-owned dispatcher, который вызывает vendored Python helper.
 
 ## Rules
 
 - Публичный contract для этого skill находится в repo-owned dispatcher, а не в vendored markdown.
 - Если нужны детали параметров, сначала читайте vendored upstream `SKILL.md`, затем helper-скрипты из `automation/vendor/cc-1c-skills/`.
+- Если dispatcher сообщает о missing dependencies, сначала используйте canonical readiness path, а не helper traceback.
 - Не переносите upstream PowerShell snippets в новый automation contract шаблона.

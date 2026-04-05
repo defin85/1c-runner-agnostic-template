@@ -7,6 +7,7 @@
 - В template source repo authoritative live context начинается с `automation/context/template-source-project-map.md` и соседних `template-source-*`.
 - В generated repo authoritative curated truth начинается с `automation/context/project-map.md`.
 - В generated repo checked-in runtime truth начинается с `automation/context/runtime-support-matrix.md` и `automation/context/runtime-support-matrix.json`.
+- В generated repo compact first-hour skill routing начинается с `automation/context/recommended-skills.generated.md`.
 - В generated repo summary-first derived onboarding начинается с `automation/context/hotspots-summary.generated.md`.
 - В generated repo derived inventory нужно читать через `automation/context/metadata-index.generated.json` и `automation/context/source-tree.generated.txt`, не принимая их за project-owned доменную истину.
 - Policy для sanctioned checked-in runtime presets в generated repo живёт в `automation/context/runtime-profile-policy.json`.
@@ -31,7 +32,7 @@
 - `automation/context/project-map.md` остаётся project-owned router/картой generated repo.
 - `automation/context/runtime-profile-policy.json` остаётся project-owned policy-файлом generated repo.
 - `automation/context/runtime-support-matrix.md` и `automation/context/runtime-support-matrix.json` остаются project-owned runtime truth-файлами generated repo.
-- `automation/context/hotspots-summary.generated.md`, `automation/context/metadata-index.generated.json` и `automation/context/source-tree.generated.txt` остаются generated-derived и privacy-safe.
+- `automation/context/recommended-skills.generated.md`, `automation/context/hotspots-summary.generated.md`, `automation/context/metadata-index.generated.json` и `automation/context/source-tree.generated.txt` остаются generated-derived и privacy-safe.
 
 ## Что не хранить
 

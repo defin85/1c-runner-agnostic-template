@@ -1,7 +1,7 @@
 ---
 name: erf-dump
-description: Импортированный compatibility skill из cc-1c-skills. Разобрать ERF-файл отчёта 1С в XML-исходники. Используй когда пользователь просит разобрать, декомпилировать отчёт, получить исходники из ERF файла
-argument-hint: <ErfFile>
+description: "Импортированный compatibility skill из cc-1c-skills. Разобрать ERF-файл отчёта 1С в XML-исходники. Используй когда пользователь просит разобрать, декомпилировать отчёт, получить исходники из ERF файла"
+argument-hint: "<ErfFile>"
 allowed-tools:
   - Bash
   - Read
@@ -30,9 +30,12 @@ Repo script: `./scripts/skills/run-imported-skill.sh erf-dump`
 
 - Vendored upstream source: `automation/vendor/cc-1c-skills/skills/erf-dump/SKILL.md`
 - Runtime kind: `python`
+- Readiness target: `make imported-skills-readiness`
+- Direct readiness command: `./scripts/skills/run-imported-skill.sh --readiness`
 - Исполнение идёт через repo-owned dispatcher, который вызывает vendored Python helper.
 
 ## Rules
 
 - Repo-owned dispatcher является source of truth для вызова skill в этом шаблоне.
 - Vendored upstream `SKILL.md` остаётся источником intent/examples, но не публичным execution contract.
+- Если dispatcher сообщает о missing dependencies, сначала используйте canonical readiness path, а не helper traceback.

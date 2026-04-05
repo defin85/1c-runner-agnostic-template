@@ -26,6 +26,8 @@ Claude-facing equivalents лежат в [.claude/skills/README.md](../../.claude
 - Upstream source: `git@github.com:Nikolay-Shirokov/cc-1c-skills.git`
 - Upstream commit: `eebc2a06792c6c0263ce02bb6c63b8a4579134d1`
 - Vendor root: [`automation/vendor/cc-1c-skills/README.md`](../../automation/vendor/cc-1c-skills/README.md)
+- Canonical readiness target: `make imported-skills-readiness`
+- Direct readiness command: `./scripts/skills/run-imported-skill.sh --readiness`
 
 | User intent | Codex skill | Claude skill | Repo entrypoint | Notes |
 | --- | --- | --- | --- | --- |
@@ -102,4 +104,5 @@ Claude-facing equivalents лежат в [.claude/skills/README.md](../../.claude
 - Source of truth для выполнения находится в `scripts/`, а не в `SKILL.md`.
 - Если меняется runtime behavior imported skills, меняйте repo-owned dispatcher или vendored helper, а не generated skill markdown вручную.
 - Для baseline repo/doc/tooling changes начинайте с `repo-agent-verify`.
+- При missing dependencies сначала используйте canonical readiness path, затем запускайте executable imported skills.
 - Imported compatibility pack не заменяет native runner-agnostic skills: при совпадении intent предпочитайте native workflow шаблона.

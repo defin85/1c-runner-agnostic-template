@@ -1,7 +1,7 @@
 ---
 name: db-load-xml
-description: Импортированный compatibility skill из cc-1c-skills. Загрузка конфигурации 1С из XML-файлов. Используй когда пользователь просит загрузить конфигурацию из файлов, XML, исходников, LoadConfigFromFiles
-argument-hint: <configDir> [database]
+description: "Импортированный compatibility skill из cc-1c-skills. Загрузка конфигурации 1С из XML-файлов. Используй когда пользователь просит загрузить конфигурацию из файлов, XML, исходников, LoadConfigFromFiles"
+argument-hint: "<configDir> [database]"
 allowed-tools:
   - Bash
   - Read
@@ -30,9 +30,12 @@ Repo script: `./scripts/skills/run-imported-skill.sh db-load-xml`
 
 - Vendored upstream source: `automation/vendor/cc-1c-skills/skills/db-load-xml/SKILL.md`
 - Runtime kind: `python`
+- Readiness target: `make imported-skills-readiness`
+- Direct readiness command: `./scripts/skills/run-imported-skill.sh --readiness`
 - Исполнение идёт через repo-owned dispatcher, который вызывает vendored Python helper.
 
 ## Rules
 
 - Repo-owned dispatcher является source of truth для вызова skill в этом шаблоне.
 - Vendored upstream `SKILL.md` остаётся источником intent/examples, но не публичным execution contract.
+- Если dispatcher сообщает о missing dependencies, сначала используйте canonical readiness path, а не helper traceback.

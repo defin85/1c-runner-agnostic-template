@@ -26,7 +26,7 @@ Verification entrypoint: make agent-verify
 Generated-project router reference: docs/agent/generated-project-index.md
 Generated-project workflow guide: docs/agent/codex-workflows.md
 Generated-project support-matrix templates: automation/context/templates/generated-project-runtime-support-matrix.md, automation/context/templates/generated-project-runtime-support-matrix.json
-Generated-project productivity scaffolds: automation/context/templates/generated-project-architecture-map.md, automation/context/templates/generated-project-operator-local-runbook.md, automation/context/templates/generated-project-runtime-quickstart.md, automation/context/templates/generated-project-project-delta-hints.json, automation/context/templates/generated-project-project-delta-hotspots.md
+Generated-project productivity scaffolds: automation/context/templates/generated-project-architecture-map.md, automation/context/templates/generated-project-operator-local-runbook.md, automation/context/templates/generated-project-runtime-quickstart.md, automation/context/templates/generated-project-project-delta-hints.json, automation/context/templates/generated-project-project-delta-hotspots.md, automation/context/templates/generated-project-recommended-skills.md
 Generated-project work-item scaffolds: automation/context/templates/generated-project-work-items-readme.md, automation/context/templates/generated-project-work-items-template.md
 Execution plan starters: docs/exec-plans/TEMPLATE.md, docs/exec-plans/EXAMPLE.md
 
@@ -52,6 +52,7 @@ require_generated_path() {
 print_generated_repo_onboard() {
   local metadata_path="automation/context/metadata-index.generated.json"
   local summary_path="automation/context/hotspots-summary.generated.md"
+  local recommended_skills_path="automation/context/recommended-skills.generated.md"
   local project_map_path="automation/context/project-map.md"
   local architecture_map_path="docs/agent/architecture-map.md"
   local workflow_path="docs/agent/codex-workflows.md"
@@ -67,6 +68,7 @@ print_generated_repo_onboard() {
   local config_name=""
   local contour_line=""
   local extension_line=""
+  local readiness_json=""
 
   require_generated_path "$project_map_path"
   require_generated_path "$architecture_map_path"
@@ -75,6 +77,7 @@ print_generated_repo_onboard() {
   require_generated_path "$runtime_quickstart_path"
   require_generated_path "$support_matrix_json"
   require_generated_path "$support_matrix_md"
+  require_generated_path "$recommended_skills_path"
   require_generated_path "$project_delta_hints_path"
   require_generated_path "$project_delta_hotspots_path"
   require_generated_path "$exec_plan_template_path"
@@ -91,6 +94,10 @@ print_generated_repo_onboard() {
     extension_line="not declared"
   fi
 
+  if ! readiness_json="$("$root/scripts/skills/run-imported-skill.sh" --readiness --json 2>/dev/null)"; then
+    readiness_json=""
+  fi
+
   cat <<EOF
 # Codex Onboard
 
@@ -103,6 +110,7 @@ Operator-local runbook: $operator_local_runbook_path
 Runtime quick reference: $runtime_quickstart_path
 Runtime support matrix (md): $support_matrix_md
 Runtime support matrix (json): $support_matrix_json
+Recommended skills: $recommended_skills_path
 Project-delta hints: $project_delta_hints_path
 Project-delta hotspots: $project_delta_hotspots_path
 Summary-first map: $summary_path
@@ -121,6 +129,35 @@ EOF
   printf -- '- make codex-onboard\n'
   printf -- '- make agent-verify\n'
   printf -- '- make export-context-check\n'
+  printf -- '- make imported-skills-readiness\n'
+
+  printf '\nAI-readiness:\n'
+  if [ -n "$readiness_json" ]; then
+    while IFS= read -r contour_line; do
+      [ -n "$contour_line" ] || continue
+      printf -- '- %s\n' "$contour_line"
+    done < <(
+      printf '%s' "$readiness_json" | jq -r '
+        [
+          "Imported skill readiness target: \(.canonicalTarget)",
+          "Imported skill readiness command: \(.canonicalCommand)",
+          (if .representative.python.ready
+            then "Imported skill runtime `python` (`\(.representative.python.representative_skill)`): ready"
+            else "Imported skill runtime `python` (`\(.representative.python.representative_skill)`): missing \((.representative.python.missing_dependencies // []) | join(", "))"
+           end),
+          (if .representative.node.ready
+            then "Imported skill runtime `node` (`\(.representative.node.representative_skill)`): ready"
+            else "Imported skill runtime `node` (`\(.representative.node.representative_skill)`): missing \((.representative.node.missing_dependencies // []) | join(", "))"
+           end),
+          "Imported skill runtime `reference` (`\(.representative.reference.representative_skill)`): ready",
+          "Imported skill runtime `native-alias` (`\(.representative.nativeAlias.representative_skill)`): ready"
+        ][]'
+    )
+  else
+    printf -- '- Imported skill readiness target: make imported-skills-readiness\n'
+    printf -- '- Imported skill readiness command: ./scripts/skills/run-imported-skill.sh --readiness\n'
+    printf -- '- Imported skill readiness status is unavailable in this shell; run the canonical target directly.\n'
+  fi
 
   printf '\nRuntime contour statuses:\n'
   while IFS= read -r contour_line; do
@@ -160,6 +197,7 @@ Follow-up routers:
 Next commands:
 - make agent-verify
 - make export-context-check
+- make imported-skills-readiness
 - bd ready
 EOF
 }

@@ -141,6 +141,7 @@ def render_generated_tree(root: Path) -> str:
             "./automation/context/source-tree.generated.txt",
             "./automation/context/metadata-index.generated.json",
             "./automation/context/hotspots-summary.generated.md",
+            "./automation/context/recommended-skills.generated.md",
             "./automation/context/project-delta-hotspots.generated.md",
         }:
             continue
@@ -213,6 +214,7 @@ def render_generated_metadata(root: Path) -> str:
             "runtimeSupportMatrixMarkdown": "automation/context/runtime-support-matrix.md",
             "projectDeltaHotspots": "automation/context/project-delta-hotspots.generated.md",
             "hotspotsSummary": "automation/context/hotspots-summary.generated.md",
+            "recommendedSkills": "automation/context/recommended-skills.generated.md",
             "skills": ".agents/skills/README.md",
             "codexGuide": ".codex/README.md",
             "executionPlans": "docs/exec-plans/README.md",
@@ -253,6 +255,153 @@ def render_generated_metadata(root: Path) -> str:
 
 def _count_inventory(root: Path, rel: str) -> int:
     return len(_list_inventory(root, rel))
+
+
+def _count_named_dirs(root: Path, parts: tuple[str, ...], name: str) -> int:
+    search_root = root.joinpath(*parts)
+    if not search_root.is_dir():
+        return 0
+    return sum(1 for path in search_root.rglob(name) if path.is_dir())
+
+
+def _has_any_inventory(root: Path, rel: str) -> bool:
+    return _count_inventory(root, rel) > 0
+
+
+def render_generated_recommended_skills(root: Path, metadata_json: str) -> str:
+    metadata = json.loads(metadata_json)
+    config_present = bool(metadata.get("configuration", {}).get("present"))
+    extensions_count = _count_inventory(root, "src/cfe")
+    epf_count = _count_inventory(root, "src/epf")
+    erf_count = _count_inventory(root, "src/erf")
+    subsystems_count = _count_inventory(root, "src/cf/Subsystems")
+    forms_count = _count_named_dirs(root, ("src",), "Forms")
+    services_count = _count_inventory(root, "src/cf/HTTPServices") + _count_inventory(root, "src/cf/WebServices")
+    scheduled_jobs_count = _count_inventory(root, "src/cf/ScheduledJobs")
+    common_modules_count = _count_inventory(root, "src/cf/CommonModules")
+
+    recommendations: list[tuple[str, str, str]] = [
+        (
+            "Baseline repo hygiene",
+            "`repo-agent-verify` -> `./scripts/qa/agent-verify.sh`",
+            "Всегда начинайте с no-1C baseline, прежде чем заходить в runtime или imported workflows.",
+        ),
+        (
+            "Git-backed partial import loop",
+            "`1c-load-diff-src` -> `1c-update-db` -> `1c-run-xunit`",
+            "Это preferred native path для быстрых изменений в `src/cf` и локальной проверки.",
+        ),
+        (
+            "Committed task import",
+            "`1c-load-task-src` -> `./scripts/platform/load-task-src.sh`",
+            "Используйте, когда scope уже зафиксирован через `Bead:` / `Work-Item:` trailers или `--range`.",
+        ),
+    ]
+
+    if config_present or (root / "src" / "cf").is_dir():
+        recommendations.append(
+            (
+                "Configuration XML routing",
+                "`cf-info` -> `cf-edit` -> `cf-validate`",
+                "Подходит для first-pass анализа и точечных правок `src/cf/Configuration.xml` и configuration-level metadata.",
+            )
+        )
+        recommendations.append(
+            (
+                "Metadata object routing",
+                "`meta-info` -> `meta-edit` -> `meta-validate`",
+                "Подходит для object-level XML changes без ручного редактирования сырого metadata XML.",
+            )
+        )
+    if subsystems_count > 0:
+        recommendations.append(
+            (
+                "Subsystem and interface routing",
+                "`subsystem-info` -> `subsystem-edit` -> `subsystem-validate`, `interface-edit`",
+                "Рекомендуется, когда project shape уже показывает выраженную subsystem/navigation surface.",
+            )
+        )
+    if forms_count > 0:
+        recommendations.append(
+            (
+                "Managed form routing",
+                "`form-info` -> `form-edit` -> `form-validate`",
+                "Полезно для forms-heavy repo footprint и object UI changes.",
+            )
+        )
+    if extensions_count > 0:
+        recommendations.append(
+            (
+                "Extension-owned changes",
+                "`cfe-info` -> `cfe-edit` -> `cfe-validate`",
+                "Используйте, когда change живёт в `src/cfe` и нужно держать extension surface отдельно от base config.",
+            )
+        )
+    if erf_count > 0:
+        recommendations.append(
+            (
+                "Reports and SKD routing",
+                "`skd-info` -> `skd-edit` -> `skd-validate`, `erf-build`",
+                "Подходит для отчётов, СКД и report-heavy repo footprint.",
+            )
+        )
+    if epf_count > 0:
+        recommendations.append(
+            (
+                "External processor routing",
+                "`epf-dump` -> `epf-build` -> `epf-validate`",
+                "Подходит для внешних обработок и adjacent processor workflows.",
+            )
+        )
+    if services_count > 0 or scheduled_jobs_count > 0 or common_modules_count > 0:
+        recommendations.append(
+            (
+                "Service and runtime edges",
+                "`cf-info`, `meta-info`, затем native `1c-*` runtime workflows",
+                "Service surfaces, scheduled jobs и common modules обычно требуют сначала routing по metadata, потом native runtime path.",
+            )
+        )
+
+    lines = [
+        "# Generated Recommended Skills",
+        "",
+        "Этот файл является generated-derived compact routing layer для первого часа работы агента.",
+        "Полный catalog остаётся в `.agents/skills/README.md`, а readiness/bootstrap для executable imported skills идёт через `make imported-skills-readiness`.",
+        "",
+        "## Detected Signals",
+        "",
+        f"- configuration xml: `{'present' if config_present else 'missing'}`",
+        f"- subsystems: `{subsystems_count}`",
+        f"- forms roots: `{forms_count}`",
+        f"- extensions: `{extensions_count}`",
+        f"- external processors: `{epf_count}`",
+        f"- reports: `{erf_count}`",
+        f"- service edges: `{services_count}`",
+        f"- scheduled jobs: `{scheduled_jobs_count}`",
+        f"- common modules: `{common_modules_count}`",
+        "",
+        "## First-Hour Recommendations",
+        "",
+        "| Workflow | Recommended skills / entrypoints | Why now |",
+        "| --- | --- | --- |",
+    ]
+    for title, workflow, why in recommendations[:7]:
+        lines.append(f"| {title} | {workflow} | {why} |")
+    lines.extend(
+        [
+            "",
+            "## Follow-Up Routers",
+            "",
+            "- Full catalog: `.agents/skills/README.md`",
+            "- Imported skill readiness: `make imported-skills-readiness`, `./scripts/skills/run-imported-skill.sh --readiness`",
+            "- Curated project truth: `automation/context/project-map.md`",
+            "- Project-owned code map: `docs/agent/architecture-map.md`",
+            "- Runtime quick reference: `docs/agent/runtime-quickstart.md`",
+            "- Generated summary-first map: `automation/context/hotspots-summary.generated.md`",
+            "- Raw inventory: `automation/context/metadata-index.generated.json`",
+        ]
+    )
+    return "\n".join(lines) + "\n"
 
 
 def render_generated_project_delta_hotspots(root: Path, metadata_json: str) -> str:
@@ -349,6 +498,7 @@ def render_generated_hotspots_summary(root: Path, metadata_json: str, tree_text:
         "## Follow-Up Routers",
         "",
         "- Curated project truth: `automation/context/project-map.md`",
+        "- Project-aware recommended skills: `automation/context/recommended-skills.generated.md`",
         "- Project-owned code map: `docs/agent/architecture-map.md`",
         "- Operator-local runtime bridge: `docs/agent/operator-local-runbook.md`",
         "- Project-specific runtime digest: `docs/agent/runtime-quickstart.md`",
@@ -383,6 +533,7 @@ def export_context(mode: str, root: Path | None = None) -> int:
         targets = [
             (context_dir / "source-tree.generated.txt", tree_text),
             (context_dir / "metadata-index.generated.json", metadata_json),
+            (context_dir / "recommended-skills.generated.md", render_generated_recommended_skills(repo_root, metadata_json)),
             (context_dir / "project-delta-hotspots.generated.md", render_generated_project_delta_hotspots(repo_root, metadata_json)),
             (context_dir / "hotspots-summary.generated.md", render_generated_hotspots_summary(repo_root, metadata_json, tree_text)),
         ]

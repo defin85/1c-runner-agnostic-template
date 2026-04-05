@@ -1,7 +1,7 @@
 ---
 name: web-info
-description: Импортированный compatibility skill из cc-1c-skills. Статус Apache и веб-публикаций 1С — запущен ли сервер, какие базы опубликованы, ошибки. Используй когда пользователь спрашивает про статус веб-сервера, опубликованные базы, работает ли Apache
-argument-hint: [args...]
+description: "Импортированный compatibility skill из cc-1c-skills. Статус Apache и веб-публикаций 1С — запущен ли сервер, какие базы опубликованы, ошибки. Используй когда пользователь спрашивает про статус веб-сервера, опубликованные базы, работает ли Apache"
+argument-hint: "[args...]"
 allowed-tools:
   - Bash
   - Read
@@ -30,9 +30,12 @@ Repo script: `./scripts/skills/run-imported-skill.sh web-info`
 
 - Vendored upstream source: `automation/vendor/cc-1c-skills/skills/web-info/SKILL.md`
 - Runtime kind: `python`
+- Readiness target: `make imported-skills-readiness`
+- Direct readiness command: `./scripts/skills/run-imported-skill.sh --readiness`
 - Исполнение идёт через repo-owned dispatcher, который вызывает vendored Python helper.
 
 ## Rules
 
 - Repo-owned dispatcher является source of truth для вызова skill в этом шаблоне.
 - Vendored upstream `SKILL.md` остаётся источником intent/examples, но не публичным execution contract.
+- Если dispatcher сообщает о missing dependencies, сначала используйте canonical readiness path, а не helper traceback.

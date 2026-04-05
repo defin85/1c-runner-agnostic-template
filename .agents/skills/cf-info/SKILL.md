@@ -1,8 +1,8 @@
 ---
 name: cf-info
-description: Импортированный compatibility skill из `cc-1c-skills`: Анализ структуры конфигурации 1С — свойства, состав, счётчики объектов. Используй для обзора конфигурации — какие объекты есть, сколько их, какие настройки
+description: "Импортированный compatibility skill из `cc-1c-skills`: Анализ структуры конфигурации 1С — свойства, состав, счётчики объектов. Используй для обзора конфигурации — какие объекты есть, сколько их, какие настройки"
 metadata:
-  short-description: Анализ структуры конфигурации 1С — свойства, состав, счётчики объектов.…
+  short-description: "Анализ структуры конфигурации 1С — свойства, состав, счётчики объектов.…"
 ---
 
 <!-- GENERATED: sync-imported-skills -->
@@ -27,10 +27,13 @@ Repo script: `./scripts/skills/run-imported-skill.sh cf-info`
 
 - Vendored upstream source: `automation/vendor/cc-1c-skills/skills/cf-info/SKILL.md`
 - Runtime kind: `python`
+- Readiness target: `make imported-skills-readiness`
+- Direct readiness command: `./scripts/skills/run-imported-skill.sh --readiness`
 - Исполнение идёт через repo-owned dispatcher, который вызывает vendored Python helper.
 
 ## Rules
 
 - Публичный contract для этого skill находится в repo-owned dispatcher, а не в vendored markdown.
 - Если нужны детали параметров, сначала читайте vendored upstream `SKILL.md`, затем helper-скрипты из `automation/vendor/cc-1c-skills/`.
+- Если dispatcher сообщает о missing dependencies, сначала используйте canonical readiness path, а не helper traceback.
 - Не переносите upstream PowerShell snippets в новый automation contract шаблона.

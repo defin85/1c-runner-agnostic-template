@@ -1,7 +1,7 @@
 ---
 name: meta-edit
-description: Импортированный compatibility skill из cc-1c-skills. Точечное редактирование объекта метаданных 1С. Используй когда нужно добавить, удалить или изменить реквизиты, табличные части, измерения, ресурсы или свойства существующего объекта конфигурации
-argument-hint: <ObjectPath> -Operation <op> -Value "<val>" | -DefinitionFile <json> [-NoValidate]
+description: "Импортированный compatibility skill из cc-1c-skills. Точечное редактирование объекта метаданных 1С. Используй когда нужно добавить, удалить или изменить реквизиты, табличные части, измерения, ресурсы или свойства существующего объекта конфигурации"
+argument-hint: "<ObjectPath> -Operation <op> -Value \"<val>\" | -DefinitionFile <json> [-NoValidate]"
 allowed-tools:
   - Bash
   - Read
@@ -30,9 +30,12 @@ Repo script: `./scripts/skills/run-imported-skill.sh meta-edit`
 
 - Vendored upstream source: `automation/vendor/cc-1c-skills/skills/meta-edit/SKILL.md`
 - Runtime kind: `python`
+- Readiness target: `make imported-skills-readiness`
+- Direct readiness command: `./scripts/skills/run-imported-skill.sh --readiness`
 - Исполнение идёт через repo-owned dispatcher, который вызывает vendored Python helper.
 
 ## Rules
 
 - Repo-owned dispatcher является source of truth для вызова skill в этом шаблоне.
 - Vendored upstream `SKILL.md` остаётся источником intent/examples, но не публичным execution contract.
+- Если dispatcher сообщает о missing dependencies, сначала используйте canonical readiness path, а не helper traceback.

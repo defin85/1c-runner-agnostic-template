@@ -1,6 +1,6 @@
 SHELL := bash
 
-.PHONY: help agent-verify qa analyze-bsl format-bsl check-agent-docs check-skill-bindings check-overlay-manifest codex-onboard create-ib dump-src load-src load-diff-src load-task-src update-db diff-src doctor test-xunit tdd-xunit test-bdd smoke export-context export-context-preview export-context-check export-context-write verify-traceability template-check-update template-update
+.PHONY: help agent-verify qa analyze-bsl format-bsl check-agent-docs check-skill-bindings check-overlay-manifest codex-onboard imported-skills-readiness create-ib dump-src load-src load-diff-src load-task-src update-db diff-src doctor test-xunit tdd-xunit test-bdd smoke export-context export-context-preview export-context-check export-context-write verify-traceability template-check-update template-update
 
 help:
 	@printf '%s\n' \
@@ -13,6 +13,7 @@ help:
 		'  make check-skill-bindings' \
 		'  make check-overlay-manifest' \
 		'  make codex-onboard' \
+		'  make imported-skills-readiness' \
 		'  make create-ib' \
 		'  make dump-src' \
 		'  make load-src' \
@@ -55,6 +56,9 @@ check-overlay-manifest:
 
 codex-onboard:
 	@./scripts/qa/codex-onboard.sh
+
+imported-skills-readiness:
+	@./scripts/skills/run-imported-skill.sh --readiness
 
 create-ib:
 	@./scripts/platform/create-ib.sh

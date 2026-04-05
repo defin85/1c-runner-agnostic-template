@@ -1,7 +1,7 @@
 ---
 name: form-patterns
-description: Импортированный compatibility skill из cc-1c-skills. Справочник паттернов компоновки управляемых форм 1С. Используй как справочник при проектировании форм — архетипы, конвенции, продвинутые приёмы
-argument-hint: (no arguments)
+description: "Импортированный compatibility skill из cc-1c-skills. Справочник паттернов компоновки управляемых форм 1С. Используй как справочник при проектировании форм — архетипы, конвенции, продвинутые приёмы"
+argument-hint: "(no arguments)"
 allowed-tools:
   - Bash
   - Read
@@ -30,9 +30,12 @@ Repo script: `./scripts/skills/run-imported-skill.sh form-patterns`
 
 - Vendored upstream source: `automation/vendor/cc-1c-skills/skills/form-patterns/SKILL.md`
 - Runtime kind: `reference`
+- Readiness target: `make imported-skills-readiness`
+- Direct readiness command: `./scripts/skills/run-imported-skill.sh --readiness`
 - Это reference-only импорт: repo script печатает адаптированную сводку и указывает на vendored upstream материалы.
 
 ## Rules
 
 - Repo-owned dispatcher является source of truth для вызова skill в этом шаблоне.
 - Vendored upstream `SKILL.md` остаётся источником intent/examples, но не публичным execution contract.
+- Если dispatcher сообщает о missing dependencies, сначала используйте canonical readiness path, а не helper traceback.

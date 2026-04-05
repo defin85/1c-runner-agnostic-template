@@ -1,8 +1,8 @@
 ---
 name: db-create
-description: Импортированный compatibility skill из `cc-1c-skills`: Создание информационной базы 1С. Используй когда пользователь просит создать базу, новую ИБ, пустую базу
+description: "Импортированный compatibility skill из `cc-1c-skills`: Prefer native 1c-create-ib. Создание информационной базы 1С. Используй когда пользователь просит создать базу, новую ИБ, пустую базу"
 metadata:
-  short-description: Создание информационной базы 1С. Используй когда пользователь просит со…
+  short-description: "Prefer native 1c-create-ib. Создание информационной базы 1С. Используй…"
 ---
 
 <!-- GENERATED: sync-imported-skills -->
@@ -27,6 +27,8 @@ Repo script: `./scripts/skills/run-imported-skill.sh db-create`
 
 - Vendored upstream source: `automation/vendor/cc-1c-skills/skills/db-create/SKILL.md`
 - Runtime kind: `native-alias`
+- Readiness target: `make imported-skills-readiness`
+- Direct readiness command: `./scripts/skills/run-imported-skill.sh --readiness`
 - Это compatibility alias: dispatcher проксирует вызов в native runner-agnostic capability шаблона.
 - Для native runner-agnostic workflow предпочитайте: `1c-create-ib`.
 
@@ -34,4 +36,5 @@ Repo script: `./scripts/skills/run-imported-skill.sh db-create`
 
 - Публичный contract для этого skill находится в repo-owned dispatcher, а не в vendored markdown.
 - Если нужны детали параметров, сначала читайте vendored upstream `SKILL.md`, затем helper-скрипты из `automation/vendor/cc-1c-skills/`.
+- Если dispatcher сообщает о missing dependencies, сначала используйте canonical readiness path, а не helper traceback.
 - Не переносите upstream PowerShell snippets в новый automation contract шаблона.

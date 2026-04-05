@@ -25,6 +25,8 @@ Codex-facing equivalents лежат в [.agents/skills/README.md](../../.agents/
 - Upstream source: `git@github.com:Nikolay-Shirokov/cc-1c-skills.git`
 - Upstream commit: `eebc2a06792c6c0263ce02bb6c63b8a4579134d1`
 - Vendor root: [`automation/vendor/cc-1c-skills/README.md`](../../automation/vendor/cc-1c-skills/README.md)
+- Canonical readiness target: `make imported-skills-readiness`
+- Direct readiness command: `./scripts/skills/run-imported-skill.sh --readiness`
 
 | User intent | Codex skill | Claude skill | Repo entrypoint | Notes |
 | --- | --- | --- | --- | --- |
@@ -100,4 +102,5 @@ Codex-facing equivalents лежат в [.agents/skills/README.md](../../.agents/
 
 - Source of truth для выполнения находится в `scripts/`, а не в `SKILL.md`.
 - Если нужно поменять flags, artifact contract или adapter behavior imported skills, сначала меняйте repo-owned dispatcher или vendored helper.
+- При missing dependencies сначала используйте canonical readiness path, затем запускайте executable imported skills.
 - Native runner-agnostic skills остаются предпочтительным surface для template-owned runtime workflows.

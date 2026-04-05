@@ -10,6 +10,7 @@ source "$SCRIPT_DIR/../lib/runtime-profile.sh"
 root="$(project_root)"
 status=0
 generated_summary_rel="automation/context/hotspots-summary.generated.md"
+generated_recommended_rel="automation/context/recommended-skills.generated.md"
 generated_project_delta_hints_rel="automation/context/project-delta-hints.json"
 generated_project_delta_artifact_rel="automation/context/project-delta-hotspots.generated.md"
 generated_policy_rel="automation/context/runtime-profile-policy.json"
@@ -425,6 +426,7 @@ check_generated_metadata_contract() {
   require_contains "automation/context/metadata-index.generated.json" "\"runtimeSupportMatrixJson\""
   require_contains "automation/context/metadata-index.generated.json" "\"runtimeSupportMatrixMarkdown\""
   require_contains "automation/context/metadata-index.generated.json" "\"hotspotsSummary\""
+  require_contains "automation/context/metadata-index.generated.json" "\"recommendedSkills\""
 
   if [ -f "$root/src/cf/Configuration.xml" ]; then
     if grep -Fq '"name": ""' "$metadata_file"; then
@@ -439,6 +441,20 @@ check_generated_metadata_contract() {
   fi
 }
 
+check_generated_recommended_skills_contract() {
+  require_contains "$generated_recommended_rel" "# Generated Recommended Skills"
+  require_contains "$generated_recommended_rel" "## Detected Signals"
+  require_contains "$generated_recommended_rel" "## First-Hour Recommendations"
+  require_contains "$generated_recommended_rel" "## Follow-Up Routers"
+  require_contains "$generated_recommended_rel" ".agents/skills/README.md"
+  require_contains "$generated_recommended_rel" "make imported-skills-readiness"
+  require_contains "$generated_recommended_rel" "./scripts/skills/run-imported-skill.sh --readiness"
+  require_contains "$generated_recommended_rel" "automation/context/project-map.md"
+  require_contains "$generated_recommended_rel" "docs/agent/runtime-quickstart.md"
+  require_contains "$generated_recommended_rel" "automation/context/hotspots-summary.generated.md"
+  require_contains "$generated_recommended_rel" "automation/context/metadata-index.generated.json"
+}
+
 check_generated_summary_contract() {
   require_contains "$generated_summary_rel" "# Generated Hotspots Summary"
   require_contains "$generated_summary_rel" "## Identity"
@@ -447,6 +463,7 @@ check_generated_summary_contract() {
   require_contains "$generated_summary_rel" "## Task-to-Path Routing"
   require_contains "$generated_summary_rel" "## Follow-Up Routers"
   require_contains "$generated_summary_rel" "automation/context/project-map.md"
+  require_contains "$generated_summary_rel" "automation/context/recommended-skills.generated.md"
   require_contains "$generated_summary_rel" "docs/agent/architecture-map.md"
   require_contains "$generated_summary_rel" "docs/agent/operator-local-runbook.md"
   require_contains "$generated_summary_rel" "docs/agent/runtime-quickstart.md"
@@ -575,6 +592,7 @@ check_generated_architecture_map_contract() {
   require_contains "$generated_architecture_map_rel" "## Representative Change Scenarios"
   require_contains "$generated_architecture_map_rel" "## Hot Zones"
   require_contains "$generated_architecture_map_rel" "automation/context/project-map.md"
+  require_contains "$generated_architecture_map_rel" "automation/context/recommended-skills.generated.md"
   require_contains "$generated_architecture_map_rel" "automation/context/project-delta-hints.json"
   require_contains "$generated_architecture_map_rel" "automation/context/project-delta-hotspots.generated.md"
   require_contains "$generated_architecture_map_rel" "automation/context/hotspots-summary.generated.md"
@@ -645,10 +663,13 @@ check_generated_runtime_quickstart_contract() {
 
   require_contains "$generated_runtime_quickstart_rel" "# Runtime Quickstart"
   require_contains "$generated_runtime_quickstart_rel" "## Safe Local First Pass"
+  require_contains "$generated_runtime_quickstart_rel" "## AI-Ready First Pass"
   require_contains "$generated_runtime_quickstart_rel" "## Contour Quick Reference"
   require_contains "$generated_runtime_quickstart_rel" "## Optional Project-Specific Baseline Extension"
   require_contains "$generated_runtime_quickstart_rel" "automation/context/runtime-support-matrix.md"
   require_contains "$generated_runtime_quickstart_rel" "automation/context/runtime-support-matrix.json"
+  require_contains "$generated_runtime_quickstart_rel" "automation/context/recommended-skills.generated.md"
+  require_contains "$generated_runtime_quickstart_rel" "make imported-skills-readiness"
   require_contains "$generated_runtime_quickstart_rel" "docs/agent/generated-project-verification.md"
   require_contains "$generated_runtime_quickstart_rel" "docs/agent/operator-local-runbook.md"
   require_contains "$generated_runtime_quickstart_rel" "env/README.md"
@@ -782,6 +803,7 @@ for rel in \
   src/AGENTS.md \
   automation/AGENTS.md \
   automation/context/templates/generated-project-hotspots-summary.md \
+  automation/context/templates/generated-project-recommended-skills.md \
   automation/context/templates/generated-project-architecture-map.md \
   automation/context/templates/generated-project-operator-local-runbook.md \
   automation/context/templates/generated-project-project-map.md \
@@ -839,6 +861,7 @@ require_contains "docs/agent/index.md" "docs/exec-plans/README.md"
 require_contains "docs/README.md" "docs/agent/generated-project-index.md"
 require_contains "docs/AGENTS.md" "generated repo"
 require_contains "automation/AGENTS.md" "automation/context/project-map.md"
+require_contains "automation/AGENTS.md" "automation/context/recommended-skills.generated.md"
 require_contains "automation/AGENTS.md" "automation/context/hotspots-summary.generated.md"
 require_contains "automation/AGENTS.md" "automation/context/metadata-index.generated.json"
 require_contains "automation/AGENTS.md" "automation/context/runtime-profile-policy.json"
@@ -854,6 +877,7 @@ require_contains "tests/AGENTS.md" "automation/context/runtime-support-matrix.md
 require_contains "tests/AGENTS.md" "scripts/qa/check-agent-docs.sh"
 require_contains "tests/AGENTS.md" "scripts/llm/export-context.sh"
 require_contains "scripts/AGENTS.md" "docs/agent/generated-project-index.md"
+require_contains "scripts/AGENTS.md" "automation/context/recommended-skills.generated.md"
 require_contains "scripts/AGENTS.md" "automation/context/hotspots-summary.generated.md"
 require_contains "scripts/AGENTS.md" "automation/context/runtime-profile-policy.json"
 require_contains "scripts/AGENTS.md" "automation/context/runtime-support-matrix.md"
@@ -861,6 +885,7 @@ require_contains "scripts/AGENTS.md" "make codex-onboard"
 require_contains "scripts/AGENTS.md" "scripts/llm/export-context.sh"
 require_contains "scripts/AGENTS.md" "scripts/qa/check-agent-docs.sh"
 require_contains "src/AGENTS.md" "automation/context/project-map.md"
+require_contains "src/AGENTS.md" "automation/context/recommended-skills.generated.md"
 require_contains "src/AGENTS.md" "automation/context/hotspots-summary.generated.md"
 require_contains "src/AGENTS.md" "automation/context/project-delta-hotspots.generated.md"
 require_contains "src/AGENTS.md" "automation/context/metadata-index.generated.json"
@@ -880,6 +905,7 @@ require_contains "docs/agent/generated-project-index.md" "make template-update"
 require_contains "docs/agent/generated-project-index.md" ".template-overlay-version"
 require_contains "docs/agent/generated-project-index.md" "docs/agent/codex-workflows.md"
 require_contains "docs/agent/generated-project-index.md" "docs/agent/operator-local-runbook.md"
+require_contains "docs/agent/generated-project-index.md" "automation/context/recommended-skills.generated.md"
 require_contains "docs/agent/generated-project-index.md" "automation/context/hotspots-summary.generated.md"
 require_contains "docs/agent/generated-project-index.md" "automation/context/project-delta-hotspots.generated.md"
 require_contains "docs/agent/generated-project-index.md" "automation/context/project-delta-hints.json"
@@ -912,6 +938,7 @@ require_contains "docs/agent/generated-project-verification.md" "Safe Local"
 require_contains "docs/agent/generated-project-verification.md" "make export-context-preview"
 require_contains "docs/agent/generated-project-verification.md" "make export-context-check"
 require_contains "docs/agent/generated-project-verification.md" "make codex-onboard"
+require_contains "docs/agent/generated-project-verification.md" "make imported-skills-readiness"
 require_contains "docs/agent/generated-project-verification.md" "Profile-Required"
 require_contains "docs/agent/generated-project-verification.md" "Provisioned / Self-Hosted 1C"
 require_contains "docs/agent/generated-project-verification.md" "./scripts/llm/export-context.sh --write"
@@ -946,6 +973,8 @@ require_contains ".codex/README.md" "docs/exec-plans/README.md"
 require_contains ".codex/README.md" "docs/exec-plans/TEMPLATE.md"
 require_contains ".codex/README.md" "docs/work-items/README.md"
 require_contains ".codex/README.md" "make codex-onboard"
+require_contains ".codex/README.md" "make imported-skills-readiness"
+require_contains ".codex/README.md" "automation/context/recommended-skills.generated.md"
 require_contains ".codex/README.md" "runtime-support-matrix.md"
 require_contains ".codex/README.md" "docs/agent/runtime-quickstart.md"
 require_contains ".codex/README.md" "docs/agent/codex-workflows.md"
@@ -963,17 +992,21 @@ require_contains "scripts/qa/codex-onboard.sh" "Architecture map:"
 require_contains "scripts/qa/codex-onboard.sh" "Operator-local runbook:"
 require_contains "scripts/qa/codex-onboard.sh" "Runtime quick reference:"
 require_contains "scripts/qa/codex-onboard.sh" "Runtime support matrix (md):"
+require_contains "scripts/qa/codex-onboard.sh" "Recommended skills:"
 require_contains "scripts/qa/codex-onboard.sh" "Project-delta hints:"
 require_contains "scripts/qa/codex-onboard.sh" "Project-delta hotspots:"
 require_contains "scripts/qa/codex-onboard.sh" "Project-specific baseline extension:"
+require_contains "scripts/qa/codex-onboard.sh" "AI-readiness:"
 require_contains "scripts/qa/codex-onboard.sh" "Codex controls:"
 require_contains "scripts/qa/codex-onboard.sh" "Planning matrix:"
 require_contains "scripts/qa/codex-onboard.sh" "docs/exec-plans/TEMPLATE.md"
 require_contains "scripts/qa/codex-onboard.sh" "docs/work-items/README.md"
 require_contains "scripts/qa/codex-onboard.sh" "docs/work-items/TEMPLATE.md"
+require_contains "scripts/qa/codex-onboard.sh" "generated-project-recommended-skills.md"
 require_contains "scripts/qa/codex-onboard.sh" "Generated-project work-item scaffolds:"
 require_contains "automation/context/templates/generated-project-metadata-index.json" "runtimeSupportMatrixJsonPath"
 require_contains "automation/context/templates/generated-project-metadata-index.json" "runtimeSupportMatrixMarkdownPath"
+require_contains "automation/context/templates/generated-project-metadata-index.json" "recommendedSkillsPath"
 require_contains "automation/context/templates/generated-project-metadata-index.json" "architectureMapPath"
 require_contains "automation/context/templates/generated-project-metadata-index.json" "codexWorkflowsPath"
 require_contains "automation/context/templates/generated-project-metadata-index.json" "operatorLocalRunbookPath"
@@ -983,6 +1016,7 @@ require_contains "automation/context/templates/generated-project-metadata-index.
 require_contains "automation/context/templates/generated-project-metadata-index.json" "projectDeltaHintsPath"
 require_contains "automation/context/templates/generated-project-metadata-index.json" "projectDeltaHotspotsPath"
 require_contains "automation/context/templates/generated-project-hotspots-summary.md" "runtime-support-matrix.md"
+require_contains "automation/context/templates/generated-project-hotspots-summary.md" "recommended-skills.generated.md"
 require_contains "automation/context/templates/generated-project-hotspots-summary.md" "project-delta-hotspots.generated.md"
 require_contains "automation/context/templates/generated-project-hotspots-summary.md" "docs/agent/architecture-map.md"
 require_contains "automation/context/templates/generated-project-hotspots-summary.md" "docs/agent/runtime-quickstart.md"
@@ -992,9 +1026,14 @@ require_contains "automation/context/templates/generated-project-operator-local-
 require_contains "automation/context/templates/generated-project-operator-local-runbook.md" "./scripts/platform/load-task-src.sh --profile env/local.json --bead task.1 --run-root /tmp/load-task-src-run"
 require_contains "automation/context/templates/generated-project-operator-local-runbook.md" "docs/testing/xunit-direct-platform.md"
 require_contains "automation/context/templates/generated-project-architecture-map.md" "docs/agent/runtime-quickstart.md"
+require_contains "automation/context/templates/generated-project-architecture-map.md" "recommended-skills.generated.md"
 require_contains "automation/context/templates/generated-project-architecture-map.md" "project-delta-hotspots.generated.md"
 require_contains "automation/context/templates/generated-project-runtime-quickstart.md" "runtime-support-matrix.md"
+require_contains "automation/context/templates/generated-project-runtime-quickstart.md" "recommended-skills.generated.md"
+require_contains "automation/context/templates/generated-project-runtime-quickstart.md" "make imported-skills-readiness"
 require_contains "automation/context/templates/generated-project-runtime-quickstart.md" "operator-local-runbook.md"
+require_contains "automation/context/templates/generated-project-recommended-skills.md" "recommended-skills.generated.md"
+require_contains "automation/context/templates/generated-project-recommended-skills.md" "make imported-skills-readiness"
 require_contains "automation/context/templates/generated-project-work-items-readme.md" "docs/work-items/TEMPLATE.md"
 require_contains "automation/context/templates/generated-project-work-items-template.md" "docs/exec-plans/active/<task-id>.md"
 require_contains "automation/context/templates/generated-project-project-map.md" "runtime support truth"
@@ -1009,6 +1048,7 @@ require_contains "automation/context/template-managed-paths.txt" "docs/agent/cod
 require_contains "automation/context/template-managed-paths.txt" "automation/context/templates/generated-project-runtime-support-matrix.json"
 require_contains "automation/context/template-managed-paths.txt" "automation/context/templates/generated-project-runtime-support-matrix.md"
 require_contains "automation/context/template-managed-paths.txt" "automation/context/templates/generated-project-architecture-map.md"
+require_contains "automation/context/template-managed-paths.txt" "automation/context/templates/generated-project-recommended-skills.md"
 require_contains "automation/context/template-managed-paths.txt" "automation/context/templates/generated-project-operator-local-runbook.md"
 require_contains "automation/context/template-managed-paths.txt" "automation/context/templates/generated-project-project-delta-hints.json"
 require_contains "automation/context/template-managed-paths.txt" "automation/context/templates/generated-project-project-delta-hotspots.md"
@@ -1146,6 +1186,7 @@ else
     automation/context/template-managed-paths.txt \
     automation/context/source-tree.generated.txt \
     automation/context/metadata-index.generated.json \
+    automation/context/recommended-skills.generated.md \
     automation/context/hotspots-summary.generated.md \
     automation/context/project-delta-hints.json \
     automation/context/project-delta-hotspots.generated.md \
@@ -1188,6 +1229,7 @@ else
   require_markdown_link "AGENTS.md" "docs/agent/generated-project-index.md"
   require_markdown_link "AGENTS.md" "docs/agent/codex-workflows.md"
   require_markdown_link "AGENTS.md" "automation/context/project-map.md"
+  require_markdown_link "AGENTS.md" "$generated_recommended_rel"
   require_markdown_link "AGENTS.md" "$generated_summary_rel"
   require_markdown_link "AGENTS.md" "automation/context/metadata-index.generated.json"
   require_markdown_link "AGENTS.md" "$generated_policy_rel"
@@ -1202,6 +1244,7 @@ else
   require_markdown_link "README.md" "docs/agent/architecture-map.md"
   require_markdown_link "README.md" "docs/agent/operator-local-runbook.md"
   require_markdown_link "README.md" "docs/agent/runtime-quickstart.md"
+  require_markdown_link "README.md" "$generated_recommended_rel"
   require_markdown_link "README.md" "$generated_summary_rel"
   require_markdown_link "README.md" "$generated_project_delta_artifact_rel"
   require_markdown_link "README.md" "automation/context/metadata-index.generated.json"
@@ -1220,8 +1263,10 @@ else
   require_contains "AGENTS.md" "generated 1С-project"
   require_contains "AGENTS.md" "generated-project-first onboarding path"
   require_contains "AGENTS.md" "make codex-onboard"
+  require_contains "AGENTS.md" "make imported-skills-readiness"
   require_contains "AGENTS.md" "docs/agent/codex-workflows.md"
   require_contains "AGENTS.md" "docs/work-items/README.md"
+  require_contains "AGENTS.md" "automation/context/recommended-skills.generated.md"
   require_contains "AGENTS.md" "automation/context/hotspots-summary.generated.md"
   require_contains "AGENTS.md" "automation/context/runtime-profile-policy.json"
   require_contains "AGENTS.md" "automation/context/runtime-support-matrix.md"
@@ -1230,20 +1275,24 @@ else
   require_contains "README.md" "generated 1С-проект"
   require_contains "README.md" "Ownership Classes"
   require_contains "README.md" "make codex-onboard"
+  require_contains "README.md" "make imported-skills-readiness"
   require_contains "README.md" ".template-overlay-version"
   require_contains "README.md" "docs/agent/codex-workflows.md"
   require_contains "README.md" "docs/agent/architecture-map.md"
   require_contains "README.md" "docs/agent/operator-local-runbook.md"
   require_contains "README.md" "docs/agent/runtime-quickstart.md"
   require_contains "README.md" "docs/work-items/README.md"
+  require_contains "README.md" "automation/context/recommended-skills.generated.md"
   require_contains "README.md" "automation/context/hotspots-summary.generated.md"
   require_contains "README.md" "automation/context/project-delta-hotspots.generated.md"
   require_contains "README.md" "automation/context/runtime-profile-policy.json"
   require_contains "README.md" "automation/context/runtime-support-matrix.md"
   require_contains "automation/context/project-map.md" "Ownership Model"
+  require_contains "automation/context/project-map.md" "Repo-Derived Snapshot"
   require_contains "automation/context/project-map.md" "generated-derived"
   require_contains "automation/context/project-map.md" "docs/agent/codex-workflows.md"
   require_contains "automation/context/project-map.md" "docs/agent/operator-local-runbook.md"
+  require_contains "automation/context/project-map.md" "automation/context/recommended-skills.generated.md"
   require_contains "automation/context/project-map.md" "automation/context/project-delta-hints.json"
   require_contains "automation/context/project-map.md" "automation/context/project-delta-hotspots.generated.md"
   require_contains "automation/context/project-map.md" "automation/context/runtime-profile-policy.json"
@@ -1276,6 +1325,7 @@ else
 
   check_generated_private_leaks
   check_generated_metadata_contract
+  check_generated_recommended_skills_contract
   check_generated_summary_contract
   check_generated_project_delta_contract
   check_generated_runtime_profile_policy_contract

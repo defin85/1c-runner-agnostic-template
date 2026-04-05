@@ -1,7 +1,7 @@
 ---
 name: web-test
-description: Импортированный compatibility skill из cc-1c-skills. Тестирование 1С через веб-клиент — автоматизация действий в браузере. Используй когда пользователь просит проверить, протестировать, автоматизировать действия в 1С через браузер
-argument-hint: сценарий на естественном языке
+description: "Импортированный compatibility skill из cc-1c-skills. Тестирование 1С через веб-клиент — автоматизация действий в браузере. Используй когда пользователь просит проверить, протестировать, автоматизировать действия в 1С через браузер"
+argument-hint: "сценарий на естественном языке"
 allowed-tools:
   - Bash
   - Read
@@ -30,9 +30,12 @@ Repo script: `./scripts/skills/run-imported-skill.sh web-test`
 
 - Vendored upstream source: `automation/vendor/cc-1c-skills/skills/web-test/SKILL.md`
 - Runtime kind: `node`
+- Readiness target: `make imported-skills-readiness`
+- Direct readiness command: `./scripts/skills/run-imported-skill.sh --readiness`
 - Исполнение идёт через repo-owned dispatcher, который вызывает vendored Node/Playwright helper.
 
 ## Rules
 
 - Repo-owned dispatcher является source of truth для вызова skill в этом шаблоне.
 - Vendored upstream `SKILL.md` остаётся источником intent/examples, но не публичным execution contract.
+- Если dispatcher сообщает о missing dependencies, сначала используйте canonical readiness path, а не helper traceback.

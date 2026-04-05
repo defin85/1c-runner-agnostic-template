@@ -7,4 +7,10 @@ if [ "$#" -lt 1 ]; then
 fi
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+if [ "$1" = "--readiness" ]; then
+  shift
+  bash "$SCRIPT_DIR/../python/run-python.sh" imported-skill-readiness "$@"
+  exit $?
+fi
+
 bash "$SCRIPT_DIR/../python/run-python.sh" imported-skill "$@"

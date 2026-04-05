@@ -6,7 +6,7 @@ from pathlib import Path
 
 from .common import CommandError, die
 from .context import export_context, verify_traceability
-from .imported_skills import run_imported_skill, sync_imported_skills
+from .imported_skills import render_imported_skill_readiness, run_imported_skill, sync_imported_skills
 from .qa import agent_verify, analyze_bsl, check_agent_docs, check_overlay_manifest, check_skill_bindings, codex_onboard, format_bsl
 from .runtime import run_doctor, run_load_diff_src, run_load_task_src, run_profile_capability, run_tdd_xunit, task_trailers_render, task_trailers_select_commits, task_trailers_validate_message
 from .template_tools import (
@@ -76,6 +76,21 @@ def main(argv: list[str] | None = None) -> int:
                 die("Usage: imported-skill <skill-name> [args...]")
             skill_name = args.pop(0)
             return run_imported_skill(skill_name, args)
+        if command == "imported-skill-readiness":
+            json_mode = False
+            index = 0
+            while index < len(args):
+                arg = args[index]
+                if arg in {"-h", "--help"}:
+                    print("Usage: imported-skill-readiness [--json]")
+                    return 0
+                if arg == "--json":
+                    json_mode = True
+                else:
+                    die(f"unknown option: {arg}")
+                index += 1
+            print(render_imported_skill_readiness(json_mode=json_mode), end="")
+            return 0
         if command == "sync-imported-skills":
             source = ""
             index = 0

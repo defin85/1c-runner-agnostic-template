@@ -18,6 +18,7 @@ Operator-local decision bridge для local-private contour-ов в generated pr
 | `make template-check-update` | Проверить, доступен ли новый wrapper overlay release | shell + git access к template source | нет | stdout/stderr процесса |
 | `make export-context-preview` | Посмотреть generated-derived inventory без записи | shell-only | нет | preview в stdout |
 | `make export-context-check` | Проверить свежесть generated-derived/context files | shell-only | нет | exit code |
+| `make imported-skills-readiness` | Проверить canonical readiness/bootstrap contract для executable imported compatibility skills | shell + Python/Node detection only | нет | stdout |
 
 Минимальный no-1C baseline:
 
@@ -25,6 +26,7 @@ Operator-local decision bridge для local-private contour-ов в generated pr
 make codex-onboard
 make agent-verify
 make export-context-check
+make imported-skills-readiness
 ```
 
 Windows path использует те же contour ids через `./make.ps1 codex-onboard`, `./make.ps1 agent-verify` и `./make.ps1 export-context-check`.
@@ -34,6 +36,24 @@ Optional project-specific baseline extension:
 - если `automation/context/runtime-support-matrix.json` объявляет `projectSpecificBaselineExtension`, относитесь к нему как к соседнему project-owned contour, а не к template baseline;
 - advertising такого contour-а должно идти через runtime support matrix, `docs/agent/runtime-quickstart.md` и `make codex-onboard`;
 - отсутствие extension по умолчанию не делает generated repo “неполным”.
+
+## Imported Compatibility Skills
+
+Executable imported compatibility skills не должны использовать raw helper traceback как primary UX для missing Python/Node dependencies.
+
+Canonical readiness path:
+
+```bash
+make imported-skills-readiness
+./scripts/skills/run-imported-skill.sh --readiness
+```
+
+Что ожидается:
+
+- команда печатает representative readiness status для Python-backed, Node-backed, reference-only и native-alias imported skills;
+- если Python-backed или Node-backed runtime не ready, вывод остаётся actionable и указывает на bootstrap path вместо helper stack trace;
+- full catalog остаётся в `.agents/skills/README.md`, а compact first-hour routing идёт через `automation/context/recommended-skills.generated.md`;
+- representative help-check можно запускать как `./scripts/skills/run-imported-skill.sh cf-edit --help` и `./scripts/skills/run-imported-skill.sh web-test --help`, но missing dependencies должны завершаться fail-closed с readiness guidance, а не с vendored traceback.
 
 ## Profile-Required
 

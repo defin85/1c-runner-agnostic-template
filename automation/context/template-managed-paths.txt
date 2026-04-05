@@ -177,6 +177,7 @@ automation/context/templates/generated-project-operator-local-runbook.md
 automation/context/templates/generated-project-project-delta-hints.json
 automation/context/templates/generated-project-project-delta-hotspots.md
 automation/context/templates/generated-project-project-map.md
+automation/context/templates/generated-project-recommended-skills.md
 automation/context/templates/generated-project-runtime-profile-policy.json
 automation/context/templates/generated-project-runtime-quickstart.md
 automation/context/templates/generated-project-runtime-support-matrix.json

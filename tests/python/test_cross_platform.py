@@ -13,6 +13,19 @@ ROOT = Path(__file__).resolve().parents[2]
 ARTIFACTS = ROOT / ".artifacts" / "tests"
 
 
+def is_source_repo() -> bool:
+    return all(
+        (
+            ROOT / rel
+        ).is_file()
+        for rel in (
+            "openspec/specs/agent-runtime-toolkit/spec.md",
+            "openspec/specs/project-scoped-skills/spec.md",
+            "openspec/specs/template-ci-contours/spec.md",
+        )
+    )
+
+
 def run_command(command: list[str], env: dict[str, str] | None = None) -> subprocess.CompletedProcess[str]:
     final_env = os.environ.copy()
     if env:
@@ -40,6 +53,18 @@ class CrossPlatformSmokeTests(unittest.TestCase):
             result = run_command(["bash", "-lc", "./scripts/qa/codex-onboard.sh"])
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("Codex Onboard", result.stdout)
+        self.assertIn("Codex controls:", result.stdout)
+        if is_source_repo():
+            self.assertIn("Repository role: template-source", result.stdout)
+            self.assertIn("Canonical onboarding router: docs/agent/index.md", result.stdout)
+            self.assertIn("Generated-project router reference: docs/agent/generated-project-index.md", result.stdout)
+            self.assertIn("Execution plan starters: docs/exec-plans/TEMPLATE.md, docs/exec-plans/EXAMPLE.md", result.stdout)
+            self.assertNotIn("Recommended skills:", result.stdout)
+            self.assertNotIn("AI-readiness:", result.stdout)
+        else:
+            self.assertIn("Repository role: generated-project", result.stdout)
+            self.assertIn("Recommended skills:", result.stdout)
+            self.assertIn("AI-readiness:", result.stdout)
 
     def test_export_context_check(self) -> None:
         if os.name == "nt":
@@ -112,6 +137,28 @@ class CrossPlatformSmokeTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn("Imported skill: form-patterns", result.stdout)
         self.assertIn("Runtime kind: reference", result.stdout)
+
+    def test_imported_skill_readiness_contract(self) -> None:
+        if os.name == "nt":
+            command = [
+                "pwsh",
+                "-NoLogo",
+                "-NoProfile",
+                "-ExecutionPolicy",
+                "Bypass",
+                "-File",
+                "scripts/skills/run-imported-skill.ps1",
+                "--readiness",
+                "--json",
+            ]
+        else:
+            command = ["bash", "-lc", "./scripts/skills/run-imported-skill.sh --readiness --json"]
+        result = run_command(command)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        payload = json.loads(result.stdout)
+        self.assertEqual(payload["canonicalTarget"], "make imported-skills-readiness")
+        self.assertEqual(payload["representative"]["python"]["representative_skill"], "cf-edit")
+        self.assertEqual(payload["representative"]["node"]["representative_skill"], "web-test")
 
 
 if __name__ == "__main__":

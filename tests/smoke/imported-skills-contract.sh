@@ -77,3 +77,41 @@ PY
 reference_output="$(bash "$dispatcher" form-patterns)"
 printf '%s' "$reference_output" | grep -F "Imported skill: form-patterns" >/dev/null
 printf '%s' "$reference_output" | grep -F "Runtime kind: reference" >/dev/null
+
+readiness_json="$(bash "$dispatcher" --readiness --json)"
+printf '%s' "$readiness_json" | jq -e '
+  .canonicalTarget == "make imported-skills-readiness" and
+  .canonicalCommand == "./scripts/skills/run-imported-skill.sh --readiness" and
+  .representative.python.representative_skill == "cf-edit" and
+  .representative.node.representative_skill == "web-test" and
+  .representative.reference.representative_skill == "form-patterns" and
+  .representative.nativeAlias.representative_skill == "db-create"
+' >/dev/null
+
+python_help_log="$SOURCE_ROOT/.artifacts/tests/imported-skill-python-help.log"
+node_help_log="$SOURCE_ROOT/.artifacts/tests/imported-skill-node-help.log"
+mkdir -p "$(dirname "$python_help_log")"
+
+if jq -e '.representative.python.ready == true' >/dev/null <<<"$readiness_json"; then
+  bash "$dispatcher" cf-edit --help >"$python_help_log" 2>&1
+  grep -Eq 'usage|Usage|Operation' "$python_help_log"
+else
+  if bash "$dispatcher" cf-edit --help >"$python_help_log" 2>&1; then
+    printf 'cf-edit --help should fail-closed when python readiness is missing\n' >&2
+    exit 1
+  fi
+  grep -F "make imported-skills-readiness" "$python_help_log" >/dev/null
+  grep -F "Direct readiness command: ./scripts/skills/run-imported-skill.sh --readiness" "$python_help_log" >/dev/null
+fi
+
+if jq -e '.representative.node.ready == true' >/dev/null <<<"$readiness_json"; then
+  bash "$dispatcher" web-test --help >"$node_help_log" 2>&1
+  grep -Eq 'Usage|usage|Browser ready' "$node_help_log"
+else
+  if bash "$dispatcher" web-test --help >"$node_help_log" 2>&1; then
+    printf 'web-test --help should fail-closed when node readiness is missing\n' >&2
+    exit 1
+  fi
+  grep -F "make imported-skills-readiness" "$node_help_log" >/dev/null
+  grep -F "Direct readiness command: ./scripts/skills/run-imported-skill.sh --readiness" "$node_help_log" >/dev/null
+fi

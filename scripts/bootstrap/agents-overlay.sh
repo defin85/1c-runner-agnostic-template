@@ -107,10 +107,12 @@ append_project_agents_overlay() {
 - Run `make codex-onboard` for a read-only first screen in a generated repo.
 - Use [automation/context/project-map.md](automation/context/project-map.md) as the project-owned repo map.
 - Use [automation/context/runtime-support-matrix.md](automation/context/runtime-support-matrix.md) and [automation/context/runtime-support-matrix.json](automation/context/runtime-support-matrix.json) as the checked-in runtime support truth.
+- Use [automation/context/recommended-skills.generated.md](automation/context/recommended-skills.generated.md) as the compact project-aware skill router before opening the full catalog.
 - Use [automation/context/hotspots-summary.generated.md](automation/context/hotspots-summary.generated.md) as the compact generated-derived map for the first hour.
 - Use [automation/context/metadata-index.generated.json](automation/context/metadata-index.generated.json) as the deeper generated-derived inventory for narrowing the `src/` search space.
 - Use [automation/context/runtime-profile-policy.json](automation/context/runtime-profile-policy.json) for sanctioned checked-in runtime profile policy.
 - Use [docs/agent/generated-project-verification.md](docs/agent/generated-project-verification.md) and `make agent-verify` as the first no-1C verification path.
+- Use `make imported-skills-readiness` before executable imported compatibility skills when the local contour may miss Python/Node dependencies.
 - Use `make export-context-check` as the read-only freshness check for generated-derived context after the first baseline pass.
 - Use [docs/agent/codex-workflows.md](docs/agent/codex-workflows.md) as the canonical Codex workflow guide after the first router step.
 - Use [docs/agent/review.md](docs/agent/review.md), [docs/agent/operator-local-runbook.md](docs/agent/operator-local-runbook.md), [env/README.md](env/README.md), [.agents/skills/README.md](.agents/skills/README.md), [docs/exec-plans/README.md](docs/exec-plans/README.md), and [docs/work-items/README.md](docs/work-items/README.md) as the main follow-up routers.

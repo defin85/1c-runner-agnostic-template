@@ -188,6 +188,7 @@
 ./automation/context/templates/generated-project-project-delta-hints.json
 ./automation/context/templates/generated-project-project-delta-hotspots.md
 ./automation/context/templates/generated-project-project-map.md
+./automation/context/templates/generated-project-recommended-skills.md
 ./automation/context/templates/generated-project-runtime-profile-policy.json
 ./automation/context/templates/generated-project-runtime-quickstart.md
 ./automation/context/templates/generated-project-runtime-support-matrix.json
@@ -573,6 +574,13 @@
 ./openspec/changes/archive/2026-03-28-add-load-task-src-bridge/specs/project-scoped-skills/spec.md
 ./openspec/changes/archive/2026-03-28-add-load-task-src-bridge/tasks.md
 ./openspec/changes/archive/2026-03-28-add-load-task-src-bridge/traceability.md
+./openspec/changes/archive/2026-04-05-improve-generated-repo-ai-readiness/design.md
+./openspec/changes/archive/2026-04-05-improve-generated-repo-ai-readiness/proposal.md
+./openspec/changes/archive/2026-04-05-improve-generated-repo-ai-readiness/specs/generated-context-artifacts/spec.md
+./openspec/changes/archive/2026-04-05-improve-generated-repo-ai-readiness/specs/generated-project-agent-guidance/spec.md
+./openspec/changes/archive/2026-04-05-improve-generated-repo-ai-readiness/specs/project-scoped-skills/spec.md
+./openspec/changes/archive/2026-04-05-improve-generated-repo-ai-readiness/tasks.md
+./openspec/changes/archive/2026-04-05-improve-generated-repo-ai-readiness/traceability.md
 ./openspec/changes/remove-deployable-source-agent-docs/design.md
 ./openspec/changes/remove-deployable-source-agent-docs/proposal.md
 ./openspec/changes/remove-deployable-source-agent-docs/specs/generated-context-artifacts/spec.md

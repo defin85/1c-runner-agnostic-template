@@ -8,5 +8,6 @@
 - использует те же contour ids и status vocabulary, что `automation/context/runtime-support-matrix.md` и `.json`;
 - использует `docs/agent/operator-local-runbook.md` как bridge для `operator-local` contour-ов;
 - ссылается на `docs/agent/generated-project-verification.md`, `env/README.md` и checked-in runtime support matrix как на canonical truth;
+- ссылается на `automation/context/recommended-skills.generated.md` и `make imported-skills-readiness` как на AI-ready companion layer для first-hour skill routing;
 - отделяет template baseline от optional project-specific baseline extension;
 - остаётся digest-слоем и не заставляет читать весь общий runtime contract для первого ответа.

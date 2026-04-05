@@ -1,8 +1,8 @@
 ---
 name: cfe-init
-description: Импортированный compatibility skill из `cc-1c-skills`: Создать расширение конфигурации 1С (CFE) — scaffold XML-исходников. Используй когда нужно создать новое расширение для исправления, доработки или дополнения конфигурации
+description: "Импортированный compatibility skill из `cc-1c-skills`: Создать расширение конфигурации 1С (CFE) — scaffold XML-исходников. Используй когда нужно создать новое расширение для исправления, доработки или дополнения конфигурации"
 metadata:
-  short-description: Создать расширение конфигурации 1С (CFE) — scaffold XML-исходников. Исп…
+  short-description: "Создать расширение конфигурации 1С (CFE) — scaffold XML-исходников. Исп…"
 ---
 
 <!-- GENERATED: sync-imported-skills -->
@@ -27,10 +27,13 @@ Repo script: `./scripts/skills/run-imported-skill.sh cfe-init`
 
 - Vendored upstream source: `automation/vendor/cc-1c-skills/skills/cfe-init/SKILL.md`
 - Runtime kind: `python`
+- Readiness target: `make imported-skills-readiness`
+- Direct readiness command: `./scripts/skills/run-imported-skill.sh --readiness`
 - Исполнение идёт через repo-owned dispatcher, который вызывает vendored Python helper.
 
 ## Rules
 
 - Публичный contract для этого skill находится в repo-owned dispatcher, а не в vendored markdown.
 - Если нужны детали параметров, сначала читайте vendored upstream `SKILL.md`, затем helper-скрипты из `automation/vendor/cc-1c-skills/`.
+- Если dispatcher сообщает о missing dependencies, сначала используйте canonical readiness path, а не helper traceback.
 - Не переносите upstream PowerShell snippets в новый automation contract шаблона.

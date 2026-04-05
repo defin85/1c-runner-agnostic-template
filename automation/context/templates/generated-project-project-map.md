@@ -6,6 +6,7 @@
 ## Обязательные секции
 
 - repository identity;
+- repo-derived snapshot;
 - known source roots;
 - ownership model;
 - canonical entrypoints;
@@ -26,6 +27,7 @@
 - compact generated summary из `automation/context/hotspots-summary.generated.md`, если нужна summary-first навигация;
 - project-owned code architecture map из `docs/agent/architecture-map.md`, если нужен scenario-driven routing по коду;
 - project-owned runtime quick reference из `docs/agent/runtime-quickstart.md`, если нужен короткий runtime digest;
+- compact project-aware skill routing из `automation/context/recommended-skills.generated.md`, если нужен first-hour shortlist вместо полного catalog;
 - machine-generated inventory из `automation/context/metadata-index.generated.json`;
 - project-owned sanctioned profile policy из `automation/context/runtime-profile-policy.json`, если речь про checked-in team-shared presets;
 - checked-in runtime truth из `automation/context/runtime-support-matrix.md` и `automation/context/runtime-support-matrix.json`;

@@ -133,6 +133,7 @@ def _generated_readme(project_name: str, project_description: str) -> str:
             "- Operator-local runtime bridge: [docs/agent/operator-local-runbook.md](docs/agent/operator-local-runbook.md).",
             "- Project-specific runtime digest: [docs/agent/runtime-quickstart.md](docs/agent/runtime-quickstart.md).",
             "- Checked-in runtime support truth: [automation/context/runtime-support-matrix.md](automation/context/runtime-support-matrix.md), [automation/context/runtime-support-matrix.json](automation/context/runtime-support-matrix.json).",
+            "- AI-ready skill routing: [automation/context/recommended-skills.generated.md](automation/context/recommended-skills.generated.md), `make imported-skills-readiness`.",
             "<!-- RUNNER_AGNOSTIC_PROJECT:END -->",
             "",
             f"# {project_name}",
@@ -155,18 +156,32 @@ def _project_map(project_name: str, project_slug: str, project_description: str)
             f"- description: {project_description or '1С-проект, созданный на шаблоне runner-agnostic monorepo.'}",
             "- role: generated 1С-проект на шаблоне runner-agnostic monorepo",
             "",
+            "## Repo-Derived Snapshot",
+            "",
+            f"- configuration xml: `{'present' if (project_root() / 'src' / 'cf' / 'Configuration.xml').is_file() else 'missing'}`",
+            f"- extensions: `{sum(1 for _ in (project_root() / 'src' / 'cfe').glob('*')) if (project_root() / 'src' / 'cfe').is_dir() else 0}`",
+            f"- external processors: `{sum(1 for _ in (project_root() / 'src' / 'epf').glob('*')) if (project_root() / 'src' / 'epf').is_dir() else 0}`",
+            f"- reports: `{sum(1 for _ in (project_root() / 'src' / 'erf').glob('*')) if (project_root() / 'src' / 'erf').is_dir() else 0}`",
+            "",
             "## Canonical Entrypoints",
             "",
             "- onboarding: `make codex-onboard` / `./make.ps1 codex-onboard`",
             "- baseline verify: `make agent-verify` / `./make.ps1 agent-verify`",
             "- context refresh: `./scripts/llm/export-context.sh --write` / `./scripts/llm/export-context.ps1 --write`",
+            "- imported skill readiness: `make imported-skills-readiness` / `./make.ps1 imported-skills-readiness`",
             "",
         ]
     ) + "\n"
 
 
 def _architecture_map() -> str:
-    return "# Architecture Map\n\n- Curated project truth: `automation/context/project-map.md`\n- Runtime quick answers: `docs/agent/runtime-quickstart.md`\n- Raw generated inventory: `automation/context/metadata-index.generated.json`\n"
+    return (
+        "# Architecture Map\n\n"
+        "- Curated project truth: `automation/context/project-map.md`\n"
+        "- Project-aware first-hour skills: `automation/context/recommended-skills.generated.md`\n"
+        "- Runtime quick answers: `docs/agent/runtime-quickstart.md`\n"
+        "- Raw generated inventory: `automation/context/metadata-index.generated.json`\n"
+    )
 
 
 def _operator_local_runbook() -> str:
@@ -174,7 +189,15 @@ def _operator_local_runbook() -> str:
 
 
 def _runtime_quickstart() -> str:
-    return "# Runtime Quickstart\n\n- Linux shell entrypoints: `./scripts/.../*.sh` or `make <target>`\n- Windows PowerShell entrypoints: `./scripts/.../*.ps1` or `./make.ps1 <target>`\n- Native Windows direct-platform preset: `env/windows-local.example.json`\n- POSIX-only contours: `platform.xvfb`, `platform.ldPreload`\n"
+    return (
+        "# Runtime Quickstart\n\n"
+        "- Linux shell entrypoints: `./scripts/.../*.sh` or `make <target>`\n"
+        "- Windows PowerShell entrypoints: `./scripts/.../*.ps1` or `./make.ps1 <target>`\n"
+        "- Native Windows direct-platform preset: `env/windows-local.example.json`\n"
+        "- POSIX-only contours: `platform.xvfb`, `platform.ldPreload`\n"
+        "- Compact first-hour skill routing: `automation/context/recommended-skills.generated.md`\n"
+        "- Imported skill readiness: `make imported-skills-readiness` or `./scripts/skills/run-imported-skill.sh --readiness`\n"
+    )
 
 
 def _runtime_profile_policy() -> dict[str, object]:
@@ -267,7 +290,9 @@ def append_agents_overlay(agents_file: Path) -> None:
             "- Start with [docs/agent/generated-project-index.md](docs/agent/generated-project-index.md).",
             "- Run `make codex-onboard` or `./make.ps1 codex-onboard` for a read-only first screen in a generated repo.",
             "- Use [automation/context/project-map.md](automation/context/project-map.md) as the project-owned repo map.",
+            "- Use [automation/context/recommended-skills.generated.md](automation/context/recommended-skills.generated.md) as the compact project-aware skill router.",
             "- Use [automation/context/runtime-support-matrix.md](automation/context/runtime-support-matrix.md) and [automation/context/runtime-support-matrix.json](automation/context/runtime-support-matrix.json) as the checked-in runtime support truth.",
+            "- Use `make imported-skills-readiness` before executable imported compatibility skills.",
             "<!-- RUNNER_AGNOSTIC_TEMPLATE:END -->",
             "",
         ]

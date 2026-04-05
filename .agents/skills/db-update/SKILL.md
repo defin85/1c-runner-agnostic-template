@@ -1,8 +1,8 @@
 ---
 name: db-update
-description: Импортированный compatibility skill из `cc-1c-skills`: Обновление конфигурации базы данных 1С. Используй когда пользователь просит обновить БД, применить конфигурацию, UpdateDBCfg
+description: "Импортированный compatibility skill из `cc-1c-skills`: Prefer native 1c-update-db. Обновление конфигурации базы данных 1С. Используй когда пользователь просит обновить БД, применить конфигурацию, UpdateDBCfg"
 metadata:
-  short-description: Обновление конфигурации базы данных 1С. Используй когда пользователь пр…
+  short-description: "Prefer native 1c-update-db. Обновление конфигурации базы данных 1С. Исп…"
 ---
 
 <!-- GENERATED: sync-imported-skills -->
@@ -27,6 +27,8 @@ Repo script: `./scripts/skills/run-imported-skill.sh db-update`
 
 - Vendored upstream source: `automation/vendor/cc-1c-skills/skills/db-update/SKILL.md`
 - Runtime kind: `native-alias`
+- Readiness target: `make imported-skills-readiness`
+- Direct readiness command: `./scripts/skills/run-imported-skill.sh --readiness`
 - Это compatibility alias: dispatcher проксирует вызов в native runner-agnostic capability шаблона.
 - Для native runner-agnostic workflow предпочитайте: `1c-update-db`.
 
@@ -34,4 +36,5 @@ Repo script: `./scripts/skills/run-imported-skill.sh db-update`
 
 - Публичный contract для этого skill находится в repo-owned dispatcher, а не в vendored markdown.
 - Если нужны детали параметров, сначала читайте vendored upstream `SKILL.md`, затем helper-скрипты из `automation/vendor/cc-1c-skills/`.
+- Если dispatcher сообщает о missing dependencies, сначала используйте canonical readiness path, а не helper traceback.
 - Не переносите upstream PowerShell snippets в новый automation contract шаблона.

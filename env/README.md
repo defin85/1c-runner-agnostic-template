@@ -43,6 +43,32 @@ Ad-hoc и machine-specific profiles нужно складывать в `env/.loc
 - `load-src` переключен на `driver=ibcmd`;
 - `ibcmd.runtimeMode=file-infobase`, чтобы partial import был wired через checked-in preset.
 
+## Imported Compatibility Skills Bootstrap
+
+Imported `cc-1c-skills` pack в generated repo использует repo-owned dispatcher и не должен сообщать о missing Python/Node dependencies через raw vendored traceback.
+
+Canonical readiness path:
+
+```bash
+make imported-skills-readiness
+./scripts/skills/run-imported-skill.sh --readiness
+```
+
+Representative bootstrap expectations:
+
+- Python-backed imported skills fail-closed, если в активном Python нет `lxml`.
+- Node-backed imported skills fail-closed, если для `automation/vendor/cc-1c-skills/skills/web-test/scripts` не установлен `playwright`.
+
+Representative bootstrap commands:
+
+```bash
+python -m pip install lxml
+cd automation/vendor/cc-1c-skills/skills/web-test/scripts && npm install
+cd automation/vendor/cc-1c-skills/skills/web-test/scripts && npx playwright install chromium
+```
+
+Compact first-hour skill routing generated repo держит в `automation/context/recommended-skills.generated.md`, а полный catalog остаётся в `.agents/skills/README.md`.
+
 `schemaVersion: 1` больше не поддерживается. Existing local profiles нужно мигрировать вручную:
 
 - helper: `./scripts/template/migrate-runtime-profile-v2.sh <legacy-profile>`

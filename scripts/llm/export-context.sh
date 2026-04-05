@@ -30,6 +30,7 @@ Repo behavior:
     and automation/context/template-source-source-files.txt.
   - Generated repo refreshes automation/context/source-tree.generated.txt
     automation/context/metadata-index.generated.json,
+    automation/context/recommended-skills.generated.md,
     automation/context/hotspots-summary.generated.md,
     and automation/context/project-delta-hotspots.generated.md.
 EOF
@@ -69,7 +70,7 @@ emit_source_repo_files() {
 
   if git -C "$root" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
     for path in "${source_repo_inventory_roots[@]}"; do
-      git -C "$root" ls-files -- "$path"
+      git -C "$root" ls-files --cached --others --exclude-standard -- "$path"
     done | sed 's|^|./|' | LC_ALL=C sort -u
     return 0
   fi
@@ -183,6 +184,7 @@ emit_generated_tree_entries() {
       ! -path "$root/.agent-browser/*" \
       ! -path "$root/automation/context/source-tree.generated.txt" \
       ! -path "$root/automation/context/metadata-index.generated.json" \
+      ! -path "$root/automation/context/recommended-skills.generated.md" \
       ! -path "$root/automation/context/hotspots-summary.generated.md" \
       ! -path "$root/automation/context/project-delta-hotspots.generated.md" \
       | sed "s|^$root|.|" \
@@ -294,6 +296,18 @@ count_inventory_entries() {
   list_inventory_entries "$rel" | awk 'END { print NR + 0 }'
 }
 
+count_named_dirs() {
+  local rel="$1"
+  local dir_name="$2"
+
+  if [ ! -d "$root/$rel" ]; then
+    printf '0'
+    return 0
+  fi
+
+  find "$root/$rel" -type d -name "$dir_name" | wc -l | tr -d ' '
+}
+
 file_checksum() {
   local path="$1"
 
@@ -356,6 +370,7 @@ render_generated_metadata() {
     printf '    "runtimeSupportMatrixMarkdown": "automation/context/runtime-support-matrix.md",\n'
     printf '    "projectDeltaHotspots": "automation/context/project-delta-hotspots.generated.md",\n'
     printf '    "hotspotsSummary": "automation/context/hotspots-summary.generated.md",\n'
+    printf '    "recommendedSkills": "automation/context/recommended-skills.generated.md",\n'
     printf '    "skills": ".agents/skills/README.md",\n'
     printf '    "codexGuide": ".codex/README.md",\n'
     printf '    "executionPlans": "docs/exec-plans/README.md",\n'
@@ -532,6 +547,88 @@ render_generated_project_delta_hotspots() {
   rm -f "$matches_file"
 }
 
+render_generated_recommended_skills() {
+  local target_file="$1"
+  local metadata_file="$2"
+  local config_present="missing"
+  local extensions_count=""
+  local epf_count=""
+  local erf_count=""
+  local subsystems_count=""
+  local forms_count=""
+  local services_count=""
+  local scheduled_jobs_count=""
+  local common_modules_count=""
+
+  require_command jq
+
+  if jq -e '.configuration.present == true' "$metadata_file" >/dev/null 2>&1; then
+    config_present="present"
+  fi
+
+  extensions_count="$(count_inventory_entries "src/cfe")"
+  epf_count="$(count_inventory_entries "src/epf")"
+  erf_count="$(count_inventory_entries "src/erf")"
+  subsystems_count="$(count_inventory_entries "src/cf/Subsystems")"
+  forms_count="$(count_named_dirs "src" "Forms")"
+  services_count="$(( $(count_inventory_entries "src/cf/HTTPServices") + $(count_inventory_entries "src/cf/WebServices") ))"
+  scheduled_jobs_count="$(count_inventory_entries "src/cf/ScheduledJobs")"
+  common_modules_count="$(count_inventory_entries "src/cf/CommonModules")"
+
+  {
+    printf '# Generated Recommended Skills\n\n'
+    printf 'Этот файл является generated-derived compact routing layer для первого часа работы агента.\n'
+    printf 'Полный catalog остаётся в `.agents/skills/README.md`, а readiness/bootstrap для executable imported skills идёт через `make imported-skills-readiness`.\n\n'
+
+    printf '## Detected Signals\n\n'
+    printf -- '- configuration xml: `%s`\n' "$config_present"
+    printf -- '- subsystems: `%s`\n' "$subsystems_count"
+    printf -- '- forms roots: `%s`\n' "$forms_count"
+    printf -- '- extensions: `%s`\n' "$extensions_count"
+    printf -- '- external processors: `%s`\n' "$epf_count"
+    printf -- '- reports: `%s`\n' "$erf_count"
+    printf -- '- service edges: `%s`\n' "$services_count"
+    printf -- '- scheduled jobs: `%s`\n' "$scheduled_jobs_count"
+    printf -- '- common modules: `%s`\n' "$common_modules_count"
+
+    printf '\n## First-Hour Recommendations\n\n'
+    printf '| Workflow | Recommended skills / entrypoints | Why now |\n'
+    printf '| --- | --- | --- |\n'
+    printf '| Baseline repo hygiene | `repo-agent-verify` -> `./scripts/qa/agent-verify.sh` | Всегда начинайте с no-1C baseline, прежде чем заходить в runtime или imported workflows. |\n'
+    printf '| Git-backed partial import loop | `1c-load-diff-src` -> `1c-update-db` -> `1c-run-xunit` | Это preferred native path для быстрых изменений в `src/cf` и локальной проверки. |\n'
+    printf '| Committed task import | `1c-load-task-src` -> `./scripts/platform/load-task-src.sh` | Используйте, когда scope уже зафиксирован через `Bead:` / `Work-Item:` trailers или `--range`. |\n'
+    printf '| Configuration XML routing | `cf-info` -> `cf-edit` -> `cf-validate` | Подходит для first-pass анализа и точечных правок `src/cf/Configuration.xml` и configuration-level metadata. |\n'
+    printf '| Metadata object routing | `meta-info` -> `meta-edit` -> `meta-validate` | Подходит для object-level XML changes без ручного редактирования сырого metadata XML. |\n'
+    if [ "$subsystems_count" -gt 0 ]; then
+      printf '| Subsystem and interface routing | `subsystem-info` -> `subsystem-edit` -> `subsystem-validate`, `interface-edit` | Рекомендуется, когда project shape уже показывает выраженную subsystem/navigation surface. |\n'
+    fi
+    if [ "$forms_count" -gt 0 ]; then
+      printf '| Managed form routing | `form-info` -> `form-edit` -> `form-validate` | Полезно для forms-heavy repo footprint и object UI changes. |\n'
+    fi
+    if [ "$extensions_count" -gt 0 ]; then
+      printf '| Extension-owned changes | `cfe-info` -> `cfe-edit` -> `cfe-validate` | Используйте, когда change живёт в `src/cfe` и нужно держать extension surface отдельно от base config. |\n'
+    fi
+    if [ "$erf_count" -gt 0 ]; then
+      printf '| Reports and SKD routing | `skd-info` -> `skd-edit` -> `skd-validate`, `erf-build` | Подходит для отчётов, СКД и report-heavy repo footprint. |\n'
+    fi
+    if [ "$epf_count" -gt 0 ]; then
+      printf '| External processor routing | `epf-dump` -> `epf-build` -> `epf-validate` | Подходит для внешних обработок и adjacent processor workflows. |\n'
+    fi
+    if [ "$services_count" -gt 0 ] || [ "$scheduled_jobs_count" -gt 0 ] || [ "$common_modules_count" -gt 0 ]; then
+      printf '| Service and runtime edges | `cf-info`, `meta-info`, затем native `1c-*` runtime workflows | Service surfaces, scheduled jobs и common modules обычно требуют сначала routing по metadata, потом native runtime path. |\n'
+    fi
+
+    printf '\n## Follow-Up Routers\n\n'
+    printf -- '- Full catalog: `.agents/skills/README.md`\n'
+    printf -- '- Imported skill readiness: `make imported-skills-readiness`, `./scripts/skills/run-imported-skill.sh --readiness`\n'
+    printf -- '- Curated project truth: `automation/context/project-map.md`\n'
+    printf -- '- Project-owned code map: `docs/agent/architecture-map.md`\n'
+    printf -- '- Runtime quick reference: `docs/agent/runtime-quickstart.md`\n'
+    printf -- '- Generated summary-first map: `automation/context/hotspots-summary.generated.md`\n'
+    printf -- '- Raw inventory: `automation/context/metadata-index.generated.json`\n'
+  } >"$target_file"
+}
+
 render_generated_hotspots_summary() {
   local target_file="$1"
   local metadata_file="$2"
@@ -602,6 +699,7 @@ render_generated_hotspots_summary() {
 
     printf '\n## Follow-Up Routers\n\n'
     printf -- '- Curated project truth: `automation/context/project-map.md`\n'
+    printf -- '- Project-aware recommended skills: `automation/context/recommended-skills.generated.md`\n'
     printf -- '- Project-owned code map: `docs/agent/architecture-map.md`\n'
     printf -- '- Operator-local runtime bridge: `docs/agent/operator-local-runbook.md`\n'
     printf -- '- Project-specific runtime digest: `docs/agent/runtime-quickstart.md`\n'
@@ -697,22 +795,26 @@ else
   repo_role="generated-project"
   tree_file="$context_dir/source-tree.generated.txt"
   metadata_file="$context_dir/metadata-index.generated.json"
+  recommended_file="$context_dir/recommended-skills.generated.md"
   summary_file="$context_dir/hotspots-summary.generated.md"
   project_delta_hints_file="$context_dir/project-delta-hints.json"
   project_delta_file="$context_dir/project-delta-hotspots.generated.md"
   tmp_tree="$tmpdir/source-tree.generated.txt"
   tmp_metadata="$tmpdir/metadata-index.generated.json"
+  tmp_recommended="$tmpdir/recommended-skills.generated.md"
   tmp_summary="$tmpdir/hotspots-summary.generated.md"
   tmp_project_delta="$tmpdir/project-delta-hotspots.generated.md"
 
   render_generated_tree "$tmp_tree"
   render_generated_metadata "$tmp_metadata"
+  render_generated_recommended_skills "$tmp_recommended" "$tmp_metadata"
   render_generated_project_delta_hotspots "$tmp_project_delta" "$project_delta_hints_file" "$tmp_metadata"
   render_generated_hotspots_summary "$tmp_summary" "$tmp_metadata" "$tmp_tree"
 
   targets=(
     "$tree_file:$tmp_tree"
     "$metadata_file:$tmp_metadata"
+    "$recommended_file:$tmp_recommended"
     "$summary_file:$tmp_summary"
     "$project_delta_file:$tmp_project_delta"
   )

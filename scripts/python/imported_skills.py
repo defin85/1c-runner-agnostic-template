@@ -17,6 +17,15 @@ OVERLAY_MANIFEST = repo_path("automation", "context", "template-managed-paths.tx
 SYNC_MARKER = "<!-- GENERATED: sync-imported-skills -->"
 DISPATCHER_SHELL = "./scripts/skills/run-imported-skill.sh"
 DISPATCHER_POWERSHELL = "./scripts/skills/run-imported-skill.ps1"
+CANONICAL_READINESS_TARGET = "make imported-skills-readiness"
+CANONICAL_READINESS_COMMAND = "./scripts/skills/run-imported-skill.sh --readiness"
+CANONICAL_READINESS_DOC = "docs/agent/generated-project-verification.md"
+CANONICAL_ENV_DOC = "env/README.md"
+FULL_SKILLS_CATALOG = ".agents/skills/README.md"
+REPRESENTATIVE_PYTHON_SKILL = "cf-edit"
+REPRESENTATIVE_NODE_SKILL = "web-test"
+REPRESENTATIVE_REFERENCE_SKILL = "form-patterns"
+REPRESENTATIVE_NATIVE_ALIAS_SKILL = "db-create"
 
 REFERENCE_ONLY_SKILLS = {
     "db-list",
@@ -148,6 +157,27 @@ def _short_text(value: str, limit: int = 92) -> str:
     if len(compact) <= limit:
         return compact
     return compact[: limit - 1].rstrip() + "…"
+
+
+def _yaml_scalar(value: str) -> str:
+    return json.dumps(str(value), ensure_ascii=False)
+
+
+def _skill_shell_command(skill_name: str) -> str:
+    return REPO_SCRIPT_FORMAT.format(skill=skill_name)
+
+
+def _preferred_native_hint(entry: dict[str, object]) -> str:
+    preferred = [str(name) for name in entry.get("preferred_native_skills") or []]
+    if not preferred:
+        return ""
+    names = ", ".join(preferred)
+    return f"Prefer native {names}. "
+
+
+def _discovery_description(entry: dict[str, object]) -> str:
+    description = str(entry["description"]).strip()
+    return (_preferred_native_hint(entry) + description).strip()
 
 
 def _detect_git_metadata(source_root: Path) -> dict[str, str]:
@@ -297,21 +327,188 @@ def _adaptation_notes(entry: dict[str, object]) -> list[str]:
     return notes
 
 
+def _python_runtime_readiness() -> dict[str, object]:
+    missing: list[str] = []
+    bootstrap: list[str] = []
+    try:
+        import lxml.etree  # type: ignore  # noqa: F401
+    except ModuleNotFoundError:
+        missing.append("Python module `lxml`")
+        bootstrap.append("python -m pip install lxml")
+    return {
+        "runtime_kind": "python",
+        "ready": not missing,
+        "missing_dependencies": missing,
+        "bootstrap_commands": bootstrap,
+        "representative_skill": REPRESENTATIVE_PYTHON_SKILL,
+    }
+
+
+def _node_runtime_readiness() -> dict[str, object]:
+    missing: list[str] = []
+    bootstrap: list[str] = []
+    scripts_dir = IMPORT_ROOT / "skills" / REPRESENTATIVE_NODE_SKILL / "scripts"
+    if shutil.which("node") is None:
+        missing.append("Node.js runtime `node`")
+    playwright_package = scripts_dir / "node_modules" / "playwright" / "package.json"
+    if not playwright_package.is_file():
+        missing.append("Node package `playwright` under `automation/vendor/cc-1c-skills/skills/web-test/scripts`")
+        bootstrap.append("cd automation/vendor/cc-1c-skills/skills/web-test/scripts && npm install")
+        bootstrap.append("cd automation/vendor/cc-1c-skills/skills/web-test/scripts && npx playwright install chromium")
+    return {
+        "runtime_kind": "node",
+        "ready": not missing,
+        "missing_dependencies": missing,
+        "bootstrap_commands": bootstrap,
+        "representative_skill": REPRESENTATIVE_NODE_SKILL,
+    }
+
+
+def imported_skill_readiness_payload() -> dict[str, object]:
+    python_runtime = _python_runtime_readiness()
+    node_runtime = _node_runtime_readiness()
+    reference_entry = _find_entry(REPRESENTATIVE_REFERENCE_SKILL)
+    native_alias_entry = _find_entry(REPRESENTATIVE_NATIVE_ALIAS_SKILL)
+    return {
+        "readinessRole": "template-managed-imported-skill-readiness",
+        "canonicalTarget": CANONICAL_READINESS_TARGET,
+        "canonicalCommand": CANONICAL_READINESS_COMMAND,
+        "guidanceDocs": [CANONICAL_READINESS_DOC, CANONICAL_ENV_DOC],
+        "fullCatalog": FULL_SKILLS_CATALOG,
+        "representative": {
+            "python": {
+                **python_runtime,
+                "entrypoint": _skill_shell_command(REPRESENTATIVE_PYTHON_SKILL),
+            },
+            "node": {
+                **node_runtime,
+                "entrypoint": _skill_shell_command(REPRESENTATIVE_NODE_SKILL),
+            },
+            "reference": {
+                "runtime_kind": "reference",
+                "ready": True,
+                "missing_dependencies": [],
+                "bootstrap_commands": [],
+                "representative_skill": REPRESENTATIVE_REFERENCE_SKILL,
+                "entrypoint": _skill_shell_command(REPRESENTATIVE_REFERENCE_SKILL),
+                "notes": ["Vendored markdown only; no local runtime bootstrap is required."],
+            },
+            "nativeAlias": {
+                "runtime_kind": "native-alias",
+                "ready": True,
+                "missing_dependencies": [],
+                "bootstrap_commands": [],
+                "representative_skill": REPRESENTATIVE_NATIVE_ALIAS_SKILL,
+                "entrypoint": _skill_shell_command(REPRESENTATIVE_NATIVE_ALIAS_SKILL),
+                "preferred_native_skills": [str(name) for name in native_alias_entry.get("preferred_native_skills") or []],
+            },
+        },
+        "skills": {
+            "reference": {
+                "name": str(reference_entry["name"]),
+                "description": str(reference_entry["description"]),
+            },
+            "nativeAlias": {
+                "name": str(native_alias_entry["name"]),
+                "description": str(native_alias_entry["description"]),
+            },
+        },
+    }
+
+
+def _readiness_lines(payload: dict[str, object]) -> list[str]:
+    representative = dict(payload.get("representative") or {})
+    lines = [
+        "# Imported Skill Readiness",
+        "",
+        f"Canonical target: `{payload['canonicalTarget']}`",
+        f"Direct entrypoint: `{payload['canonicalCommand']}`",
+        "Guidance docs: " + ", ".join(f"`{item}`" for item in payload.get("guidanceDocs", [])),
+        f"Full catalog: `{payload['fullCatalog']}`",
+        "",
+        "## Representative Runtimes",
+        "",
+    ]
+    for key in ("python", "node", "reference", "nativeAlias"):
+        item = representative.get(key) or {}
+        skill_name = str(item.get("representative_skill") or key)
+        runtime_kind = str(item.get("runtime_kind") or key)
+        if item.get("ready"):
+            line = f"- `{runtime_kind}` (`{skill_name}`): ready"
+            preferred_native = [str(name) for name in item.get("preferred_native_skills") or []]
+            if preferred_native:
+                line += " via native workflow " + ", ".join(f"`{name}`" for name in preferred_native)
+            lines.append(line)
+            notes = [str(note) for note in item.get("notes") or []]
+            for note in notes:
+                lines.append(f"  note: {note}")
+            continue
+        missing = ", ".join(str(dep) for dep in item.get("missing_dependencies") or [])
+        lines.append(f"- `{runtime_kind}` (`{skill_name}`): missing {missing}")
+        for command in item.get("bootstrap_commands") or []:
+            lines.append(f"  bootstrap: `{command}`")
+    return lines
+
+
+def render_imported_skill_readiness(json_mode: bool = False) -> str:
+    payload = imported_skill_readiness_payload()
+    if json_mode:
+        return json.dumps(payload, ensure_ascii=False, indent=2) + "\n"
+    return "\n".join(_readiness_lines(payload)) + "\n"
+
+
+def _runtime_readiness_for_kind(runtime_kind: str) -> dict[str, object]:
+    payload = imported_skill_readiness_payload()
+    representative = dict(payload.get("representative") or {})
+    if runtime_kind == "python":
+        return dict(representative.get("python") or {})
+    if runtime_kind == "node":
+        return dict(representative.get("node") or {})
+    if runtime_kind == "reference":
+        return dict(representative.get("reference") or {})
+    if runtime_kind == "native-alias":
+        return dict(representative.get("nativeAlias") or {})
+    return {
+        "runtime_kind": runtime_kind,
+        "ready": True,
+        "missing_dependencies": [],
+        "bootstrap_commands": [],
+    }
+
+
+def _print_runtime_not_ready(entry: dict[str, object], readiness: dict[str, object]) -> int:
+    missing = [str(item) for item in readiness.get("missing_dependencies") or []]
+    print(f"Imported skill `{entry['name']}` is not ready in this local contour.", file=sys.stderr)
+    print(f"Runtime kind: {entry['runtime_kind']}", file=sys.stderr)
+    if missing:
+        print("Missing dependency class: " + ", ".join(missing), file=sys.stderr)
+    print(f"Canonical readiness target: {CANONICAL_READINESS_TARGET}", file=sys.stderr)
+    print(f"Direct readiness command: {CANONICAL_READINESS_COMMAND}", file=sys.stderr)
+    print(f"Guidance docs: {CANONICAL_READINESS_DOC}, {CANONICAL_ENV_DOC}", file=sys.stderr)
+    bootstrap = [str(command) for command in readiness.get("bootstrap_commands") or []]
+    if bootstrap:
+        print("Bootstrap suggestions:", file=sys.stderr)
+        for command in bootstrap:
+            print(f"- {command}", file=sys.stderr)
+    return 2
+
+
 def _vendor_reference(entry: dict[str, object]) -> str:
     return f"automation/vendor/cc-1c-skills/{entry['vendor_dir']}/SKILL.md"
 
 
 def _render_agents_skill(entry: dict[str, object]) -> str:
     description = str(entry["description"]).strip()
-    short_description = _short_text(description, 72)
+    discovery_description = _discovery_description(entry)
+    short_description = _short_text(discovery_description, 72)
     skill_name = str(entry["name"])
     notes = _adaptation_notes(entry)
     lines = [
         "---",
         f"name: {skill_name}",
-        f"description: Импортированный compatibility skill из `cc-1c-skills`: {description}",
+        f"description: {_yaml_scalar(f'Импортированный compatibility skill из `cc-1c-skills`: {discovery_description}')}",
         "metadata:",
-        f"  short-description: {short_description}",
+        f"  short-description: {_yaml_scalar(short_description)}",
         "---",
         "",
         SYNC_MARKER,
@@ -336,6 +533,8 @@ def _render_agents_skill(entry: dict[str, object]) -> str:
         "",
         f"- Vendored upstream source: `{_vendor_reference(entry)}`",
         f"- Runtime kind: `{entry['runtime_kind']}`",
+        f"- Readiness target: `{CANONICAL_READINESS_TARGET}`",
+        f"- Direct readiness command: `{CANONICAL_READINESS_COMMAND}`",
     ]
     for note in notes:
         lines.append(f"- {note}")
@@ -346,6 +545,7 @@ def _render_agents_skill(entry: dict[str, object]) -> str:
             "",
             "- Публичный contract для этого skill находится в repo-owned dispatcher, а не в vendored markdown.",
             "- Если нужны детали параметров, сначала читайте vendored upstream `SKILL.md`, затем helper-скрипты из `automation/vendor/cc-1c-skills/`.",
+            "- Если dispatcher сообщает о missing dependencies, сначала используйте canonical readiness path, а не helper traceback.",
             "- Не переносите upstream PowerShell snippets в новый automation contract шаблона.",
             "",
         ]
@@ -356,13 +556,14 @@ def _render_agents_skill(entry: dict[str, object]) -> str:
 def _render_claude_skill(entry: dict[str, object]) -> str:
     skill_name = str(entry["name"])
     description = str(entry["description"]).strip()
+    discovery_description = _discovery_description(entry)
     argument_hint = str(entry.get("argument_hint") or "[args...]").strip() or "[args...]"
     notes = _adaptation_notes(entry)
     lines = [
         "---",
         f"name: {skill_name}",
-        f"description: Импортированный compatibility skill из cc-1c-skills. {description}",
-        f"argument-hint: {argument_hint}",
+        f"description: {_yaml_scalar(f'Импортированный compatibility skill из cc-1c-skills. {discovery_description}')}",
+        f"argument-hint: {_yaml_scalar(argument_hint)}",
         "allowed-tools:",
         "  - Bash",
         "  - Read",
@@ -391,6 +592,8 @@ def _render_claude_skill(entry: dict[str, object]) -> str:
         "",
         f"- Vendored upstream source: `{_vendor_reference(entry)}`",
         f"- Runtime kind: `{entry['runtime_kind']}`",
+        f"- Readiness target: `{CANONICAL_READINESS_TARGET}`",
+        f"- Direct readiness command: `{CANONICAL_READINESS_COMMAND}`",
     ]
     for note in notes:
         lines.append(f"- {note}")
@@ -401,6 +604,7 @@ def _render_claude_skill(entry: dict[str, object]) -> str:
             "",
             "- Repo-owned dispatcher является source of truth для вызова skill в этом шаблоне.",
             "- Vendored upstream `SKILL.md` остаётся источником intent/examples, но не публичным execution contract.",
+            "- Если dispatcher сообщает о missing dependencies, сначала используйте canonical readiness path, а не helper traceback.",
             "",
         ]
     )
@@ -443,6 +647,8 @@ def _render_agents_readme(native_codex: list[dict[str, str]], native_claude: lis
             f"- Upstream source: `{upstream.get('source_url') or upstream.get('source_repo') or 'unknown'}`",
             f"- Upstream commit: `{upstream.get('source_commit') or 'unknown'}`",
             "- Vendor root: [`automation/vendor/cc-1c-skills/README.md`](../../automation/vendor/cc-1c-skills/README.md)",
+            f"- Canonical readiness target: `{CANONICAL_READINESS_TARGET}`",
+            f"- Direct readiness command: `{CANONICAL_READINESS_COMMAND}`",
             "",
             "| User intent | Codex skill | Claude skill | Repo entrypoint | Notes |",
             "| --- | --- | --- | --- | --- |",
@@ -470,6 +676,7 @@ def _render_agents_readme(native_codex: list[dict[str, str]], native_claude: lis
             "- Source of truth для выполнения находится в `scripts/`, а не в `SKILL.md`.",
             "- Если меняется runtime behavior imported skills, меняйте repo-owned dispatcher или vendored helper, а не generated skill markdown вручную.",
             "- Для baseline repo/doc/tooling changes начинайте с `repo-agent-verify`.",
+            "- При missing dependencies сначала используйте canonical readiness path, затем запускайте executable imported skills.",
             "- Imported compatibility pack не заменяет native runner-agnostic skills: при совпадении intent предпочитайте native workflow шаблона.",
             "",
         ]
@@ -508,6 +715,8 @@ def _render_claude_readme(native_codex: list[dict[str, str]], native_claude: lis
             f"- Upstream source: `{upstream.get('source_url') or upstream.get('source_repo') or 'unknown'}`",
             f"- Upstream commit: `{upstream.get('source_commit') or 'unknown'}`",
             "- Vendor root: [`automation/vendor/cc-1c-skills/README.md`](../../automation/vendor/cc-1c-skills/README.md)",
+            f"- Canonical readiness target: `{CANONICAL_READINESS_TARGET}`",
+            f"- Direct readiness command: `{CANONICAL_READINESS_COMMAND}`",
             "",
             "| User intent | Codex skill | Claude skill | Repo entrypoint | Notes |",
             "| --- | --- | --- | --- | --- |",
@@ -534,6 +743,7 @@ def _render_claude_readme(native_codex: list[dict[str, str]], native_claude: lis
             "",
             "- Source of truth для выполнения находится в `scripts/`, а не в `SKILL.md`.",
             "- Если нужно поменять flags, artifact contract или adapter behavior imported skills, сначала меняйте repo-owned dispatcher или vendored helper.",
+            "- При missing dependencies сначала используйте canonical readiness path, затем запускайте executable imported skills.",
             "- Native runner-agnostic skills остаются предпочтительным surface для template-owned runtime workflows.",
             "",
         ]
@@ -685,6 +895,9 @@ def _run_native_alias(entry: dict[str, object], args: list[str]) -> int:
 
 
 def _run_python_helper(entry: dict[str, object], args: list[str]) -> int:
+    readiness = _runtime_readiness_for_kind("python")
+    if not readiness.get("ready"):
+        return _print_runtime_not_ready(entry, readiness)
     helper = str(entry.get("helper_path") or "")
     if not helper:
         die(f"python helper is not configured for {entry['name']}")
@@ -700,6 +913,9 @@ def _run_python_helper(entry: dict[str, object], args: list[str]) -> int:
 
 
 def _run_node_helper(entry: dict[str, object], args: list[str]) -> int:
+    readiness = _runtime_readiness_for_kind("node")
+    if not readiness.get("ready"):
+        return _print_runtime_not_ready(entry, readiness)
     helper = str(entry.get("helper_path") or "")
     if not helper:
         die(f"node helper is not configured for {entry['name']}")

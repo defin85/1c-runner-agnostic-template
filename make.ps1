@@ -27,6 +27,7 @@ $targets = @{
     "check-skill-bindings" = @((Resolve-TargetScript "scripts\qa\check-skill-bindings.ps1"))
     "check-overlay-manifest" = @((Resolve-TargetScript "scripts\qa\check-overlay-manifest.ps1"))
     "codex-onboard" = @((Resolve-TargetScript "scripts\qa\codex-onboard.ps1"))
+    "imported-skills-readiness" = @((Resolve-TargetScript "scripts\skills\run-imported-skill.ps1"), "--readiness")
     "create-ib" = @((Resolve-TargetScript "scripts\platform\create-ib.ps1"))
     "dump-src" = @((Resolve-TargetScript "scripts\platform\dump-src.ps1"))
     "load-src" = @((Resolve-TargetScript "scripts\platform\load-src.ps1"))
@@ -59,6 +60,7 @@ if ($Target -eq "help") {
         "  ./make.ps1 check-skill-bindings",
         "  ./make.ps1 check-overlay-manifest",
         "  ./make.ps1 codex-onboard",
+        "  ./make.ps1 imported-skills-readiness",
         "  ./make.ps1 create-ib",
         "  ./make.ps1 dump-src",
         "  ./make.ps1 load-src",
