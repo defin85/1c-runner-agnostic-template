@@ -93,6 +93,7 @@ if [ "${DRY_RUN:-0}" != "1" ]; then
     "$(overlay_manifest_file "$template_src_path")"
   append_project_agents_overlay "$root/AGENTS.md" "$init_beads"
   seed_generated_project_surface_on_copy "$root" "$project_name" "$project_slug" "$project_description"
+  write_overlay_source "$root" "$template_src_path"
   write_overlay_version "$root" "$(bootstrap_template_ref_or_fallback "$root" "$template_src_path")"
   "$root/scripts/llm/export-context.sh" --write >/dev/null
 fi

@@ -230,6 +230,13 @@ profile_has_nonnull() {
   local expr="$1"
 
   require_runtime_profile_loaded
+  case "$expr" in
+    .*)
+      ;;
+    *)
+      expr=".$expr"
+      ;;
+  esac
   jq -e "($expr) != null" <<<"$RUNTIME_PROFILE_JSON" >/dev/null
 }
 

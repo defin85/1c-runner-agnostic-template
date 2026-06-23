@@ -261,8 +261,23 @@ append_ibcmd_target_args() {
 append_ibcmd_infobase_auth_args() {
   local array_name="$1"
   local -n args_ref="$array_name"
+  local runtime_mode=""
+  local user_present=0
+  local password_present=0
   local password_env=""
   local password_value=""
+
+  runtime_mode="$(ibcmd_runtime_mode)"
+  if profile_has_nonnull '.ibcmd.auth.user'; then
+    user_present=1
+  fi
+  if profile_has_nonnull '.ibcmd.auth.passwordEnv'; then
+    password_present=1
+  fi
+
+  if [ "$runtime_mode" = "file-infobase" ] && [ "$user_present" -eq 0 ] && [ "$password_present" -eq 0 ]; then
+    return 0
+  fi
 
   password_env="$(ibcmd_require_infobase_auth_password_env)"
   password_value="$(resolve_secret_value "$password_env")"
@@ -359,14 +374,26 @@ ibcmd_capability_failure_reason() {
     create-ib)
       ;;
     dump-src|load-src|update-db)
-      profile_has_nonnull '.ibcmd.auth.user' || {
-        printf 'missing ibcmd.auth.user\n'
-        return 0
-      }
-      profile_has_nonnull '.ibcmd.auth.passwordEnv' || {
-        printf 'missing ibcmd.auth.passwordEnv\n'
-        return 0
-      }
+      if [ "$runtime_mode" = "file-infobase" ]; then
+        if profile_has_nonnull '.ibcmd.auth.user'; then
+          if ! profile_has_nonnull '.ibcmd.auth.passwordEnv'; then
+            printf 'missing ibcmd.auth.passwordEnv\n'
+            return 0
+          fi
+        elif profile_has_nonnull '.ibcmd.auth.passwordEnv'; then
+          printf 'missing ibcmd.auth.user\n'
+          return 0
+        fi
+      else
+        profile_has_nonnull '.ibcmd.auth.user' || {
+          printf 'missing ibcmd.auth.user\n'
+          return 0
+        }
+        profile_has_nonnull '.ibcmd.auth.passwordEnv' || {
+          printf 'missing ibcmd.auth.passwordEnv\n'
+          return 0
+        }
+      fi
       ;;
     *)
       printf 'unsupported capability id for ibcmd driver: %s\n' "$capability_id"
@@ -417,8 +444,15 @@ collect_ibcmd_required_profile_fields_for_capability() {
 
   case "$capability_id" in
     dump-src|load-src|update-db)
-      append_unique_field "$array_name" ibcmd.auth.user
-      append_unique_field "$array_name" ibcmd.auth.passwordEnv
+      if [ "$runtime_mode" = "file-infobase" ]; then
+        if profile_has_nonnull '.ibcmd.auth.user' || profile_has_nonnull '.ibcmd.auth.passwordEnv'; then
+          append_unique_field "$array_name" ibcmd.auth.user
+          append_unique_field "$array_name" ibcmd.auth.passwordEnv
+        fi
+      else
+        append_unique_field "$array_name" ibcmd.auth.user
+        append_unique_field "$array_name" ibcmd.auth.passwordEnv
+      fi
       ;;
   esac
 }
@@ -439,9 +473,11 @@ collect_ibcmd_required_env_refs_for_capability() {
 
   case "$capability_id" in
     dump-src|load-src|update-db)
-      ref="$(profile_string '.ibcmd.auth.passwordEnv // empty')"
-      if [ -n "$ref" ]; then
-        append_unique_field "$array_name" "$ref"
+      if [ "$runtime_mode" != "file-infobase" ] || profile_has_nonnull '.ibcmd.auth.passwordEnv'; then
+        ref="$(profile_string '.ibcmd.auth.passwordEnv // empty')"
+        if [ -n "$ref" ]; then
+          append_unique_field "$array_name" "$ref"
+        fi
       fi
       ;;
   esac

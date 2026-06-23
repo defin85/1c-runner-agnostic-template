@@ -1,6 +1,6 @@
 SHELL := bash
 
-.PHONY: help agent-verify act-preflight qa analyze-bsl format-bsl check-agent-docs check-skill-bindings check-overlay-manifest codex-onboard imported-skills-readiness create-ib dump-src load-src load-diff-src load-task-src update-db diff-src doctor test-xunit tdd-xunit test-bdd smoke export-context export-context-preview export-context-check export-context-write verify-traceability template-check-update template-update
+.PHONY: help agent-verify act-preflight qa analyze-bsl format-bsl check-agent-docs check-skill-bindings check-overlay-manifest codex-onboard imported-skills-readiness create-ib dump-src load-src load-cfe configure-cfe-runtime-flags check-cfe-applicability check-cfe-config load-diff-src load-task-src update-db diff-src doctor check-x11-contour test-xunit tdd-xunit test-yaxunit sync-yaxunit-runtime yaxunit-warm-service web-client-diagnostic golden-baseline test-bdd smoke export-context export-context-preview export-context-check export-context-write verify-traceability template-check-update template-update
 
 help:
 	@printf '%s\n' \
@@ -18,13 +18,23 @@ help:
 		'  make create-ib' \
 		'  make dump-src' \
 		'  make load-src' \
+		'  make load-cfe' \
+		'  make configure-cfe-runtime-flags' \
+		'  make check-cfe-applicability' \
+		'  make check-cfe-config' \
 		'  make load-diff-src' \
 		'  make load-task-src' \
 		'  make update-db' \
-		'  make diff-src' \
-		'  make doctor' \
-		'  make test-xunit' \
+			'  make diff-src' \
+			'  make doctor' \
+			'  make check-x11-contour' \
+			'  make test-xunit' \
 		'  make tdd-xunit' \
+		'  make test-yaxunit' \
+		'  make sync-yaxunit-runtime' \
+		'  make yaxunit-warm-service' \
+		'  make web-client-diagnostic' \
+		'  make golden-baseline' \
 		'  make test-bdd' \
 		'  make smoke' \
 		'  make export-context' \
@@ -73,6 +83,18 @@ dump-src:
 load-src:
 	@./scripts/platform/load-src.sh
 
+load-cfe:
+	@./scripts/platform/load-cfe.sh
+
+configure-cfe-runtime-flags:
+	@./scripts/platform/configure-cfe-runtime-flags.sh
+
+check-cfe-applicability:
+	@./scripts/platform/check-cfe-applicability.sh
+
+check-cfe-config:
+	@./scripts/platform/check-cfe-config.sh
+
 load-diff-src:
 	@./scripts/platform/load-diff-src.sh
 
@@ -88,11 +110,29 @@ diff-src:
 doctor:
 	@./scripts/diag/doctor.sh
 
+check-x11-contour:
+	@./scripts/diag/check-x11-contour.sh
+
 test-xunit:
 	@./scripts/test/run-xunit.sh
 
 tdd-xunit:
 	@./scripts/test/tdd-xunit.sh
+
+test-yaxunit:
+	@./scripts/test/run-yaxunit.sh
+
+sync-yaxunit-runtime:
+	@./scripts/test/sync-yaxunit-runtime.sh
+
+yaxunit-warm-service:
+	@./scripts/test/run-yaxunit-warm-service.sh
+
+web-client-diagnostic:
+	@./scripts/test/run-web-client-diagnostic.sh
+
+golden-baseline:
+	@./scripts/test/run-golden-baseline.sh
 
 test-bdd:
 	@./scripts/test/run-bdd.sh

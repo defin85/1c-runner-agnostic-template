@@ -414,9 +414,8 @@ def resolve_project_tree_path(candidate: str) -> Path:
 def resolve_secret_value(env_name: str, dry_run: bool = False) -> str:
     if not env_name:
         return ""
-    value = os.environ.get(env_name, "")
-    if value:
-        return value
+    if env_name in os.environ:
+        return os.environ[env_name]
     if dry_run:
         return "__REDACTED_SECRET__"
     die(f"required secret env var is not set: {env_name}")
@@ -453,6 +452,10 @@ def direct_platform_xvfb_enabled(profile: RuntimeProfile) -> bool:
     return bool(profile.bool("platform", "xvfb", "enabled", default=False))
 
 
+def direct_platform_xpra_enabled(profile: RuntimeProfile) -> bool:
+    return bool(profile.bool("platform", "xpra", "enabled", default=False))
+
+
 def direct_platform_ld_preload_enabled(profile: RuntimeProfile) -> bool:
     return bool(profile.bool("platform", "ldPreload", "enabled", default=False))
 
@@ -461,6 +464,18 @@ def load_direct_platform_xvfb_server_args(profile: RuntimeProfile) -> list[str]:
     if not direct_platform_xvfb_enabled(profile):
         return []
     return profile.array_strings("platform", "xvfb", "serverArgs")
+
+
+def load_direct_platform_xpra_xvfb_args(profile: RuntimeProfile) -> list[str]:
+    if not direct_platform_xpra_enabled(profile):
+        return []
+    return profile.array_strings("platform", "xpra", "xvfbArgs")
+
+
+def load_direct_platform_xpra_start_child(profile: RuntimeProfile) -> str:
+    if not direct_platform_xpra_enabled(profile):
+        return ""
+    return profile.string("platform", "xpra", "startChild", default="openbox") or ""
 
 
 def load_direct_platform_ld_preload_libraries(profile: RuntimeProfile) -> list[str]:
@@ -476,7 +491,14 @@ def command_targets_local_platform_gui(command_path: str) -> bool:
 
 def direct_platform_adapter_context(profile: RuntimeProfile) -> dict[str, Any]:
     result: dict[str, Any] = {}
-    if direct_platform_xvfb_enabled(profile):
+    if direct_platform_xpra_enabled(profile):
+        result["wrapper"] = "xpra"
+        result["xpra"] = {
+            "enabled": True,
+            "start_child": load_direct_platform_xpra_start_child(profile),
+            "xvfb_args": load_direct_platform_xpra_xvfb_args(profile),
+        }
+    elif direct_platform_xvfb_enabled(profile):
         result["wrapper"] = "xvfb-run"
         result["xvfb"] = {
             "enabled": True,
@@ -579,7 +601,7 @@ def resolve_capability_driver(profile: RuntimeProfile, capability_id: str) -> st
         return ""
     driver = profile.string("capabilities", capability_key(capability_id), "driver")
     if not driver:
-        return "designer"
+        return "ibcmd" if profile.string("runnerAdapter") == "direct-platform" else "designer"
     if driver not in {"designer", "ibcmd"}:
         die(f"unsupported driver={driver} for capability {capability_id} in {profile.path}")
     return driver
@@ -623,7 +645,9 @@ def append_auth_args(profile: RuntimeProfile, args: list[str], *, dry_run: bool)
         user = profile.require_string("infobase", "auth", "user")
         password_env = profile.require_string("infobase", "auth", "passwordEnv")
         password = resolve_secret_value(password_env, dry_run=dry_run)
-        args.extend(["/WA-", "/N", user, "/P", password])
+        args.extend(["/WA-", "/N", user])
+        if password:
+            args.extend(["/P", password])
         return
     die(f"unsupported infobase.auth.mode={auth_mode} in {profile.path}")
 
@@ -645,7 +669,9 @@ def build_create_infobase_connection_string(profile: RuntimeProfile, *, dry_run:
             user = profile.require_string("infobase", "auth", "user").replace('"', '""')
             password_env = profile.require_string("infobase", "auth", "passwordEnv")
             password = resolve_secret_value(password_env, dry_run=dry_run).replace('"', '""')
-            result += f';Usr="{user}";Pwd="{password}"'
+            result += f';Usr="{user}"'
+            if password:
+                result += f';Pwd="{password}"'
         return result
     die(f"unsupported infobase.mode={mode} in {profile.path}")
 
@@ -702,6 +728,11 @@ def append_ibcmd_target_args(profile: RuntimeProfile, args: list[str], *, dry_ru
 
 
 def append_ibcmd_infobase_auth_args(profile: RuntimeProfile, args: list[str], *, dry_run: bool) -> None:
+    runtime_mode = profile.require_string("ibcmd", "runtimeMode")
+    has_user = profile.has("ibcmd", "auth", "user")
+    has_password = profile.has("ibcmd", "auth", "passwordEnv")
+    if runtime_mode == "file-infobase" and not has_user and not has_password:
+        return
     user = profile.require_string("ibcmd", "auth", "user")
     password_env = profile.require_string("ibcmd", "auth", "passwordEnv")
     password = resolve_secret_value(password_env, dry_run=dry_run)
@@ -747,16 +778,26 @@ def ibcmd_capability_failure_reason(profile: RuntimeProfile, capability_id: str,
             if not profile.has("ibcmd", "dbmsInfobase", key):
                 return message
     if capability_id in {"dump-src", "load-src", "update-db"}:
-        if not profile.has("ibcmd", "auth", "user"):
-            return "missing ibcmd.auth.user"
-        if not profile.has("ibcmd", "auth", "passwordEnv"):
-            return "missing ibcmd.auth.passwordEnv"
+        has_user = profile.has("ibcmd", "auth", "user")
+        has_password = profile.has("ibcmd", "auth", "passwordEnv")
+        if runtime_mode == "file-infobase":
+            if has_user and not has_password:
+                return "missing ibcmd.auth.passwordEnv"
+            if has_password and not has_user:
+                return "missing ibcmd.auth.user"
+        else:
+            if not has_user:
+                return "missing ibcmd.auth.user"
+            if not has_password:
+                return "missing ibcmd.auth.passwordEnv"
     return ""
 
 
 def windows_direct_platform_failure_reason(profile: RuntimeProfile, adapter: str, command_path: str) -> str:
     if not WINDOWS or adapter != "direct-platform" or not command_targets_local_platform_gui(command_path):
         return ""
+    if direct_platform_xpra_enabled(profile):
+        return "platform.xpra is supported only on POSIX direct-platform contours"
     if direct_platform_xvfb_enabled(profile):
         return "platform.xvfb is supported only on POSIX direct-platform contours"
     if direct_platform_ld_preload_enabled(profile):
@@ -767,7 +808,20 @@ def windows_direct_platform_failure_reason(profile: RuntimeProfile, adapter: str
 def posix_direct_platform_failure_reason(profile: RuntimeProfile, adapter: str, command_path: str) -> str:
     if WINDOWS or adapter != "direct-platform" or not command_targets_local_platform_gui(command_path):
         return ""
-    if direct_platform_xvfb_enabled(profile):
+    if direct_platform_xpra_enabled(profile):
+        for tool in ("xpra", "Xvfb", "xdpyinfo"):
+            if not shutil.which(tool):
+                return f"missing {tool} for direct-platform xpra wrapper"
+        xpra_xvfb_args = load_direct_platform_xpra_xvfb_args(profile)
+        if not xpra_xvfb_args:
+            return "platform.xpra.xvfbArgs must not be empty for direct-platform xpra contour"
+        start_child = load_direct_platform_xpra_start_child(profile)
+        if not start_child:
+            return "platform.xpra.startChild must not be empty for direct-platform xpra contour"
+        start_child_command = start_child.split()[0]
+        if not shutil.which(start_child_command):
+            return f"missing {start_child_command} for direct-platform xpra wrapper"
+    elif direct_platform_xvfb_enabled(profile):
         for tool in ("xvfb-run", "xauth"):
             if not shutil.which(tool):
                 return f"missing {tool} for direct-platform xvfb wrapper"
@@ -812,7 +866,9 @@ def collect_required_env_refs(profile: RuntimeProfile) -> list[str]:
             if profile.string("ibcmd", "runtimeMode") == "dbms-infobase":
                 refs.append(profile.string("ibcmd", "dbmsInfobase", "passwordEnv"))
             if capability_id in {"dump-src", "load-src", "update-db"}:
-                refs.append(profile.string("ibcmd", "auth", "passwordEnv"))
+                runtime_mode = profile.string("ibcmd", "runtimeMode")
+                if runtime_mode != "file-infobase" or profile.has("ibcmd", "auth", "passwordEnv"):
+                    refs.append(profile.string("ibcmd", "auth", "passwordEnv"))
     return [item for item in unique_preserve_order(refs) if item]
 
 
@@ -858,8 +914,14 @@ def collect_required_profile_fields(profile: RuntimeProfile, adapter: str) -> li
                     ]
                 )
             if capability_id in {"dump-src", "load-src", "update-db"}:
-                fields.extend(["ibcmd.auth.user", "ibcmd.auth.passwordEnv"])
-    if adapter == "direct-platform" and direct_platform_xvfb_enabled(profile):
+                if runtime_mode == "file-infobase":
+                    if profile.has("ibcmd", "auth", "user") or profile.has("ibcmd", "auth", "passwordEnv"):
+                        fields.extend(["ibcmd.auth.user", "ibcmd.auth.passwordEnv"])
+                else:
+                    fields.extend(["ibcmd.auth.user", "ibcmd.auth.passwordEnv"])
+    if adapter == "direct-platform" and direct_platform_xpra_enabled(profile):
+        fields.extend(["platform.xpra.enabled", "platform.xpra.xvfbArgs", "platform.xpra.startChild"])
+    elif adapter == "direct-platform" and direct_platform_xvfb_enabled(profile):
         fields.extend(["platform.xvfb.enabled", "platform.xvfb.serverArgs"])
     if adapter == "direct-platform" and direct_platform_ld_preload_enabled(profile):
         fields.extend(["platform.ldPreload.enabled", "platform.ldPreload.libraries"])
@@ -1359,7 +1421,12 @@ def run_doctor(argv: list[str]) -> int:
     stderr_log.write_text("", encoding="utf-8", newline="\n")
     required_tools = ["git", "rg"]
     optional_tools = ["openspec", "bd"]
-    if not WINDOWS and adapter == "direct-platform" and direct_platform_xvfb_enabled(profile):
+    if not WINDOWS and adapter == "direct-platform" and direct_platform_xpra_enabled(profile):
+        start_child = load_direct_platform_xpra_start_child(profile)
+        required_tools.extend(["xpra", "Xvfb", "xdpyinfo"])
+        if start_child:
+            required_tools.append(start_child.split()[0])
+    elif not WINDOWS and adapter == "direct-platform" and direct_platform_xvfb_enabled(profile):
         required_tools.extend(["xvfb-run", "xauth"])
     required_fields = collect_required_profile_fields(profile, adapter)
     required_env_refs = collect_required_env_refs(profile)
@@ -1403,7 +1470,7 @@ def run_doctor(argv: list[str]) -> int:
         if not present:
             status = "failed"
     for env_name in required_env_refs:
-        present = bool(os.environ.get(env_name))
+        present = env_name in os.environ
         checks["required_env_refs"].append({"name": env_name, "status": "set" if present else "missing", "required": True, "reason": None})
         if not present:
             status = "failed"

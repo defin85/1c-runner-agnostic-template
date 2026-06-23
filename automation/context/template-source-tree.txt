@@ -194,6 +194,7 @@
 ./openspec
 ./openspec/changes
 ./openspec/changes/add-codex-1c-skills-import
+./openspec/changes/add-reusable-runtime-contours
 ./openspec/changes/add-template-xunit-tdd-contour
 ./openspec/changes/archive
 ./openspec/changes/remove-deployable-source-agent-docs
@@ -230,6 +231,7 @@
 ./src/erf
 ./tests
 ./tests/fixtures
+./tests/golden
 ./tests/python
 ./tests/shell-fixtures
 ./tests/smoke

@@ -37,7 +37,9 @@ git -C "$root" ls-files --cached --others --exclude-standard \
       /^openspec\// { next }
       /^\.claude\/commands\// { next }
       /^\.codex\/config\.toml$/ { next }
-      /^tooling\// { next }
+      /^env\/.*\.example\.json\.jinja$/ { next }
+      /^\[\[\[ _copier_conf\.answers_file \]\]\]\.jinja$/ { next }
+      /^tooling\/(new-1c-project|update-1c-project)(\.ps1)?$/ { next }
       /^automation\/context\/template-source-(metadata-index\.json|project-map\.md|source-files\.txt|tree\.txt)$/ { next }
       /^automation\/context\/template-update-preserve-paths\.txt$/ { next }
       /^docs\/work-items\/(README|TEMPLATE)\.md$/ { next }

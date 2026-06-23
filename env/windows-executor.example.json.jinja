@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 2,
+  "profileName": "windows-executor",
+  "projectName": "[[[ project_name ]]]",
+  "projectSlug": "[[[ project_slug ]]]",
+  "description": "Remote Windows execution profile for UI-heavy or TestClient flows",
+  "runnerAdapter": "remote-windows",
+  "notes": [
+    "Используйте этот профиль, если UI/TestClient лучше работают на Windows-хосте или в Windows VM.",
+    "Стандартные операции create/load/dump/update будут собирать argv из structured profile и передавать их в scripts/adapters/remote-windows.sh.",
+    "Ibcmd driver не поддерживается с runnerAdapter=remote-windows в текущем release; для core capabilities оставляйте driver=designer."
+  ],
+  "platform": {
+    "binaryPath": "C:/Program Files/1cv8/8.3.27.1859/bin/1cv8.exe"
+  },
+  "infobase": {
+    "mode": "client-server",
+    "server": "win-1c:1541",
+    "ref": "[[[ project_slug|replace('-', '_') ]]]",
+    "connectionStringOverride": null,
+    "auth": {
+      "mode": "user-password",
+      "user": "Administrator",
+      "passwordEnv": "ONEC_IB_PASSWORD"
+    }
+  },
+  "capabilities": {
+    "createIb": {
+      "driver": "designer"
+    },
+    "dumpSrc": {
+      "driver": "designer",
+      "outputDir": "./src/cf"
+    },
+    "loadSrc": {
+      "driver": "designer",
+      "sourceDir": "./src/cf"
+    },
+    "updateDb": {
+      "driver": "designer"
+    },
+    "diffSrc": {
+      "command": ["git", "diff", "--", "./src"]
+    },
+    "xunit": {
+      "unsupportedReason": "Windows xUnit contour is not shipped in the template baseline; keep it fail-closed until a repo-owned Windows runner exists."
+    },
+    "bdd": {
+      "unsupportedReason": "Windows BDD contour is project-specific; wire a real command before treating this profile as green."
+    },
+    "smoke": {
+      "unsupportedReason": "Windows smoke contour is project-specific; wire a real command before treating this profile as green."
+    },
+    "publishHttp": {
+      "unsupportedReason": "Windows publish contour is project-specific; wire a real command before treating this profile as green."
+    }
+  }
+}

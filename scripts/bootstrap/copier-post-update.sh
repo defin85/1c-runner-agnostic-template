@@ -29,4 +29,5 @@ bash "$root/scripts/bootstrap/overlay-post-apply.sh" \
   "$project_slug" \
   "$project_description" \
   "$init_beads"
+write_overlay_source "$root" "$template_src_path"
 write_overlay_version "$root" "$(bootstrap_template_ref_or_fallback "$root" "$template_src_path")"

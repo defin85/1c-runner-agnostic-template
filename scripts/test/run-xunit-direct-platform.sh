@@ -6,6 +6,8 @@ PROJECT_ROOT="$(cd -- "$SCRIPT_DIR/../.." && pwd)"
 
 # shellcheck source=../lib/onec.sh
 source "$SCRIPT_DIR/../lib/onec.sh"
+# shellcheck source=../lib/onec-port-lease.sh
+source "$SCRIPT_DIR/../lib/onec-port-lease.sh"
 
 PROFILE_INPUT="${ONEC_PROFILE_PATH:-}"
 RUN_ROOT_INPUT="${ONEC_CAPABILITY_RUN_ROOT:-}"
@@ -17,6 +19,7 @@ TIMEOUT_OVERRIDE="${ONEC_XUNIT_TIMEOUT_SECONDS:-}"
 
 TIMEOUT_SECONDS=900
 TESTCLIENT_PORT=""
+TESTCLIENT_PORT_LEASE_ID=""
 MANAGER_DISPLAY=""
 TESTCLIENT_DISPLAY=""
 TIMED_OUT=false
@@ -259,6 +262,29 @@ pick_unused_tcp_port() {
   fail "failed to pick a free TCP port in range ${min_port}-${max_port}"
 }
 
+acquire_testclient_port() {
+  local range_value="${ONEC_XUNIT_TESTCLIENT_PORT_RANGE:-48100-48199}"
+  local helper_path=""
+  local lease_json=""
+
+  helper_path="$(onec_port_lease_helper_path)"
+  if command -v "$helper_path" >/dev/null 2>&1 || [ -x "$helper_path" ]; then
+    lease_json="$(onec_port_lease_acquire xunit-direct-platform testclient "$range_value" 1 "$$")"
+    TESTCLIENT_PORT_LEASE_ID="$(onec_port_lease_id_from_json <<<"$lease_json")"
+    onec_port_lease_port_from_json <<<"$lease_json"
+    return 0
+  fi
+
+  case "$range_value" in
+    *-*)
+      pick_unused_tcp_port "${range_value%-*}" "${range_value#*-}"
+      ;;
+    *)
+      fail "ONEC_XUNIT_TESTCLIENT_PORT_RANGE must be a range: $range_value"
+      ;;
+  esac
+}
+
 pick_unused_display() {
   local min_display="$1"
   local max_display="$2"
@@ -340,6 +366,8 @@ cleanup() {
   for pid in "${CLEANUP_PIDS[@]}"; do
     stop_pid_if_running "$pid"
   done
+
+  onec_port_lease_release_by_id "$TESTCLIENT_PORT_LEASE_ID" || true
 }
 
 strip_bom_and_newlines() {
@@ -607,7 +635,7 @@ else
   [ -f "$XDD_RUN_TARGET" ] || fail "xdd target not found in copied ADD root: $XDD_RUN_TARGET"
 fi
 
-TESTCLIENT_PORT="$(pick_unused_tcp_port 47000 47999)"
+TESTCLIENT_PORT="$(acquire_testclient_port)"
 MANAGER_DISPLAY="$(pick_unused_display 140 189)"
 TESTCLIENT_DISPLAY="$(pick_unused_display 190 239)"
 [ "$MANAGER_DISPLAY" != "$TESTCLIENT_DISPLAY" ] || fail "manager and testclient displays must differ"

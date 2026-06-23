@@ -14,6 +14,7 @@ DEFAULT_TEMPLATE_GIT_URL = "https://github.com/defin85/1c-runner-agnostic-templa
 MANIFEST_RELPATH = "automation/context/template-managed-paths.txt"
 PRESERVE_RELPATH = "automation/context/template-update-preserve-paths.txt"
 VERSION_RELPATH = ".template-overlay-version"
+SOURCE_RELPATH = ".template-overlay-source"
 
 
 def resolve_project_template(explicit: str = "", cwd: Path | None = None) -> str:
@@ -71,6 +72,10 @@ def overlay_version_file(root: Path) -> Path:
     return root / VERSION_RELPATH
 
 
+def overlay_source_file(root: Path) -> Path:
+    return root / SOURCE_RELPATH
+
+
 def sync_overlay_manifests(
     source_root: Path,
     target_root: Path,
@@ -116,6 +121,22 @@ def bootstrap_template_ref_or_fallback(root: Path, template_source: Path | str) 
 
 def write_overlay_version(root: Path, version: str) -> None:
     write_text(overlay_version_file(root), version + "\n")
+
+
+def write_overlay_source(root: Path, source: str) -> None:
+    write_text(overlay_source_file(root), source + "\n")
+
+
+def template_source_path(root: Path) -> str:
+    try:
+        return template_answers_value(root, "_src_path")
+    except Exception:
+        source_file = overlay_source_file(root)
+        if source_file.is_file():
+            source_lines = source_file.read_text(encoding="utf-8").splitlines()
+            if source_lines:
+                return source_lines[0]
+        raise
 
 
 def _generated_readme(project_name: str, project_description: str) -> str:
@@ -248,6 +269,15 @@ def _runtime_support_matrix_json() -> dict[str, object]:
                 "summary": "No-1C baseline verification for docs and context.",
             },
             {
+                "id": "export-context-check",
+                "layer": "safe-local",
+                "status": "supported",
+                "entrypoint": "make export-context-check",
+                "profileProvenance": "none",
+                "runbookPath": "docs/agent/generated-project-verification.md",
+                "summary": "Read-only freshness check for generated-derived context.",
+            },
+            {
                 "id": "doctor",
                 "layer": "profile-required",
                 "status": "operator-local",
@@ -256,12 +286,147 @@ def _runtime_support_matrix_json() -> dict[str, object]:
                 "runbookPath": "docs/agent/operator-local-runbook.md",
                 "summary": "Runtime readiness check depends on an operator-owned local profile.",
             },
+            {
+                "id": "check-x11-contour",
+                "layer": "profile-required",
+                "status": "operator-local",
+                "entrypoint": "make check-x11-contour",
+                "profileProvenance": "operator-local env/local.json or explicit --profile",
+                "runbookPath": "docs/agent/operator-local-runbook.md",
+                "summary": "X11/xpra readiness diagnostic for GUI-based 1C contours.",
+            },
+            {
+                "id": "load-cfe",
+                "layer": "profile-required",
+                "status": "operator-local",
+                "entrypoint": "make load-cfe",
+                "profileProvenance": "operator-local env/local.json or explicit --profile",
+                "runbookPath": "docs/agent/operator-local-runbook.md",
+                "summary": "Sequential ibcmd load/check/apply for extensions under src/cfe.",
+            },
+            {
+                "id": "configure-cfe-runtime-flags",
+                "layer": "profile-required",
+                "status": "operator-local",
+                "entrypoint": "make configure-cfe-runtime-flags",
+                "profileProvenance": "operator-local env/local.json or explicit --profile",
+                "runbookPath": "docs/agent/operator-local-runbook.md",
+                "summary": "Generic extension safe-mode and unsafe-action-protection configuration.",
+            },
+            {
+                "id": "check-cfe-applicability",
+                "layer": "profile-required",
+                "status": "operator-local",
+                "entrypoint": "make check-cfe-applicability",
+                "profileProvenance": "operator-local env/local.json or explicit --profile",
+                "runbookPath": "docs/agent/operator-local-runbook.md",
+                "summary": "Designer applicability diagnostic for extensions under src/cfe.",
+            },
+            {
+                "id": "check-cfe-config",
+                "layer": "profile-required",
+                "status": "operator-local",
+                "entrypoint": "make check-cfe-config",
+                "profileProvenance": "operator-local env/local.json or explicit --profile",
+                "runbookPath": "docs/agent/operator-local-runbook.md",
+                "summary": "Designer extension configuration diagnostic.",
+            },
+            {
+                "id": "load-diff-src",
+                "layer": "profile-required",
+                "status": "operator-local",
+                "entrypoint": "make load-diff-src",
+                "profileProvenance": "operator-local env/local.json or explicit --profile",
+                "runbookPath": "docs/agent/operator-local-runbook.md",
+                "summary": "Load only current git-backed source diff.",
+            },
+            {
+                "id": "load-task-src",
+                "layer": "profile-required",
+                "status": "operator-local",
+                "entrypoint": "make load-task-src",
+                "profileProvenance": "operator-local env/local.json or explicit --profile",
+                "runbookPath": "docs/agent/operator-local-runbook.md",
+                "summary": "Load committed task scope by Bead, Work-Item, or range.",
+            },
+            {
+                "id": "xunit",
+                "layer": "profile-required",
+                "status": "operator-local",
+                "entrypoint": "make test-xunit",
+                "profileProvenance": "operator-local env/local.json or explicit --profile",
+                "runbookPath": "docs/testing/xunit-direct-platform.md",
+                "summary": "Direct-platform xUnit contour.",
+            },
+            {
+                "id": "yaxunit",
+                "layer": "profile-required",
+                "status": "operator-local",
+                "entrypoint": "make test-yaxunit",
+                "profileProvenance": "operator-local env/local.json or explicit --profile",
+                "runbookPath": "docs/agent/operator-local-runbook.md",
+                "summary": "Generic YAxUnit runner.",
+            },
+            {
+                "id": "yaxunit-warm-rpc",
+                "layer": "profile-required",
+                "status": "operator-local",
+                "entrypoint": "make yaxunit-warm-service",
+                "profileProvenance": "operator-local env/local.json or explicit --profile",
+                "runbookPath": "docs/agent/operator-local-runbook.md",
+                "summary": "Reusable warm RPC service for YAxUnit runs.",
+            },
+            {
+                "id": "web-client-diagnostic",
+                "layer": "profile-required",
+                "status": "operator-local",
+                "entrypoint": "make web-client-diagnostic",
+                "profileProvenance": "operator-local env/local.json or explicit --profile",
+                "runbookPath": "docs/agent/operator-local-runbook.md",
+                "summary": "Opt-in post-failure 1C web-client diagnostic.",
+            },
+            {
+                "id": "golden-baseline",
+                "layer": "project-required",
+                "status": "operator-local",
+                "entrypoint": "make golden-baseline",
+                "profileProvenance": "project-owned tests/golden/run.sh or GOLDEN_BASELINE_COMMAND",
+                "runbookPath": "tests/golden/README.md",
+                "summary": "Mandatory project regression baseline; fails closed until the project wires the golden comparison.",
+            },
+            {
+                "id": "bdd",
+                "layer": "profile-required",
+                "status": "operator-local",
+                "entrypoint": "make test-bdd",
+                "profileProvenance": "operator-local env/local.json or explicit --profile",
+                "runbookPath": "docs/agent/operator-local-runbook.md",
+                "summary": "BDD contour for projects that provide local runtime assets.",
+            },
+            {
+                "id": "smoke",
+                "layer": "profile-required",
+                "status": "operator-local",
+                "entrypoint": "make smoke",
+                "profileProvenance": "operator-local env/local.json or explicit --profile",
+                "runbookPath": "docs/agent/operator-local-runbook.md",
+                "summary": "Project smoke contour.",
+            },
+            {
+                "id": "publish-http",
+                "layer": "profile-required",
+                "status": "operator-local",
+                "entrypoint": "./scripts/platform/publish-http.sh --profile env/local.json",
+                "profileProvenance": "operator-local env/local.json or explicit --profile",
+                "runbookPath": "docs/agent/operator-local-runbook.md",
+                "summary": "HTTP publication contour.",
+            },
         ],
     }
 
 
 def _runtime_support_matrix_md() -> str:
-    return "# Runtime Support Matrix\n\n| Contour | Status | Profile provenance | Canonical entrypoint | Runbook |\n| --- | --- | --- | --- | --- |\n| `codex-onboard` | `supported` | `none` | `make codex-onboard` / `./make.ps1 codex-onboard` | `docs/agent/generated-project-index.md` |\n| `agent-verify` | `supported` | `none` | `make agent-verify` / `./make.ps1 agent-verify` | `docs/agent/generated-project-verification.md` |\n| `doctor` | `operator-local` | `env/windows-local.json` | `./scripts/diag/doctor.ps1 --profile env/windows-local.json --run-root ./.artifacts/doctor-run` | `docs/agent/operator-local-runbook.md` |\n"
+    return "# Runtime Support Matrix\n\n| Contour | Status | Profile provenance | Canonical entrypoint | Runbook |\n| --- | --- | --- | --- | --- |\n| `codex-onboard` | `supported` | `none` | `make codex-onboard` / `./make.ps1 codex-onboard` | `docs/agent/generated-project-index.md` |\n| `agent-verify` | `supported` | `none` | `make agent-verify` / `./make.ps1 agent-verify` | `docs/agent/generated-project-verification.md` |\n| `export-context-check` | `supported` | `none` | `make export-context-check` | `docs/agent/generated-project-verification.md` |\n| `doctor` | `operator-local` | `env/windows-local.json` | `./scripts/diag/doctor.ps1 --profile env/windows-local.json --run-root ./.artifacts/doctor-run` | `docs/agent/operator-local-runbook.md` |\n| `check-x11-contour` | `operator-local` | `env/local.json` | `make check-x11-contour` | `docs/agent/operator-local-runbook.md` |\n| `load-cfe` | `operator-local` | `env/local.json` | `make load-cfe` | `docs/agent/operator-local-runbook.md` |\n| `configure-cfe-runtime-flags` | `operator-local` | `env/local.json` | `make configure-cfe-runtime-flags` | `docs/agent/operator-local-runbook.md` |\n| `check-cfe-applicability` | `operator-local` | `env/local.json` | `make check-cfe-applicability` | `docs/agent/operator-local-runbook.md` |\n| `check-cfe-config` | `operator-local` | `env/local.json` | `make check-cfe-config` | `docs/agent/operator-local-runbook.md` |\n| `load-diff-src` | `operator-local` | `env/local.json` | `make load-diff-src` | `docs/agent/operator-local-runbook.md` |\n| `load-task-src` | `operator-local` | `env/local.json` | `make load-task-src` | `docs/agent/operator-local-runbook.md` |\n| `xunit` | `operator-local` | `env/local.json` | `make test-xunit` | `docs/testing/xunit-direct-platform.md` |\n| `yaxunit` | `operator-local` | `env/local.json` | `make test-yaxunit` | `docs/agent/operator-local-runbook.md` |\n| `yaxunit-warm-rpc` | `operator-local` | `env/local.json` | `make yaxunit-warm-service` | `docs/agent/operator-local-runbook.md` |\n| `web-client-diagnostic` | `operator-local` | `env/local.json` | `make web-client-diagnostic` | `docs/agent/operator-local-runbook.md` |\n| `golden-baseline` | `operator-local` | `tests/golden/run.sh` or `GOLDEN_BASELINE_COMMAND` | `make golden-baseline` | `tests/golden/README.md` |\n| `bdd` | `operator-local` | `env/local.json` | `make test-bdd` | `docs/agent/operator-local-runbook.md` |\n| `smoke` | `operator-local` | `env/local.json` | `make smoke` | `docs/agent/operator-local-runbook.md` |\n| `publish-http` | `operator-local` | `env/local.json` | `./scripts/platform/publish-http.sh --profile env/local.json` | `docs/agent/operator-local-runbook.md` |\n"
 
 
 def seed_generated_project_surface(root: Path, project_name: str, project_slug: str, project_description: str) -> None:
@@ -363,6 +528,7 @@ def bootstrap_post_copy(
         overlay_manifest_file(Path(template_src_path)),
     )
     write_overlay_version(repo_root, bootstrap_template_ref_or_fallback(repo_root, Path(template_src_path)))
+    write_overlay_source(repo_root, template_src_path)
     export_context("--write", repo_root)
     return 0
 
@@ -394,6 +560,7 @@ def bootstrap_post_update(
     seed_generated_project_surface(repo_root, project_name, project_slug, project_description)
     append_agents_overlay(repo_root / "AGENTS.md")
     write_overlay_version(repo_root, bootstrap_template_ref_or_fallback(repo_root, Path(template_src_path)))
+    write_overlay_source(repo_root, template_src_path)
     export_context("--write", repo_root)
     return 0
 
@@ -417,7 +584,7 @@ def resolve_target_overlay_ref(source: str, requested_ref: str = "") -> str:
 
 def check_update(requested_ref: str = "", *, root: Path | None = None) -> int:
     repo_root = root or project_root()
-    source_path = template_answers_value(repo_root, "_src_path")
+    source_path = template_source_path(repo_root)
     current_version = overlay_version_file(repo_root).read_text(encoding="utf-8").strip() if overlay_version_file(repo_root).is_file() else template_answers_value(repo_root, "_commit", "unknown")
     target_ref = resolve_target_overlay_ref(source_path, requested_ref)
     print(f"Current overlay version: {current_version}")
@@ -432,7 +599,7 @@ def update_template(requested_ref: str = "", pretend: bool = False, *, root: Pat
         die("copier update requires a git repository")
     if run_git(["status", "--porcelain"], cwd=repo_root, check=True).stdout.strip():
         die("git working tree is dirty; commit or stash changes before overlay update")
-    source_path = template_answers_value(repo_root, "_src_path")
+    source_path = template_source_path(repo_root)
     current_version = overlay_version_file(repo_root).read_text(encoding="utf-8").strip() if overlay_version_file(repo_root).is_file() else template_answers_value(repo_root, "_commit", "unknown")
     target_ref = resolve_target_overlay_ref(source_path, requested_ref)
     if current_version == target_ref:
@@ -467,6 +634,7 @@ def update_template(requested_ref: str = "", pretend: bool = False, *, root: Pat
         )
         append_agents_overlay(repo_root / "AGENTS.md")
         write_overlay_version(repo_root, target_ref)
+        write_overlay_source(repo_root, source_path)
         export_context("--write", repo_root)
     return 0
 

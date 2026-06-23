@@ -10,6 +10,84 @@ source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/capability.sh"
 # shellcheck source=./ibcmd.sh
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/ibcmd.sh"
 
+onec_normalize_locale_name() {
+  printf '%s\n' "$1" | tr '[:upper:]' '[:lower:]' | sed 's/utf-8/utf8/g'
+}
+
+onec_locale_available() {
+  local requested=""
+  local locale_name=""
+
+  requested="$(onec_normalize_locale_name "$1")"
+  while IFS= read -r locale_name; do
+    [ "$(onec_normalize_locale_name "$locale_name")" = "$requested" ] && return 0
+  done < <(locale -a 2>/dev/null)
+
+  return 1
+}
+
+onec_require_locale() {
+  local locale_name="$1"
+
+  if ! onec_locale_available "$locale_name"; then
+    die "required 1C locale is not installed: $locale_name"
+  fi
+}
+
+onec_vanessa_language_code() {
+  printf '%s\n' "${ONEC_VANESSA_LANGUAGE_CODE:-ru}"
+}
+
+onec_vanessa_os_locale() {
+  printf '%s\n' "${ONEC_VANESSA_OS_LOCALE:-ru_RU.UTF-8}"
+}
+
+onec_vanessa_language_chain() {
+  printf '%s\n' "${ONEC_VANESSA_LANGUAGE:-ru_RU:ru}"
+}
+
+onec_vanessa_manager_locale_arg() {
+  printf '/L%s\n' "$(onec_vanessa_language_code)"
+}
+
+onec_vanessa_testclient_locale_args() {
+  local language_code=""
+
+  language_code="$(onec_vanessa_language_code)"
+  printf '/L%s /VL%s\n' "$language_code" "$language_code"
+}
+
+onec_append_vanessa_locale_env() {
+  local array_name="$1"
+  local locale_name=""
+  local language_chain=""
+  local -n out_ref="$array_name"
+
+  locale_name="$(onec_vanessa_os_locale)"
+  language_chain="$(onec_vanessa_language_chain)"
+  onec_require_locale "$locale_name"
+
+  out_ref+=(
+    "ONEC_DIRECT_PLATFORM_LOCALE=$locale_name"
+    "ONEC_DIRECT_PLATFORM_LANGUAGE=$language_chain"
+    "LANG=$locale_name"
+    "LANGUAGE=$language_chain"
+    "LC_ALL=$locale_name"
+    "LC_CTYPE=$locale_name"
+    "LC_NUMERIC=$locale_name"
+    "LC_TIME=$locale_name"
+    "LC_COLLATE=$locale_name"
+    "LC_MONETARY=$locale_name"
+    "LC_MESSAGES=$locale_name"
+    "LC_PAPER=$locale_name"
+    "LC_NAME=$locale_name"
+    "LC_ADDRESS=$locale_name"
+    "LC_TELEPHONE=$locale_name"
+    "LC_MEASUREMENT=$locale_name"
+    "LC_IDENTIFICATION=$locale_name"
+  )
+}
+
 capability_profile_key() {
   case "$1" in
     create-ib) printf 'createIb\n' ;;
@@ -123,6 +201,26 @@ direct_platform_xvfb_enabled() {
   [ "$enabled_value" = "true" ]
 }
 
+direct_platform_xpra_enabled() {
+  local enabled_type=""
+  local enabled_value=""
+
+  enabled_type="$(profile_string '(.platform.xpra.enabled // null) | if . == null then "null" else type end')"
+  case "$enabled_type" in
+    null)
+      return 1
+      ;;
+    boolean)
+      ;;
+    *)
+      die "runtime profile field must be a boolean: .platform.xpra.enabled"
+      ;;
+  esac
+
+  enabled_value="$(profile_string '.platform.xpra.enabled // false')"
+  [ "$enabled_value" = "true" ]
+}
+
 direct_platform_ld_preload_enabled() {
   local enabled_type=""
   local enabled_value=""
@@ -159,6 +257,50 @@ load_direct_platform_xvfb_server_args() {
   fi
 
   profile_array_to_named_array '.platform.xvfb.serverArgs' "$array_name"
+}
+
+load_direct_platform_xpra_xvfb_args() {
+  local array_name="$1"
+  local xvfb_args_type=""
+  local -n out_ref="$array_name"
+
+  out_ref=()
+  if ! direct_platform_xpra_enabled; then
+    return 0
+  fi
+
+  xvfb_args_type="$(profile_string '(.platform.xpra.xvfbArgs // null) | if . == null then "null" else type end')"
+  if [ "$xvfb_args_type" != "array" ]; then
+    die "runtime profile field must be an array: .platform.xpra.xvfbArgs"
+  fi
+
+  profile_array_to_named_array '.platform.xpra.xvfbArgs' "$array_name"
+}
+
+load_direct_platform_xpra_start_child() {
+  local start_child_type=""
+  local start_child=""
+
+  if ! direct_platform_xpra_enabled; then
+    printf '\n'
+    return 0
+  fi
+
+  start_child_type="$(profile_string '(.platform.xpra.startChild // null) | if . == null then "null" else type end')"
+  case "$start_child_type" in
+    null)
+      start_child="openbox"
+      ;;
+    string)
+      start_child="$(profile_string '.platform.xpra.startChild')"
+      ;;
+    *)
+      die "runtime profile field must be a string: .platform.xpra.startChild"
+      ;;
+  esac
+
+  [ -n "$start_child" ] || die "runtime profile field must not be empty: .platform.xpra.startChild"
+  printf '%s\n' "$start_child"
 }
 
 load_direct_platform_ld_preload_libraries() {
@@ -241,6 +383,25 @@ direct_platform_xvfb_wrapper_selected_for_command() {
     return 1
   fi
 
+  if direct_platform_xpra_enabled; then
+    return 1
+  fi
+
+  command_targets_local_platform_gui "$command_path"
+}
+
+direct_platform_xpra_wrapper_selected_for_command() {
+  local adapter="$1"
+  local command_path="${2:-}"
+
+  if [ "$adapter" != "direct-platform" ]; then
+    return 1
+  fi
+
+  if ! direct_platform_xpra_enabled; then
+    return 1
+  fi
+
   command_targets_local_platform_gui "$command_path"
 }
 
@@ -262,6 +423,10 @@ direct_platform_ld_preload_selected_for_command() {
 direct_platform_adapter_contour_selected_for_command() {
   local adapter="$1"
   local command_path="${2:-}"
+
+  if direct_platform_xpra_wrapper_selected_for_command "$adapter" "$command_path"; then
+    return 0
+  fi
 
   if direct_platform_xvfb_wrapper_selected_for_command "$adapter" "$command_path"; then
     return 0
@@ -290,6 +455,50 @@ direct_platform_xvfb_failure_reason_for_command_path() {
 
   if ! command -v xauth >/dev/null 2>&1; then
     printf 'missing xauth for direct-platform xvfb wrapper\n'
+    return 0
+  fi
+
+  printf '\n'
+}
+
+direct_platform_xpra_failure_reason_for_command_path() {
+  local adapter="$1"
+  local command_path="${2:-}"
+  local start_child=""
+  local start_child_command=""
+  local -a xvfb_args=()
+
+  if ! direct_platform_xpra_wrapper_selected_for_command "$adapter" "$command_path"; then
+    printf '\n'
+    return 0
+  fi
+
+  if ! command -v xpra >/dev/null 2>&1; then
+    printf 'missing xpra for direct-platform xpra wrapper\n'
+    return 0
+  fi
+
+  if ! command -v Xvfb >/dev/null 2>&1; then
+    printf 'missing Xvfb for direct-platform xpra wrapper\n'
+    return 0
+  fi
+
+  if ! command -v xdpyinfo >/dev/null 2>&1; then
+    printf 'missing xdpyinfo for direct-platform xpra wrapper\n'
+    return 0
+  fi
+
+  load_direct_platform_xpra_xvfb_args xvfb_args
+  set -- "${xvfb_args[@]}"
+  if [ "$#" -eq 0 ]; then
+    printf 'platform.xpra.xvfbArgs must not be empty for direct-platform xpra contour\n'
+    return 0
+  fi
+
+  start_child="$(load_direct_platform_xpra_start_child)"
+  start_child_command="${start_child%% *}"
+  if [ -n "$start_child_command" ] && ! command -v "$start_child_command" >/dev/null 2>&1; then
+    printf 'missing %s for direct-platform xpra wrapper\n' "$start_child_command"
     return 0
   fi
 
@@ -338,6 +547,12 @@ direct_platform_adapter_failure_reason_for_command_path() {
   local command_path="${2:-}"
   local reason=""
 
+  reason="$(direct_platform_xpra_failure_reason_for_command_path "$adapter" "$command_path")"
+  if [ -n "$reason" ]; then
+    printf '%s\n' "$reason"
+    return 0
+  fi
+
   reason="$(direct_platform_xvfb_failure_reason_for_command_path "$adapter" "$command_path")"
   if [ -n "$reason" ]; then
     printf '%s\n' "$reason"
@@ -350,9 +565,13 @@ direct_platform_adapter_failure_reason_for_command_path() {
 
 build_direct_platform_adapter_context_json() {
   local -a server_args=()
+  local -a xpra_xvfb_args=()
   local -a libraries=()
   local server_args_json="[]"
+  local xpra_xvfb_args_json="[]"
+  local xpra_start_child=""
   local libraries_json="[]"
+  local has_xpra=false
   local has_xvfb=false
   local has_ld_preload=false
 
@@ -361,7 +580,12 @@ build_direct_platform_adapter_context_json() {
     return 0
   fi
 
-  if direct_platform_xvfb_enabled; then
+  if direct_platform_xpra_enabled; then
+    has_xpra=true
+    load_direct_platform_xpra_xvfb_args xpra_xvfb_args
+    xpra_xvfb_args_json="$(build_json_array_from_named_array xpra_xvfb_args)"
+    xpra_start_child="$(load_direct_platform_xpra_start_child)"
+  elif direct_platform_xvfb_enabled; then
     has_xvfb=true
     load_direct_platform_xvfb_server_args server_args
     server_args_json="$(build_json_array_from_named_array server_args)"
@@ -373,19 +597,30 @@ build_direct_platform_adapter_context_json() {
     libraries_json="$(build_json_array_from_named_array libraries)"
   fi
 
-  if [ "$has_xvfb" = false ] && [ "$has_ld_preload" = false ]; then
+  if [ "$has_xpra" = false ] && [ "$has_xvfb" = false ] && [ "$has_ld_preload" = false ]; then
     printf '{}\n'
     return 0
   fi
 
   jq -cn \
+    --argjson has_xpra "$has_xpra" \
     --argjson has_xvfb "$has_xvfb" \
     --argjson has_ld_preload "$has_ld_preload" \
+    --argjson xpra_xvfb_args "$xpra_xvfb_args_json" \
+    --arg xpra_start_child "$xpra_start_child" \
     --argjson server_args "$server_args_json" \
     --argjson libraries "$libraries_json" \
     '{
       adapter_context:
-        ((if $has_xvfb then {
+        ((if $has_xpra then {
+          wrapper: "xpra",
+          xpra: {
+            enabled: true,
+            start_child: $xpra_start_child,
+            xvfb_args: $xpra_xvfb_args
+          }
+        } else {} end)
+        + (if $has_xvfb then {
           wrapper: "xvfb-run",
           xvfb: {
             enabled: true,
@@ -436,7 +671,7 @@ build_doctor_context_json() {
   local adapter_json="{}"
 
   base_json="$(build_redacted_context_json)"
-  if [ "$adapter" = "direct-platform" ] && { direct_platform_xvfb_enabled || direct_platform_ld_preload_enabled; }; then
+  if [ "$adapter" = "direct-platform" ] && { direct_platform_xpra_enabled || direct_platform_xvfb_enabled || direct_platform_ld_preload_enabled; }; then
     adapter_json="$(build_direct_platform_adapter_context_json)"
   fi
 
@@ -463,7 +698,17 @@ doctor_requires_direct_platform_xvfb_tools() {
   local adapter="$1"
 
   [ "$adapter" = "direct-platform" ] || return 1
+  if direct_platform_xpra_enabled; then
+    return 1
+  fi
   direct_platform_xvfb_enabled
+}
+
+doctor_requires_direct_platform_xpra_tools() {
+  local adapter="$1"
+
+  [ "$adapter" = "direct-platform" ] || return 1
+  direct_platform_xpra_enabled
 }
 
 validate_capability_command_driver_contract() {
@@ -504,6 +749,7 @@ validate_capability_command_driver_contract() {
 resolve_capability_driver() {
   local capability_id="$1"
   local driver=""
+  local adapter=""
 
   validate_capability_command_driver_contract "$capability_id"
   if ! capability_supports_driver_selection "$capability_id"; then
@@ -513,7 +759,12 @@ resolve_capability_driver() {
 
   driver="$(profile_string "$(capability_driver_expr "$capability_id") // empty")"
   if [ -z "$driver" ]; then
-    printf 'designer\n'
+    adapter="$(profile_string '.runnerAdapter // empty')"
+    if [ "$adapter" = "direct-platform" ]; then
+      printf 'ibcmd\n'
+    else
+      printf 'designer\n'
+    fi
     return
   fi
 
@@ -688,8 +939,8 @@ resolve_secret_value() {
     return
   fi
 
-  value="${!env_name:-}"
-  if [ -n "$value" ]; then
+  if [ "${!env_name+x}" = "x" ]; then
+    value="${!env_name}"
     printf '%s\n' "$value"
     return
   fi
@@ -763,7 +1014,10 @@ append_auth_args() {
       user="$(require_profile_string '.infobase.auth.user // empty' 'infobase.auth.user')"
       password_env="$(require_profile_string '.infobase.auth.passwordEnv // empty' 'infobase.auth.passwordEnv')"
       password_value="$(resolve_secret_value "$password_env")"
-      args_ref+=("/WA-" "/N" "$user" "/P" "$password_value")
+      args_ref+=("/WA-" "/N" "$user")
+      if [ -n "$password_value" ]; then
+        args_ref+=("/P" "$password_value")
+      fi
       ;;
     *)
       die "unsupported infobase.auth.mode=$auth_mode in $RUNTIME_PROFILE_PATH"
@@ -809,8 +1063,11 @@ build_create_infobase_connection_string() {
         password_env="$(require_profile_string '.infobase.auth.passwordEnv // empty' 'infobase.auth.passwordEnv')"
         password_value="$(resolve_secret_value "$password_env")"
         escaped_user="$(escape_connection_string_value "$user")"
-        escaped_password="$(escape_connection_string_value "$password_value")"
-        printf ';Usr="%s";Pwd="%s"' "$escaped_user" "$escaped_password"
+        printf ';Usr="%s"' "$escaped_user"
+        if [ -n "$password_value" ]; then
+          escaped_password="$(escape_connection_string_value "$password_value")"
+          printf ';Pwd="%s"' "$escaped_password"
+        fi
       fi
 
       printf '\n'
@@ -1128,6 +1385,14 @@ collect_direct_platform_xvfb_required_profile_fields() {
   append_unique_field "$array_name" platform.xvfb.serverArgs
 }
 
+collect_direct_platform_xpra_required_profile_fields() {
+  local array_name="$1"
+
+  append_unique_field "$array_name" platform.xpra.enabled
+  append_unique_field "$array_name" platform.xpra.xvfbArgs
+  append_unique_field "$array_name" platform.xpra.startChild
+}
+
 collect_direct_platform_ld_preload_required_profile_fields() {
   local array_name="$1"
 
@@ -1168,7 +1433,9 @@ collect_required_profile_fields() {
     esac
   done
 
-  if [ "$adapter" = "direct-platform" ] && direct_platform_xvfb_enabled; then
+  if [ "$adapter" = "direct-platform" ] && direct_platform_xpra_enabled; then
+    collect_direct_platform_xpra_required_profile_fields out_ref
+  elif [ "$adapter" = "direct-platform" ] && direct_platform_xvfb_enabled; then
     collect_direct_platform_xvfb_required_profile_fields out_ref
   fi
 
@@ -1401,6 +1668,9 @@ doctor_has_required_capability() {
 prepare_adapter_wrapper_env() {
   local adapter="$1"
   local array_name="$2"
+  local xpra_xvfb_args_string=""
+  local xpra_start_child=""
+  local -a xpra_xvfb_args=()
   local server_args_string=""
   local -a server_args=()
   local ld_preload_string=""
@@ -1412,7 +1682,14 @@ prepare_adapter_wrapper_env() {
     return 0
   fi
 
-  if direct_platform_xvfb_enabled; then
+  if direct_platform_xpra_enabled; then
+    load_direct_platform_xpra_xvfb_args xpra_xvfb_args
+    xpra_xvfb_args_string="$(join_named_array_with_spaces xpra_xvfb_args)"
+    xpra_start_child="$(load_direct_platform_xpra_start_child)"
+    out_ref+=("ONEC_DIRECT_PLATFORM_XPRA_ENABLED=1")
+    out_ref+=("ONEC_DIRECT_PLATFORM_XPRA_XVFB_ARGS=$xpra_xvfb_args_string")
+    out_ref+=("ONEC_DIRECT_PLATFORM_XPRA_START_CHILD=$xpra_start_child")
+  elif direct_platform_xvfb_enabled; then
     load_direct_platform_xvfb_server_args server_args
     server_args_string="$(join_named_array_with_spaces server_args)"
     out_ref+=("ONEC_DIRECT_PLATFORM_XVFB_ENABLED=1")

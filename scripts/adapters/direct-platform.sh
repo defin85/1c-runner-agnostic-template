@@ -10,6 +10,32 @@ if [ "$#" -eq 0 ]; then
   exit 1
 fi
 
+apply_direct_platform_locale() {
+  local locale_name="${ONEC_DIRECT_PLATFORM_LOCALE:-}"
+  local language_chain="${ONEC_DIRECT_PLATFORM_LANGUAGE:-}"
+
+  [ -n "$locale_name" ] || return 0
+
+  export LANG="$locale_name"
+  export LC_ALL="$locale_name"
+  export LC_CTYPE="$locale_name"
+  export LC_NUMERIC="$locale_name"
+  export LC_TIME="$locale_name"
+  export LC_COLLATE="$locale_name"
+  export LC_MONETARY="$locale_name"
+  export LC_MESSAGES="$locale_name"
+  export LC_PAPER="$locale_name"
+  export LC_NAME="$locale_name"
+  export LC_ADDRESS="$locale_name"
+  export LC_TELEPHONE="$locale_name"
+  export LC_MEASUREMENT="$locale_name"
+  export LC_IDENTIFICATION="$locale_name"
+
+  if [ -n "$language_chain" ]; then
+    export LANGUAGE="$language_chain"
+  fi
+}
+
 build_ld_preload_value() {
   local library_path=""
   local ld_preload_value=""
@@ -55,10 +81,130 @@ build_ld_preload_value() {
   printf '%s\n' "$ld_preload_value"
 }
 
+pick_unused_xpra_display_number() {
+  local min_display="${ONEC_DIRECT_PLATFORM_XPRA_DISPLAY_MIN:-120}"
+  local max_display="${ONEC_DIRECT_PLATFORM_XPRA_DISPLAY_MAX:-179}"
+  local display_number=""
+
+  case "$min_display:$max_display" in
+    *[!0-9:]*|:*)
+      printf 'invalid xpra display range: %s..%s\n' "$min_display" "$max_display" >&2
+      exit 1
+      ;;
+  esac
+  if [ "$min_display" -gt "$max_display" ]; then
+    printf 'invalid xpra display range: %s..%s\n' "$min_display" "$max_display" >&2
+    exit 1
+  fi
+
+  for display_number in $(seq "$min_display" "$max_display"); do
+    if [ -S "/tmp/.X11-unix/X${display_number}" ]; then
+      continue
+    fi
+    if DISPLAY=":${display_number}" xdpyinfo >/dev/null 2>&1; then
+      continue
+    fi
+    printf '%s\n' "$display_number"
+    return 0
+  done
+
+  printf 'failed to pick a free xpra display in range %s..%s\n' "$min_display" "$max_display" >&2
+  exit 1
+}
+
+run_xpra_wrapped_command() {
+  local display_number=""
+  local display_value=""
+  local run_root="${ONEC_CAPABILITY_RUN_ROOT:-${TMPDIR:-/tmp}}"
+  local xpra_root=""
+  local xpra_log=""
+  local xpra_xvfb_args="${ONEC_DIRECT_PLATFORM_XPRA_XVFB_ARGS:-}"
+  local xpra_start_child="${ONEC_DIRECT_PLATFORM_XPRA_START_CHILD:-openbox}"
+  local xauth_file=""
+  local exit_code=0
+  local waited=0
+
+  require_command xpra
+  require_command Xvfb
+  require_command xdpyinfo
+  if [ -n "$xpra_start_child" ]; then
+    require_command "${xpra_start_child%% *}"
+  fi
+  if [ -z "$xpra_xvfb_args" ]; then
+    printf 'missing ONEC_DIRECT_PLATFORM_XPRA_XVFB_ARGS for direct-platform xpra contour\n' >&2
+    exit 1
+  fi
+
+  mkdir -p "$run_root"
+  xpra_root="$run_root/xpra"
+  mkdir -p "$xpra_root"
+  xauth_file="$run_root/home/.Xauthority"
+  mkdir -p "$(dirname -- "$xauth_file")"
+  xpra_xvfb_args="${xpra_xvfb_args//\$\{XAUTHORITY\}/$xauth_file}"
+  xpra_xvfb_args="${xpra_xvfb_args//\$XAUTHORITY/$xauth_file}"
+  display_number="$(pick_unused_xpra_display_number)"
+  display_value=":${display_number}"
+  xpra_log="$xpra_root/xpra-${display_number}.log"
+  trap 'xpra stop "$display_value" >/dev/null 2>&1 || true' EXIT INT TERM
+
+  XAUTHORITY="$xauth_file" xpra start-desktop "$display_value" \
+    --daemon=yes \
+    --attach=no \
+    --mdns=no \
+    --systemd-run=no \
+    --exit-with-children=no \
+    --html=off \
+    --xvfb="$xpra_xvfb_args" \
+    --log-file="$xpra_log" \
+    ${xpra_start_child:+--start-child="$xpra_start_child"} >&2
+
+  while [ "$waited" -lt 100 ]; do
+    if DISPLAY="$display_value" XAUTHORITY="$xauth_file" xdpyinfo >/dev/null 2>&1; then
+      break
+    fi
+    sleep 0.1
+    waited=$((waited + 1))
+  done
+
+  if ! DISPLAY="$display_value" XAUTHORITY="$xauth_file" xdpyinfo >/dev/null 2>&1; then
+    printf 'xpra display did not become ready: DISPLAY=%s log=%s\n' "$display_value" "$xpra_log" >&2
+    if [ -f "$xpra_log" ]; then
+      tail -80 "$xpra_log" >&2 || true
+    fi
+    xpra stop "$display_value" >/dev/null 2>&1 || true
+    exit 1
+  fi
+
+  printf 'direct-platform xpra display=%s log=%s\n' "$display_value" "$xpra_log" >&2
+
+  set +e
+  if [ -n "$ld_preload_value" ]; then
+    DISPLAY="$display_value" XAUTHORITY="$xauth_file" env "LD_PRELOAD=$ld_preload_value" "$@"
+  else
+    DISPLAY="$display_value" XAUTHORITY="$xauth_file" "$@"
+  fi
+  exit_code=$?
+  set -e
+
+  xpra stop "$display_value" >/dev/null 2>&1 || true
+  trap - EXIT INT TERM
+  return "$exit_code"
+}
+
 command_name="${1##*/}"
+apply_direct_platform_locale
 ld_preload_value=""
 if [ "$command_name" = "1cv8" ] || [ "$command_name" = "1cv8c" ]; then
   ld_preload_value="$(build_ld_preload_value)"
+fi
+
+if [ "${ONEC_DIRECT_PLATFORM_XPRA_ENABLED:-0}" = "1" ]; then
+  case "$command_name" in
+    1cv8|1cv8c)
+      run_xpra_wrapped_command "$@"
+      exit "$?"
+      ;;
+  esac
 fi
 
 if [ "${ONEC_DIRECT_PLATFORM_XVFB_ENABLED:-0}" = "1" ]; then

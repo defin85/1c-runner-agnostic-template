@@ -508,7 +508,7 @@ write_operator_local_runbook_starter() {
 
 ## Project Extensions
 
-- Если проект wires дополнительные operator-local `smoke`, `bdd` или другие contour-ы сверх template-shipped `xunit`, добавляйте сюда отдельную строку и синхронно обновляйте `automation/context/runtime-support-matrix.md`, `.json` и `docs/agent/runtime-quickstart.md`.
+- Если проект wires дополнительные operator-local `smoke`, `bdd` или другие contour-ы сверх template-shipped `xunit` и обязательного `golden-baseline`, добавляйте сюда отдельную строку и синхронно обновляйте `automation/context/runtime-support-matrix.md`, `.json` и `docs/agent/runtime-quickstart.md`.
 - Если contour перестал быть operator-local и стал checked-in baseline-ready, переносите truth обратно в runtime support matrix и baseline docs.
 
 ## Related Truth
@@ -561,9 +561,18 @@ EOF
 | `agent-verify` | `supported` | `make agent-verify` | `shell-only` | `docs/agent/generated-project-verification.md` |
 | `export-context-check` | `supported` | `make export-context-check` | `shell-only` | `docs/agent/generated-project-verification.md` |
 | `doctor` | `operator-local` | `./scripts/diag/doctor.sh --profile env/local.json --run-root /tmp/doctor-run` | `1C runtime + operator-owned profile` | `docs/agent/operator-local-runbook.md` |
+| `check-x11-contour` | `operator-local` | `./scripts/diag/check-x11-contour.sh --profile env/local.json --run-root /tmp/check-x11-contour-run` | `GUI/X11 runtime + operator-owned profile` | `docs/agent/operator-local-runbook.md` |
+| `load-cfe` | `operator-local` | `./scripts/platform/load-cfe.sh --profile env/local.json --run-root /tmp/load-cfe-run` | `ibcmd-ready operator-owned profile + src/cfe` | `docs/agent/operator-local-runbook.md` |
+| `configure-cfe-runtime-flags` | `operator-local` | `./scripts/platform/configure-cfe-runtime-flags.sh --profile env/local.json --run-root /tmp/configure-cfe-runtime-flags-run` | `ibcmd-ready operator-owned profile + src/cfe` | `docs/agent/operator-local-runbook.md` |
+| `check-cfe-applicability` | `operator-local` | `./scripts/platform/check-cfe-applicability.sh --profile env/local.json --run-root /tmp/check-cfe-applicability-run` | `Designer-ready operator-owned profile + src/cfe` | `docs/agent/operator-local-runbook.md` |
+| `check-cfe-config` | `operator-local` | `./scripts/platform/check-cfe-config.sh --profile env/local.json --run-root /tmp/check-cfe-config-run` | `Designer-ready operator-owned profile + src/cfe` | `docs/agent/operator-local-runbook.md` |
 | `load-diff-src` | `operator-local` | `./scripts/platform/load-diff-src.sh --profile env/local.json --run-root /tmp/load-diff-src-run` | `ibcmd-ready operator-owned profile + prepared infobase + git worktree` | `docs/agent/operator-local-runbook.md` |
 | `load-task-src` | `operator-local` | `./scripts/platform/load-task-src.sh --profile env/local.json --bead task.1 --run-root /tmp/load-task-src-run` | `ibcmd-ready operator-owned profile + prepared infobase + task markers or explicit revset` | `docs/agent/operator-local-runbook.md` |
 | `xunit` | `operator-local` | `./scripts/test/run-xunit.sh --profile env/local.json --run-root /tmp/xunit-run` | `direct-platform profile with wired addRoot + local 1C runtime` | `docs/testing/xunit-direct-platform.md` |
+| `yaxunit` | `operator-local` | `./scripts/test/run-yaxunit.sh --profile env/local.json --run-root /tmp/yaxunit-run` | `YAxUnit extensions + operator-owned profile` | `docs/agent/operator-local-runbook.md` |
+| `yaxunit-warm-rpc` | `operator-local` | `./scripts/test/run-yaxunit-warm-service.sh up --profile env/local.json --run-root /tmp/yaxunit-warm-rpc-up-run` | `YAxUnit extensions + operator-owned profile` | `docs/agent/operator-local-runbook.md` |
+| `web-client-diagnostic` | `operator-local` | `./scripts/test/run-web-client-diagnostic.sh --profile env/local.json --run-root /tmp/web-client-diagnostic-run` | `published web client + diagnostic profile capability` | `docs/agent/operator-local-runbook.md` |
+| `golden-baseline` | `operator-local` | `./scripts/test/run-golden-baseline.sh --run-root /tmp/golden-baseline-run` | `project-owned tests/golden/run.sh or GOLDEN_BASELINE_COMMAND` | `tests/golden/README.md` |
 | `bdd` | `unsupported` | `./scripts/test/run-bdd.sh --profile env/local.json --run-root /tmp/bdd-run` | `future project-owned contour or sanctioned preset` | `docs/agent/generated-project-verification.md` |
 | `smoke` | `unsupported` | `./scripts/test/run-smoke.sh --profile env/local.json --run-root /tmp/smoke-run` | `future project-owned contour or sanctioned preset` | `docs/agent/generated-project-verification.md` |
 | `publish-http` | `unsupported` | `./scripts/platform/publish-http.sh --profile env/local.json --run-root /tmp/publish-http-run` | `future project-owned contour or sanctioned preset` | `docs/agent/generated-project-verification.md` |
@@ -732,7 +741,7 @@ write_runtime_profile_policy_starter() {
   "notes": [
     "Declare only checked-in team-shared presets here.",
     "Do not list local-private profiles from env/.local/ or ignored local.json/wsl.json files.",
-    "Sanctioned checked-in profiles must not keep smoke/xunit/bdd as success-on-placeholder contours."
+    "Sanctioned checked-in profiles must not keep smoke/xunit/bdd/golden-baseline as success-on-placeholder contours."
   ]
 }
 EOF
@@ -790,6 +799,51 @@ write_runtime_support_matrix_json_starter() {
       "summary": "Runtime readiness check depends on an operator-owned local profile."
     },
     {
+      "id": "check-x11-contour",
+      "layer": "profile-required",
+      "status": "operator-local",
+      "entrypoint": "./scripts/diag/check-x11-contour.sh --profile env/local.json --run-root /tmp/check-x11-contour-run",
+      "profileProvenance": "operator-local env/local.json or explicit --profile",
+      "runbookPath": "docs/agent/operator-local-runbook.md",
+      "summary": "X11/xpra readiness diagnostic for GUI-based 1C contours."
+    },
+    {
+      "id": "load-cfe",
+      "layer": "profile-required",
+      "status": "operator-local",
+      "entrypoint": "./scripts/platform/load-cfe.sh --profile env/local.json --run-root /tmp/load-cfe-run",
+      "profileProvenance": "operator-local env/local.json or explicit --profile",
+      "runbookPath": "docs/agent/operator-local-runbook.md",
+      "summary": "Sequential ibcmd load/check/apply for extensions under src/cfe."
+    },
+    {
+      "id": "configure-cfe-runtime-flags",
+      "layer": "profile-required",
+      "status": "operator-local",
+      "entrypoint": "./scripts/platform/configure-cfe-runtime-flags.sh --profile env/local.json --run-root /tmp/configure-cfe-runtime-flags-run",
+      "profileProvenance": "operator-local env/local.json or explicit --profile",
+      "runbookPath": "docs/agent/operator-local-runbook.md",
+      "summary": "Generic extension safe-mode and unsafe-action-protection configuration."
+    },
+    {
+      "id": "check-cfe-applicability",
+      "layer": "profile-required",
+      "status": "operator-local",
+      "entrypoint": "./scripts/platform/check-cfe-applicability.sh --profile env/local.json --run-root /tmp/check-cfe-applicability-run",
+      "profileProvenance": "operator-local env/local.json or explicit --profile",
+      "runbookPath": "docs/agent/operator-local-runbook.md",
+      "summary": "Designer applicability diagnostic for extensions under src/cfe."
+    },
+    {
+      "id": "check-cfe-config",
+      "layer": "profile-required",
+      "status": "operator-local",
+      "entrypoint": "./scripts/platform/check-cfe-config.sh --profile env/local.json --run-root /tmp/check-cfe-config-run",
+      "profileProvenance": "operator-local env/local.json or explicit --profile",
+      "runbookPath": "docs/agent/operator-local-runbook.md",
+      "summary": "Designer extension configuration diagnostic."
+    },
+    {
       "id": "load-diff-src",
       "layer": "provisioned",
       "status": "operator-local",
@@ -815,6 +869,42 @@ write_runtime_support_matrix_json_starter() {
       "profileProvenance": "operator-local direct-platform profile with addRoot and a local 1C runtime",
       "runbookPath": "docs/testing/xunit-direct-platform.md",
       "summary": "Template-managed direct-platform xUnit contour with a local TDD wrapper for git-backed src/cf changes."
+    },
+    {
+      "id": "yaxunit",
+      "layer": "profile-required",
+      "status": "operator-local",
+      "entrypoint": "./scripts/test/run-yaxunit.sh --profile env/local.json --run-root /tmp/yaxunit-run",
+      "profileProvenance": "operator-local env/local.json or explicit --profile",
+      "runbookPath": "docs/agent/operator-local-runbook.md",
+      "summary": "Generic YAxUnit runner."
+    },
+    {
+      "id": "yaxunit-warm-rpc",
+      "layer": "profile-required",
+      "status": "operator-local",
+      "entrypoint": "./scripts/test/run-yaxunit-warm-service.sh up --profile env/local.json --run-root /tmp/yaxunit-warm-rpc-up-run",
+      "profileProvenance": "operator-local env/local.json or explicit --profile",
+      "runbookPath": "docs/agent/operator-local-runbook.md",
+      "summary": "Reusable warm RPC service for YAxUnit runs."
+    },
+    {
+      "id": "web-client-diagnostic",
+      "layer": "profile-required",
+      "status": "operator-local",
+      "entrypoint": "./scripts/test/run-web-client-diagnostic.sh --profile env/local.json --run-root /tmp/web-client-diagnostic-run",
+      "profileProvenance": "operator-local env/local.json or explicit --profile",
+      "runbookPath": "docs/agent/operator-local-runbook.md",
+      "summary": "Opt-in post-failure 1C web-client diagnostic."
+    },
+    {
+      "id": "golden-baseline",
+      "layer": "project-required",
+      "status": "operator-local",
+      "entrypoint": "./scripts/test/run-golden-baseline.sh --run-root /tmp/golden-baseline-run",
+      "profileProvenance": "project-owned tests/golden/run.sh or GOLDEN_BASELINE_COMMAND",
+      "runbookPath": "tests/golden/README.md",
+      "summary": "Mandatory project regression baseline; fails closed until the project wires the golden comparison."
     },
     {
       "id": "bdd",
@@ -877,9 +967,18 @@ write_runtime_support_matrix_markdown_starter() {
 | Contour | Status | Profile provenance | Canonical entrypoint | Runbook |
 | --- | --- | --- | --- | --- |
 | `doctor` | `operator-local` | `env/local.json` или явный `--profile` | `./scripts/diag/doctor.sh --profile env/local.json --run-root /tmp/doctor-run` | `docs/agent/operator-local-runbook.md` |
+| `check-x11-contour` | `operator-local` | `env/local.json` или явный `--profile` | `./scripts/diag/check-x11-contour.sh --profile env/local.json --run-root /tmp/check-x11-contour-run` | `docs/agent/operator-local-runbook.md` |
+| `load-cfe` | `operator-local` | `env/local.json` или явный `--profile` | `./scripts/platform/load-cfe.sh --profile env/local.json --run-root /tmp/load-cfe-run` | `docs/agent/operator-local-runbook.md` |
+| `configure-cfe-runtime-flags` | `operator-local` | `env/local.json` или явный `--profile` | `./scripts/platform/configure-cfe-runtime-flags.sh --profile env/local.json --run-root /tmp/configure-cfe-runtime-flags-run` | `docs/agent/operator-local-runbook.md` |
+| `check-cfe-applicability` | `operator-local` | `env/local.json` или явный `--profile` | `./scripts/platform/check-cfe-applicability.sh --profile env/local.json --run-root /tmp/check-cfe-applicability-run` | `docs/agent/operator-local-runbook.md` |
+| `check-cfe-config` | `operator-local` | `env/local.json` или явный `--profile` | `./scripts/platform/check-cfe-config.sh --profile env/local.json --run-root /tmp/check-cfe-config-run` | `docs/agent/operator-local-runbook.md` |
 | `load-diff-src` | `operator-local` | `env/local.json` с ready partial-import contour или явный `--profile` | `./scripts/platform/load-diff-src.sh --profile env/local.json --run-root /tmp/load-diff-src-run` | `docs/agent/operator-local-runbook.md` |
 | `load-task-src` | `operator-local` | `env/local.json` с ready partial-import contour или явный `--profile` | `./scripts/platform/load-task-src.sh --profile env/local.json --bead task.1 --run-root /tmp/load-task-src-run` | `docs/agent/operator-local-runbook.md` |
 | `xunit` | `operator-local` | `env/local.json`, `env/wsl.json`, `env/ci.json` или явный `--profile` с wired `capabilities.xunit` | `./scripts/test/run-xunit.sh --profile env/local.json --run-root /tmp/xunit-run` | `docs/testing/xunit-direct-platform.md` |
+| `yaxunit` | `operator-local` | `env/local.json` или явный `--profile` | `./scripts/test/run-yaxunit.sh --profile env/local.json --run-root /tmp/yaxunit-run` | `docs/agent/operator-local-runbook.md` |
+| `yaxunit-warm-rpc` | `operator-local` | `env/local.json` или явный `--profile` | `./scripts/test/run-yaxunit-warm-service.sh up --profile env/local.json --run-root /tmp/yaxunit-warm-rpc-up-run` | `docs/agent/operator-local-runbook.md` |
+| `web-client-diagnostic` | `operator-local` | `env/local.json` или явный `--profile` | `./scripts/test/run-web-client-diagnostic.sh --profile env/local.json --run-root /tmp/web-client-diagnostic-run` | `docs/agent/operator-local-runbook.md` |
+| `golden-baseline` | `operator-local` | `tests/golden/run.sh` или `GOLDEN_BASELINE_COMMAND` | `./scripts/test/run-golden-baseline.sh --run-root /tmp/golden-baseline-run` | `tests/golden/README.md` |
 | `bdd` | `unsupported` | project decides later | `./scripts/test/run-bdd.sh --profile env/local.json --run-root /tmp/bdd-run` | `docs/agent/generated-project-verification.md` |
 | `smoke` | `unsupported` | project decides later | `./scripts/test/run-smoke.sh --profile env/local.json --run-root /tmp/smoke-run` | `docs/agent/generated-project-verification.md` |
 | `publish-http` | `unsupported` | project decides later | `./scripts/platform/publish-http.sh --profile env/local.json --run-root /tmp/publish-http-run` | `docs/agent/generated-project-verification.md` |

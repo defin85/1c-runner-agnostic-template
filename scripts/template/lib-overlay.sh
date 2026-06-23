@@ -8,6 +8,7 @@ source "$SCRIPT_DIR/../lib/common.sh"
 overlay_manifest_relpath="automation/context/template-managed-paths.txt"
 overlay_preserve_relpath="automation/context/template-update-preserve-paths.txt"
 overlay_version_relpath=".template-overlay-version"
+overlay_source_relpath=".template-overlay-source"
 
 overlay_manifest_file() {
   local root="$1"
@@ -22,6 +23,11 @@ overlay_preserve_manifest_file() {
 overlay_version_file() {
   local root="$1"
   printf '%s/%s\n' "$root" "$overlay_version_relpath"
+}
+
+overlay_source_file() {
+  local root="$1"
+  printf '%s/%s\n' "$root" "$overlay_source_relpath"
 }
 
 copier_answers_file() {
@@ -71,7 +77,22 @@ read_optional_answers_value() {
 
 template_source_path() {
   local root="$1"
-  read_answers_value "$(copier_answers_file "$root")" "_src_path"
+  local answers_file
+  local source_file
+
+  answers_file="$(copier_answers_file "$root")"
+  if read_optional_answers_value "$answers_file" "_src_path" >/dev/null 2>&1; then
+    read_optional_answers_value "$answers_file" "_src_path"
+    return 0
+  fi
+
+  source_file="$(overlay_source_file "$root")"
+  if [ -f "$source_file" ]; then
+    sed -n '1p' "$source_file"
+    return 0
+  fi
+
+  die "template source path not found in answers file or $source_file"
 }
 
 bootstrap_template_ref() {
@@ -137,6 +158,13 @@ write_overlay_version() {
   local version="$2"
 
   printf '%s\n' "$version" >"$(overlay_version_file "$root")"
+}
+
+write_overlay_source() {
+  local root="$1"
+  local source="$2"
+
+  printf '%s\n' "$source" >"$(overlay_source_file "$root")"
 }
 
 manifest_entries() {

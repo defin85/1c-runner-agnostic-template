@@ -168,6 +168,15 @@ profile_field_status() {
     platform.xvfb.serverArgs)
       [ "$(profile_string '(.platform.xvfb.serverArgs // null) | if . == null then "null" else type end')" = "array" ] && printf 'present\n' || printf 'missing\n'
       ;;
+    platform.xpra.enabled)
+      [ "$(profile_string '(.platform.xpra.enabled // null) | if . == null then "null" else type end')" = "boolean" ] && printf 'present\n' || printf 'missing\n'
+      ;;
+    platform.xpra.xvfbArgs)
+      [ "$(profile_string '(.platform.xpra.xvfbArgs // null) | if . == null then "null" else type end')" = "array" ] && printf 'present\n' || printf 'missing\n'
+      ;;
+    platform.xpra.startChild)
+      [ "$(profile_string '(.platform.xpra.startChild // null) | if . == null then "null" else type end')" = "string" ] && printf 'present\n' || printf 'missing\n'
+      ;;
     platform.ldPreload.enabled)
       [ "$(profile_string '(.platform.ldPreload.enabled // null) | if . == null then "null" else type end')" = "boolean" ] && printf 'present\n' || printf 'missing\n'
       ;;
@@ -297,6 +306,7 @@ main() {
   local check_status=""
   local check_reason=""
   local derived_state_json=""
+  local direct_platform_xpra_start_child=""
   local warning_path_list=""
   local -a layout_drift_paths=()
   local -a required_tools=(git jq rg)
@@ -321,6 +331,13 @@ main() {
   adapter="${RUNNER_ADAPTER:-${RUNTIME_PROFILE_RUNNER_ADAPTER:-direct-platform}}"
   if doctor_requires_direct_platform_xvfb_tools "$adapter"; then
     required_tools+=(xvfb-run xauth)
+  fi
+  if doctor_requires_direct_platform_xpra_tools "$adapter"; then
+    required_tools+=(xpra Xvfb xdpyinfo)
+    direct_platform_xpra_start_child="$(load_direct_platform_xpra_start_child)"
+    if [ -n "$direct_platform_xpra_start_child" ]; then
+      required_tools+=("${direct_platform_xpra_start_child%% *}")
+    fi
   fi
   run_root="$(prepare_capability_run_root "doctor" "$CAPABILITY_RUN_ROOT_INPUT")"
   summary_path="$(capability_summary_path "$run_root")"

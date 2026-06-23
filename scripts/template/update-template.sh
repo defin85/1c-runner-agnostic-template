@@ -110,6 +110,7 @@ sync_overlay_manifests \
   "$(overlay_preserve_manifest_file "$release_root")"
 
 write_overlay_version "$root" "$target_ref"
+write_overlay_source "$root" "$source_path"
 
 bash "$root/scripts/bootstrap/overlay-post-apply.sh" \
   "$release_root" \

@@ -72,6 +72,18 @@ cat >"$profile_path" <<EOF
     }
   },
   "capabilities": {
+    "createIb": {
+      "command": ["$fake_binary", "CREATEINFOBASE", "File=/tmp/ld-preload-fixture;"]
+    },
+    "dumpSrc": {
+      "command": ["$fake_binary", "DESIGNER", "/DumpConfigToFiles", "/tmp/ld-preload-fixture-src"]
+    },
+    "loadSrc": {
+      "command": ["$fake_binary", "DESIGNER", "/LoadConfigFromFiles", "/tmp/ld-preload-fixture-src"]
+    },
+    "updateDb": {
+      "command": ["$fake_binary", "DESIGNER", "/UpdateDBCfg"]
+    },
     "xunit": {
       "command": ["$fake_client", "ENTERPRISE", "/F", "/tmp/ld-preload-fixture"]
     },

@@ -261,18 +261,36 @@ assert_exists "$rendered_root/env/.local/README.md"
 assert_exists "$rendered_root/env/AGENTS.md"
 assert_exists "$rendered_root/scripts/lib/capability.sh"
 assert_exists "$rendered_root/scripts/lib/ibcmd.sh"
+assert_exists "$rendered_root/scripts/lib/designer-diagnostics.sh"
+assert_exists "$rendered_root/scripts/lib/onec-port-lease.sh"
+assert_exists "$rendered_root/scripts/lib/web-client-diagnostic.sh"
+assert_exists "$rendered_root/scripts/lib/yaxunit.sh"
 assert_exists "$rendered_root/scripts/AGENTS.md"
 assert_exists "$rendered_root/scripts/qa/agent-verify.sh"
 assert_exists "$rendered_root/scripts/qa/check-agent-docs.sh"
 assert_exists "$rendered_root/scripts/qa/codex-onboard.sh"
 assert_exists "$rendered_root/scripts/platform/dump-src.sh"
 assert_exists "$rendered_root/scripts/platform/diff-src.sh"
+assert_exists "$rendered_root/scripts/platform/load-cfe.sh"
+assert_exists "$rendered_root/scripts/platform/configure-cfe-runtime-flags.sh"
+assert_exists "$rendered_root/scripts/platform/check-cfe-applicability.sh"
+assert_exists "$rendered_root/scripts/platform/check-cfe-config.sh"
 assert_exists "$rendered_root/scripts/platform/load-diff-src.sh"
 assert_exists "$rendered_root/scripts/platform/load-task-src.sh"
 assert_exists "$rendered_root/scripts/git/task-trailers.sh"
 assert_exists "$rendered_root/scripts/diag/doctor.sh"
+assert_exists "$rendered_root/scripts/diag/check-x11-contour.sh"
+assert_exists "$rendered_root/scripts/test/run-web-client-diagnostic.sh"
+assert_exists "$rendered_root/scripts/test/run-yaxunit.sh"
+assert_exists "$rendered_root/scripts/test/sync-yaxunit-runtime.sh"
+assert_exists "$rendered_root/scripts/test/run-yaxunit-warm-service.sh"
+assert_exists "$rendered_root/scripts/test/run-golden-baseline.sh"
 assert_exists "$rendered_root/scripts/llm/export-context.sh"
 assert_exists "$rendered_root/scripts/template/migrate-runtime-profile-v2.sh"
+assert_exists "$rendered_root/tooling/vanessa/run-web-client-diagnostic.mjs"
+assert_exists "$rendered_root/tooling/yaxunit/warm_rpc_controller.py"
+assert_not_exists "$rendered_root/tooling/new-1c-project"
+assert_not_exists "$rendered_root/tooling/update-1c-project"
 assert_exists "$rendered_root/automation/context/project-map.md"
 assert_exists "$rendered_root/automation/context/runtime-profile-policy.json"
 assert_exists "$rendered_root/automation/context/runtime-support-matrix.json"
@@ -304,10 +322,21 @@ assert_exists "$rendered_root/tests/AGENTS.md"
 assert_exists "$rendered_root/tests/smoke/runtime-capability-contract.sh"
 assert_exists "$rendered_root/tests/smoke/runtime-doctor-contract.sh"
 assert_exists "$rendered_root/tests/smoke/runtime-direct-platform-xvfb-contract.sh"
+assert_exists "$rendered_root/tests/smoke/runtime-direct-platform-xpra-contract.sh"
 assert_exists "$rendered_root/tests/smoke/runtime-direct-platform-ld-preload-contract.sh"
 assert_exists "$rendered_root/tests/smoke/runtime-ibcmd-capability-contract.sh"
 assert_exists "$rendered_root/tests/smoke/runtime-ibcmd-doctor-contract.sh"
 assert_exists "$rendered_root/tests/smoke/runtime-ibcmd-validation-contract.sh"
+assert_exists "$rendered_root/tests/smoke/load-cfe-contract.sh"
+assert_exists "$rendered_root/tests/smoke/configure-cfe-runtime-flags-contract.sh"
+assert_exists "$rendered_root/tests/smoke/check-cfe-applicability-contract.sh"
+assert_exists "$rendered_root/tests/smoke/check-cfe-config-contract.sh"
+assert_exists "$rendered_root/tests/smoke/onec-port-lease-contract.sh"
+assert_exists "$rendered_root/tests/smoke/web-client-diagnostic-contract.sh"
+assert_exists "$rendered_root/tests/smoke/yaxunit-contour-contract.sh"
+assert_exists "$rendered_root/tests/smoke/yaxunit-warm-rpc-contour-contract.sh"
+assert_exists "$rendered_root/tests/smoke/golden-baseline-contract.sh"
+assert_exists "$rendered_root/tests/golden/README.md"
 assert_exists "$rendered_root/tests/smoke/git-task-trailer-contract.sh"
 assert_exists "$rendered_root/tests/smoke/runtime-load-task-src-contract.sh"
 assert_exists "$rendered_root/tests/smoke/runtime-load-task-src-validation-contract.sh"
@@ -339,8 +368,17 @@ assert_contains "$rendered_root/Makefile" "check-agent-docs:"
 assert_contains "$rendered_root/Makefile" "check-overlay-manifest:"
 assert_contains "$rendered_root/Makefile" "codex-onboard:"
 assert_contains "$rendered_root/Makefile" "imported-skills-readiness:"
+assert_contains "$rendered_root/Makefile" "load-cfe:"
+assert_contains "$rendered_root/Makefile" "configure-cfe-runtime-flags:"
+assert_contains "$rendered_root/Makefile" "check-cfe-applicability:"
+assert_contains "$rendered_root/Makefile" "check-cfe-config:"
 assert_contains "$rendered_root/Makefile" "load-diff-src:"
 assert_contains "$rendered_root/Makefile" "load-task-src:"
+assert_contains "$rendered_root/Makefile" "test-yaxunit:"
+assert_contains "$rendered_root/Makefile" "sync-yaxunit-runtime:"
+assert_contains "$rendered_root/Makefile" "yaxunit-warm-service:"
+assert_contains "$rendered_root/Makefile" "web-client-diagnostic:"
+assert_contains "$rendered_root/Makefile" "golden-baseline:"
 assert_contains "$rendered_root/Makefile" "export-context-preview:"
 assert_contains "$rendered_root/Makefile" "export-context-check:"
 assert_contains "$rendered_root/Makefile" "export-context-write:"
@@ -352,6 +390,7 @@ assert_contains "$rendered_root/.gitignore" "env/local.json"
 assert_contains "$rendered_root/.gitignore" "env/wsl.json"
 assert_contains "$rendered_root/.gitignore" "env/.local/*.json"
 assert_contains "$rendered_root/.gitignore" "src/cf/Ext/ParentConfigurations/"
+assert_exists "$rendered_root/.contextignore"
 assert_contains "$rendered_root/.codex/config.toml" "mcp_servers.claude-context"
 assert_contains "$rendered_root/.codex/config.toml" "mcp_servers.chrome-devtools"
 assert_not_contains "$rendered_root/automation/context/template-managed-paths.txt" ".codex/config.toml"
@@ -562,7 +601,7 @@ assert_contains "$rendered_root/automation/context/project-map.md" "docs/exec-pl
 assert_contains "$rendered_root/automation/context/runtime-support-matrix.md" "# Runtime Support Matrix"
 assert_contains "$rendered_root/automation/context/runtime-support-matrix.md" '`operator-local`'
 assert_contains "$rendered_root/automation/context/runtime-support-matrix.md" "## Optional Project-Specific Baseline Extension"
-assert_jq "$rendered_root/automation/context/runtime-support-matrix.json" '.matrixRole == "project-owned-runtime-support-matrix" and (.statuses | sort) == ["operator-local","provisioned","supported","unsupported"] and ([.contours[].id] | sort) == ["agent-verify","bdd","codex-onboard","doctor","export-context-check","load-diff-src","load-task-src","publish-http","smoke","xunit"] and .projectSpecificBaselineExtension == null and (.contours[] | select(.id == "doctor") | .runbookPath) == "docs/agent/operator-local-runbook.md" and (.contours[] | select(.id == "load-diff-src") | .runbookPath) == "docs/agent/operator-local-runbook.md" and (.contours[] | select(.id == "load-task-src") | .runbookPath) == "docs/agent/operator-local-runbook.md" and (.contours[] | select(.id == "xunit") | .status) == "operator-local" and (.contours[] | select(.id == "xunit") | .runbookPath) == "docs/testing/xunit-direct-platform.md"' "generated-runtime-support-matrix"
+assert_jq "$rendered_root/automation/context/runtime-support-matrix.json" '.matrixRole == "project-owned-runtime-support-matrix" and (.statuses | sort) == ["operator-local","provisioned","supported","unsupported"] and ([.contours[].id] | sort) == ["agent-verify","bdd","check-cfe-applicability","check-cfe-config","check-x11-contour","codex-onboard","configure-cfe-runtime-flags","doctor","export-context-check","golden-baseline","load-cfe","load-diff-src","load-task-src","publish-http","smoke","web-client-diagnostic","xunit","yaxunit","yaxunit-warm-rpc"] and .projectSpecificBaselineExtension == null and (.contours[] | select(.id == "doctor") | .runbookPath) == "docs/agent/operator-local-runbook.md" and (.contours[] | select(.id == "load-diff-src") | .runbookPath) == "docs/agent/operator-local-runbook.md" and (.contours[] | select(.id == "load-task-src") | .runbookPath) == "docs/agent/operator-local-runbook.md" and (.contours[] | select(.id == "xunit") | .status) == "operator-local" and (.contours[] | select(.id == "xunit") | .runbookPath) == "docs/testing/xunit-direct-platform.md" and (.contours[] | select(.id == "yaxunit-warm-rpc") | .status) == "operator-local" and (.contours[] | select(.id == "web-client-diagnostic") | .runbookPath) == "docs/agent/operator-local-runbook.md" and (.contours[] | select(.id == "golden-baseline") | .runbookPath) == "tests/golden/README.md"' "generated-runtime-support-matrix"
 assert_contains "$rendered_root/automation/context/recommended-skills.generated.md" "# Generated Recommended Skills"
 assert_contains "$rendered_root/automation/context/recommended-skills.generated.md" "make imported-skills-readiness"
 assert_contains "$rendered_root/automation/context/recommended-skills.generated.md" ".agents/skills/README.md"
@@ -790,7 +829,7 @@ This file is added in template v0.2.0 to verify copier update.
 EOF
 printf '%s\n' "docs/template-update-note.txt" >>"$template_root/automation/context/template-managed-paths.txt"
 
-python - <<PY
+python3 - <<PY
 from pathlib import Path
 
 path = Path("$template_root/scripts/bootstrap/agents-overlay.sh")
@@ -802,7 +841,7 @@ if old not in text:
 path.write_text(text.replace(old, new, 1))
 PY
 
-python - <<PY
+python3 - <<PY
 from pathlib import Path
 
 path = Path("$template_root/scripts/bootstrap/generated-project-surface.sh")
@@ -996,7 +1035,7 @@ This file is added in template v0.3.0 to verify README recovery.
 EOF
 printf '%s\n' "docs/template-update-v3-note.txt" >>"$template_root/automation/context/template-managed-paths.txt"
 
-python - "$template_root/scripts/bootstrap/generated-project-surface.sh" <<'PY'
+python3 - "$template_root/scripts/bootstrap/generated-project-surface.sh" <<'PY'
 from pathlib import Path
 import sys
 

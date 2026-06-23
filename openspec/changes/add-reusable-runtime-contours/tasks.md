@@ -1,0 +1,11 @@
+## 1. Implementation
+- [x] 1.1 Add `platform.xpra` support to runtime profile parsing, doctor artifacts, and direct-platform adapter.
+- [x] 1.2 Add `check-x11-contour` entrypoint, Makefile target, docs, and smoke coverage.
+- [x] 1.3 Update `ibcmd` auth and secret resolution semantics for file infobases and empty passwords.
+- [x] 1.4 Add generic CFE load/config/applicability contours without project-specific extension defaults.
+- [x] 1.5 Add generic port lease integration with parameterized repo slug and helper path.
+- [x] 1.6 Add generic web-client post-failure diagnostic as opt-in runtime-profile capability.
+- [x] 1.7 Add generic YAxUnit runner and warm RPC contour without project-specific test extension defaults.
+- [x] 1.8 Add minimal mandatory golden-baseline fail-closed project hook.
+- [x] 1.9 Update copier/generated project surfaces, docs/templates, runtime matrix, and smoke contracts.
+- [x] 1.10 Run required verification and audit for project-specific strings.

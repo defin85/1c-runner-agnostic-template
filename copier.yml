@@ -1,17 +1,22 @@
 _min_copier_version: "9.6.0"
 _answers_file: .copier-answers.yml
-_templates_suffix: ""
+_templates_suffix: ".jinja"
 _envops:
   autoescape: false
   keep_trailing_newline: true
   variable_start_string: "[[["
   variable_end_string: "]]]"
+  block_start_string: "[%"
+  block_end_string: "%]"
+  comment_start_string: "[#"
+  comment_end_string: "#]"
 _exclude:
   - .git
   - .git/**
   - .githooks
   - .githooks/**
   - copier.yml
+  - env/*.example.json
   - .github/workflows/ci.yml
   - AGENTS.md
   - CLAUDE.md
@@ -19,8 +24,10 @@ _exclude:
   - openspec/**
   - .claude/commands
   - .claude/commands/**
-  - tooling
-  - tooling/**
+  - tooling/new-1c-project
+  - tooling/new-1c-project.ps1
+  - tooling/update-1c-project
+  - tooling/update-1c-project.ps1
   - scripts/release
   - scripts/release/**
   - tests/smoke/template-release-workflow.sh
@@ -37,7 +44,7 @@ _message_before_update: |-
     - после миграции ongoing maintenance должен идти через `./scripts/template/update-template.sh`.
 _tasks:
   - command: >-
-      python -m scripts.python.cli copier-post-copy
+      python3 -m scripts.python.cli copier-post-copy
       "[[[ _src_path ]]]"
       "[[[ project_name ]]]"
       "[[[ project_slug ]]]"
@@ -49,7 +56,7 @@ _tasks:
       "[[[ beads_prefix ]]]"
     when: "[[[ _copier_operation == 'copy' ]]]"
   - command: >-
-      python -m scripts.python.cli copier-post-update
+      python3 -m scripts.python.cli copier-post-update
       "[[[ _src_path ]]]"
       "[[[ project_name ]]]"
       "[[[ project_slug ]]]"
