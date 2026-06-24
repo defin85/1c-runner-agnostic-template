@@ -6,6 +6,8 @@
 
 - project-owned checked-in runtime truth для generated repo;
 - различает минимум `supported`, `unsupported`, `operator-local`, `provisioned`;
+- для multi-target extension workspace ссылается на checked-in `automation/context/target-matrix.json`, а не на ignored local profile как единственный источник target truth;
+- target-aware entries для `load-cfe`, `check-cfe-applicability`, `check-cfe-config`, `load-diff-src`, `load-task-src`, `xunit`, `smoke` и `update-db` перечисляют target ids или явно ссылаются на extension set из `target-matrix.json`;
 - покрывает как минимум `codex-onboard`, `agent-verify`, `export-context-check`, `doctor`, `check-x11-contour`, `load-cfe`, `configure-cfe-runtime-flags`, `check-cfe-applicability`, `check-cfe-config`, `load-diff-src`, `load-task-src`, `xunit`, `yaxunit`, `yaxunit-warm-rpc`, `web-client-diagnostic`, `golden-baseline`, `bdd`, `smoke`, `publish-http`;
 - classifies template-shipped direct-platform `xunit` contour as `operator-local` when the generated starter surface wires the reusable runner but still needs operator-owned profile values such as ADD root;
 - classifies `golden-baseline` as mandatory project regression baseline and keeps it fail-closed until the project wires `tests/golden/run.sh` or `GOLDEN_BASELINE_COMMAND`;

@@ -153,12 +153,14 @@ ibcmd_runtime_mode_context_json() {
 
 build_ibcmd_capability_context_json() {
   local partial_import="${1:-false}"
+  local source_dir="${2:-}"
   local mode=""
   local auth_mode=""
   local server=""
   local ref=""
   local file_path=""
   local profile_name=""
+  local profile_target=""
   local runtime_mode=""
   local server_access_mode=""
   local server_access_data_dir=""
@@ -170,6 +172,7 @@ build_ibcmd_capability_context_json() {
   ref="$(profile_string '.infobase.ref // empty')"
   file_path="$(profile_string '.infobase.filePath // empty')"
   profile_name="$(profile_string '.profileName // empty')"
+  profile_target="$(profile_string '.target.id // empty')"
   runtime_mode="$(profile_string '.ibcmd.runtimeMode // empty')"
   server_access_mode="$(profile_string '.ibcmd.serverAccess.mode // empty')"
   server_access_data_dir="$(profile_string '.ibcmd.serverAccess.dataDir // empty')"
@@ -177,6 +180,7 @@ build_ibcmd_capability_context_json() {
 
   jq -cn \
     --arg profile_name "$profile_name" \
+    --arg profile_target "$profile_target" \
     --arg mode "$mode" \
     --arg server "$server" \
     --arg ref "$ref" \
@@ -187,9 +191,11 @@ build_ibcmd_capability_context_json() {
     --arg server_access_data_dir "$server_access_data_dir" \
     --argjson partial_import "$partial_import" \
     --argjson runtime_mode_context "$runtime_mode_context" \
+    --arg source_dir "$source_dir" \
     '{
       runtime_profile: {
-        name: (if $profile_name == "" then null else $profile_name end)
+        name: (if $profile_name == "" then null else $profile_name end),
+        target: (if $profile_target == "" then null else $profile_target end)
       },
       infobase: {
         mode: (if $mode == "" then null else $mode end),
@@ -204,7 +210,8 @@ build_ibcmd_capability_context_json() {
           mode: (if $server_access_mode == "" then null else $server_access_mode end),
           data_dir: (if $server_access_data_dir == "" then null else $server_access_data_dir end)
         },
-        partial_import: $partial_import
+        partial_import: $partial_import,
+        source_dir: (if $source_dir == "" then null else $source_dir end)
       } + $runtime_mode_context)
     }'
 }
@@ -552,7 +559,7 @@ prepare_ibcmd_load_src_command() {
   fi
 
   set_prepared_capability_command "ibcmd" "ibcmd-builder" "adapter-wrapper" "${command[@]}"
-  set_capability_context_json "$(build_ibcmd_capability_context_json "$partial_import")"
+  set_capability_context_json "$(build_ibcmd_capability_context_json "$partial_import" "$source_dir")"
 }
 
 prepare_ibcmd_update_db_command() {

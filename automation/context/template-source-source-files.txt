@@ -193,6 +193,7 @@
 ./automation/context/templates/generated-project-runtime-quickstart.md
 ./automation/context/templates/generated-project-runtime-support-matrix.json
 ./automation/context/templates/generated-project-runtime-support-matrix.md
+./automation/context/templates/generated-project-target-matrix.json
 ./automation/context/templates/generated-project-work-items-readme.md
 ./automation/context/templates/generated-project-work-items-template.md
 ./automation/prompts/README.md
@@ -448,6 +449,14 @@
 ./openspec/changes/add-codex-1c-skills-import/specs/project-scoped-skills/spec.md
 ./openspec/changes/add-codex-1c-skills-import/tasks.md
 ./openspec/changes/add-codex-1c-skills-import/traceability.md
+./openspec/changes/add-multi-target-extension-workspace/design.md
+./openspec/changes/add-multi-target-extension-workspace/proposal.md
+./openspec/changes/add-multi-target-extension-workspace/specs/generated-context-artifacts/spec.md
+./openspec/changes/add-multi-target-extension-workspace/specs/generated-runtime-support-matrix/spec.md
+./openspec/changes/add-multi-target-extension-workspace/specs/ibcmd-capability-drivers/spec.md
+./openspec/changes/add-multi-target-extension-workspace/specs/runtime-profile-schema/spec.md
+./openspec/changes/add-multi-target-extension-workspace/tasks.md
+./openspec/changes/add-multi-target-extension-workspace/traceability.md
 ./openspec/changes/add-reusable-runtime-contours/design.md
 ./openspec/changes/add-reusable-runtime-contours/proposal.md
 ./openspec/changes/add-reusable-runtime-contours/specs/generated-runtime-support-matrix/spec.md
@@ -642,6 +651,7 @@
 ./scripts/lib/onec-port-lease.sh
 ./scripts/lib/onec.sh
 ./scripts/lib/runtime-profile.sh
+./scripts/lib/target-matrix.sh
 ./scripts/lib/web-client-diagnostic.sh
 ./scripts/lib/yaxunit.sh
 ./scripts/llm/export-context.ps1
@@ -752,6 +762,7 @@
 ./tests/smoke/golden-baseline-contract.sh
 ./tests/smoke/imported-skills-contract.sh
 ./tests/smoke/load-cfe-contract.sh
+./tests/smoke/multi-target-extension-workspace-contract.sh
 ./tests/smoke/new-1c-project-current-dir-defaults.sh
 ./tests/smoke/onec-port-lease-contract.sh
 ./tests/smoke/runtime-capability-contract.sh

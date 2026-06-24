@@ -307,6 +307,7 @@ main() {
   local check_reason=""
   local derived_state_json=""
   local direct_platform_xpra_start_child=""
+  local profile_target=""
   local warning_path_list=""
   local -a layout_drift_paths=()
   local -a required_tools=(git jq rg)
@@ -367,6 +368,7 @@ main() {
   collect_required_env_refs required_env_refs
   collect_runtime_profile_layout_drift_paths "$root" layout_drift_paths
   layout_warning_json="$(build_runtime_profile_layout_warning_json "$root")"
+  profile_target="$(target_profile_id)"
 
   log "Run 1C runtime doctor"
   log "adapter=$adapter"
@@ -376,6 +378,18 @@ main() {
     warning_path_list="$(printf '%s, ' "${layout_drift_paths[@]}")"
     warning_path_list="${warning_path_list%, }"
     log "warning: non-canonical runtime profiles in env/: $warning_path_list. Move ad-hoc profiles to ${RUNTIME_PROFILE_LOCAL_SANDBOX_DIR}"
+  fi
+
+  if [ -n "$profile_target" ] || target_matrix_enabled "$root"; then
+    if target_matrix_enabled "$root" && [ -n "$profile_target" ] && target_require_requested "$root" "$profile_target" 2>>"$stderr_log"; then
+      append_json_check "$required_capabilities_jsonl" "target-profile-binding" "present" true
+    elif target_matrix_enabled "$root" && [ -z "$profile_target" ]; then
+      append_json_check "$required_capabilities_jsonl" "target-profile-binding" "missing" true "runtime profile target.id is required for multi-target diagnostics"
+      status="failed"
+    elif target_matrix_enabled "$root"; then
+      append_json_check "$required_capabilities_jsonl" "target-profile-binding" "missing" true "runtime profile target.id is absent from automation/context/target-matrix.json"
+      status="failed"
+    fi
   fi
 
   for tool_name in "${required_tools[@]}"; do

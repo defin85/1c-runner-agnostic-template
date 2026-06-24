@@ -20,6 +20,7 @@ Usage: ./scripts/platform/load-diff-src.sh [options]
 Options:
   --profile <file>   Runtime profile JSON (defaults to env/local.json if present)
   --run-root <dir>   Directory for summary.json and command logs
+  --target <id>      Target id from automation/context/target-matrix.json
   --dry-run          Resolve diff selection and delegated load-src dry-run only
   -h, --help         Show this help
 EOF
@@ -439,6 +440,7 @@ require_runtime_profile_loaded
 adapter="${RUNNER_ADAPTER:-${RUNTIME_PROFILE_RUNNER_ADAPTER:-direct-platform}}"
 
 source_dir="$(capability_string_or_default "load-src" "sourceDir" "./src/cf")"
+source_dir="$(target_source_dir_or_default "$root" "$CAPABILITY_TARGET_INPUT" "$source_dir")"
 source_dir_rel="$(normalize_capability_selected_file "$source_dir")"
 base_ref=""
 selection_error=""
@@ -480,6 +482,9 @@ elif [ "${LOAD_DIFF_SELECTED_FILES[0]+set}" != "set" ]; then
   printf 'error: %s\n' "$selection_error" | tee -a "$stderr_log" >&2
 else
   delegate_cmd=("$root/scripts/platform/load-src.sh" "--profile" "$profile_path" "--run-root" "$delegated_run_root" "--files" "$selected_files_csv")
+  if [ -n "$CAPABILITY_TARGET_INPUT" ]; then
+    delegate_cmd+=("--target" "$CAPABILITY_TARGET_INPUT")
+  fi
   if [ "$CAPABILITY_DRY_RUN" = "1" ]; then
     delegate_cmd+=("--dry-run")
   fi

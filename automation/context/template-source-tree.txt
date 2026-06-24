@@ -194,6 +194,7 @@
 ./openspec
 ./openspec/changes
 ./openspec/changes/add-codex-1c-skills-import
+./openspec/changes/add-multi-target-extension-workspace
 ./openspec/changes/add-reusable-runtime-contours
 ./openspec/changes/add-template-xunit-tdd-contour
 ./openspec/changes/archive

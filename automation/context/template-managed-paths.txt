@@ -183,6 +183,7 @@ automation/context/templates/generated-project-runtime-profile-policy.json
 automation/context/templates/generated-project-runtime-quickstart.md
 automation/context/templates/generated-project-runtime-support-matrix.json
 automation/context/templates/generated-project-runtime-support-matrix.md
+automation/context/templates/generated-project-target-matrix.json
 automation/context/templates/generated-project-work-items-readme.md
 automation/context/templates/generated-project-work-items-template.md
 automation/prompts/README.md
@@ -455,6 +456,7 @@ scripts/lib/ibcmd.sh
 scripts/lib/onec-port-lease.sh
 scripts/lib/onec.sh
 scripts/lib/runtime-profile.sh
+scripts/lib/target-matrix.sh
 scripts/lib/web-client-diagnostic.sh
 scripts/lib/yaxunit.sh
 scripts/llm/export-context.ps1
@@ -556,6 +558,7 @@ tests/smoke/git-task-trailer-contract.sh
 tests/smoke/golden-baseline-contract.sh
 tests/smoke/imported-skills-contract.sh
 tests/smoke/load-cfe-contract.sh
+tests/smoke/multi-target-extension-workspace-contract.sh
 tests/smoke/new-1c-project-current-dir-defaults.sh
 tests/smoke/onec-port-lease-contract.sh
 tests/smoke/runtime-capability-contract.sh

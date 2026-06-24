@@ -8,6 +8,8 @@ PROJECT_ROOT="$(cd -- "$SCRIPT_DIR/../.." && pwd)"
 source "$SCRIPT_DIR/../lib/common.sh"
 # shellcheck source=../lib/runtime-profile.sh
 source "$SCRIPT_DIR/../lib/runtime-profile.sh"
+# shellcheck source=../lib/target-matrix.sh
+source "$SCRIPT_DIR/../lib/target-matrix.sh"
 # shellcheck source=../lib/onec.sh
 source "$SCRIPT_DIR/../lib/onec.sh"
 # shellcheck source=../lib/designer-diagnostics.sh
@@ -16,6 +18,7 @@ source "$SCRIPT_DIR/../lib/designer-diagnostics.sh"
 PROFILE_INPUT=""
 RUN_ROOT_INPUT=""
 DRY_RUN=0
+TARGET_INPUT=""
 REQUESTED_EXTENSIONS=()
 
 usage() {
@@ -25,6 +28,7 @@ Usage: ./scripts/platform/check-cfe-config.sh [options]
 Options:
   --profile <file>       Runtime profile JSON (defaults to env/local.json if present)
   --run-root <dir>       Directory for wrapper summary and extension-level artifacts
+  --target <id>          Target id from automation/context/target-matrix.json
   --extension <name>     Check only the specified extension (repeatable)
   --dry-run              Resolve config verification commands and write dry-run summaries only
   -h, --help             Show this help
@@ -47,6 +51,11 @@ parse_args() {
       --run-root)
         [ "$#" -ge 2 ] || fail "--run-root requires a value"
         RUN_ROOT_INPUT="$2"
+        shift 2
+        ;;
+      --target)
+        [ "$#" -ge 2 ] || fail "--target requires a value"
+        TARGET_INPUT="$2"
         shift 2
         ;;
       --extension)
@@ -132,6 +141,14 @@ resolve_selected_extensions() {
   local exists=0
 
   SELECTED_EXTENSIONS=()
+  if target_matrix_enabled "$PROJECT_ROOT"; then
+    if [ "${#REQUESTED_EXTENSIONS[@]}" -gt 0 ]; then
+      fail "--extension cannot be combined with --target in a multi-target workspace"
+    fi
+    target_fill_extensions_array "$PROJECT_ROOT" "$TARGET_INPUT" SELECTED_EXTENSIONS
+    return 0
+  fi
+
   if [ "${#REQUESTED_EXTENSIONS[@]}" -eq 0 ]; then
     SELECTED_EXTENSIONS=("${AVAILABLE_EXTENSIONS[@]}")
     return 0
@@ -299,6 +316,7 @@ write_summary() {
     --arg started_at "$started_at" \
     --arg finished_at "$finished_at" \
     --arg source_root "$SOURCE_ROOT" \
+    --arg target_id "$TARGET_INPUT" \
     --arg adapter "$ADAPTER" \
     --argjson dry_run "$( [ "$DRY_RUN" = "1" ] && printf 'true' || printf 'false' )" \
     --argjson exit_code "$exit_code" \
@@ -324,6 +342,7 @@ write_summary() {
       },
       extension_source: {
         root: $source_root,
+        target_id: (if $target_id == "" then null else $target_id end),
         selected_names: $selected_extensions,
         failed_names: $failed_extensions
       },
@@ -472,6 +491,7 @@ mkdir -p "$RUN_ROOT"
 
 load_runtime_profile "$PROFILE_PATH"
 require_runtime_profile_loaded
+target_require_requested "$PROJECT_ROOT" "$TARGET_INPUT"
 ADAPTER="${RUNNER_ADAPTER:-${RUNTIME_PROFILE_RUNNER_ADAPTER:-direct-platform}}"
 ADAPTER_WRAPPER="$(resolve_adapter_wrapper_path "$ADAPTER")"
 

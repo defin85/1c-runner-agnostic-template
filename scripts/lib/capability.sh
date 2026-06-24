@@ -5,12 +5,15 @@ set -euo pipefail
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/common.sh"
 # shellcheck source=./runtime-profile.sh
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/runtime-profile.sh"
+# shellcheck source=./target-matrix.sh
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/target-matrix.sh"
 
 CAPABILITY_PROFILE_INPUT=""
 CAPABILITY_RUN_ROOT_INPUT=""
 CAPABILITY_DRY_RUN="${DRY_RUN:-0}"
 CAPABILITY_SHOW_HELP=0
 CAPABILITY_SELECTED_FILES_INPUT=""
+CAPABILITY_TARGET_INPUT=""
 CAPABILITY_DRIVER=""
 CAPABILITY_COMMAND_SOURCE=""
 CAPABILITY_COMMAND_EXECUTOR="direct"
@@ -23,6 +26,7 @@ reset_capability_cli_state() {
   CAPABILITY_DRY_RUN="${DRY_RUN:-0}"
   CAPABILITY_SHOW_HELP=0
   CAPABILITY_SELECTED_FILES_INPUT=""
+  CAPABILITY_TARGET_INPUT=""
 }
 
 reset_prepared_capability_command() {
@@ -63,6 +67,11 @@ parse_capability_cli_args() {
       --files)
         [ "$#" -ge 2 ] || die "--files requires a value"
         CAPABILITY_SELECTED_FILES_INPUT="$2"
+        shift 2
+        ;;
+      --target)
+        [ "$#" -ge 2 ] || die "--target requires a value"
+        CAPABILITY_TARGET_INPUT="$2"
         shift 2
         ;;
       -h|--help)
@@ -333,6 +342,9 @@ execute_prepared_capability_command() {
     "ONEC_CAPABILITY_LABEL=$capability_label"
     "ONEC_CAPABILITY_RUN_ROOT=$run_root"
   )
+  if [ -n "${CAPABILITY_TARGET_INPUT:-}" ]; then
+    command_env+=("ONEC_TARGET_ID=$CAPABILITY_TARGET_INPUT")
+  fi
 
   set +e
   case "$CAPABILITY_COMMAND_EXECUTOR" in

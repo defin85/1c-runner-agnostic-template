@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "targets": [
+    {
+      "id": "ut22",
+      "name": "УТ 2.2",
+      "sourcePath": "src/cf/ut22",
+      "configuration": {
+        "name": "",
+        "uuid": "",
+        "version": ""
+      }
+    }
+  ],
+  "extensionMatrix": {
+    "ut22": [
+      "ExampleExtension"
+    ]
+  }
+}

@@ -785,6 +785,7 @@ build_redacted_context_json() {
   local ref=""
   local file_path=""
   local profile_name=""
+  local profile_target=""
 
   if ! runtime_profile_loaded; then
     printf '{}\n'
@@ -797,6 +798,7 @@ build_redacted_context_json() {
   ref="$(profile_string '.infobase.ref // empty')"
   file_path="$(profile_string '.infobase.filePath // empty')"
   profile_name="$(profile_string '.profileName // empty')"
+  profile_target="$(profile_string '.target.id // empty')"
 
   jq -cn \
     --arg profile_name "$profile_name" \
@@ -805,9 +807,11 @@ build_redacted_context_json() {
     --arg ref "$ref" \
     --arg file_path "$file_path" \
     --arg auth_mode "$auth_mode" \
+    --arg profile_target "$profile_target" \
     '{
       runtime_profile: {
-        name: (if $profile_name == "" then null else $profile_name end)
+        name: (if $profile_name == "" then null else $profile_name end),
+        target: (if $profile_target == "" then null else $profile_target end)
       },
       infobase: {
         mode: (if $mode == "" then null else $mode end),
@@ -1199,6 +1203,7 @@ prepare_load_src_command() {
   local adapter="$2"
   local driver=""
   local source_dir=""
+  local source_dir_rel=""
   local -a command=()
 
   if capability_selected_files_requested && capability_has_profile_command "$capability_id"; then
@@ -1209,11 +1214,14 @@ prepare_load_src_command() {
     return 0
   fi
   if maybe_use_profile_command "$capability_id" "$adapter"; then
+    target_require_requested "$(project_root)" "$CAPABILITY_TARGET_INPUT"
     return 0
   fi
 
   driver="$(resolve_capability_driver "$capability_id")"
   source_dir="$(capability_string_or_default "$capability_id" "sourceDir" "./src/cf")"
+  source_dir_rel="$(target_source_dir_or_default "$(project_root)" "$CAPABILITY_TARGET_INPUT" "$source_dir")"
+  source_dir="$source_dir_rel"
   source_dir="$(resolve_project_tree_path "$source_dir")"
   if capability_selected_files_requested && [ "$driver" != "ibcmd" ]; then
     die "partial load-src is supported only for ibcmd driver"
@@ -1255,9 +1263,11 @@ prepare_update_db_command() {
     return 0
   fi
   if maybe_use_profile_command "$capability_id" "$adapter"; then
+    target_require_requested "$(project_root)" "$CAPABILITY_TARGET_INPUT"
     return 0
   fi
 
+  target_require_requested "$(project_root)" "$CAPABILITY_TARGET_INPUT"
   driver="$(resolve_capability_driver "$capability_id")"
   case "$driver" in
     designer)
@@ -1305,6 +1315,7 @@ prepare_required_profile_command() {
   local _adapter="$2"
 
   reject_capability_selected_files "$capability_id"
+  target_require_requested "$(project_root)" "$CAPABILITY_TARGET_INPUT"
   if maybe_use_profile_unsupported_reason "$capability_id"; then
     return 0
   fi

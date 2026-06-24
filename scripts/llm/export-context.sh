@@ -4,6 +4,8 @@ set -euo pipefail
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=../lib/common.sh
 source "$SCRIPT_DIR/../lib/common.sh"
+# shellcheck source=../lib/target-matrix.sh
+source "$SCRIPT_DIR/../lib/target-matrix.sh"
 
 require_command find
 
@@ -249,7 +251,7 @@ write_json_array_from_stdin() {
 }
 
 configuration_name() {
-  local config_xml="$root/src/cf/Configuration.xml"
+  local config_xml="${1:-$root/src/cf/Configuration.xml}"
   local attr_name=""
 
   if [ ! -f "$config_xml" ]; then
@@ -267,7 +269,7 @@ configuration_name() {
 
 configuration_attr() {
   local attr="$1"
-  local config_xml="$root/src/cf/Configuration.xml"
+  local config_xml="${2:-$root/src/cf/Configuration.xml}"
 
   if [ ! -f "$config_xml" ]; then
     return 0
@@ -276,6 +278,74 @@ configuration_attr() {
   {
     grep -o "${attr}=\"[^\"]*\"" "$config_xml" || true
   } | head -n 1 | sed -e "s/^${attr}=\"//" -e 's/\"$//'
+}
+
+target_configuration_summary_json() {
+  local target_id="$1"
+  local source_path="$2"
+  local config_xml="$root/$source_path/Configuration.xml"
+  local config_name=""
+  local config_uuid=""
+  local has_config_xml="false"
+
+  if [ -f "$config_xml" ]; then
+    has_config_xml="true"
+  fi
+
+  config_name="$(configuration_name "$config_xml")"
+  config_uuid="$(configuration_attr uuid "$config_xml")"
+
+  jq -cn \
+    --arg id "$target_id" \
+    --arg source_path "$source_path" \
+    --argjson present "$has_config_xml" \
+    --arg name "$config_name" \
+    --arg uuid "$config_uuid" \
+    '{
+      id: $id,
+      sourcePath: $source_path,
+      configuration: {
+        xmlPath: ($source_path + "/Configuration.xml"),
+        present: $present,
+        name: $name,
+        uuid: $uuid
+      }
+    }'
+}
+
+target_metadata_json() {
+  local matrix=""
+  local target_json='[]'
+  local target_id=""
+  local source_path=""
+  local entry_json=""
+
+  if ! target_matrix_present "$root"; then
+    printf 'null\n'
+    return 0
+  fi
+
+  target_validate_matrix "$root"
+  target_validate_runtime_support_matrix "$root"
+  matrix="$(target_matrix_path "$root")"
+
+  while IFS=$'\t' read -r target_id source_path; do
+    [ -n "$target_id" ] || continue
+    [ -n "$source_path" ] || source_path="src/cf/$target_id"
+    entry_json="$(target_configuration_summary_json "$target_id" "$source_path")"
+    target_json="$(jq -cn --argjson acc "$target_json" --argjson item "$entry_json" '$acc + [$item]')"
+  done < <(jq -r '.targets[] | [.id, (.sourcePath // ("src/cf/" + .id))] | @tsv' "$matrix")
+
+  jq -cn \
+    --arg path "$TARGET_MATRIX_RELPATH" \
+    --argjson targets "$target_json" \
+    --argjson extension_matrix "$(jq -c '.extensionMatrix' "$matrix")" \
+    '{
+      metadataPath: $path,
+      sourceContainer: "src/cf",
+      targets: $targets,
+      extensionMatrix: $extension_matrix
+    }'
 }
 
 list_inventory_entries() {
@@ -340,6 +410,7 @@ render_generated_metadata() {
   local config_name
   local config_uuid
   local has_config_xml="false"
+  local target_metadata="null"
 
   if [ -f "$root/src/cf/Configuration.xml" ]; then
     has_config_xml="true"
@@ -347,6 +418,7 @@ render_generated_metadata() {
 
   config_name="$(configuration_name)"
   config_uuid="$(configuration_attr uuid)"
+  target_metadata="$(target_metadata_json)"
 
   {
     printf '{\n'
@@ -388,6 +460,7 @@ render_generated_metadata() {
     printf '    "externalProcessors": "src/epf",\n'
     printf '    "reports": "src/erf"\n'
     printf '  },\n'
+    printf '  "targetMetadata": %s,\n' "$target_metadata"
     printf '  "entrypointInventory": {\n'
     printf '    "configurationRoots": ["src/cf", "src/cfe", "src/epf", "src/erf"],\n'
     printf '    "httpServices": '

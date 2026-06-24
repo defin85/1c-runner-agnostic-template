@@ -204,6 +204,22 @@ export ONEC_IB_PASSWORD='...'
 
 `driver`, `command` и `unsupportedReason` взаимоисключающие для одной capability.
 
+## Multi-Target Profiles
+
+Если generated project содержит `automation/context/target-matrix.json`, команды, которые меняют или проверяют target ИБ, требуют явный `--target <id>`.
+Операторский runtime profile обязан зафиксировать ту же привязку:
+
+```json
+{
+  "target": {
+    "id": "ut22"
+  }
+}
+```
+
+Если `target.id` отсутствует или не совпадает с `--target`, wrapper завершится до запуска 1С.
+`load-src`, `load-diff-src` и `load-task-src` используют `src/cf/<target-id>` или `sourcePath` из `target-matrix.json`; CFE wrappers берут список расширений из `extensionMatrix`.
+
 Если contour пока не реализован, используйте fail-closed shape вместо `echo TODO`:
 
 ```json

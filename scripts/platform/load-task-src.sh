@@ -36,6 +36,7 @@ Usage: ./scripts/platform/load-task-src.sh [options]
 Options:
   --profile <file>      Runtime profile JSON (defaults to env/local.json if present)
   --run-root <dir>      Directory for summary.json and command logs
+  --target <id>         Target id from automation/context/target-matrix.json
   --bead <id>           Select committed changes by commit trailer Bead:
   --work-item <id>      Select committed changes by commit trailer Work-Item:
   --range <revset>      Explicit git revset fallback
@@ -432,6 +433,7 @@ fi
 
 profile_input=""
 run_root_input=""
+target_input=""
 dry_run="${DRY_RUN:-0}"
 selector_mode=""
 selector_value=""
@@ -459,6 +461,14 @@ while [ "$#" -gt 0 ]; do
     --dry-run)
       dry_run=1
       shift
+      ;;
+    --target)
+      if [ "$#" -lt 2 ]; then
+        record_load_task_cli_error "--target requires a value" 1 cli_error cli_exit_code
+        break
+      fi
+      target_input="$2"
+      shift 2
       ;;
     --bead)
       if [ "$#" -lt 2 ]; then
@@ -577,6 +587,7 @@ if [ "$status" != "failed" ]; then
   require_runtime_profile_loaded
   adapter="${RUNNER_ADAPTER:-${RUNTIME_PROFILE_RUNNER_ADAPTER:-direct-platform}}"
   source_dir="$(capability_string_or_default "load-src" "sourceDir" "./src/cf")"
+  source_dir="$(target_source_dir_or_default "$root" "$target_input" "$source_dir")"
   source_dir_rel="$(normalize_capability_selected_file "$source_dir")"
   printf 'resolved_source_dir=%s\n' "$source_dir" >>"$stdout_log"
   base_context_json="$(build_redacted_context_json)"
@@ -625,6 +636,9 @@ selection_json="$(build_load_task_selection_json "$source_dir" "$selector_mode" 
 
 if [ "$status" != "failed" ]; then
   delegate_cmd=("$root/scripts/platform/load-src.sh" "--profile" "$profile_path" "--run-root" "$delegated_run_root" "--files" "$selected_files_csv")
+  if [ -n "$target_input" ]; then
+    delegate_cmd+=("--target" "$target_input")
+  fi
   if [ "$dry_run" = "1" ]; then
     delegate_cmd+=("--dry-run")
   fi

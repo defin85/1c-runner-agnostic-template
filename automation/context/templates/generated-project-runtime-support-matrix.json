@@ -3,6 +3,7 @@
   "matrixRole": "project-owned-runtime-support-matrix-reference",
   "liveMatrixJsonPath": "automation/context/runtime-support-matrix.json",
   "liveMatrixMarkdownPath": "automation/context/runtime-support-matrix.md",
+  "targetMetadataPath": "automation/context/target-matrix.json",
   "requiredStatuses": [
     "supported",
     "unsupported",
@@ -31,13 +32,17 @@
     "publish-http"
   ],
   "optionalFields": [
-    "projectSpecificBaselineExtension"
+    "projectSpecificBaselineExtension",
+    "targets",
+    "extensionMatrix"
   ],
   "notes": [
     "Treat this matrix as the checked-in runtime truth for generated-project onboarding.",
     "Operator-local contours may rely on ignored local-private profiles, but they must stay classified as operator-local here.",
     "Operator-local contours should route through docs/agent/operator-local-runbook.md or another project-owned runbook path declared in the matrix.",
     "Project map, runtime quickstart, and onboarding docs should point here instead of treating env/local.json as shared baseline truth.",
+    "Multi-target extension workspaces declare checked-in target metadata in automation/context/target-matrix.json and keep operator-local profile binding in profile target.id.",
+    "Target-aware contour entries should list target ids and reference the extension set selected for each target.",
     "golden-baseline is a mandatory project regression contour and should fail closed until the project wires tests/golden/run.sh or GOLDEN_BASELINE_COMMAND.",
     "If a project adds an extra no-1C smoke contour, declare it via projectSpecificBaselineExtension and keep it separate from the template baseline."
   ]

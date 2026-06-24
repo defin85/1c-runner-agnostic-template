@@ -12,6 +12,7 @@ source "$SCRIPT_DIR/../lib/yaxunit.sh"
 PROFILE_INPUT="${ONEC_PROFILE_PATH:-}"
 RUN_ROOT_INPUT="${ONEC_CAPABILITY_RUN_ROOT:-}"
 CONFIG_INPUT=""
+TARGET_INPUT=""
 DRY_RUN=0
 TIMEOUT_SECONDS="${ONEC_YAXUNIT_TIMEOUT_SECONDS:-900}"
 
@@ -58,6 +59,7 @@ Options:
   --profile <file>     Runtime profile JSON (defaults to env/local.json if present)
   --run-root <dir>     Directory for summary.json, resolved config, logs, and reports
   --config <file>      YAxUnit JSON config to copy/normalize into run-root
+  --target <id>        Target id from automation/context/target-matrix.json
   --extension <name>   YAxUnit filter.extensions entry; repeatable
   --module <name>      YAxUnit filter.modules entry; repeatable
   --test <name>        YAxUnit filter.tests entry; repeatable
@@ -104,6 +106,11 @@ parse_args() {
       --config)
         [ "$#" -ge 2 ] || fail "--config requires a value"
         CONFIG_INPUT="$2"
+        shift 2
+        ;;
+      --target)
+        [ "$#" -ge 2 ] || fail "--target requires a value"
+        TARGET_INPUT="$2"
         shift 2
         ;;
       --extension)
@@ -604,13 +611,16 @@ write_summary() {
   local message="$4"
   local filters=""
   local required_sources_json=""
+  local profile_target=""
 
   filters="$(filters_json)"
   required_sources_json="$(json_array_from_lines "${REQUIRED_SOURCE_EXTENSIONS[@]}")"
+  profile_target="$(target_profile_id)"
 
   jq -n \
     --arg status "$status" \
     --arg profile_path "$PROFILE_PATH" \
+    --arg profile_target "$profile_target" \
     --arg run_root "$RUN_ROOT" \
     --arg started_at "$STARTED_AT" \
     --arg finished_at "$FINISHED_AT" \
@@ -648,6 +658,9 @@ write_summary() {
         label: "Run YAxUnit checks"
       },
       profile_path: $profile_path,
+      runtime_profile: {
+        target: (if $profile_target == "" then null else $profile_target end)
+      },
       run_root: $run_root,
       started_at: (if $started_at == "" then null else $started_at end),
       finished_at: (if $finished_at == "" then null else $finished_at end),
@@ -720,6 +733,7 @@ run_yaxunit() {
   local -a adapter_env=()
   local -a wrapped_command=()
   local -a exec_prefix=()
+  local -a target_env=()
 
   build_launch_command launch_command
   write_redacted_command_file "$COMMAND_TXT" "${launch_command[@]}"
@@ -737,12 +751,15 @@ run_yaxunit() {
 
   wrapped_command=("$PROJECT_ROOT/scripts/adapters/direct-platform.sh" "${launch_command[@]}")
   prepare_adapter_wrapper_env "$ADAPTER" adapter_env
+  if [ -n "$TARGET_INPUT" ]; then
+    target_env=("ONEC_TARGET_ID=$TARGET_INPUT")
+  fi
   if command -v timeout >/dev/null 2>&1; then
     exec_prefix=(timeout "$TIMEOUT_SECONDS")
   fi
 
   set +e
-  env "${adapter_env[@]}" "${exec_prefix[@]}" "${wrapped_command[@]}" >"$STDOUT_LOG" 2>"$STDERR_LOG"
+  env "${target_env[@]}" "${adapter_env[@]}" "${exec_prefix[@]}" "${wrapped_command[@]}" >"$STDOUT_LOG" 2>"$STDERR_LOG"
   RUNNER_EXIT_CODE=$?
   set -e
   if [ "$RUNNER_EXIT_CODE" -eq 124 ]; then
@@ -767,6 +784,7 @@ PROFILE_PATH="$(resolve_profile_input)"
 RUN_ROOT="$(resolve_run_root_input)"
 load_runtime_profile "$PROFILE_PATH"
 require_runtime_profile_loaded
+target_require_requested "$PROJECT_ROOT" "$TARGET_INPUT"
 
 REPORTS_DIR="$RUN_ROOT/reports"
 JUNIT_XML="$REPORTS_DIR/junit.xml"

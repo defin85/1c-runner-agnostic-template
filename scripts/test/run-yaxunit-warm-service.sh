@@ -29,6 +29,7 @@ shift || true
 
 PROFILE_INPUT=""
 RUN_ROOT_INPUT=""
+TARGET_INPUT=""
 TIMEOUT_SECONDS="$DEFAULT_TIMEOUT_SECONDS"
 RPC_HOST="${ONEC_YAXUNIT_WARM_RPC_HOST:-127.0.0.1}"
 RPC_PORT_INPUT="${ONEC_YAXUNIT_WARM_RPC_PORT:-}"
@@ -41,6 +42,7 @@ RUN_SERVER=0
 
 PROFILE_PATH=""
 REQUESTED_PROFILE_PATH=""
+SESSION_TARGET_ID=""
 RUN_ROOT=""
 STARTED_AT=""
 SESSION_ROOT=""
@@ -79,10 +81,10 @@ CLIENT_BINARY=""
 usage() {
   cat <<'EOF'
 Usage:
-  ./scripts/test/run-yaxunit-warm-service.sh up --profile <file> --run-root <dir> [--timeout <seconds>] [--port <port>]
-  ./scripts/test/run-yaxunit-warm-service.sh run --profile <file> --run-root <dir> --module-file <path> --module-name <name> --method <name> [--client] [--server] [--ordinary-client] [--timeout <seconds>]
-  ./scripts/test/run-yaxunit-warm-service.sh status --profile <file> --run-root <dir>
-  ./scripts/test/run-yaxunit-warm-service.sh down --profile <file> --run-root <dir> [--timeout <seconds>]
+  ./scripts/test/run-yaxunit-warm-service.sh up --profile <file> --target <id> --run-root <dir> [--timeout <seconds>] [--port <port>]
+  ./scripts/test/run-yaxunit-warm-service.sh run --profile <file> --target <id> --run-root <dir> --module-file <path> --module-name <name> --method <name> [--client] [--server] [--ordinary-client] [--timeout <seconds>]
+  ./scripts/test/run-yaxunit-warm-service.sh status --profile <file> --target <id> --run-root <dir>
+  ./scripts/test/run-yaxunit-warm-service.sh down --profile <file> --target <id> --run-root <dir> [--timeout <seconds>]
 EOF
 }
 
@@ -111,6 +113,11 @@ parse_args() {
       --run-root)
         [ "$#" -ge 2 ] || die "--run-root requires a value"
         RUN_ROOT_INPUT="$2"
+        shift 2
+        ;;
+      --target)
+        [ "$#" -ge 2 ] || die "--target requires a value"
+        TARGET_INPUT="$2"
         shift 2
         ;;
       --timeout|--timeout-seconds)
@@ -186,6 +193,8 @@ resolve_profile_path() {
   REQUESTED_PROFILE_PATH="$PROFILE_PATH"
   load_runtime_profile "$PROFILE_PATH"
   require_runtime_profile_loaded
+  target_require_requested "$PROJECT_ROOT" "$TARGET_INPUT"
+  SESSION_TARGET_ID="$(target_profile_id)"
 }
 
 process_alive() {
@@ -319,6 +328,7 @@ CLIENT_PID=$(printf '%q' "${CLIENT_PID:-}")
 SYNC_EVIDENCE_PATH=$(printf '%q' "$SYNC_EVIDENCE_PATH")
 SYNC_EVIDENCE_PREPARED_AT=$(printf '%q' "$SYNC_EVIDENCE_PREPARED_AT")
 SYNC_CONTRACT_HASH=$(printf '%q' "$SYNC_CONTRACT_HASH")
+SESSION_TARGET_ID=$(printf '%q' "$SESSION_TARGET_ID")
 STARTED_AT=$(printf '%q' "$STARTED_AT")
 EOF
   mv "$tmp_path" "$SESSION_ENV_PATH"
@@ -391,6 +401,7 @@ update_service_state() {
     --arg updated_at "$(timestamp_utc)" \
     --arg session_root "$SESSION_ROOT" \
     --arg profile_path "$PROFILE_PATH" \
+    --arg profile_target "$SESSION_TARGET_ID" \
     --arg ready_file "$READY_FILE" \
     --arg command_dir "$COMMAND_DIR" \
     --arg shutdown_file "$SHUTDOWN_FILE" \
@@ -441,13 +452,16 @@ write_summary() {
   local message="${4:-}"
   local run_history="${5:-}"
   local service_state=""
+  local profile_target=""
 
   service_state="$(current_service_state)"
+  profile_target="$(target_profile_id)"
   jq -n \
     --arg status "$status" \
     --arg command "$COMMAND" \
     --arg contour_id "$YAXUNIT_WARM_RPC_CONTOUR_ID" \
     --arg profile_path "$PROFILE_PATH" \
+    --arg profile_target "$profile_target" \
     --arg run_root "$RUN_ROOT" \
     --arg started_at "$STARTED_AT" \
     --arg finished_at "$(timestamp_utc)" \
@@ -470,6 +484,9 @@ write_summary() {
         command: $command
       },
       profile_path: $profile_path,
+      runtime_profile: {
+        target: (if $profile_target == "" then null else $profile_target end)
+      },
       run_root: $run_root,
       started_at: $started_at,
       finished_at: $finished_at,
@@ -743,6 +760,7 @@ start_client_process() {
   write_redacted_command_file "$CLIENT_COMMAND_TXT" "${launch_command[@]}"
   prepare_adapter_wrapper_env "$ADAPTER" adapter_env
   runtime_env=(
+    "ONEC_TARGET_ID=$TARGET_INPUT"
     "HOME=$RUNTIME_HOME"
     "XDG_CONFIG_HOME=$RUNTIME_XDG_CONFIG"
     "XDG_CACHE_HOME=$RUNTIME_XDG_CACHE"

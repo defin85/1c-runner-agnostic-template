@@ -8,6 +8,8 @@ PROJECT_ROOT="$(cd -- "$SCRIPT_DIR/../.." && pwd)"
 source "$SCRIPT_DIR/../lib/common.sh"
 # shellcheck source=../lib/runtime-profile.sh
 source "$SCRIPT_DIR/../lib/runtime-profile.sh"
+# shellcheck source=../lib/target-matrix.sh
+source "$SCRIPT_DIR/../lib/target-matrix.sh"
 # shellcheck source=../lib/onec.sh
 source "$SCRIPT_DIR/../lib/onec.sh"
 
@@ -15,6 +17,7 @@ PROFILE_INPUT=""
 RUN_ROOT_INPUT=""
 DRY_RUN=0
 CAPABILITY_DRY_RUN=0
+TARGET_INPUT=""
 EXPLICIT_EXTENSIONS=()
 
 ADAPTER=""
@@ -36,6 +39,7 @@ Usage: ./scripts/platform/load-cfe.sh [options]
 Options:
   --profile <file>   Runtime profile JSON (defaults to env/local.json if present)
   --run-root <dir>   Directory for wrapper summary and per-extension artifacts
+  --target <id>      Target id from automation/context/target-matrix.json
   --extension <name> Load only the specified extension (repeatable)
   --dry-run          Resolve ibcmd commands and write dry-run summaries only
   -h, --help         Show this help
@@ -67,6 +71,11 @@ parse_args() {
       --run-root)
         [ "$#" -ge 2 ] || fail "--run-root requires a value"
         RUN_ROOT_INPUT="$2"
+        shift 2
+        ;;
+      --target)
+        [ "$#" -ge 2 ] || fail "--target requires a value"
+        TARGET_INPUT="$2"
         shift 2
         ;;
       --extension)
@@ -117,6 +126,14 @@ collect_extension_names() {
   local path=""
 
   SELECTED_EXTENSIONS=()
+  if target_matrix_enabled "$PROJECT_ROOT"; then
+    if [ "${#EXPLICIT_EXTENSIONS[@]}" -gt 0 ]; then
+      fail "--extension cannot be combined with --target in a multi-target workspace"
+    fi
+    target_fill_extensions_array "$PROJECT_ROOT" "$TARGET_INPUT" SELECTED_EXTENSIONS
+    return 0
+  fi
+
   if [ "${#EXPLICIT_EXTENSIONS[@]}" -gt 0 ]; then
     for extension_name in "${EXPLICIT_EXTENSIONS[@]}"; do
       [ -d "$source_root/$extension_name" ] || fail "extension source not found under $source_root: $extension_name"
@@ -542,6 +559,7 @@ write_summary() {
     --arg started_at "$started_at" \
     --arg finished_at "$finished_at" \
     --arg source_root "$SOURCE_ROOT" \
+    --arg target_id "$TARGET_INPUT" \
     --arg adapter "$ADAPTER" \
     --arg failed_extension "$FAILED_EXTENSION" \
     --arg failed_step "$FAILED_STEP" \
@@ -571,6 +589,7 @@ write_summary() {
       },
       extension_source: {
         root: $source_root,
+        target_id: (if $target_id == "" then null else $target_id end),
         selected_names: $selected_extensions,
         failed_names: $failed_extensions
       },
@@ -607,6 +626,7 @@ mkdir -p "$RUN_ROOT"
 
 load_runtime_profile "$PROFILE_PATH"
 require_runtime_profile_loaded
+target_require_requested "$PROJECT_ROOT" "$TARGET_INPUT"
 
 ADAPTER="${RUNTIME_PROFILE_RUNNER_ADAPTER:-}"
 validate_ibcmd_capability_support "load-src" "$ADAPTER"
