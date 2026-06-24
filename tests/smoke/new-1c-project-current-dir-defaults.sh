@@ -50,6 +50,8 @@ run_helper() {
 
 current_dir_log="$tmpdir/copier-current-dir.txt"
 explicit_dir_log="$tmpdir/copier-explicit-dir.txt"
+local_git_template_log="$tmpdir/copier-local-git-template.txt"
+python_local_git_template_log="$tmpdir/copier-python-local-git-template.txt"
 
 run_helper "$workdir" --defaults --no-git --no-beads
 mv "$tmpdir/copier-args.txt" "$current_dir_log"
@@ -62,3 +64,30 @@ mv "$tmpdir/copier-args.txt" "$explicit_dir_log"
 
 assert_has_arg "$explicit_dir_log" "project_name=other sample project"
 assert_has_arg "$explicit_dir_log" "project_slug=other-sample-project"
+
+local_template="$tmpdir/local-template"
+mkdir -p "$local_template/.git"
+
+run_helper "$tmpdir" "$tmpdir/git-backed-project" \
+  --template "$local_template" \
+  --defaults \
+  --no-git \
+  --no-beads
+mv "$tmpdir/copier-args.txt" "$local_git_template_log"
+
+assert_has_arg "$local_git_template_log" "--vcs-ref"
+assert_has_arg "$local_git_template_log" "HEAD"
+
+(
+  cd "$tmpdir"
+  PATH="$bindir:$PATH" bash "$PROJECT_ROOT/scripts/python/run-python.sh" new-project \
+    "$tmpdir/python-git-backed-project" \
+    --template "$local_template" \
+    --defaults \
+    --no-git \
+    --no-beads >/dev/null
+)
+mv "$tmpdir/copier-args.txt" "$python_local_git_template_log"
+
+assert_has_arg "$python_local_git_template_log" "--vcs-ref"
+assert_has_arg "$python_local_git_template_log" "HEAD"

@@ -714,7 +714,10 @@ def migrate_runtime_profile_v2(legacy_profile: Path) -> str:
 
 def new_project(destination: str, template: str, copier_args: list[str], *, cwd: Path | None = None) -> int:
     repo_root = cwd or project_root()
-    cmd = ["copier", "copy", "--trust", *copier_args, template, destination]
+    cmd = ["copier", "copy", "--trust"]
+    if (Path(template) / ".git").is_dir():
+        cmd.extend(["--vcs-ref", "HEAD"])
+    cmd.extend([*copier_args, template, destination])
     return run_process(cmd, cwd=repo_root, check=False, capture_output=False).returncode
 
 

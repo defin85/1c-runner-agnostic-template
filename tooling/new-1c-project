@@ -179,6 +179,10 @@ fi
 
 cmd=(copier copy --trust)
 
+if [ -d "$template/.git" ]; then
+  cmd+=(--vcs-ref HEAD)
+fi
+
 if [ "$use_defaults" -eq 1 ]; then
   cmd+=(--defaults)
 fi

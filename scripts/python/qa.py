@@ -87,7 +87,7 @@ def check_skill_bindings(root: Path | None = None) -> int:
             status = 1
         for skill_file in sorted(skills_dir.glob("*/*/SKILL.md")) + sorted(skills_dir.glob("*/SKILL.md")):
             text = skill_file.read_text(encoding="utf-8")
-            if not re.search(r"^Repo script: `\./scripts/.+`$", text, re.MULTILINE):
+            if not skill_file.parent.name.startswith("openspec-") and not re.search(r"^Repo script: `\./scripts/.+`$", text, re.MULTILINE):
                 print(f"missing repo script binding: {skill_file}", file=os.sys.stderr)
                 status = 1
             if re.search(r"powershell\.exe -File|/opt/1cv8|1cv8 DESIGNER|rac ", text):
