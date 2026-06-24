@@ -6,7 +6,6 @@
 ## Role Separation
 
 - `OpenSpec` — change contract, requirements, acceptance.
-- `bd` — executable tracking и live status.
 - `docs/exec-plans/active/<task-id>.md` — living progress, handoff и session restart.
 - `docs/work-items/<task-id>/` — extracted notes, attachment summaries, bulky inputs, task-local evidence и supporting materials.
 
@@ -18,7 +17,6 @@
 
 ## What Not To Put Here
 
-- не используйте `docs/work-items/` как замену `bd`;
 - не дублируйте здесь progress, который уже должен жить в `docs/exec-plans/`;
 - не переносите сюда code payload из `src/`.
 
@@ -32,9 +30,8 @@
 ## Starter Workflow
 
 1. Если change новый или неоднозначный, начните с `OpenSpec`.
-2. После approval переведите execution tracking в `bd`.
-3. Скопируйте `docs/exec-plans/TEMPLATE.md` в `docs/exec-plans/active/<task-id>.md`.
-4. Если нужны bulky supporting artifacts, скопируйте `docs/work-items/TEMPLATE.md` в `docs/work-items/<task-id>/index.md`.
+2. Скопируйте `docs/exec-plans/TEMPLATE.md` в `docs/exec-plans/active/<task-id>.md`.
+3. Если нужны bulky supporting artifacts, скопируйте `docs/work-items/TEMPLATE.md` в `docs/work-items/<task-id>/index.md`.
 
 ## Related Truth
 

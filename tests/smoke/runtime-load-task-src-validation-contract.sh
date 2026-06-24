@@ -184,10 +184,10 @@ repo_missing="$tmpdir/repo-missing"
 write_fixture_repo "$repo_missing"
 run_missing_root="$tmpdir/run-missing"
 stderr_missing="$tmpdir/run-missing.stderr"
-run_expect_failure "$repo_missing" "$run_missing_root" "$stderr_missing" --bead missing-bead
+run_expect_failure "$repo_missing" "$run_missing_root" "$stderr_missing" --work-item 9999
 assert_stderr_contains "$stderr_missing" "no commits matched selector"
 assert_jq "$run_missing_root/summary.json" '.status == "failed"' "missing-status"
-assert_jq "$run_missing_root/summary.json" '.selection.selector.mode == "bead"' "missing-selector-mode"
+assert_jq "$run_missing_root/summary.json" '.selection.selector.mode == "work-item"' "missing-selector-mode"
 assert_jq "$run_missing_root/summary.json" '.selection.selected_commits == []' "missing-commits-empty"
 assert_jq "$run_missing_root/summary.json" '.selection.error == "no commits matched selector"' "missing-error"
 assert_jq "$run_missing_root/summary.json" '.delegated == null' "missing-no-delegation"
@@ -198,7 +198,7 @@ printf '<items changed />\n' >"$repo_range/src/cf/Catalogs/Items.xml"
 (
   cd "$repo_range"
   git add src/cf/Catalogs/Items.xml
-  git commit -m $'range commit\n\nBead: range.1\nWork-Item: 1000' >/dev/null
+  git commit -m $'range commit\n\nWork-Item: 1000' >/dev/null
 )
 range_commit="$(git -C "$repo_range" rev-parse HEAD)"
 range_run_root="$tmpdir/run-range"
@@ -226,16 +226,16 @@ mkdir -p "$repo_merge/src/cf/EventSubscriptions"
   git add src/cf/EventSubscriptions/Task.xml
   git commit -m "feature work" >/dev/null
   git checkout master >/dev/null
-  git merge --no-ff feature -m $'merge task\n\nBead: merge.1\nWork-Item: 1002' >/dev/null
+  git merge --no-ff feature -m $'merge task\n\nWork-Item: 1002' >/dev/null
 )
 merge_run_root="$tmpdir/run-merge"
 (
   cd "$repo_merge"
-  ./scripts/platform/load-task-src.sh --profile env/local.json --run-root "$merge_run_root" --bead merge.1 >/dev/null
+  ./scripts/platform/load-task-src.sh --profile env/local.json --run-root "$merge_run_root" --work-item 1002 >/dev/null
 )
 assert_jq "$merge_run_root/summary.json" '.status == "success"' "merge-status"
-assert_jq "$merge_run_root/summary.json" '.selection.selector.mode == "bead"' "merge-selector-mode"
-assert_jq "$merge_run_root/summary.json" '.selection.selector.value == "merge.1"' "merge-selector-value"
+assert_jq "$merge_run_root/summary.json" '.selection.selector.mode == "work-item"' "merge-selector-mode"
+assert_jq "$merge_run_root/summary.json" '.selection.selector.value == "1002"' "merge-selector-value"
 assert_jq "$merge_run_root/summary.json" '.selection.selected_files == ["EventSubscriptions/Task.xml"]' "merge-selected-files"
 assert_jq "$merge_run_root/summary.json" '.delegated.capability == "load-src"' "merge-delegated-capability"
 
@@ -244,11 +244,11 @@ write_fixture_repo "$repo_deleted"
 (
   cd "$repo_deleted"
   git rm -q src/cf/Catalogs/Items.xml
-  git commit -m $'delete only\n\nBead: delete.1\nWork-Item: 1001' >/dev/null
+  git commit -m $'delete only\n\nWork-Item: 1001' >/dev/null
 )
 run_deleted_root="$tmpdir/run-deleted"
 stderr_deleted="$tmpdir/run-deleted.stderr"
-run_expect_failure "$repo_deleted" "$run_deleted_root" "$stderr_deleted" --bead delete.1
+run_expect_failure "$repo_deleted" "$run_deleted_root" "$stderr_deleted" --work-item 1001
 assert_stderr_contains "$stderr_deleted" "no eligible committed files inside source tree"
 assert_jq "$run_deleted_root/summary.json" '.status == "failed"' "deleted-status"
 assert_jq "$run_deleted_root/summary.json" '.selection.selected_files == []' "deleted-selected-empty"
@@ -263,11 +263,11 @@ printf '<items delegated failure />\n' >"$repo_delegated_failure/src/cf/Catalogs
 (
   cd "$repo_delegated_failure"
   git add env/local.json src/cf/Catalogs/Items.xml
-  git commit -m $'delegated failure\n\nBead: failure-bead' >/dev/null
+  git commit -m $'delegated failure\n\nWork-Item: 1003' >/dev/null
 )
 run_delegated_failure_root="$tmpdir/run-delegated-failure"
 stderr_delegated_failure="$tmpdir/run-delegated-failure.stderr"
-run_expect_failure "$repo_delegated_failure" "$run_delegated_failure_root" "$stderr_delegated_failure" --bead failure-bead
+run_expect_failure "$repo_delegated_failure" "$run_delegated_failure_root" "$stderr_delegated_failure" --work-item 1003
 assert_jq "$run_delegated_failure_root/summary.json" '.status == "failed"' "delegated-failure-status"
 assert_jq "$run_delegated_failure_root/summary.json" '.delegated.capability == "load-src"' "delegated-failure-capability"
 assert_jq "$run_delegated_failure_root/summary.json" '.delegated.run_root == $ARGS.positional[0]' "delegated-failure-run-root" \
@@ -294,12 +294,12 @@ run_expect_failure_with_args \
   "$stderr_missing_profile" \
   --profile env/missing.json \
   --run-root "$run_missing_profile_root" \
-  --bead missing-profile
+  --work-item 1004
 assert_stderr_contains "$stderr_missing_profile" "runtime profile not found:"
 assert_exists "$run_missing_profile_root/summary.json"
 assert_jq "$run_missing_profile_root/summary.json" '.status == "failed"' "missing-profile-status"
-assert_jq "$run_missing_profile_root/summary.json" '.selection.selector.mode == "bead"' "missing-profile-selector-mode"
-assert_jq "$run_missing_profile_root/summary.json" '.selection.selector.value == "missing-profile"' "missing-profile-selector-value"
+assert_jq "$run_missing_profile_root/summary.json" '.selection.selector.mode == "work-item"' "missing-profile-selector-mode"
+assert_jq "$run_missing_profile_root/summary.json" '.selection.selector.value == "1004"' "missing-profile-selector-value"
 assert_jq "$run_missing_profile_root/summary.json" '.selection.error | startswith("runtime profile not found: ")' "missing-profile-error"
 assert_jq "$run_missing_profile_root/summary.json" '.delegated == null' "missing-profile-no-delegation"
 
@@ -312,12 +312,12 @@ run_expect_failure_with_args \
   "$repo_required_profile" \
   "$stderr_required_profile" \
   --run-root "$run_required_profile_root" \
-  --bead required-profile
+  --work-item 1005
 assert_stderr_contains "$stderr_required_profile" "runtime profile is required; pass --profile <file> or create env/local.json"
 assert_exists "$run_required_profile_root/summary.json"
 assert_jq "$run_required_profile_root/summary.json" '.status == "failed"' "required-profile-status"
-assert_jq "$run_required_profile_root/summary.json" '.selection.selector.mode == "bead"' "required-profile-selector-mode"
-assert_jq "$run_required_profile_root/summary.json" '.selection.selector.value == "required-profile"' "required-profile-selector-value"
+assert_jq "$run_required_profile_root/summary.json" '.selection.selector.mode == "work-item"' "required-profile-selector-mode"
+assert_jq "$run_required_profile_root/summary.json" '.selection.selector.value == "1005"' "required-profile-selector-value"
 assert_jq "$run_required_profile_root/summary.json" '.selection.error == "runtime profile is required; pass --profile <file> or create env/local.json"' "required-profile-error"
 assert_jq "$run_required_profile_root/summary.json" '.delegated == null' "required-profile-no-delegation"
 
@@ -331,12 +331,12 @@ run_expect_failure_with_args \
   "$stderr_invalid_profile" \
   --profile env/invalid.json \
   --run-root "$run_invalid_profile_root" \
-  --bead invalid-profile
+  --work-item 1006
 assert_stderr_contains "$stderr_invalid_profile" "runtime profile root must be an object:"
 assert_exists "$run_invalid_profile_root/summary.json"
 assert_jq "$run_invalid_profile_root/summary.json" '.status == "failed"' "invalid-profile-status"
-assert_jq "$run_invalid_profile_root/summary.json" '.selection.selector.mode == "bead"' "invalid-profile-selector-mode"
-assert_jq "$run_invalid_profile_root/summary.json" '.selection.selector.value == "invalid-profile"' "invalid-profile-selector-value"
+assert_jq "$run_invalid_profile_root/summary.json" '.selection.selector.mode == "work-item"' "invalid-profile-selector-mode"
+assert_jq "$run_invalid_profile_root/summary.json" '.selection.selector.value == "1006"' "invalid-profile-selector-value"
 assert_jq "$run_invalid_profile_root/summary.json" '.selection.error | startswith("runtime profile root must be an object: ")' "invalid-profile-error"
 assert_jq "$run_invalid_profile_root/summary.json" '.delegated == null' "invalid-profile-no-delegation"
 
@@ -349,7 +349,7 @@ create_minimal_path "$missing_git_path" dirname realpath mkdir date jq
 set +e
 (
   cd "$repo_missing_git"
-  PATH="$missing_git_path" "$BASH" ./scripts/platform/load-task-src.sh --profile env/local.json --run-root "$run_missing_git_root" --bead missing-git >/dev/null
+  PATH="$missing_git_path" "$BASH" ./scripts/platform/load-task-src.sh --profile env/local.json --run-root "$run_missing_git_root" --work-item 1007 >/dev/null
 ) 2>"$stderr_missing_git"
 status=$?
 set -e
@@ -360,8 +360,8 @@ fi
 assert_stderr_contains "$stderr_missing_git" "command not found: git"
 assert_exists "$run_missing_git_root/summary.json"
 assert_jq "$run_missing_git_root/summary.json" '.status == "failed"' "missing-git-status"
-assert_jq "$run_missing_git_root/summary.json" '.selection.selector.mode == "bead"' "missing-git-selector-mode"
-assert_jq "$run_missing_git_root/summary.json" '.selection.selector.value == "missing-git"' "missing-git-selector-value"
+assert_jq "$run_missing_git_root/summary.json" '.selection.selector.mode == "work-item"' "missing-git-selector-mode"
+assert_jq "$run_missing_git_root/summary.json" '.selection.selector.value == "1007"' "missing-git-selector-value"
 assert_jq "$run_missing_git_root/summary.json" '.selection.error == "command not found: git"' "missing-git-error"
 assert_jq "$run_missing_git_root/summary.json" '.delegated == null' "missing-git-no-delegation"
 
@@ -374,7 +374,7 @@ create_minimal_path "$missing_jq_path" dirname realpath mkdir date git
 set +e
 (
   cd "$repo_missing_jq"
-  PATH="$missing_jq_path" "$BASH" ./scripts/platform/load-task-src.sh --profile env/local.json --run-root "$run_missing_jq_root" --bead missing-jq >/dev/null
+  PATH="$missing_jq_path" "$BASH" ./scripts/platform/load-task-src.sh --profile env/local.json --run-root "$run_missing_jq_root" --work-item 1008 >/dev/null
 ) 2>"$stderr_missing_jq"
 status=$?
 set -e
@@ -385,8 +385,8 @@ fi
 assert_stderr_contains "$stderr_missing_jq" "command not found: jq"
 assert_exists "$run_missing_jq_root/summary.json"
 assert_jq "$run_missing_jq_root/summary.json" '.status == "failed"' "missing-jq-status"
-assert_jq "$run_missing_jq_root/summary.json" '.selection.selector.mode == "bead"' "missing-jq-selector-mode"
-assert_jq "$run_missing_jq_root/summary.json" '.selection.selector.value == "missing-jq"' "missing-jq-selector-value"
+assert_jq "$run_missing_jq_root/summary.json" '.selection.selector.mode == "work-item"' "missing-jq-selector-mode"
+assert_jq "$run_missing_jq_root/summary.json" '.selection.selector.value == "1008"' "missing-jq-selector-value"
 assert_jq "$run_missing_jq_root/summary.json" '.selection.error == "command not found: jq"' "missing-jq-error"
 assert_jq "$run_missing_jq_root/summary.json" '.delegated == null' "missing-jq-no-delegation"
 
@@ -394,7 +394,7 @@ repo_conflict="$tmpdir/repo-conflict"
 write_fixture_repo "$repo_conflict"
 run_conflict_root="$tmpdir/run-conflict"
 stderr_conflict="$tmpdir/run-conflict.stderr"
-run_expect_failure "$repo_conflict" "$run_conflict_root" "$stderr_conflict" --bead bead-1 --work-item 1002
+run_expect_failure "$repo_conflict" "$run_conflict_root" "$stderr_conflict" --work-item 1002 --range HEAD
 assert_stderr_contains "$stderr_conflict" "load-task-src requires exactly one selector"
 if [ ! -f "$run_conflict_root/summary.json" ]; then
   printf 'conflict path must still create summary.json\n' >&2
@@ -405,8 +405,8 @@ if [ ! -f "$run_conflict_root/stderr.log" ]; then
   exit 1
 fi
 assert_jq "$run_conflict_root/summary.json" '.status == "failed"' "conflict-status"
-assert_jq "$run_conflict_root/summary.json" '.selection.selector.mode == "bead"' "conflict-selector-mode"
-assert_jq "$run_conflict_root/summary.json" '.selection.selector.value == "bead-1"' "conflict-selector-value"
+assert_jq "$run_conflict_root/summary.json" '.selection.selector.mode == "work-item"' "conflict-selector-mode"
+assert_jq "$run_conflict_root/summary.json" '.selection.selector.value == "1002"' "conflict-selector-value"
 assert_jq "$run_conflict_root/summary.json" '.selection.error == "load-task-src requires exactly one selector"' "conflict-selection-error"
 assert_jq "$run_conflict_root/summary.json" '.delegated == null' "conflict-no-delegation"
 assert_stderr_contains "$run_conflict_root/stderr.log" "load-task-src requires exactly one selector"
@@ -423,7 +423,7 @@ set +e
   PATH="$missing_jq_conflict_path" "$BASH" ./scripts/platform/load-task-src.sh \
     --profile env/local.json \
     --run-root "$run_conflict_missing_jq_root" \
-    --bead bead-1 \
+    --work-item 1002 \
     --work-item 1002 >/dev/null
 ) 2>"$stderr_conflict_missing_jq"
 status=$?
@@ -436,7 +436,7 @@ assert_stderr_contains "$stderr_conflict_missing_jq" "load-task-src requires exa
 assert_exists "$run_conflict_missing_jq_root/summary.json"
 assert_exists "$run_conflict_missing_jq_root/stderr.log"
 assert_jq "$run_conflict_missing_jq_root/summary.json" '.status == "failed"' "conflict-missing-jq-status"
-assert_jq "$run_conflict_missing_jq_root/summary.json" '.selection.selector.mode == "bead"' "conflict-missing-jq-selector-mode"
-assert_jq "$run_conflict_missing_jq_root/summary.json" '.selection.selector.value == "bead-1"' "conflict-missing-jq-selector-value"
+assert_jq "$run_conflict_missing_jq_root/summary.json" '.selection.selector.mode == "work-item"' "conflict-missing-jq-selector-mode"
+assert_jq "$run_conflict_missing_jq_root/summary.json" '.selection.selector.value == "1002"' "conflict-missing-jq-selector-value"
 assert_jq "$run_conflict_missing_jq_root/summary.json" '.selection.error == "load-task-src requires exactly one selector"' "conflict-missing-jq-selection-error"
 assert_jq "$run_conflict_missing_jq_root/summary.json" '.delegated == null' "conflict-missing-jq-no-delegation"

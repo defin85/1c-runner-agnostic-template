@@ -200,17 +200,7 @@ printf 'unexpected openspec args: %s\n' "$*" >&2
 exit 1
 EOF
 
-cat >"$bindir/bd" <<'EOF'
-#!/usr/bin/env bash
-set -euo pipefail
-printf 'bd %s\n' "$*" >>"$COMMAND_LOG"
-
-if [ "$1" = "init" ]; then
-  mkdir -p .beads
-fi
-EOF
-
-chmod +x "$bindir/openspec" "$bindir/bd"
+chmod +x "$bindir/openspec"
 chmod +x "$bindir/copier"
 
 init_git_repo "$template_root" "template v0.1.0"
@@ -434,21 +424,21 @@ assert_exists "$rendered_root/scripts/skills/run-imported-skill.ps1"
 assert_exists "$rendered_root/automation/vendor/cc-1c-skills/README.md"
 assert_exists "$rendered_root/automation/vendor/cc-1c-skills/imported-skills.json"
 assert_exists "$rendered_root/automation/vendor/cc-1c-skills/skills/cf-edit/SKILL.md"
-assert_contains "$rendered_root/.agents/skills/1c-load-task-src/SKILL.md" "--bead"
+assert_contains "$rendered_root/.agents/skills/1c-load-task-src/SKILL.md" "--work-item"
 assert_contains "$rendered_root/.agents/skills/1c-load-task-src/SKILL.md" "--work-item"
 assert_contains "$rendered_root/.agents/skills/1c-load-task-src/SKILL.md" "--range"
-assert_contains "$rendered_root/.agents/skills/1c-load-task-src/SKILL.md" "./scripts/git/task-trailers.sh render --bead <id> --work-item <id>"
-assert_contains "$rendered_root/.claude/skills/1c-load-task-src/SKILL.md" "--bead"
+assert_contains "$rendered_root/.agents/skills/1c-load-task-src/SKILL.md" "./scripts/git/task-trailers.sh render --work-item <id>"
+assert_contains "$rendered_root/.claude/skills/1c-load-task-src/SKILL.md" "--work-item"
 assert_contains "$rendered_root/.claude/skills/1c-load-task-src/SKILL.md" "--work-item"
 assert_contains "$rendered_root/.claude/skills/1c-load-task-src/SKILL.md" "--range"
-assert_contains "$rendered_root/.claude/skills/1c-load-task-src/SKILL.md" "./scripts/git/task-trailers.sh render --bead <id> --work-item <id>"
+assert_contains "$rendered_root/.claude/skills/1c-load-task-src/SKILL.md" "./scripts/git/task-trailers.sh render --work-item <id>"
 assert_contains "$rendered_root/docs/agent/architecture.md" "./scripts/platform/load-diff-src.sh"
 assert_contains "$rendered_root/docs/agent/architecture.md" "./scripts/platform/load-task-src.sh"
 assert_contains "$rendered_root/docs/agent/generated-project-verification.md" "./scripts/platform/load-diff-src.sh --profile env/local.json --run-root /tmp/load-diff-src-run"
-assert_contains "$rendered_root/docs/agent/generated-project-verification.md" "./scripts/platform/load-task-src.sh --profile env/local.json --bead task.1 --run-root /tmp/load-task-src-run"
+assert_contains "$rendered_root/docs/agent/generated-project-verification.md" "./scripts/platform/load-task-src.sh --profile env/local.json --work-item 93984 --run-root /tmp/load-task-src-run"
 assert_contains "$rendered_root/env/README.md" "./scripts/platform/load-diff-src.sh --profile env/local.json --run-root /tmp/load-diff-src-run"
-assert_contains "$rendered_root/env/README.md" "./scripts/platform/load-task-src.sh --profile env/local.json --bead demo.1 --run-root /tmp/load-task-src-run"
-assert_contains "$rendered_root/env/README.md" "./scripts/git/task-trailers.sh render --bead demo.1 --work-item 93984"
+assert_contains "$rendered_root/env/README.md" "./scripts/platform/load-task-src.sh --profile env/local.json --work-item 93984 --run-root /tmp/load-task-src-run"
+assert_contains "$rendered_root/env/README.md" "./scripts/git/task-trailers.sh render --work-item 93984"
 assert_contains "$rendered_root/.github/workflows/ci.yml" "name: CI"
 assert_contains "$rendered_root/.github/workflows/ci.yml" "name: Runtime doctor"
 assert_contains "$rendered_root/.github/workflows/ci.yml" "name: Check agent docs"
@@ -539,7 +529,7 @@ assert_contains "$rendered_root/AGENTS.md" 'Use [docs/agent/codex-workflows.md](
 assert_contains "$rendered_root/AGENTS.md" 'Use [docs/agent/review.md](docs/agent/review.md), [docs/agent/operator-local-runbook.md](docs/agent/operator-local-runbook.md), [env/README.md](env/README.md), [.agents/skills/README.md](.agents/skills/README.md), [docs/exec-plans/README.md](docs/exec-plans/README.md), and [docs/work-items/README.md](docs/work-items/README.md) as the main follow-up routers.'
 assert_contains "$rendered_root/AGENTS.md" 'Use [docs/template-maintenance.md](docs/template-maintenance.md) only for template refresh and maintenance work.'
 assert_contains "$rendered_root/AGENTS.md" './scripts/platform/load-diff-src.sh --profile <operator-profile> --run-root /tmp/load-diff-src-run'
-assert_contains "$rendered_root/AGENTS.md" './scripts/platform/load-task-src.sh --profile <operator-profile> --bead <id> --run-root /tmp/load-task-src-run'
+assert_contains "$rendered_root/AGENTS.md" './scripts/platform/load-task-src.sh --profile <operator-profile> --work-item <id> --run-root /tmp/load-task-src-run'
 assert_contains "$rendered_root/AGENTS.md" 'For remote-backed repos with a writable Git remote, a code-change session is not complete until the verified branch state is pushed.'
 assert_contains "$rendered_root/AGENTS.md" 'For local-only repos or repos without a writable remote, do not invent a push-only closeout path.'
 assert_contains "$rendered_root/docs/README.md" "[docs/agent/generated-project-index.md](agent/generated-project-index.md)"
@@ -584,12 +574,12 @@ assert_contains "$rendered_root/docs/agent/generated-project-index.md" "make cod
 assert_contains "$rendered_root/docs/agent/generated-project-index.md" "docs/agent/architecture-map.md"
 assert_contains "$rendered_root/docs/agent/generated-project-index.md" "docs/agent/runtime-quickstart.md"
 assert_contains "$rendered_root/docs/agent/generated-project-index.md" "automation/context/runtime-support-matrix.md"
-assert_contains "$rendered_root/docs/agent/generated-project-index.md" "OpenSpec -> bd -> docs/exec-plans/TEMPLATE.md -> docs/work-items/README.md"
+assert_contains "$rendered_root/docs/agent/generated-project-index.md" "OpenSpec -> docs/exec-plans/TEMPLATE.md -> docs/work-items/README.md"
 assert_contains "$rendered_root/docs/agent/generated-project-index.md" "docs/exec-plans/TEMPLATE.md"
 assert_contains "$rendered_root/docs/agent/generated-project-index.md" "docs/work-items/README.md"
 assert_contains "$rendered_root/docs/agent/generated-project-index.md" "docs/work-items/TEMPLATE.md"
 assert_contains "$rendered_root/docs/agent/generated-project-index.md" "./scripts/platform/load-diff-src.sh --profile <operator-profile> --run-root /tmp/load-diff-src-run"
-assert_contains "$rendered_root/docs/agent/generated-project-index.md" "./scripts/platform/load-task-src.sh --profile <operator-profile> --bead <id> --run-root /tmp/load-task-src-run"
+assert_contains "$rendered_root/docs/agent/generated-project-index.md" "./scripts/platform/load-task-src.sh --profile <operator-profile> --work-item <id> --run-root /tmp/load-task-src-run"
 assert_contains "$rendered_root/automation/context/project-map.md" "role: generated 1С-проект"
 assert_contains "$rendered_root/automation/context/project-map.md" "Repo-Derived Snapshot"
 assert_contains "$rendered_root/automation/context/project-map.md" "generated-derived"
@@ -633,7 +623,7 @@ assert_contains "$rendered_root/docs/agent/codex-workflows.md" "docs/work-items/
 assert_contains "$rendered_root/docs/agent/operator-local-runbook.md" "# Operator-Local Runbook"
 assert_contains "$rendered_root/docs/agent/operator-local-runbook.md" "automation/context/runtime-support-matrix.md"
 assert_contains "$rendered_root/docs/agent/operator-local-runbook.md" "./scripts/platform/load-diff-src.sh --profile env/local.json --run-root /tmp/load-diff-src-run"
-assert_contains "$rendered_root/docs/agent/operator-local-runbook.md" "./scripts/platform/load-task-src.sh --profile env/local.json --bead task.1 --run-root /tmp/load-task-src-run"
+assert_contains "$rendered_root/docs/agent/operator-local-runbook.md" "./scripts/platform/load-task-src.sh --profile env/local.json --work-item 93984 --run-root /tmp/load-task-src-run"
 assert_contains "$rendered_root/docs/agent/operator-local-runbook.md" "docs/testing/xunit-direct-platform.md"
 assert_contains "$rendered_root/docs/agent/operator-local-runbook.md" "docs/work-items/README.md"
 assert_contains "$rendered_root/docs/agent/generated-project-verification.md" "./scripts/test/tdd-xunit.sh"
@@ -781,7 +771,6 @@ if [ "$status_before_export" != "$status_after_export" ]; then
 fi
 
 assert_count "$command_log" "openspec init --tools none" "1"
-assert_count "$command_log" "bd init --stealth -p smoke-project" "1"
 
 git -C "$rendered_root" config user.name "Smoke Test"
 git -C "$rendered_root" config user.email "smoke@example.com"
@@ -987,7 +976,6 @@ assert_line_before \
   "automation/context/hotspots-summary.generated.md" \
   "automation/context/metadata-index.generated.json"
 assert_count "$command_log" "openspec init --tools none" "1"
-assert_count "$command_log" "bd init --stealth -p smoke-project" "1"
 assert_count "$command_log" "copier copy --trust --defaults" "1"
 
 (
@@ -1287,7 +1275,7 @@ assert_contains "$runtime_load_diff_run/load-src/stdout.log" "EventSubscriptions
 (
   cd "$rendered_root"
   git add src/cf/Configuration.xml src/cf/EventSubscriptions/LoadDiff.xml
-  git commit -qm $'task-scoped runtime smoke\n\nBead: copier-runtime.1\nWork-Item: 93984'
+  git commit -qm $'task-scoped runtime smoke\n\nWork-Item: 93984'
 )
 
 runtime_load_task_run="$tmpdir/runtime-load-task-run"
@@ -1297,12 +1285,12 @@ runtime_load_task_run="$tmpdir/runtime-load-task-run"
   PATH="$bindir:$PATH" ONEC_IBCMD_PASSWORD="copier-smoke-ibcmd-secret" ./scripts/platform/load-task-src.sh \
     --profile env/local.json \
     --run-root "$runtime_load_task_run" \
-    --bead copier-runtime.1 >/dev/null
+    --work-item 93984 >/dev/null
 )
 
 assert_jq "$runtime_load_task_run/summary.json" '.status == "success"' "runtime-load-task-status"
-assert_jq "$runtime_load_task_run/summary.json" '.selection.selector.mode == "bead"' "runtime-load-task-selector-mode"
-assert_jq "$runtime_load_task_run/summary.json" '.selection.selector.value == "copier-runtime.1"' "runtime-load-task-selector-value"
+assert_jq "$runtime_load_task_run/summary.json" '.selection.selector.mode == "work-item"' "runtime-load-task-selector-mode"
+assert_jq "$runtime_load_task_run/summary.json" '.selection.selector.value == "93984"' "runtime-load-task-selector-value"
 assert_jq "$runtime_load_task_run/summary.json" '.selection.selected_files | sort == ["Configuration.xml", "EventSubscriptions/LoadDiff.xml"]' "runtime-load-task-selected"
 assert_jq "$runtime_load_task_run/summary.json" '.delegated.capability == "load-src"' "runtime-load-task-delegated"
 assert_jq "$runtime_load_task_run/load-src/summary.json" '.driver_context.partial_import == true' "runtime-load-task-partial"

@@ -21,7 +21,6 @@ Generated projects получают собственные root entrypoint-ы п
 
 - `SDD` (`Spec-Driven Development`) через `OpenSpec`
 - `TDD` через `tests/` и `features/`
-- `beads` для локального issue-tracking в stealth-режиме
 - `LLM-first automation` через `AGENTS.md`, `automation/` и стабильные launcher-скрипты
 - `runner-agnostic execution`, где `vrunner` является опциональным адаптером, а не фундаментом проекта
 
@@ -32,13 +31,12 @@ Generated projects получают собственные root entrypoint-ы п
 Все, что относится к намерению изменения, после bootstrap лежит в `openspec/changes/<change-id>/`.
 Все, что относится к проверке поведения, лежит в `tests/` и `features/`.
 Все, что относится к запуску, лежит в `scripts/`.
-Локальный трекинг задач, если включен при создании проекта, живет в `.beads/` и не коммитится благодаря stealth-режиму.
 
 Это позволяет:
 
 - не смешивать код с архивом задач;
 - менять механизм запуска без перестройки репозитория;
-- держать в репозитории явные точки входа для спецификаций, тестов, запуска и локального трекинга.
+- держать в репозитории явные точки входа для спецификаций, тестов и запуска.
 
 Для agent-facing navigation используйте [docs/agent/index.md](docs/agent/index.md).
 В source repo корневой [AGENTS.md](AGENTS.md) остаётся коротким entrypoint; в generated project этот слой дополняется bootstrap overlay.
@@ -76,7 +74,6 @@ Generated projects получают собственные root entrypoint-ы п
 - `.github/` — CI workflows, поставляемые шаблоном.
 - `.codex/` — project-local Codex config template, включая пример `config.toml` для MCP servers.
 - `docs/` — ADR, архитектурные заметки, эксплуатационная документация.
-- `.beads/` — локальная issue-база beads, создается bootstrap-скриптом и скрывается из Git.
 
 ## Agent Docs
 
@@ -199,7 +196,7 @@ export ONEC_IBCMD_PASSWORD='...'
 ./scripts/platform/load-src.sh --profile env/local.json --run-root /tmp/load-src-run
 ./scripts/platform/load-src.sh --profile env/local.json --files "Catalogs/Items.xml,Forms/List.xml"
 ./scripts/platform/load-diff-src.sh --profile env/local.json --run-root /tmp/load-diff-src-run
-./scripts/platform/load-task-src.sh --profile env/local.json --bead demo.1 --run-root /tmp/load-task-src-run
+./scripts/platform/load-task-src.sh --profile env/local.json --work-item 93984 --run-root /tmp/load-task-src-run
 ```
 
 Для WSL/Linux isolated GUI launches:
@@ -224,7 +221,7 @@ cp env/local.example.json env/.local/develop.json
 - `driver` и `command` нельзя смешивать в одной capability;
 - checked-in `env/local.example.json` уже wired для partial import через `loadSrc.driver=ibcmd`;
 - `load-diff-src` строит git-backed selection внутри `src/cf` и делегирует actual import в `load-src --files`;
-- `load-task-src` строит committed task selection по trailers `Bead:` / `Work-Item:` или по explicit `--range` и тоже делегирует actual import в `load-src --files`;
+- `load-task-src` строит committed task selection по trailer `Work-Item:` или по explicit `--range` и тоже делегирует actual import в `load-src --files`;
 - `summary.json` для `create-ib`, `dump-src`, `load-src`, `update-db` теперь отражает выбранный `driver`;
 - direct-platform contour с `platform.xvfb.enabled=true` требует локальные `xvfb-run` и `xauth`, а capability/doctor summary публикуют structured `adapter_context`;
 - direct-platform contour с `platform.ldPreload.enabled=true` требует валидные absolute library paths, а capability/doctor summary публикуют structured `adapter_context.ld_preload` без сырого `LD_PRELOAD=` shell prefix;
@@ -271,25 +268,22 @@ copier copy <path-or-git-url-to-template> .
 ```bash
 new-1c-project ~/code/my-project --defaults
 cd ~/code/my-project && new-1c-project --defaults
-new-1c-project ~/code/my-project --defaults --no-beads
-new-1c-project ~/code/my-project --defaults --beads-prefix docflow
 ```
 
 `new-1c-project` это не часть сгенерированного проекта, а локальный helper-скрипт поверх `copier copy`.
 Если `destination` не указан или равен `.`, helper берёт `project_name` и `project_slug` из имени текущей папки.
-Post-copy bootstrap создаёт базовый `AGENTS.md` через `openspec init` и дополняет его типовым project overlay с workflow, rules для `bd` и playbook поиска по коду.
+Post-copy bootstrap создаёт базовый `AGENTS.md` через `openspec init` и дополняет его типовым project overlay с workflow и playbook поиска по коду.
 OpenSpec-артефакты самого репозитория шаблона (`openspec/`, корневой `AGENTS.md`, `.claude/commands/opsx`, `.claude/skills/openspec-*`, `.codex/skills/openspec-*`) не рендерятся в конечный проект и не должны перетирать его собственный OpenSpec ни при bootstrap, ни при compatibility-migration через `copier update`.
 Шаблон сохраняет `.copier-answers.yml` как bootstrap provenance, а ongoing updates после первой миграции идут через versioned overlay path.
 
-2. Убедитесь, что установлены `openspec` и `bd`, потому что post-copy bootstrap вызывает `openspec init` и по умолчанию `bd init --stealth`.
+2. Убедитесь, что установлен `openspec`, потому что post-copy bootstrap вызывает `openspec init`.
 
 ```bash
 npm install -g @fission-ai/openspec@latest
 ```
 
-3. Если в вопросах Copier выбрать `git init = no`, beads в интерактивном сценарии будет автоматически отключен. Для уже существующего git-репозитория beads можно явно включить через `-d init_beads=true`.
-4. Настройте команды окружения на базе `env/wsl.example.json`, `env/local.example.json`, `env/windows-local.example.json` или `env/windows-executor.example.json`.
-5. При необходимости добавьте свой adapter в `scripts/adapters/`.
+3. Настройте команды окружения на базе `env/wsl.example.json`, `env/local.example.json`, `env/windows-local.example.json` или `env/windows-executor.example.json`.
+4. При необходимости добавьте свой adapter в `scripts/adapters/`.
 6. Если нужен live project context, возьмите skeleton files из `automation/context/templates/` и создайте на их основе свои project-specific context artifacts.
 7. Создайте первый change в `openspec/changes/`.
 
@@ -359,7 +353,7 @@ update-1c-project /path/to/generated-project --vcs-ref v0.1.1
 ```
 
 `template-check-update` сверяет `.template-overlay-version` с latest tagged release шаблона или с явно переданным `--vcs-ref`.
-`template-update` materialize-ит выбранный template ref, обновляет только manifest-declared template-managed assets, refresh-ит generated README router и managed-блок в `AGENTS.md`, при необходимости восстанавливает missing root entrypoint files, удаляет legacy `src/cf/AGENTS.md` и `src/cf/README.md`, если они остались от старых template release, и не переинициализирует `openspec`, `git` и `bd`.
+`template-update` materialize-ит выбранный template ref, обновляет только manifest-declared template-managed assets, refresh-ит generated README router и managed-блок в `AGENTS.md`, при необходимости восстанавливает missing root entrypoint files, удаляет legacy `src/cf/AGENTS.md` и `src/cf/README.md`, если они остались от старых template release, и не переинициализирует `openspec` и `git`.
 
 ## Make targets
 
@@ -394,8 +388,6 @@ update-1c-project /path/to/generated-project --vcs-ref v0.1.1
 - не парсит `env/*.json` сам по себе;
 - не выбирает платформу 1С за вас;
 - не навязывает `vrunner`, EDT или конкретный CI;
-- не коммитит локальную beads-базу в Git;
-- не подменяет `bd` markdown-трекерами задач;
 - не содержит готовых секретов, строк подключений и учетных данных.
 
 Шаблон задает контракт структуры и точек входа. Конкретные команды запуска вы заполняете под свой контур.

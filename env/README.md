@@ -358,7 +358,7 @@ Partial import поддерживается для `load-src` с `driver=ibcmd` 
 
 ```bash
 ./scripts/platform/load-diff-src.sh --profile env/local.json --run-root /tmp/load-diff-src-run
-./scripts/platform/load-task-src.sh --profile env/local.json --bead demo.1 --run-root /tmp/load-task-src-run
+./scripts/platform/load-task-src.sh --profile env/local.json --work-item 93984 --run-root /tmp/load-task-src-run
 ```
 
 `load-diff-src`:
@@ -370,7 +370,7 @@ Partial import поддерживается для `load-src` с `driver=ibcmd` 
 
 `load-task-src`:
 
-- вычисляет selection из уже закомиченных изменений по trailers `Bead:` / `Work-Item:` или по explicit `--range`;
+- вычисляет selection из уже закомиченных изменений по trailer `Work-Item:` или по explicit `--range`;
 - фильтрует только существующие paths внутри configured `sourceDir`;
 - fail-closed завершается, если selector не нашёл commits или eligible selection пуст;
 - делегирует actual import в `./scripts/platform/load-src.sh --files ...`.
@@ -378,7 +378,7 @@ Partial import поддерживается для `load-src` с `driver=ibcmd` 
 Для canonical trailer block используйте repo-owned helper:
 
 ```bash
-./scripts/git/task-trailers.sh render --bead demo.1 --work-item 93984
+./scripts/git/task-trailers.sh render --work-item 93984
 ```
 
 Если брать за основу `env/local.example.json`, дополнительная правка `loadSrc.driver` не нужна.

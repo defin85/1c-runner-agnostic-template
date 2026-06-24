@@ -7,5 +7,5 @@
 - остаётся copy-ready starter для `docs/work-items/<task-id>/index.md`;
 - ссылается на companion exec-plan в `docs/exec-plans/active/<task-id>.md`;
 - даёт секции для inputs, extracted notes, decisions, evidence и handoff notes;
-- не дублирует issue tracking и не подменяет `OpenSpec` или `bd`;
+- не дублирует living progress и не подменяет `OpenSpec`;
 - помогает держать bulky supporting artifacts вне `src/` и вне одного living progress файла.

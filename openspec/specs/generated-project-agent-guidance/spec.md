@@ -22,7 +22,7 @@ The template SHALL keep generated root guidance concise and link it to the most 
 - **WHEN** a new agent loads the root guidance of a generated repository
 - **THEN** it MUST see `docs/agent/generated-project-index.md` identified as the canonical onboarding router
 - **AND** root `AGENTS.md`, root `README.md`, and `.codex/README.md` MUST stay role-specific pointer surfaces instead of duplicating the full onboarding sequence inline
-- **AND** the canonical onboarding router MUST contain the explicit matrix for when to use OpenSpec, `bd`, and `docs/exec-plans/README.md`
+- **AND** the canonical onboarding router MUST contain the explicit matrix for when to use OpenSpec and `docs/exec-plans/README.md`
 - **AND** any detailed Codex workflow explanation beyond the first routing step MUST be delegated to one canonical generated-project workflow document rather than repeated across all root surfaces
 
 ### Requirement: Codex-First Generated Runbook
@@ -35,7 +35,7 @@ The template SHALL ship a generated-project-first runbook for the first minutes 
 - **THEN** the repository MUST provide a read-only onboarding entrypoint such as `make codex-onboard`
 - **AND** that entrypoint MUST print repo identity, safe-local verification commands, runtime support status pointers, AI-readiness status for template-managed skills, key documentation routers, and next commands without mutating checked-in files
 - **AND** that entrypoint MUST route to one canonical compact surface for project-aware recommended skills or workflows when such hints are available
-- **AND** the onboarding docs MUST explain how the read-only onboarding path relates to `OpenSpec`, `bd`, long-running execution plans, and project-owned work-item artifacts
+- **AND** the onboarding docs MUST explain how the read-only onboarding path relates to `OpenSpec`, long-running execution plans, and project-owned work-item artifacts
 
 ### Requirement: Generated-Project Root Entry Point
 
@@ -147,7 +147,7 @@ The template SHALL ship one canonical Codex workflow guide for generated reposit
 
 - **WHEN** an agent already knows the generated-project onboarding router and needs concrete Codex-native workflow guidance
 - **THEN** the repository MUST provide one canonical doc such as `docs/agent/codex-workflows.md`
-- **AND** that doc MUST cover session controls, review-only flow, long-running flow, skills or MCP pointers, and the relationship between `OpenSpec`, `bd`, and execution plans
+- **AND** that doc MUST cover session controls, review-only flow, long-running flow, skills or MCP pointers, and the relationship between `OpenSpec` and execution plans
 - **AND** root pointer surfaces MAY link to that doc but MUST NOT duplicate its detailed control lists inline
 
 ### Requirement: Operator-Local Runtime Decision Runbook
@@ -215,4 +215,3 @@ The template SHALL route generated repositories through one canonical AI-readine
 - **WHEN** `copier copy` или equivalent bootstrap path рендерит generated repository
 - **THEN** template MUST NOT помещать `AGENTS.md`, `README.md` или аналогичные routing-only markdown artifacts внутрь deployable `src/cf`
 - **AND** полезный routing/context для dense main configuration tree ДОЛЖЕН быть доступен через `src/AGENTS.md` и generated-project docs вне `src/cf`
-

@@ -40,7 +40,6 @@ Codex controls:
 Next commands:
 - make agent-verify
 - openspec list
-- bd ready
 EOF
 }
 
@@ -179,7 +178,6 @@ Codex controls:
 
 Planning matrix:
 - OpenSpec -> use for new capability, breaking change, architecture shift, or ambiguous intent
-- bd -> use for executable code-change tracking after approval
 - docs/exec-plans/TEMPLATE.md -> copy-ready starter for long-running, multi-session, or cross-cutting work
 - docs/work-items/README.md -> task-local supporting artifacts workspace next to the exec-plan
 
@@ -198,7 +196,6 @@ Next commands:
 - make agent-verify
 - make export-context-check
 - make imported-skills-readiness
-- bd ready
 EOF
 }
 

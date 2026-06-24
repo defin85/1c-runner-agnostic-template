@@ -5,12 +5,11 @@
 
 ## Planning Path
 
-Базовая формула: `OpenSpec -> bd -> docs/exec-plans/TEMPLATE.md -> docs/work-items/README.md`.
+Базовая формула: `OpenSpec -> docs/exec-plans/TEMPLATE.md -> docs/work-items/README.md`.
 
 | Когда | Куда идти | Что считать результатом |
 | --- | --- | --- |
 | Анализ, новая capability, breaking change, architecture shift, ambiguous intent | `OpenSpec` | signable contract в `openspec/changes/change-id/` |
-| Approved code work | `bd` | executable task graph, live status и closeout state |
 | Long-running / multi-session / cross-cutting work | `docs/exec-plans/TEMPLATE.md` + `docs/exec-plans/README.md` | living plan artifact для handoff и restart |
 | Bulky task-local inputs, extracted notes, evidence | `docs/work-items/README.md` + `docs/work-items/TEMPLATE.md` | supporting artifacts рядом с exec-plan, но вне tracker-а и вне `src/` |
 
@@ -34,9 +33,8 @@
 ### Approved Code Work
 
 1. Подтвердите, нужен ли `OpenSpec` или достаточно existing spec/project contract.
-2. После approval переведите работу в `bd`.
-3. Перед coding соберите `Requirement -> Code -> Test`.
-4. Для verification используйте `docs/agent/generated-project-verification.md`, runtime support matrix и project-owned runbooks.
+2. Перед coding соберите `Requirement -> Code -> Test`.
+3. Для verification используйте `docs/agent/generated-project-verification.md`, runtime support matrix и project-owned runbooks.
 
 ### Long-Running Work
 
@@ -49,7 +47,7 @@
 
 1. Откройте `docs/agent/review.md`.
 2. Используйте `/review`, если нужен focused review без новой реализации.
-3. Не считайте `tasks.md`, Beads status или comments доказательством реализации без чтения кода и tests.
+3. Не считайте `tasks.md`, comments доказательством реализации без чтения кода и tests.
 
 ## Skills And MCP
 

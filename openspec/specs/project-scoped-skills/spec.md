@@ -68,7 +68,7 @@ The repository SHALL provide repo-local Codex customization artifacts that help 
 - **WHEN** пользователь просит загрузить в ИБ изменения конкретной задачи, уже попавшие в commit history
 - **THEN** repository MUST поставлять project-scoped skill или обновлённый skill contract для этого workflow
 - **AND** skill ДОЛЖЕН указывать на repo-owned wrapper, а не на ad hoc shell snippet
-- **AND** mapping ДОЛЖЕН документировать canonical selectors `--bead`, `--work-item` и `--range`
+- **AND** mapping ДОЛЖЕН документировать canonical selectors `--work-item` и `--range`
 - **AND** mapping ДОЛЖЕН оставаться updateable через template updates
 
 ### Requirement: Imported Executable Skill Readiness Contract
@@ -109,4 +109,3 @@ The template SHALL track provenance and regeneration inputs for imported skill p
 - **THEN** the repository MUST record the upstream source, commit pin, and license in a checked-in vendor directory
 - **AND** it MUST store a generated manifest that maps imported skills to vendored helpers or native aliases
 - **AND** the generated `.agents/skills` and `.claude/skills` facades MUST be reproducible from that vendor source and manifest
-

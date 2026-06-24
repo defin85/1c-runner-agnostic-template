@@ -15,10 +15,8 @@ Options:
       --slug SLUG            Set Copier answer: project_slug
       --adapter NAME         Set Copier answer: preferred_adapter
       --tools LIST           Set Copier answer: openspec_tools
-      --beads-prefix PREFIX  Set Copier answer: beads_prefix
       --defaults             Use Copier defaults without interactive prompts
       --force                Force overwrite/defaults in Copier
-      --no-beads             Disable beads init in post-copy bootstrap
       --no-git               Disable git init in post-copy bootstrap
 
 Examples:
@@ -26,7 +24,6 @@ Examples:
   new-1c-project ~/code/my-project
   new-1c-project ~/code/my-project --defaults --tools none
   new-1c-project . --project-name "My Diadoc Project" --slug my-diadoc-project
-  new-1c-project ~/code/my-project --defaults --beads-prefix docflow
 
 Notes:
   - If destination is omitted, current directory is used.
@@ -65,11 +62,9 @@ project_name=""
 project_slug=""
 preferred_adapter=""
 openspec_tools=""
-beads_prefix=""
 use_defaults=0
 use_force=0
 init_git_repository="true"
-init_beads="true"
 default_name_source=""
 
 while [ "$#" -gt 0 ]; do
@@ -103,11 +98,6 @@ while [ "$#" -gt 0 ]; do
       openspec_tools="$2"
       shift 2
       ;;
-    --beads-prefix)
-      [ "$#" -ge 2 ] || die "--beads-prefix requires a value"
-      beads_prefix="$2"
-      shift 2
-      ;;
     --defaults)
       use_defaults=1
       shift
@@ -118,10 +108,6 @@ while [ "$#" -gt 0 ]; do
       ;;
     --no-git)
       init_git_repository="false"
-      shift
-      ;;
-    --no-beads)
-      init_beads="false"
       shift
       ;;
     -*)
@@ -141,20 +127,6 @@ done
 
 require_command copier
 require_command openspec
-
-if [ "$init_beads" = "true" ]; then
-  require_command bd
-fi
-
-if [ "$init_git_repository" = "false" ] && [ "$init_beads" = "true" ]; then
-  if [ "$destination" = "." ]; then
-    has_git_repository "$PWD" || die "--no-git with beads enabled requires an existing git repository or use --no-beads"
-  elif [ -e "$destination" ]; then
-    has_git_repository "$destination" || die "--no-git with beads enabled requires an existing git repository or use --no-beads"
-  else
-    die "--no-git with beads enabled requires an existing git repository or use --no-beads"
-  fi
-fi
 
 case "$destination" in
   .|./)
@@ -205,14 +177,6 @@ fi
 
 if [ -n "$openspec_tools" ]; then
   cmd+=(-d "openspec_tools=$openspec_tools")
-fi
-
-if [ -n "$beads_prefix" ]; then
-  cmd+=(-d "beads_prefix=$beads_prefix")
-fi
-
-if [ "$init_beads" = "false" ]; then
-  cmd+=(-d "init_beads=false")
 fi
 
 if [ "$init_git_repository" = "false" ]; then

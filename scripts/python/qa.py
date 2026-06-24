@@ -277,7 +277,6 @@ def codex_onboard(root: Path | None = None) -> str:
                 "Next commands:",
                 "- make agent-verify",
                 "- openspec list",
-                "- bd ready",
                 "",
             ]
         )
@@ -369,7 +368,6 @@ def codex_onboard(root: Path | None = None) -> str:
             "",
             "Planning matrix:",
             "- OpenSpec -> use for new capability, breaking change, architecture shift, or ambiguous intent",
-            "- bd -> use for executable code-change tracking after approval",
             "- docs/exec-plans/TEMPLATE.md -> copy-ready starter for long-running, multi-session, or cross-cutting work",
             "- docs/work-items/README.md -> task-local supporting artifacts workspace next to the exec-plan",
             "",
@@ -388,7 +386,6 @@ def codex_onboard(root: Path | None = None) -> str:
             "- make agent-verify",
             "- make export-context-check",
             "- make imported-skills-readiness",
-            "- bd ready",
             "",
         ]
     )

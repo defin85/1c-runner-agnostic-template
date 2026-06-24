@@ -503,7 +503,7 @@ write_operator_local_runbook_starter() {
 | --- | --- | --- | --- | --- | --- |
 | `doctor` | `operator-local` | `./scripts/diag/doctor.sh --profile env/local.json --run-root /tmp/doctor-run` | `env/local.json` или явный `--profile`; runtime binaries по `env/README.md` | non-zero + summary/stderr, если profile или runtime не готовы | `env/README.md`, `docs/agent/generated-project-verification.md` |
 | `load-diff-src` | `operator-local` | `./scripts/platform/load-diff-src.sh --profile env/local.json --run-root /tmp/load-diff-src-run` | `env/local.json` или явный `--profile`; prepared infobase + git worktree | non-zero + summary/stderr, если diff selection пустой или runtime не ready | `env/README.md`, `docs/agent/generated-project-index.md` |
-| `load-task-src` | `operator-local` | `./scripts/platform/load-task-src.sh --profile env/local.json --bead task.1 --run-root /tmp/load-task-src-run` | `env/local.json` или явный `--profile`; prepared infobase + git history with task markers or explicit revset | non-zero + summary/stderr, если task selection пустой или runtime не ready | `env/README.md`, `docs/agent/generated-project-index.md` |
+| `load-task-src` | `operator-local` | `./scripts/platform/load-task-src.sh --profile env/local.json --work-item 93984 --run-root /tmp/load-task-src-run` | `env/local.json` или явный `--profile`; prepared infobase + git history with task markers or explicit revset | non-zero + summary/stderr, если task selection пустой или runtime не ready | `env/README.md`, `docs/agent/generated-project-index.md` |
 | `xunit` | `operator-local` | `./scripts/test/run-xunit.sh --profile env/local.json --run-root /tmp/xunit-run` | `direct-platform profile с wired addRoot + local 1C runtime`; для fresh `src/cf` diff используйте `./scripts/test/tdd-xunit.sh` | non-zero + summary/stderr, если profile не wired или delete/rename delta требует manual full sync | `docs/testing/xunit-direct-platform.md`, `env/README.md` |
 
 ## Project Extensions
@@ -567,7 +567,7 @@ EOF
 | `check-cfe-applicability` | `operator-local` | `./scripts/platform/check-cfe-applicability.sh --profile env/local.json --run-root /tmp/check-cfe-applicability-run` | `Designer-ready operator-owned profile + src/cfe` | `docs/agent/operator-local-runbook.md` |
 | `check-cfe-config` | `operator-local` | `./scripts/platform/check-cfe-config.sh --profile env/local.json --run-root /tmp/check-cfe-config-run` | `Designer-ready operator-owned profile + src/cfe` | `docs/agent/operator-local-runbook.md` |
 | `load-diff-src` | `operator-local` | `./scripts/platform/load-diff-src.sh --profile env/local.json --run-root /tmp/load-diff-src-run` | `ibcmd-ready operator-owned profile + prepared infobase + git worktree` | `docs/agent/operator-local-runbook.md` |
-| `load-task-src` | `operator-local` | `./scripts/platform/load-task-src.sh --profile env/local.json --bead task.1 --run-root /tmp/load-task-src-run` | `ibcmd-ready operator-owned profile + prepared infobase + task markers or explicit revset` | `docs/agent/operator-local-runbook.md` |
+| `load-task-src` | `operator-local` | `./scripts/platform/load-task-src.sh --profile env/local.json --work-item 93984 --run-root /tmp/load-task-src-run` | `ibcmd-ready operator-owned profile + prepared infobase + task markers or explicit revset` | `docs/agent/operator-local-runbook.md` |
 | `xunit` | `operator-local` | `./scripts/test/run-xunit.sh --profile env/local.json --run-root /tmp/xunit-run` | `direct-platform profile with wired addRoot + local 1C runtime` | `docs/testing/xunit-direct-platform.md` |
 | `yaxunit` | `operator-local` | `./scripts/test/run-yaxunit.sh --profile env/local.json --run-root /tmp/yaxunit-run` | `YAxUnit extensions + operator-owned profile` | `docs/agent/operator-local-runbook.md` |
 | `yaxunit-warm-rpc` | `operator-local` | `./scripts/test/run-yaxunit-warm-service.sh up --profile env/local.json --run-root /tmp/yaxunit-warm-rpc-up-run` | `YAxUnit extensions + operator-owned profile` | `docs/agent/operator-local-runbook.md` |
@@ -611,7 +611,6 @@ write_work_items_readme_starter() {
 ## Role Separation
 
 - `OpenSpec` — change contract, requirements, acceptance.
-- `bd` — executable tracking и live status.
 - `docs/exec-plans/active/<task-id>.md` — living progress, handoff и session restart.
 - `docs/work-items/<task-id>/` — extracted notes, attachment summaries, bulky inputs, task-local evidence и supporting materials.
 
@@ -623,7 +622,6 @@ write_work_items_readme_starter() {
 
 ## What Not To Put Here
 
-- не используйте `docs/work-items/` как замену `bd`;
 - не дублируйте здесь progress, который уже должен жить в `docs/exec-plans/`;
 - не переносите сюда code payload из `src/`.
 
@@ -637,9 +635,8 @@ write_work_items_readme_starter() {
 ## Starter Workflow
 
 1. Если change новый или неоднозначный, начните с `OpenSpec`.
-2. После approval переведите execution tracking в `bd`.
-3. Скопируйте `docs/exec-plans/TEMPLATE.md` в `docs/exec-plans/active/<task-id>.md`.
-4. Если нужны bulky supporting artifacts, скопируйте `docs/work-items/TEMPLATE.md` в `docs/work-items/<task-id>/index.md`.
+2. Скопируйте `docs/exec-plans/TEMPLATE.md` в `docs/exec-plans/active/<task-id>.md`.
+3. Если нужны bulky supporting artifacts, скопируйте `docs/work-items/TEMPLATE.md` в `docs/work-items/<task-id>/index.md`.
 
 ## Related Truth
 
@@ -884,7 +881,7 @@ write_runtime_support_matrix_json_starter() {
       "id": "load-task-src",
       "layer": "provisioned",
       "status": "operator-local",
-      "entrypoint": "./scripts/platform/load-task-src.sh --profile env/local.json --bead task.1 --run-root /tmp/load-task-src-run",
+      "entrypoint": "./scripts/platform/load-task-src.sh --profile env/local.json --work-item 93984 --run-root /tmp/load-task-src-run",
       "profileProvenance": "operator-local env/local.json with partial-import-ready load-src and canonical task markers or explicit --profile",
       "runbookPath": "docs/agent/operator-local-runbook.md",
       "summary": "Loads committed task scope through delegated load-src --files and requires an ibcmd-ready operator-owned local profile, a prepared infobase, and git history with task markers or an explicit revset."
@@ -1010,7 +1007,7 @@ write_runtime_support_matrix_markdown_starter() {
 | `check-cfe-applicability` | `operator-local` | `env/local.json` или явный `--profile` | `./scripts/platform/check-cfe-applicability.sh --profile env/local.json --run-root /tmp/check-cfe-applicability-run` | `docs/agent/operator-local-runbook.md` |
 | `check-cfe-config` | `operator-local` | `env/local.json` или явный `--profile` | `./scripts/platform/check-cfe-config.sh --profile env/local.json --run-root /tmp/check-cfe-config-run` | `docs/agent/operator-local-runbook.md` |
 | `load-diff-src` | `operator-local` | `env/local.json` с ready partial-import contour или явный `--profile` | `./scripts/platform/load-diff-src.sh --profile env/local.json --run-root /tmp/load-diff-src-run` | `docs/agent/operator-local-runbook.md` |
-| `load-task-src` | `operator-local` | `env/local.json` с ready partial-import contour или явный `--profile` | `./scripts/platform/load-task-src.sh --profile env/local.json --bead task.1 --run-root /tmp/load-task-src-run` | `docs/agent/operator-local-runbook.md` |
+| `load-task-src` | `operator-local` | `env/local.json` с ready partial-import contour или явный `--profile` | `./scripts/platform/load-task-src.sh --profile env/local.json --work-item 93984 --run-root /tmp/load-task-src-run` | `docs/agent/operator-local-runbook.md` |
 | `xunit` | `operator-local` | `env/local.json`, `env/wsl.json`, `env/ci.json` или явный `--profile` с wired `capabilities.xunit` | `./scripts/test/run-xunit.sh --profile env/local.json --run-root /tmp/xunit-run` | `docs/testing/xunit-direct-platform.md` |
 | `yaxunit` | `operator-local` | `env/local.json` или явный `--profile` | `./scripts/test/run-yaxunit.sh --profile env/local.json --run-root /tmp/yaxunit-run` | `docs/agent/operator-local-runbook.md` |
 | `yaxunit-warm-rpc` | `operator-local` | `env/local.json` или явный `--profile` | `./scripts/test/run-yaxunit-warm-service.sh up --profile env/local.json --run-root /tmp/yaxunit-warm-rpc-up-run` | `docs/agent/operator-local-runbook.md` |
@@ -1087,7 +1084,6 @@ Project-specific business context, bounded contexts и metadata entrypoint-ы к
 - 1С source tree в `src/`
 - Bash launcher/test/QA scripts из шаблона
 - OpenSpec для spec-driven development
-- Beads (`bd`) для code-change tracking, если контур включён
 - Markdown docs и machine-readable context в `automation/context/`
 
 ## Project Conventions

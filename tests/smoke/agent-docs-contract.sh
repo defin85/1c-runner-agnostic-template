@@ -95,16 +95,7 @@ printf 'unexpected openspec args: %s\n' "$*" >&2
 exit 1
 EOF
 
-  cat >"$bindir/bd" <<'EOF'
-#!/usr/bin/env bash
-set -euo pipefail
-
-if [ "$1" = "init" ]; then
-  mkdir -p .beads
-fi
-EOF
-
-  chmod +x "$bindir/openspec" "$bindir/bd"
+  chmod +x "$bindir/openspec"
 
   PATH="$bindir:$PATH" copier copy --trust --defaults \
     -d project_name="Docs Contract Project" \
@@ -176,7 +167,7 @@ assert_fails_with "$broken_link_root" "broken markdown link in docs/agent/archit
 source_placeholder_profile_root="$tmpdir/source-placeholder-profile"
 copy_repo "$source_placeholder_profile_root"
 refresh_source_context "$source_placeholder_profile_root"
-python - <<'PY' "$source_placeholder_profile_root/env/ci.example.json"
+python3 - <<'PY' "$source_placeholder_profile_root/env/ci.example.json"
 from pathlib import Path
 import json
 import sys
@@ -192,7 +183,7 @@ assert_fails_with "$source_placeholder_profile_root" \
 source_noop_profile_root="$tmpdir/source-noop-profile"
 copy_repo "$source_noop_profile_root"
 refresh_source_context "$source_noop_profile_root"
-python - <<'PY' "$source_noop_profile_root/env/ci.example.json"
+python3 - <<'PY' "$source_noop_profile_root/env/ci.example.json"
 from pathlib import Path
 import json
 import sys
@@ -208,7 +199,7 @@ assert_fails_with "$source_noop_profile_root" \
 source_shell_wrapper_profile_root="$tmpdir/source-shell-wrapper-profile"
 copy_repo "$source_shell_wrapper_profile_root"
 refresh_source_context "$source_shell_wrapper_profile_root"
-python - <<'PY' "$source_shell_wrapper_profile_root/env/ci.example.json"
+python3 - <<'PY' "$source_shell_wrapper_profile_root/env/ci.example.json"
 from pathlib import Path
 import json
 import sys
@@ -256,7 +247,7 @@ assert_fails_with "$generated_forbidden_src_cf_readme_root" \
 
 generated_curated_project_map_root="$tmpdir/generated-curated-project-map"
 cp -R "$generated_root" "$generated_curated_project_map_root"
-python - <<'PY' "$generated_curated_project_map_root/automation/context/project-map.md"
+python3 - <<'PY' "$generated_curated_project_map_root/automation/context/project-map.md"
 from pathlib import Path
 import sys
 
@@ -412,7 +403,7 @@ assert_fails_with "$generated_source_centric_docs_root" \
 
 generated_missing_representative_path_root="$tmpdir/generated-missing-representative-path"
 cp -R "$generated_root" "$generated_missing_representative_path_root"
-python - <<'PY' "$generated_missing_representative_path_root/docs/agent/architecture-map.md"
+python3 - <<'PY' "$generated_missing_representative_path_root/docs/agent/architecture-map.md"
 from pathlib import Path
 import sys
 
@@ -430,7 +421,7 @@ assert_fails_with "$generated_missing_representative_path_root" \
 
 generated_missing_project_map_path_root="$tmpdir/generated-missing-project-map-path"
 cp -R "$generated_root" "$generated_missing_project_map_path_root"
-python - <<'PY' "$generated_missing_project_map_path_root/automation/context/project-map.md"
+python3 - <<'PY' "$generated_missing_project_map_path_root/automation/context/project-map.md"
 from pathlib import Path
 import sys
 
@@ -630,7 +621,7 @@ refresh_source_context "$generated_sanctioned_direct_entrypoint_root"
 
 generated_runtime_quickstart_drift_root="$tmpdir/generated-runtime-quickstart-drift"
 cp -R "$generated_root" "$generated_runtime_quickstart_drift_root"
-python - <<'PY' "$generated_runtime_quickstart_drift_root/docs/agent/runtime-quickstart.md"
+python3 - <<'PY' "$generated_runtime_quickstart_drift_root/docs/agent/runtime-quickstart.md"
 from pathlib import Path
 import sys
 
@@ -648,7 +639,7 @@ assert_fails_with "$generated_runtime_quickstart_drift_root" \
 
 generated_project_baseline_extension_missing_target_root="$tmpdir/generated-project-baseline-extension-missing-target"
 cp -R "$generated_root" "$generated_project_baseline_extension_missing_target_root"
-python - <<'PY' "$generated_project_baseline_extension_missing_target_root/automation/context/runtime-support-matrix.json"
+python3 - <<'PY' "$generated_project_baseline_extension_missing_target_root/automation/context/runtime-support-matrix.json"
 from pathlib import Path
 import json
 import sys
@@ -680,7 +671,7 @@ cat >"$generated_empty_identity_root/src/cf/Configuration.xml" <<'EOF'
   </Configuration>
 </MetaDataObject>
 EOF
-python - <<'PY' "$generated_empty_identity_root/automation/context/metadata-index.generated.json"
+python3 - <<'PY' "$generated_empty_identity_root/automation/context/metadata-index.generated.json"
 from pathlib import Path
 import sys
 
@@ -697,7 +688,7 @@ assert_fails_with "$generated_empty_identity_root" \
 
 generated_bad_closeout_root="$tmpdir/generated-bad-closeout"
 cp -R "$generated_root" "$generated_bad_closeout_root"
-python - <<'PY' "$generated_bad_closeout_root/AGENTS.md"
+python3 - <<'PY' "$generated_bad_closeout_root/AGENTS.md"
 from pathlib import Path
 import sys
 

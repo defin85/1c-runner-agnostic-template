@@ -24,7 +24,7 @@
 17. Если задача длинная, копируйте [docs/exec-plans/TEMPLATE.md](../exec-plans/TEMPLATE.md) и держите рядом [docs/work-items/README.md](../work-items/README.md) как companion workspace для supporting artifacts.
 18. Если работа касается только template refresh, отдельно откройте [docs/template-maintenance.md](../template-maintenance.md).
 
-Короткая runtime-шпаргалка: `./scripts/platform/load-diff-src.sh --profile <operator-profile> --run-root /tmp/load-diff-src-run` загружает в ИБ только текущий git-backed diff внутри `src/cf`, а `./scripts/platform/load-task-src.sh --profile <operator-profile> --bead <id> --run-root /tmp/load-task-src-run` загружает уже закомиченный scope задачи по `Bead:` / `Work-Item:` trailers или по `--range`; prerequisites и fail-closed semantics в generated project живут в `docs/agent/operator-local-runbook.md`, а в source repo описаны в `automation/context/templates/generated-project-operator-local-runbook.md` и `env/README.md`.
+Короткая runtime-шпаргалка: `./scripts/platform/load-diff-src.sh --profile <operator-profile> --run-root /tmp/load-diff-src-run` загружает в ИБ только текущий git-backed diff внутри `src/cf`, а `./scripts/platform/load-task-src.sh --profile <operator-profile> --work-item <id> --run-root /tmp/load-task-src-run` загружает уже закомиченный scope задачи по трейлеру `Work-Item:` или по `--range`; prerequisites и fail-closed semantics в generated project живут в `docs/agent/operator-local-runbook.md`, а в source repo описаны в `automation/context/templates/generated-project-operator-local-runbook.md` и `env/README.md`.
 
 ## Что считается source of truth
 
@@ -73,12 +73,11 @@
 
 ## Planning Matrix
 
-Короткая формула planning path: `OpenSpec -> bd -> docs/exec-plans/TEMPLATE.md -> docs/work-items/README.md`.
+Короткая формула planning path: `OpenSpec -> docs/exec-plans/TEMPLATE.md -> docs/work-items/README.md`.
 
 | Когда | Куда идти | Почему |
 | --- | --- | --- |
 | Новая capability, breaking change, architecture shift, неоднозначный intent | `OpenSpec` | Сначала фиксируется signable contract в `openspec/changes/<id>/`. |
-| Approved code work | `bd` | Исполняемый task graph и live tracking после approval. |
 | Долгая, multi-session, cross-cutting работа | `docs/exec-plans/TEMPLATE.md` -> `docs/exec-plans/README.md` | Living progress, handoff и session restart в одном файле. |
 | Bulky task-local evidence, extracted notes, attachment summaries | `docs/work-items/README.md` -> `docs/work-items/TEMPLATE.md` | Supporting artifacts рядом с exec-plan, но вне `OpenSpec` и вне `src/`. |
 

@@ -43,7 +43,7 @@ Static CI contour MUST проверять integrity, freshness и semantic truth
 - **THEN** static contour ДОЛЖЕН падать до продолжения fixture или runtime contours
 - **AND** checks ДОЛЖНЫ выполняться без licensed 1C binaries и secret runtime credentials
 - **AND** reported failure ДОЛЖЕН указывать, какой класс artifact-ов stale, inconsistent или semantically misleading
-- **AND** curated generated-project surfaces, такие как `docs/work-items/README.md`, `docs/work-items/TEMPLATE.md` и canonical routing между `OpenSpec`, `bd`, `docs/exec-plans/` и `docs/work-items/`, MUST входить в тот же freshness contract
+- **AND** curated generated-project surfaces, такие как `docs/work-items/README.md`, `docs/work-items/TEMPLATE.md` и canonical routing между `OpenSpec`, `docs/exec-plans/` и `docs/work-items/`, MUST входить в тот же freshness contract
 
 ### Requirement: Agent-Facing Ownership Verification
 
@@ -88,4 +88,3 @@ The template SHALL provide a minimal reproducible golden baseline contour for ge
 - **THEN** the contour MUST execute that project-owned command
 - **AND** it MUST propagate the command exit code
 - **AND** it MUST write a run-root `summary.json` with the command, logs, status, and classification
-

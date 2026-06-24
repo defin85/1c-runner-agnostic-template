@@ -183,8 +183,6 @@ emit_generated_tree_entries() {
     find "$root" -maxdepth 4 \( -type d -o -type f \) \
       ! -path "$root/.git" \
       ! -path "$root/.git/*" \
-      ! -path "$root/.beads" \
-      ! -path "$root/.beads/*" \
       ! -path "$root/.agent-browser" \
       ! -path "$root/.agent-browser/*" \
       ! -path "$root/automation/context/source-tree.generated.txt" \
@@ -672,7 +670,7 @@ render_generated_recommended_skills() {
     printf '| --- | --- | --- |\n'
     printf '| Baseline repo hygiene | `repo-agent-verify` -> `./scripts/qa/agent-verify.sh` | Всегда начинайте с no-1C baseline, прежде чем заходить в runtime или imported workflows. |\n'
     printf '| Git-backed partial import loop | `1c-load-diff-src` -> `1c-update-db` -> `1c-run-xunit` | Это preferred native path для быстрых изменений в `src/cf` и локальной проверки. |\n'
-    printf '| Committed task import | `1c-load-task-src` -> `./scripts/platform/load-task-src.sh` | Используйте, когда scope уже зафиксирован через `Bead:` / `Work-Item:` trailers или `--range`. |\n'
+    printf '| Committed task import | `1c-load-task-src` -> `./scripts/platform/load-task-src.sh` | Используйте, когда scope уже зафиксирован через `Work-Item:` trailer или `--range`. |\n'
     printf '| Configuration XML routing | `cf-info` -> `cf-edit` -> `cf-validate` | Подходит для first-pass анализа и точечных правок `src/cf/Configuration.xml` и configuration-level metadata. |\n'
     printf '| Metadata object routing | `meta-info` -> `meta-edit` -> `meta-validate` | Подходит для object-level XML changes без ручного редактирования сырого metadata XML. |\n'
     if [ "$subsystems_count" -gt 0 ]; then

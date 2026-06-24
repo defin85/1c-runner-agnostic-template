@@ -37,20 +37,18 @@ repo_root="$tmpdir/repo"
 cat >"$valid_message" <<'EOF'
 Implement task-scoped load wrapper
 
-Bead: do-rolf-sdd-jiy.3
 Work-Item: 93984
 EOF
 
 cat >"$invalid_message" <<'EOF'
 Invalid task trailers
 
-Bead:
+Work-Item:
 Work-Item: 93984
 Work-Item: 93984-dup
 EOF
 
-"$SOURCE_ROOT/scripts/git/task-trailers.sh" render --bead do-rolf-sdd-jiy.3 --work-item 93984 >"$rendered"
-assert_contains "$rendered" "Bead: do-rolf-sdd-jiy.3"
+"$SOURCE_ROOT/scripts/git/task-trailers.sh" render --work-item 93984 >"$rendered"
 assert_contains "$rendered" "Work-Item: 93984"
 
 "$SOURCE_ROOT/scripts/git/task-trailers.sh" validate-message --file "$valid_message" --require-any
@@ -65,7 +63,7 @@ if [ "$status" -eq 0 ]; then
   exit 1
 fi
 
-assert_contains "$tmpdir/invalid.stderr" "empty value for trailer: Bead"
+assert_contains "$tmpdir/invalid.stderr" "empty value for trailer: Work-Item"
 assert_not_contains "$tmpdir/invalid.stderr" "unexpected success"
 
 mkdir -p "$repo_root"
@@ -86,15 +84,15 @@ printf '<items changed />\n' >"$repo_root/src/cf/Catalogs/Items.xml"
 (
   cd "$repo_root"
   git add src/cf/Catalogs/Items.xml
-  git commit -m $'task change\n\nBead: do-rolf-sdd-jiy.3\nWork-Item: 93984' >/dev/null
+  git commit -m $'task change\n\nWork-Item: 93984' >/dev/null
 )
 
 printf '<items malformed />\n' >"$repo_root/src/cf/Catalogs/Items.xml"
 (
   cd "$repo_root"
   git add src/cf/Catalogs/Items.xml
-  git commit -m $'unrelated malformed task\n\nBead: malformed.1\nBead: malformed.2\nWork-Item: 77777' >/dev/null
+  git commit -m $'unrelated malformed task\n\nWork-Item: malformed.1\nWork-Item: malformed.2' >/dev/null
 )
 
-"$SOURCE_ROOT/scripts/git/task-trailers.sh" select-commits --repo "$repo_root" --bead do-rolf-sdd-jiy.3 >"$tmpdir/selected-commits.txt"
+"$SOURCE_ROOT/scripts/git/task-trailers.sh" select-commits --repo "$repo_root" --work-item 93984 >"$tmpdir/selected-commits.txt"
 assert_contains "$tmpdir/selected-commits.txt" "$(git -C "$repo_root" rev-parse HEAD~1)"

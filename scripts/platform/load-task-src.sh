@@ -37,7 +37,6 @@ Options:
   --profile <file>      Runtime profile JSON (defaults to env/local.json if present)
   --run-root <dir>      Directory for summary.json and command logs
   --target <id>         Target id from automation/context/target-matrix.json
-  --bead <id>           Select committed changes by commit trailer Bead:
   --work-item <id>      Select committed changes by commit trailer Work-Item:
   --range <revset>      Explicit git revset fallback
   --dry-run             Resolve selection and delegated load-src dry-run only
@@ -470,19 +469,6 @@ while [ "$#" -gt 0 ]; do
       target_input="$2"
       shift 2
       ;;
-    --bead)
-      if [ "$#" -lt 2 ]; then
-        record_load_task_cli_error "--bead requires a value" 1 cli_error cli_exit_code
-        break
-      fi
-      if [ -n "$selector_mode" ]; then
-        record_load_task_cli_error "load-task-src requires exactly one selector" 1 cli_error cli_exit_code
-        break
-      fi
-      selector_mode="bead"
-      selector_value="$2"
-      shift 2
-      ;;
     --work-item)
       if [ "$#" -lt 2 ]; then
         record_load_task_cli_error "--work-item requires a value" 1 cli_error cli_exit_code
@@ -525,7 +511,7 @@ while [ "$#" -gt 0 ]; do
 done
 
 if [ -z "$cli_error" ] && [ -z "$selector_mode" ]; then
-  record_load_task_cli_error "load-task-src requires one of --bead, --work-item, or --range" 1 cli_error cli_exit_code
+  record_load_task_cli_error "load-task-src requires one of --work-item or --range" 1 cli_error cli_exit_code
 fi
 
 root="$(project_root)"

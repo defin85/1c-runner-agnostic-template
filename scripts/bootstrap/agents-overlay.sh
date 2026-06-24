@@ -86,7 +86,6 @@ trim_trailing_blank_lines() {
 
 append_project_agents_overlay() {
   local agents_file="$1"
-  local use_beads="$2"
 
   ensure_agents_file "$agents_file"
   remove_managed_block "$agents_file" "$project_agents_block_start" "$project_agents_block_end"
@@ -118,11 +117,11 @@ append_project_agents_overlay() {
 - Use [docs/agent/review.md](docs/agent/review.md), [docs/agent/operator-local-runbook.md](docs/agent/operator-local-runbook.md), [env/README.md](env/README.md), [.agents/skills/README.md](.agents/skills/README.md), [docs/exec-plans/README.md](docs/exec-plans/README.md), and [docs/work-items/README.md](docs/work-items/README.md) as the main follow-up routers.
 - Use [docs/template-maintenance.md](docs/template-maintenance.md) only for template refresh and maintenance work.
 - Ownership boundaries between template-managed and project-owned artifacts are described in [docs/agent/source-vs-generated.md](docs/agent/source-vs-generated.md).
-- Quick runtime shortcuts: `./scripts/platform/load-diff-src.sh --profile <operator-profile> --run-root /tmp/load-diff-src-run` loads only the current git-backed diff inside `src/cf`, and `./scripts/platform/load-task-src.sh --profile <operator-profile> --bead <id> --run-root /tmp/load-task-src-run` loads committed task scope by `Bead:` / `Work-Item:` trailers or `--range`; operator-local prerequisites stay in [docs/agent/operator-local-runbook.md](docs/agent/operator-local-runbook.md) and [env/README.md](env/README.md).
+- Quick runtime shortcuts: `./scripts/platform/load-diff-src.sh --profile <operator-profile> --run-root /tmp/load-diff-src-run` loads only the current git-backed diff inside `src/cf`, and `./scripts/platform/load-task-src.sh --profile <operator-profile> --work-item <id> --run-root /tmp/load-task-src-run` loads committed task scope by `Work-Item:` trailer or `--range`; operator-local prerequisites stay in [docs/agent/operator-local-runbook.md](docs/agent/operator-local-runbook.md) and [env/README.md](env/README.md).
 
 # Unified Workflow
 
-We operate in a cycle: **OpenSpec (What) -> Beads (How) -> Code (Implementation)**.
+We operate in a cycle: **OpenSpec (What) -> Execution Plan -> Code (Implementation)**.
 
 ## 1. Intent Formation
 
@@ -131,43 +130,13 @@ We operate in a cycle: **OpenSpec (What) -> Beads (How) -> Code (Implementation)
 - Do not move to production code for new or major changes without explicit approval. Canonical signal: `Go!`.
 - Before approval, analysis, requirement clarification, and spec edits are allowed; production code changes are not.
 
-## 2. Task Transformation
-
-- After approval, the change must be translated into an executable plan in `bd`, not left as markdown text only.
-- For code changes, `bd` is the source of truth for task tracking. Run `bd prime` before planning or execution and work from `bd ready`.
-- Do not use markdown TODO/checklists as a parallel tracker for code work.
-
-## 3. Execution And Delivery
+## 2. Execution And Delivery
 
 - Before coding, build an execution matrix: `Requirement/Scenario -> target files -> automated checks`.
 - Every mandatory `MUST` or Requirement/Scenario must have automated evidence in `tests/` or `features/`, or an exception explicitly approved by the user.
 - `partially implemented` or `not implemented` status for mandatory requirements blocks completion.
 - Final delivery must include explicit `Requirement -> Code -> Test` evidence with concrete file paths.
 EOF
-
-  if [ "$use_beads" = "yes" ]; then
-    cat >>"$agents_file" <<'EOF'
-
-## Issue Tracking
-
-This project uses **bd (beads)** for issue tracking.
-Run `bd prime` for workflow context, or install hooks (`bd hooks install`) for auto-injection.
-
-**Rules:**
-- Use `bd` as the source of truth for code-change tracking.
-- Do not use markdown TODO lists as a parallel tracker.
-- Prefer `--json` in programmatic or agent flows.
-- Check `bd ready` before starting code work.
-EOF
-  else
-    cat >>"$agents_file" <<'EOF'
-
-## Issue Tracking
-
-This template is designed for `bd`-first code-change tracking.
-If beads was disabled during bootstrap, treat that as an explicit exception and do not silently replace it with markdown TODO tracking.
-EOF
-  fi
 
   cat >>"$agents_file" <<'EOF'
 

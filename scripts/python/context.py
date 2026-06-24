@@ -132,7 +132,6 @@ def _is_generated_private(rel: str) -> bool:
 def render_generated_tree(root: Path) -> str:
     ignored = {
         ".git",
-        ".beads",
         ".agent-browser",
     }
     lines = ["# Generated Project Tree", ""]
@@ -297,7 +296,7 @@ def render_generated_recommended_skills(root: Path, metadata_json: str) -> str:
         (
             "Committed task import",
             "`1c-load-task-src` -> `./scripts/platform/load-task-src.sh`",
-            "Используйте, когда scope уже зафиксирован через `Bead:` / `Work-Item:` trailers или `--range`.",
+            "Используйте, когда scope уже зафиксирован через `Work-Item:` trailer или `--range`.",
         ),
     ]
 

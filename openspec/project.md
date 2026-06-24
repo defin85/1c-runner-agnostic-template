@@ -4,7 +4,7 @@
 `1c-runner-agnostic-template` это шаблон репозитория для 1С-проектов.
 Его цель:
 
-- задавать каноническую структуру проекта вокруг `OpenSpec -> Beads -> Code`;
+- задавать каноническую структуру проекта вокруг `OpenSpec -> Execution Plan -> Code`;
 - поставлять стабильные entrypoint-скрипты для запуска, тестов и QA без жесткой привязки к одному runner;
 - упрощать bootstrap новых 1С-репозиториев через `copier copy` и их последующее обновление через versioned wrapper overlays;
 - давать агентам и людям единый contract-first workflow для работы с требованиями, задачами, кодом и проверками.
@@ -15,7 +15,6 @@
 - Bash shell scripts
 - Copier template (`copier.yml`, post-copy compatibility hooks)
 - OpenSpec for spec-driven development
-- Beads (`bd`) for local issue tracking in generated projects
 - Markdown documentation and operational checklists
 - Git and Git tags for template versioning and update flow
 - 1C runtime adapters (`direct-platform`, `remote-windows`, optional `vrunner`)
@@ -33,7 +32,6 @@
 ### Architecture Patterns
 - Репозиторий разделяет intent, execution и source tree:
   - `openspec/` для требований и change proposals;
-  - `.beads/` в generated projects для live task graph;
   - `src/` для deployable source tree;
   - `scripts/` для канонических entrypoint’ов людей, CI и агентов.
 - Шаблон следует `runner-agnostic` модели: публичный интерфейс задается shell entrypoint’ами, а конкретный backend выбирается через adapter.
@@ -69,15 +67,13 @@
 
 ## Important Constraints
 - Репозиторий должен оставаться пригодным как template source и как источник безопасных versioned overlay releases.
-- Bootstrap и update hooks нельзя смешивать: одноразовая инициализация (`openspec`, `git`, `bd`) не должна повторяться на update.
+- Bootstrap и update hooks нельзя смешивать: одноразовая инициализация (`openspec`, `git`) не должна повторяться на update.
 - Шаблон не должен содержать секреты, реальные строки подключения и machine-specific credentials.
 - Решения должны работать без обязательной зависимости на Windows-only tooling.
-- Нельзя подменять `bd` markdown TODO-списками для code-change, если beads включен.
 - Для новых и крупных изменений код нельзя начинать до явного `Go!`.
 
 ## External Dependencies
 - `openspec` CLI
-- `bd` CLI (опционально, но по умолчанию используется в generated projects)
 - `copier`
 - Git/GitHub для версии шаблона и update flow
 - 1С platform CLI/tools в generated projects:

@@ -18,8 +18,6 @@ project_description="${4:-}"
 preferred_adapter="${5:-direct-platform}"
 openspec_tools="${6:-none}"
 init_git_repository="${7:-yes}"
-init_beads="${8:-yes}"
-beads_prefix="${9:-}"
 
 root="$(project_root)"
 
@@ -36,15 +34,7 @@ log "preferred_adapter=$preferred_adapter"
 require_command openspec
 require_command install
 
-if [ "$init_beads" = "yes" ]; then
-  require_command bd
-fi
-
 cd "$root"
-
-if [ "$init_beads" = "yes" ] && [ "$init_git_repository" != "yes" ] && [ ! -d "$root/.git" ]; then
-  die "beads requires a git repository; enable git init or disable beads"
-fi
 
 if [ "$init_git_repository" = "yes" ] && [ ! -d "$root/.git" ]; then
   log "Initialize git repository"
@@ -62,25 +52,6 @@ if [ "${DRY_RUN:-0}" != "1" ]; then
   "${cmd[@]}"
 fi
 
-if [ "$init_beads" = "yes" ]; then
-  if [ -z "$beads_prefix" ]; then
-    beads_prefix="$project_slug"
-  fi
-
-  if [ -z "$beads_prefix" ]; then
-    die "beads prefix is empty; provide beads_prefix or project_slug"
-  fi
-
-  cmd=(bd init --stealth -p "$beads_prefix")
-  log "Run beads init"
-  printf '%q ' "${cmd[@]}"
-  printf '\n'
-
-  if [ "${DRY_RUN:-0}" != "1" ]; then
-    "${cmd[@]}"
-  fi
-fi
-
 if [ -z "$template_src_path" ]; then
   die "template source path is empty"
 fi
@@ -91,7 +62,7 @@ if [ "${DRY_RUN:-0}" != "1" ]; then
     "$root" \
     "$(overlay_manifest_file "$root")" \
     "$(overlay_manifest_file "$template_src_path")"
-  append_project_agents_overlay "$root/AGENTS.md" "$init_beads"
+  append_project_agents_overlay "$root/AGENTS.md"
   seed_generated_project_surface_on_copy "$root" "$project_name" "$project_slug" "$project_description"
   write_overlay_source "$root" "$template_src_path"
   write_overlay_version "$root" "$(bootstrap_template_ref_or_fallback "$root" "$template_src_path")"

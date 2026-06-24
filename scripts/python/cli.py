@@ -115,20 +115,16 @@ def main(argv: list[str] | None = None) -> int:
         if command == "format-bsl":
             return format_bsl()
         if command == "task-trailers-render":
-            bead = ""
             work_item = ""
             index = 0
             while index < len(args):
-                if args[index] == "--bead":
-                    index += 1
-                    bead = args[index]
-                elif args[index] == "--work-item":
+                if args[index] == "--work-item":
                     index += 1
                     work_item = args[index]
                 else:
                     die(f"unknown argument for render: {args[index]}")
                 index += 1
-            print(task_trailers_render(bead, work_item), end="")
+            print(task_trailers_render(work_item), end="")
             return 0
         if command == "task-trailers-validate":
             message_file = None
@@ -156,7 +152,7 @@ def main(argv: list[str] | None = None) -> int:
                 if args[index] == "--repo":
                     index += 1
                     repo = Path(args[index])
-                elif args[index] in {"--bead", "--work-item", "--range"}:
+                elif args[index] in {"--work-item", "--range"}:
                     selector_mode = args[index][2:]
                     index += 1
                     selector_value = args[index]
@@ -167,12 +163,12 @@ def main(argv: list[str] | None = None) -> int:
                 print(line)
             return 0
         if command == "copier-post-copy":
-            if len(args) != 9:
-                die("copier-post-copy expects 9 arguments")
+            if len(args) != 7:
+                die("copier-post-copy expects 7 arguments")
             return bootstrap_post_copy(*args)
         if command == "copier-post-update":
-            if len(args) != 5:
-                die("copier-post-update expects 5 arguments")
+            if len(args) != 4:
+                die("copier-post-update expects 4 arguments")
             return bootstrap_post_update(*args)
         if command == "check-update":
             requested_ref = ""
@@ -215,18 +211,16 @@ def main(argv: list[str] | None = None) -> int:
             project_slug = ""
             preferred_adapter = ""
             openspec_tools = ""
-            beads_prefix = ""
             use_defaults = False
             use_force = False
             init_git_repository = True
-            init_beads = True
             index = 0
             while index < len(args):
                 arg = args[index]
                 if arg in {"-h", "--help"}:
                     print("Usage: new-project [destination] [options]")
                     return 0
-                if arg in {"-t", "--template", "--project-name", "--slug", "--adapter", "--tools", "--beads-prefix"}:
+                if arg in {"-t", "--template", "--project-name", "--slug", "--adapter", "--tools"}:
                     if index + 1 >= len(args):
                         die(f"{arg} requires a value")
                     value = args[index + 1]
@@ -240,8 +234,6 @@ def main(argv: list[str] | None = None) -> int:
                         preferred_adapter = value
                     elif arg == "--tools":
                         openspec_tools = value
-                    else:
-                        beads_prefix = value
                     index += 2
                     continue
                 if arg == "--defaults":
@@ -250,8 +242,6 @@ def main(argv: list[str] | None = None) -> int:
                     use_force = True
                 elif arg == "--no-git":
                     init_git_repository = False
-                elif arg == "--no-beads":
-                    init_beads = False
                 elif arg.startswith("-"):
                     die(f"unknown option: {arg}")
                 elif destination == ".":
@@ -277,10 +267,6 @@ def main(argv: list[str] | None = None) -> int:
                 copier_args.extend(["-d", f"preferred_adapter={preferred_adapter}"])
             if openspec_tools:
                 copier_args.extend(["-d", f"openspec_tools={openspec_tools}"])
-            if beads_prefix:
-                copier_args.extend(["-d", f"beads_prefix={beads_prefix}"])
-            if not init_beads:
-                copier_args.extend(["-d", "init_beads=false"])
             if not init_git_repository:
                 copier_args.extend(["-d", "init_git_repository=false"])
             return new_project(destination, resolve_project_template(template), copier_args)

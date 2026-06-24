@@ -347,7 +347,7 @@ def _runtime_support_matrix_json() -> dict[str, object]:
                 "entrypoint": "make load-task-src",
                 "profileProvenance": "operator-local env/local.json or explicit --profile",
                 "runbookPath": "docs/agent/operator-local-runbook.md",
-                "summary": "Load committed task scope by Bead, Work-Item, or range.",
+                "summary": "Load committed task scope by Work-Item or range.",
             },
             {
                 "id": "xunit",
@@ -520,8 +520,6 @@ def bootstrap_post_copy(
     _preferred_adapter: str,
     openspec_tools: str,
     init_git_repository: str,
-    init_beads: str,
-    beads_prefix: str,
     *,
     root: Path | None = None,
 ) -> int:
@@ -536,21 +534,14 @@ def bootstrap_post_copy(
             _preferred_adapter,
             openspec_tools,
             init_git_repository,
-            init_beads,
-            beads_prefix,
         ],
         repo_root,
     )
     if delegated is not None:
         return delegated
-    if init_beads == "yes" and init_git_repository != "yes" and not (repo_root / ".git").exists():
-        die("beads requires a git repository; enable git init or disable beads")
     if init_git_repository == "yes" and not (repo_root / ".git").exists():
         run_git(["init"], cwd=repo_root, check=True)
     run_process(["openspec", "init", "--tools", openspec_tools], cwd=repo_root, check=True, capture_output=False)
-    if init_beads == "yes":
-        prefix = beads_prefix or project_slug
-        run_process(["bd", "init", "--stealth", "-p", prefix], cwd=repo_root, check=True, capture_output=False)
     seed_generated_project_surface(repo_root, project_name, project_slug, project_description)
     append_agents_overlay(repo_root / "AGENTS.md")
     sync_overlay_manifests(
@@ -570,14 +561,13 @@ def bootstrap_post_update(
     project_name: str,
     project_slug: str,
     project_description: str,
-    _init_beads: str,
     *,
     root: Path | None = None,
 ) -> int:
     repo_root = root or project_root()
     delegated = _delegate_shell_bootstrap(
         "scripts/bootstrap/copier-post-update.sh",
-        [template_src_path, project_name, project_slug, project_description, _init_beads],
+        [template_src_path, project_name, project_slug, project_description],
         repo_root,
     )
     if delegated is not None:

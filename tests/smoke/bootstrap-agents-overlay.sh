@@ -9,7 +9,6 @@ trap 'rm -rf "$tmpdir"' EXIT
 
 project_root="$tmpdir/project"
 bindir="$tmpdir/bin"
-bd_log="$tmpdir/bd.log"
 
 mkdir -p "$project_root/scripts/bootstrap" "$project_root/scripts/lib" "$project_root/scripts/llm" "$project_root/scripts/template" "$bindir"
 git init -q "$project_root" >/dev/null 2>&1
@@ -39,18 +38,12 @@ EOT
 fi
 EOF
 
-cat >"$bindir/bd" <<'EOF'
-#!/usr/bin/env bash
-set -euo pipefail
-printf '%s\n' "$*" >>"$BD_LOG"
-EOF
-
-chmod +x "$bindir/openspec" "$bindir/bd"
+chmod +x "$bindir/openspec"
 
 run_bootstrap() {
   (
     cd "$project_root"
-    PATH="$bindir:$PATH" BD_LOG="$bd_log" bash ./scripts/bootstrap/copier-post-copy.sh \
+    PATH="$bindir:$PATH" bash ./scripts/bootstrap/copier-post-copy.sh \
       "$SOURCE_ROOT" \
       "Sample Project" \
       "sample-project" \
@@ -173,7 +166,7 @@ src_readme_file="$project_root/src/README.md"
 cf_agents_file="$project_root/src/cf/AGENTS.md"
 cf_readme_file="$project_root/src/cf/README.md"
 
-assert_contains "$agents_file" "We operate in a cycle: **OpenSpec (What) -> Beads (How) -> Code (Implementation)**."
+assert_contains "$agents_file" "We operate in a cycle: **OpenSpec (What) -> Execution Plan -> Code (Implementation)**."
 assert_contains "$agents_file" 'This repository is a generated 1С-project created from `1c-runner-agnostic-template`.'
 assert_contains "$agents_file" 'Start with [docs/agent/generated-project-index.md](docs/agent/generated-project-index.md) for the generated-project-first onboarding path.'
 assert_contains "$agents_file" 'Use [automation/context/project-map.md](automation/context/project-map.md) as the project-owned repo map.'
@@ -184,7 +177,6 @@ assert_contains "$agents_file" 'Use [docs/template-maintenance.md](docs/template
 assert_contains "$agents_file" 'Use [docs/agent/codex-workflows.md](docs/agent/codex-workflows.md) as the canonical Codex workflow guide after the first router step.'
 assert_contains "$agents_file" 'Use [docs/agent/review.md](docs/agent/review.md), [docs/agent/operator-local-runbook.md](docs/agent/operator-local-runbook.md), [env/README.md](env/README.md), [.agents/skills/README.md](.agents/skills/README.md), [docs/exec-plans/README.md](docs/exec-plans/README.md), and [docs/work-items/README.md](docs/work-items/README.md) as the main follow-up routers.'
 assert_contains "$agents_file" 'Do not move to production code for new or major changes without explicit approval. Canonical signal: `Go!`.'
-assert_contains "$agents_file" 'Use `bd` as the source of truth for code-change tracking.'
 assert_contains "$agents_file" 'Final delivery must include explicit `Requirement -> Code -> Test` evidence with concrete file paths.'
 assert_contains "$agents_file" '1. `mcp__claude-context__search_code`, if available in the current environment'
 assert_contains "$agents_file" 'For remote-backed repos with a writable Git remote, a code-change session is not complete until the verified branch state is pushed.'
@@ -240,7 +232,7 @@ assert_contains "$codex_workflows_file" "docs/work-items/TEMPLATE.md"
 assert_contains "$operator_local_runbook_file" "# Operator-Local Runbook"
 assert_contains "$operator_local_runbook_file" "automation/context/runtime-support-matrix.md"
 assert_contains "$operator_local_runbook_file" "./scripts/platform/load-diff-src.sh --profile env/local.json --run-root /tmp/load-diff-src-run"
-assert_contains "$operator_local_runbook_file" "./scripts/platform/load-task-src.sh --profile env/local.json --bead task.1 --run-root /tmp/load-task-src-run"
+assert_contains "$operator_local_runbook_file" "./scripts/platform/load-task-src.sh --profile env/local.json --work-item 93984 --run-root /tmp/load-task-src-run"
 assert_contains "$operator_local_runbook_file" "docs/work-items/README.md"
 assert_contains "$exec_plan_template_file" "# Execution Plan Template"
 assert_contains "$exec_plan_example_file" "# Example Execution Plan"

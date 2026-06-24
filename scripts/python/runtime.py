@@ -1314,40 +1314,30 @@ def git_is_worktree(root: Path | None = None) -> bool:
     return run_git(["rev-parse", "--is-inside-work-tree"], cwd=root or project_root()).returncode == 0
 
 
-def task_trailers_render(bead: str = "", work_item: str = "") -> str:
-    if not bead and not work_item:
-        die("render requires --bead and/or --work-item")
-    lines: list[str] = []
-    if bead:
-        lines.append(f"Bead: {bead.strip()}")
-    if work_item:
-        lines.append(f"Work-Item: {work_item.strip()}")
-    return "\n".join(lines) + "\n"
+def task_trailers_render(work_item: str = "") -> str:
+    if not work_item:
+        die("render requires --work-item")
+    return f"Work-Item: {work_item.strip()}\n"
 
 
 def task_trailers_validate_message(message_file: Path, require_any: bool = False) -> None:
     if not message_file.is_file():
         die(f"message file not found: {message_file}")
-    bead_count = 0
     work_item_count = 0
     parsed_lines = []
     for raw_line in message_file.read_text(encoding="utf-8").splitlines():
-        if raw_line.startswith("Bead:") or raw_line.startswith("Work-Item:"):
+        if raw_line.startswith("Work-Item:"):
             parsed_lines.append(raw_line)
     for line in parsed_lines:
         key, _, raw_value = line.partition(":")
         value = raw_value.strip()
         if not value:
             die(f"empty value for trailer: {key}")
-        if key == "Bead":
-            bead_count += 1
-            if bead_count > 1:
-                die("duplicate trailer: Bead")
-        elif key == "Work-Item":
+        if key == "Work-Item":
             work_item_count += 1
             if work_item_count > 1:
                 die("duplicate trailer: Work-Item")
-    if require_any and bead_count == 0 and work_item_count == 0:
+    if require_any and work_item_count == 0:
         die("message does not contain canonical task trailers")
 
 
@@ -1355,9 +1345,9 @@ def task_trailers_select_commits(selector_mode: str, selector_value: str, repo: 
     repo_root = repo or project_root()
     if selector_mode == "range":
         return git_lines(["rev-list", "--reverse", selector_value], cwd=repo_root)
-    if selector_mode not in {"bead", "work-item"}:
-        die("select-commits requires one of --bead, --work-item, or --range")
-    trailer_key = "Bead" if selector_mode == "bead" else "Work-Item"
+    if selector_mode != "work-item":
+        die("select-commits requires one of --work-item or --range")
+    trailer_key = "Work-Item"
     commits: list[str] = []
     for rev in git_lines(["rev-list", "--reverse", "HEAD"], cwd=repo_root):
         message = run_git(["log", "-1", "--format=%B", rev], cwd=repo_root, check=True).stdout
@@ -1420,7 +1410,7 @@ def run_doctor(argv: list[str]) -> int:
     stdout_log.write_text("", encoding="utf-8", newline="\n")
     stderr_log.write_text("", encoding="utf-8", newline="\n")
     required_tools = ["git", "rg"]
-    optional_tools = ["openspec", "bd"]
+    optional_tools = ["openspec"]
     if not WINDOWS and adapter == "direct-platform" and direct_platform_xpra_enabled(profile):
         start_child = load_direct_platform_xpra_start_child(profile)
         required_tools.extend(["xpra", "Xvfb", "xdpyinfo"])
@@ -1715,7 +1705,7 @@ def run_load_task_src(argv: list[str]) -> int:
             run_root_input = argv[index]
         elif arg == "--dry-run":
             dry_run = True
-        elif arg in {"--bead", "--work-item", "--range"}:
+        elif arg in {"--work-item", "--range"}:
             if selector_mode:
                 die("load-task-src requires exactly one selector")
             selector_mode = arg[2:]
@@ -1727,7 +1717,7 @@ def run_load_task_src(argv: list[str]) -> int:
             die(f"unknown argument: {arg}")
         index += 1
     if not selector_mode:
-        die("load-task-src requires one of --bead, --work-item, or --range")
+        die("load-task-src requires one of --work-item or --range")
     root = project_root()
     run_root = prepare_capability_run_root("load-task-src", run_root_input)
     summary_path = capability_summary_path(run_root)

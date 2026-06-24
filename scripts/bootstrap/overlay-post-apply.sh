@@ -13,13 +13,12 @@ template_src_path="${1:-}"
 project_name="${2:-}"
 project_slug="${3:-}"
 project_description="${4:-}"
-init_beads="${5:-yes}"
 
 root="$(project_root)"
 cd "$root"
 
 [ -n "$template_src_path" ] || die "template source path is empty"
 
-append_project_agents_overlay "$root/AGENTS.md" "$init_beads"
+append_project_agents_overlay "$root/AGENTS.md"
 refresh_generated_project_surface_on_update "$root" "$project_name" "$project_slug" "$project_description"
 "$root/scripts/llm/export-context.sh" --write >/dev/null

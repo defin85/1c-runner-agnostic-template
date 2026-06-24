@@ -161,7 +161,7 @@ Runtime toolkit MUST поддерживать repo-owned bridge, который 
 
 #### Scenario: Wrapper derives a partial import selection from canonical task markers
 
-- **WHEN** repo-owned task-scoped wrapper вычисляет commit selection по trailer `Bead:` или `Work-Item:`
+- **WHEN** repo-owned task-scoped wrapper вычисляет commit selection по trailer `Work-Item:`
 - **THEN** он ДОЛЖЕН передавать в `load-src` только explicit relative file paths внутри configured source tree
 - **AND** удалённые, несуществующие или внешние paths НЕ ДОЛЖНЫ попадать в `--files`
 - **AND** actual partial import semantics ДОЛЖНА оставаться за capability `load-src`
@@ -195,4 +195,3 @@ The runtime toolkit SHALL provide reusable operator-local entrypoints for loadin
 - **THEN** the scripts MUST accept explicit extension selection or use directories under `src/cfe`
 - **AND** Designer `/Out` diagnostics MUST be converted to machine-readable artifacts
 - **AND** inherited borrowed-form handler diagnostics MAY be classified separately from blocking diagnostics when the base form module contains the handler
-

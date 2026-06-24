@@ -3,7 +3,7 @@
 ## Что это за репозиторий
 
 Это template source repo для 1С-проектов.
-Он задаёт contract-first структуру вокруг `OpenSpec -> Beads -> Code`, поставляет versioned launcher-скрипты, примеры runtime profiles и agent-facing tooling.
+Он задаёт contract-first структуру вокруг `OpenSpec -> Execution Plan -> Code`, поставляет versioned launcher-скрипты, примеры runtime profiles и agent-facing tooling.
 
 Это не прикладное 1С-решение и не repository с бизнес-доменом конечного проекта.
 

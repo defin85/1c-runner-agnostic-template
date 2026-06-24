@@ -1,7 +1,6 @@
 # Baseline repo-specific Claude Context ignore patterns for generated repos.
 .git/**
 .venv/**
-.beads/**
 .agent-browser/**
 .ruff_cache/**
 node_modules/**

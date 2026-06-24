@@ -311,7 +311,7 @@ main() {
   local warning_path_list=""
   local -a layout_drift_paths=()
   local -a required_tools=(git jq rg)
-  local -a optional_tools=(openspec bd)
+  local -a optional_tools=(openspec)
   local -a required_fields=()
   local -a required_env_refs=()
   local -a required_capabilities=(create-ib dump-src load-src update-db diff-src run-xunit run-bdd run-smoke)

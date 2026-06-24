@@ -72,7 +72,6 @@ target_ref="$(resolve_target_overlay_ref "$source_path" "$requested_ref")"
 project_name="$(project_answer_value "$root" "project_name")"
 project_slug="$(project_answer_value "$root" "project_slug")"
 project_description="$(project_answer_value "$root" "project_description")"
-init_beads="$(project_answer_value_or_default "$root" "init_beads" "yes")"
 
 log "Apply template overlay release"
 printf 'Current overlay version: %s\n' "$current_version"
@@ -116,5 +115,4 @@ bash "$root/scripts/bootstrap/overlay-post-apply.sh" \
   "$release_root" \
   "$project_name" \
   "$project_slug" \
-  "$project_description" \
-  "$init_beads"
+  "$project_description"

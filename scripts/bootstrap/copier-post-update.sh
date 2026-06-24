@@ -11,7 +11,6 @@ template_src_path="${1:-}"
 project_name="${2:-}"
 project_slug="${3:-}"
 project_description="${4:-}"
-init_beads="${5:-yes}"
 
 root="$(project_root)"
 cd "$root"
@@ -27,7 +26,6 @@ bash "$root/scripts/bootstrap/overlay-post-apply.sh" \
   "$template_src_path" \
   "$project_name" \
   "$project_slug" \
-  "$project_description" \
-  "$init_beads"
+  "$project_description"
 write_overlay_source "$root" "$template_src_path"
 write_overlay_version "$root" "$(bootstrap_template_ref_or_fallback "$root" "$template_src_path")"
