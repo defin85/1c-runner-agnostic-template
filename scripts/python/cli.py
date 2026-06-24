@@ -34,11 +34,18 @@ CAPABILITY_LABELS = {
 }
 
 
+def _prefer_utf8_stdio() -> None:
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8")
+
+
 def _print_usage() -> None:
     print("Usage: python -m scripts.python.cli <command> [args...]")
 
 
 def main(argv: list[str] | None = None) -> int:
+    _prefer_utf8_stdio()
     args = list(argv if argv is not None else sys.argv[1:])
     if not args or args[0] in {"-h", "--help"}:
         _print_usage()
