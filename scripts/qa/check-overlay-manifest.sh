@@ -36,7 +36,9 @@ git -C "$root" ls-files --cached --others --exclude-standard \
       /^copier\.yml$/ { next }
       /^openspec\// { next }
       /^\.claude\/commands\// { next }
+      /^\.claude\/skills\/openspec-/ { next }
       /^\.codex\/config\.toml$/ { next }
+      /^\.codex\/skills\/openspec-/ { next }
       /^env\/.*\.example\.json\.jinja$/ { next }
       /^\[\[\[ _copier_conf\.answers_file \]\]\]\.jinja$/ { next }
       /^tooling\/(new-1c-project|update-1c-project)(\.ps1)?$/ { next }

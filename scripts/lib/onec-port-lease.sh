@@ -3,7 +3,22 @@
 ONEC_PORT_LEASE_DEFAULT_HELPER="onec-test-port-lease"
 
 onec_port_lease_helper_path() {
-  printf '%s\n' "${ONEC_TEST_PORT_LEASE_HELPER:-$ONEC_PORT_LEASE_DEFAULT_HELPER}"
+  local repo_helper=""
+  local path_helper=""
+
+  if [ -n "${ONEC_TEST_PORT_LEASE_HELPER:-}" ]; then
+    printf '%s\n' "$ONEC_TEST_PORT_LEASE_HELPER"
+    return 0
+  fi
+
+  path_helper="$(command -v "$ONEC_PORT_LEASE_DEFAULT_HELPER" 2>/dev/null || true)"
+  if [ -n "$path_helper" ]; then
+    printf '%s\n' "$path_helper"
+    return 0
+  fi
+
+  repo_helper="$(project_root)/scripts/tools/onec-test-port-lease"
+  printf '%s\n' "$repo_helper"
 }
 
 onec_port_lease_repo() {

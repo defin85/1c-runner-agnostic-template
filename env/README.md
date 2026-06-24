@@ -244,6 +244,31 @@ Shared checked-in runtime truth для generated repo должна идти че
 Для checked-in example profiles и sanctioned additional presets в `smoke` / `xunit` / `bdd` используйте либо `unsupportedReason`, либо прямой repo-owned entrypoint в `command[0]` вроде `./scripts/...` / `scripts/...`, либо `make <target>`.
 Inline shell snippets и trivial success commands вроде `true`, `echo ...` или `bash -lc "./scripts/... || true"` semantic baseline должен отклонять. Repo-owned path внутри shell-wrapper не считается допустимым checked-in contract.
 
+## Vanessa BDD Warm-Service
+
+`bdd-warm-service` — operator-local contour. Checked-in target identity живет в `automation/context/operator-local-targets.json` под `operatorLocalTargets.vanessaBdd`; ignored runtime profile хранит credentials и локальные пути.
+
+Минимальные local-private поля:
+
+```json
+{
+  "target": {
+    "id": "local-bdd"
+  },
+  "capabilities": {
+    "bddWarmService": {
+      "vanessaSinglePath": "/path/to/vanessa-automation-single.epf",
+      "warmupFeaturePath": "features/warmup.feature",
+      "libraryPaths": ["features/libraries"],
+      "stepDefinitionPaths": ["features/step_definitions"],
+      "extensionScope": ["ProjectBddExtension"]
+    }
+  }
+}
+```
+
+`./scripts/test/run-bdd-warm-service.sh up --profile env/local.json --run-root /tmp/bdd-warm-service-run` завершится fail-closed, если target truth, Vanessa Automation Single, warmup feature, libraries, step definitions или extension scope не заданы.
+
 Native Windows direct-platform contour:
 
 - `env/windows-local.example.json` показывает canonical PowerShell-first preset без WSL/Git Bash;

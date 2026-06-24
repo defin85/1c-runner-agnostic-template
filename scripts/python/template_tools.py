@@ -404,6 +404,15 @@ def _runtime_support_matrix_json() -> dict[str, object]:
                 "summary": "BDD contour for projects that provide local runtime assets.",
             },
             {
+                "id": "bdd-warm-service",
+                "layer": "profile-required",
+                "status": "operator-local",
+                "entrypoint": "make bdd-warm-service",
+                "profileProvenance": "operator-local env/local.json plus automation/context/operator-local-targets.json",
+                "runbookPath": "docs/agent/operator-local-runbook.md",
+                "summary": "Fail-closed Vanessa BDD warm-service skeleton for projects that provide Vanessa Automation Single, warmup feature, libraries, step definitions, and extension scope.",
+            },
+            {
                 "id": "smoke",
                 "layer": "profile-required",
                 "status": "operator-local",
@@ -426,7 +435,29 @@ def _runtime_support_matrix_json() -> dict[str, object]:
 
 
 def _runtime_support_matrix_md() -> str:
-    return "# Runtime Support Matrix\n\n| Contour | Status | Profile provenance | Canonical entrypoint | Runbook |\n| --- | --- | --- | --- | --- |\n| `codex-onboard` | `supported` | `none` | `make codex-onboard` / `./make.ps1 codex-onboard` | `docs/agent/generated-project-index.md` |\n| `agent-verify` | `supported` | `none` | `make agent-verify` / `./make.ps1 agent-verify` | `docs/agent/generated-project-verification.md` |\n| `export-context-check` | `supported` | `none` | `make export-context-check` | `docs/agent/generated-project-verification.md` |\n| `doctor` | `operator-local` | `env/windows-local.json` | `./scripts/diag/doctor.ps1 --profile env/windows-local.json --run-root ./.artifacts/doctor-run` | `docs/agent/operator-local-runbook.md` |\n| `check-x11-contour` | `operator-local` | `env/local.json` | `make check-x11-contour` | `docs/agent/operator-local-runbook.md` |\n| `load-cfe` | `operator-local` | `env/local.json` | `make load-cfe` | `docs/agent/operator-local-runbook.md` |\n| `configure-cfe-runtime-flags` | `operator-local` | `env/local.json` | `make configure-cfe-runtime-flags` | `docs/agent/operator-local-runbook.md` |\n| `check-cfe-applicability` | `operator-local` | `env/local.json` | `make check-cfe-applicability` | `docs/agent/operator-local-runbook.md` |\n| `check-cfe-config` | `operator-local` | `env/local.json` | `make check-cfe-config` | `docs/agent/operator-local-runbook.md` |\n| `load-diff-src` | `operator-local` | `env/local.json` | `make load-diff-src` | `docs/agent/operator-local-runbook.md` |\n| `load-task-src` | `operator-local` | `env/local.json` | `make load-task-src` | `docs/agent/operator-local-runbook.md` |\n| `xunit` | `operator-local` | `env/local.json` | `make test-xunit` | `docs/testing/xunit-direct-platform.md` |\n| `yaxunit` | `operator-local` | `env/local.json` | `make test-yaxunit` | `docs/agent/operator-local-runbook.md` |\n| `yaxunit-warm-rpc` | `operator-local` | `env/local.json` | `make yaxunit-warm-service` | `docs/agent/operator-local-runbook.md` |\n| `web-client-diagnostic` | `operator-local` | `env/local.json` | `make web-client-diagnostic` | `docs/agent/operator-local-runbook.md` |\n| `golden-baseline` | `operator-local` | `tests/golden/run.sh` or `GOLDEN_BASELINE_COMMAND` | `make golden-baseline` | `tests/golden/README.md` |\n| `bdd` | `operator-local` | `env/local.json` | `make test-bdd` | `docs/agent/operator-local-runbook.md` |\n| `smoke` | `operator-local` | `env/local.json` | `make smoke` | `docs/agent/operator-local-runbook.md` |\n| `publish-http` | `operator-local` | `env/local.json` | `./scripts/platform/publish-http.sh --profile env/local.json` | `docs/agent/operator-local-runbook.md` |\n"
+    return "# Runtime Support Matrix\n\n| Contour | Status | Profile provenance | Canonical entrypoint | Runbook |\n| --- | --- | --- | --- | --- |\n| `codex-onboard` | `supported` | `none` | `make codex-onboard` / `./make.ps1 codex-onboard` | `docs/agent/generated-project-index.md` |\n| `agent-verify` | `supported` | `none` | `make agent-verify` / `./make.ps1 agent-verify` | `docs/agent/generated-project-verification.md` |\n| `export-context-check` | `supported` | `none` | `make export-context-check` | `docs/agent/generated-project-verification.md` |\n| `doctor` | `operator-local` | `env/windows-local.json` | `./scripts/diag/doctor.ps1 --profile env/windows-local.json --run-root ./.artifacts/doctor-run` | `docs/agent/operator-local-runbook.md` |\n| `check-x11-contour` | `operator-local` | `env/local.json` | `make check-x11-contour` | `docs/agent/operator-local-runbook.md` |\n| `load-cfe` | `operator-local` | `env/local.json` | `make load-cfe` | `docs/agent/operator-local-runbook.md` |\n| `configure-cfe-runtime-flags` | `operator-local` | `env/local.json` | `make configure-cfe-runtime-flags` | `docs/agent/operator-local-runbook.md` |\n| `check-cfe-applicability` | `operator-local` | `env/local.json` | `make check-cfe-applicability` | `docs/agent/operator-local-runbook.md` |\n| `check-cfe-config` | `operator-local` | `env/local.json` | `make check-cfe-config` | `docs/agent/operator-local-runbook.md` |\n| `load-diff-src` | `operator-local` | `env/local.json` | `make load-diff-src` | `docs/agent/operator-local-runbook.md` |\n| `load-task-src` | `operator-local` | `env/local.json` | `make load-task-src` | `docs/agent/operator-local-runbook.md` |\n| `xunit` | `operator-local` | `env/local.json` | `make test-xunit` | `docs/testing/xunit-direct-platform.md` |\n| `yaxunit` | `operator-local` | `env/local.json` | `make test-yaxunit` | `docs/agent/operator-local-runbook.md` |\n| `yaxunit-warm-rpc` | `operator-local` | `env/local.json` | `make yaxunit-warm-service` | `docs/agent/operator-local-runbook.md` |\n| `web-client-diagnostic` | `operator-local` | `env/local.json` | `make web-client-diagnostic` | `docs/agent/operator-local-runbook.md` |\n| `golden-baseline` | `operator-local` | `tests/golden/run.sh` or `GOLDEN_BASELINE_COMMAND` | `make golden-baseline` | `tests/golden/README.md` |\n| `bdd` | `operator-local` | `env/local.json` | `make test-bdd` | `docs/agent/operator-local-runbook.md` |\n| `bdd-warm-service` | `operator-local` | `env/local.json` + `automation/context/operator-local-targets.json` | `make bdd-warm-service` | `docs/agent/operator-local-runbook.md` |\n| `smoke` | `operator-local` | `env/local.json` | `make smoke` | `docs/agent/operator-local-runbook.md` |\n| `publish-http` | `operator-local` | `env/local.json` | `./scripts/platform/publish-http.sh --profile env/local.json` | `docs/agent/operator-local-runbook.md` |\n"
+
+
+def _operator_local_targets_json() -> dict[str, object]:
+    return {
+        "schemaVersion": 1,
+        "operatorLocalTargets": {
+            "vanessaBdd": {
+                "targetId": "",
+                "infobase": {
+                    "mode": "",
+                    "filePath": "",
+                    "server": "",
+                    "ref": "",
+                },
+            }
+        },
+        "notes": [
+            "Project-owned non-secret target truth for operator-local profiles.",
+            "Set operatorLocalTargets.vanessaBdd before enabling bdd-warm-service.",
+            "Keep credentials and local Vanessa paths in ignored runtime profiles.",
+        ],
+    }
 
 
 def seed_generated_project_surface(root: Path, project_name: str, project_slug: str, project_description: str) -> None:
@@ -440,6 +471,7 @@ def seed_generated_project_surface(root: Path, project_name: str, project_slug: 
     write_text(root / "docs" / "agent" / "operator-local-runbook.md", _operator_local_runbook())
     write_text(root / "docs" / "agent" / "runtime-quickstart.md", _runtime_quickstart())
     write_json(root / "automation" / "context" / "runtime-profile-policy.json", _runtime_profile_policy())
+    write_json(root / "automation" / "context" / "operator-local-targets.json", _operator_local_targets_json())
     write_json(root / "automation" / "context" / "runtime-support-matrix.json", _runtime_support_matrix_json())
     write_text(root / "automation" / "context" / "runtime-support-matrix.md", _runtime_support_matrix_md())
 

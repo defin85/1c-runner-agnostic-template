@@ -1,0 +1,32 @@
+schema: spec-driven
+
+context: |
+  Project: 1c-runner-agnostic-template is the source repository for a Copier
+  template, not an applied 1C solution.
+  Stack: Bash, Python helper scripts, Copier, OpenSpec, optional Beads, Git, and
+  1C runtime adapters such as direct-platform, remote-windows, and optional
+  vrunner.
+  Architecture: keep intent in openspec/, live task graph in generated-project
+  Beads, deployable source under src/, and canonical human/CI/agent entrypoints
+  under scripts/.
+  Generated projects are bootstrapped with copier copy; ongoing template
+  maintenance must use the repo-owned overlay apply/update path and must not
+  reinitialize openspec, git, or beads on update.
+  Documentation, plans, specs, and change artifacts are Russian by default.
+  Runtime profiles, credentials, local paths, and machine-specific MCP settings
+  must stay out of checked-in template truth.
+  Prefer script-first behavior: executable logic belongs in versioned repository
+  scripts, not ad-hoc documentation commands.
+
+rules:
+  proposal:
+    - State whether the change affects template source, generated project surface, or both.
+    - Identify affected specs, scripts, generated templates, and smoke checks.
+  specs:
+    - Use SHALL or MUST in requirement bodies and include at least one Scenario per requirement.
+    - Keep source-repo OpenSpec tooling separate from generated-project owned OpenSpec state.
+  design:
+    - Call out bootstrap versus update behavior when the change touches Copier or overlay flow.
+    - Prefer the smallest existing repo pattern over introducing new machinery.
+  tasks:
+    - Include the relevant strict OpenSpec validation and the smallest smoke checks that cover the changed surface.

@@ -24,6 +24,10 @@ _exclude:
   - openspec/**
   - .claude/commands
   - .claude/commands/**
+  - .claude/skills/openspec-*
+  - .claude/skills/openspec-*/**
+  - .codex/skills/openspec-*
+  - .codex/skills/openspec-*/**
   - tooling/new-1c-project
   - tooling/new-1c-project.ps1
   - tooling/update-1c-project

@@ -47,7 +47,9 @@ def _tracked_source_files(root: Path, roots: list[str]) -> list[Path] | None:
         rel = line.strip()
         if not rel:
             continue
-        files.append(root / Path(rel))
+        path = root / Path(rel)
+        if path.is_file():
+            files.append(path)
     return sorted(files)
 
 

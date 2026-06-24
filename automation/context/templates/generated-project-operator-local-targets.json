@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "operatorLocalTargets": {
+    "vanessaBdd": {
+      "targetId": "",
+      "infobase": {
+        "mode": "",
+        "filePath": "",
+        "server": "",
+        "ref": ""
+      }
+    }
+  },
+  "notes": [
+    "Project-owned non-secret target truth for operator-local profiles.",
+    "Set operatorLocalTargets.vanessaBdd before enabling bdd-warm-service.",
+    "Keep credentials and local Vanessa paths in ignored runtime profiles."
+  ]
+}

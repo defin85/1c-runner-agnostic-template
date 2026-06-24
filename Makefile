@@ -1,6 +1,6 @@
 SHELL := bash
 
-.PHONY: help agent-verify act-preflight qa analyze-bsl format-bsl check-agent-docs check-skill-bindings check-overlay-manifest codex-onboard imported-skills-readiness create-ib dump-src load-src load-cfe configure-cfe-runtime-flags check-cfe-applicability check-cfe-config load-diff-src load-task-src update-db diff-src doctor check-x11-contour test-xunit tdd-xunit test-yaxunit sync-yaxunit-runtime yaxunit-warm-service web-client-diagnostic golden-baseline test-bdd smoke export-context export-context-preview export-context-check export-context-write verify-traceability template-check-update template-update
+.PHONY: help agent-verify act-preflight qa analyze-bsl format-bsl check-agent-docs check-skill-bindings check-overlay-manifest codex-onboard imported-skills-readiness create-ib dump-src load-src load-cfe configure-cfe-runtime-flags check-cfe-applicability check-cfe-config load-diff-src load-task-src update-db diff-src doctor check-x11-contour test-xunit tdd-xunit test-yaxunit sync-yaxunit-runtime yaxunit-warm-service web-client-diagnostic golden-baseline test-bdd bdd-warm-service smoke export-context export-context-preview export-context-check export-context-write verify-traceability template-check-update template-update
 
 help:
 	@printf '%s\n' \
@@ -36,6 +36,7 @@ help:
 		'  make web-client-diagnostic' \
 		'  make golden-baseline' \
 		'  make test-bdd' \
+		'  make bdd-warm-service' \
 		'  make smoke' \
 		'  make export-context' \
 		'  make export-context-preview' \
@@ -136,6 +137,9 @@ golden-baseline:
 
 test-bdd:
 	@./scripts/test/run-bdd.sh
+
+bdd-warm-service:
+	@./scripts/test/run-bdd-warm-service.sh up
 
 smoke:
 	@./scripts/test/run-smoke.sh

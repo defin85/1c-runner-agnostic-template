@@ -22,6 +22,8 @@ __pycache__/
 !.codex/.gitkeep
 !.codex/config.toml
 !.codex/README.md
+!.codex/skills/
+!.codex/skills/**
 
 .env
 .env.*

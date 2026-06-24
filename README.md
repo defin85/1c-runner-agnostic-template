@@ -278,7 +278,7 @@ new-1c-project ~/code/my-project --defaults --beads-prefix docflow
 `new-1c-project` это не часть сгенерированного проекта, а локальный helper-скрипт поверх `copier copy`.
 Если `destination` не указан или равен `.`, helper берёт `project_name` и `project_slug` из имени текущей папки.
 Post-copy bootstrap создаёт базовый `AGENTS.md` через `openspec init` и дополняет его типовым project overlay с workflow, rules для `bd` и playbook поиска по коду.
-OpenSpec-артефакты самого репозитория шаблона (`openspec/`, корневые `AGENTS.md`/`CLAUDE.md`, `.claude/commands/openspec`) не рендерятся в конечный проект и не должны перетирать его собственный OpenSpec ни при bootstrap, ни при compatibility-migration через `copier update`.
+OpenSpec-артефакты самого репозитория шаблона (`openspec/`, корневой `AGENTS.md`, `.claude/commands/opsx`, `.claude/skills/openspec-*`, `.codex/skills/openspec-*`) не рендерятся в конечный проект и не должны перетирать его собственный OpenSpec ни при bootstrap, ни при compatibility-migration через `copier update`.
 Шаблон сохраняет `.copier-answers.yml` как bootstrap provenance, а ongoing updates после первой миграции идут через versioned overlay path.
 
 2. Убедитесь, что установлены `openspec` и `bd`, потому что post-copy bootstrap вызывает `openspec init` и по умолчанию `bd init --stealth`.

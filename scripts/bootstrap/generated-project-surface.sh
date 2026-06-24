@@ -574,6 +574,7 @@ EOF
 | `web-client-diagnostic` | `operator-local` | `./scripts/test/run-web-client-diagnostic.sh --profile env/local.json --run-root /tmp/web-client-diagnostic-run` | `published web client + diagnostic profile capability` | `docs/agent/operator-local-runbook.md` |
 | `golden-baseline` | `operator-local` | `./scripts/test/run-golden-baseline.sh --run-root /tmp/golden-baseline-run` | `project-owned tests/golden/run.sh or GOLDEN_BASELINE_COMMAND` | `tests/golden/README.md` |
 | `bdd` | `unsupported` | `./scripts/test/run-bdd.sh --profile env/local.json --run-root /tmp/bdd-run` | `future project-owned contour or sanctioned preset` | `docs/agent/generated-project-verification.md` |
+| `bdd-warm-service` | `operator-local` | `./scripts/test/run-bdd-warm-service.sh up --profile env/local.json --run-root /tmp/bdd-warm-service-run` | `automation/context/operator-local-targets.json + local Vanessa inputs` | `docs/agent/operator-local-runbook.md` |
 | `smoke` | `unsupported` | `./scripts/test/run-smoke.sh --profile env/local.json --run-root /tmp/smoke-run` | `future project-owned contour or sanctioned preset` | `docs/agent/generated-project-verification.md` |
 | `publish-http` | `unsupported` | `./scripts/platform/publish-http.sh --profile env/local.json --run-root /tmp/publish-http-run` | `future project-owned contour or sanctioned preset` | `docs/agent/generated-project-verification.md` |
 
@@ -742,6 +743,33 @@ write_runtime_profile_policy_starter() {
     "Declare only checked-in team-shared presets here.",
     "Do not list local-private profiles from env/.local/ or ignored local.json/wsl.json files.",
     "Sanctioned checked-in profiles must not keep smoke/xunit/bdd/golden-baseline as success-on-placeholder contours."
+  ]
+}
+EOF
+}
+
+write_operator_local_targets_starter() {
+  local target_file="$1"
+
+  ensure_parent_dir "$target_file"
+  cat >"$target_file" <<'EOF'
+{
+  "schemaVersion": 1,
+  "operatorLocalTargets": {
+    "vanessaBdd": {
+      "targetId": "",
+      "infobase": {
+        "mode": "",
+        "filePath": "",
+        "server": "",
+        "ref": ""
+      }
+    }
+  },
+  "notes": [
+    "Project-owned non-secret target truth for operator-local profiles.",
+    "Set operatorLocalTargets.vanessaBdd before enabling bdd-warm-service.",
+    "Keep credentials and local Vanessa paths in ignored runtime profiles."
   ]
 }
 EOF
@@ -916,6 +944,15 @@ write_runtime_support_matrix_json_starter() {
       "summary": "Keep fail-closed until the project wires a real repo-owned BDD contour."
     },
     {
+      "id": "bdd-warm-service",
+      "layer": "profile-required",
+      "status": "operator-local",
+      "entrypoint": "./scripts/test/run-bdd-warm-service.sh up --profile env/local.json --run-root /tmp/bdd-warm-service-run",
+      "profileProvenance": "operator-local env/local.json plus automation/context/operator-local-targets.json",
+      "runbookPath": "docs/agent/operator-local-runbook.md",
+      "summary": "Fail-closed Vanessa BDD warm-service skeleton for projects that provide Vanessa Automation Single, warmup feature, libraries, step definitions, and extension scope."
+    },
+    {
       "id": "smoke",
       "layer": "profile-required",
       "status": "unsupported",
@@ -980,6 +1017,7 @@ write_runtime_support_matrix_markdown_starter() {
 | `web-client-diagnostic` | `operator-local` | `env/local.json` или явный `--profile` | `./scripts/test/run-web-client-diagnostic.sh --profile env/local.json --run-root /tmp/web-client-diagnostic-run` | `docs/agent/operator-local-runbook.md` |
 | `golden-baseline` | `operator-local` | `tests/golden/run.sh` или `GOLDEN_BASELINE_COMMAND` | `./scripts/test/run-golden-baseline.sh --run-root /tmp/golden-baseline-run` | `tests/golden/README.md` |
 | `bdd` | `unsupported` | project decides later | `./scripts/test/run-bdd.sh --profile env/local.json --run-root /tmp/bdd-run` | `docs/agent/generated-project-verification.md` |
+| `bdd-warm-service` | `operator-local` | `env/local.json` + `automation/context/operator-local-targets.json` | `./scripts/test/run-bdd-warm-service.sh up --profile env/local.json --run-root /tmp/bdd-warm-service-run` | `docs/agent/operator-local-runbook.md` |
 | `smoke` | `unsupported` | project decides later | `./scripts/test/run-smoke.sh --profile env/local.json --run-root /tmp/smoke-run` | `docs/agent/generated-project-verification.md` |
 | `publish-http` | `unsupported` | project decides later | `./scripts/platform/publish-http.sh --profile env/local.json --run-root /tmp/publish-http-run` | `docs/agent/generated-project-verification.md` |
 
@@ -1106,6 +1144,7 @@ seed_generated_project_surface_on_copy() {
   write_work_items_template_starter "$root/docs/work-items/TEMPLATE.md"
   write_project_delta_hints_starter "$root/automation/context/project-delta-hints.json"
   write_runtime_profile_policy_starter "$root/automation/context/runtime-profile-policy.json"
+  write_operator_local_targets_starter "$root/automation/context/operator-local-targets.json"
   write_runtime_support_matrix_json_starter "$root/automation/context/runtime-support-matrix.json"
   write_runtime_support_matrix_markdown_starter "$root/automation/context/runtime-support-matrix.md"
   write_openspec_project_starter "$root/openspec/project.md" "$project_name" "$project_slug" "$project_description"
@@ -1151,6 +1190,10 @@ refresh_generated_project_surface_on_update() {
 
   if [ ! -f "$root/automation/context/runtime-profile-policy.json" ]; then
     write_runtime_profile_policy_starter "$root/automation/context/runtime-profile-policy.json"
+  fi
+
+  if [ ! -f "$root/automation/context/operator-local-targets.json" ]; then
+    write_operator_local_targets_starter "$root/automation/context/operator-local-targets.json"
   fi
 
   if [ ! -f "$root/automation/context/runtime-support-matrix.json" ]; then

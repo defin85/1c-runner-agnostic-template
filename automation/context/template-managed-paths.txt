@@ -175,6 +175,7 @@ automation/context/templates/generated-project-architecture-map.md
 automation/context/templates/generated-project-hotspots-summary.md
 automation/context/templates/generated-project-metadata-index.json
 automation/context/templates/generated-project-operator-local-runbook.md
+automation/context/templates/generated-project-operator-local-targets.json
 automation/context/templates/generated-project-project-delta-hints.json
 automation/context/templates/generated-project-project-delta-hotspots.md
 automation/context/templates/generated-project-project-map.md
@@ -457,6 +458,7 @@ scripts/lib/onec-port-lease.sh
 scripts/lib/onec.sh
 scripts/lib/runtime-profile.sh
 scripts/lib/target-matrix.sh
+scripts/lib/vanessa-bdd.sh
 scripts/lib/web-client-diagnostic.sh
 scripts/lib/yaxunit.sh
 scripts/llm/export-context.ps1
@@ -520,6 +522,7 @@ scripts/template/update-template.ps1
 scripts/template/update-template.sh
 scripts/test/build-xunit-epf.ps1
 scripts/test/build-xunit-epf.sh
+scripts/test/run-bdd-warm-service.sh
 scripts/test/run-bdd.ps1
 scripts/test/run-bdd.sh
 scripts/test/run-golden-baseline.sh
@@ -535,6 +538,7 @@ scripts/test/run-yaxunit.sh
 scripts/test/sync-yaxunit-runtime.sh
 scripts/test/tdd-xunit.ps1
 scripts/test/tdd-xunit.sh
+scripts/tools/onec-test-port-lease
 src/AGENTS.md
 src/README.md
 src/epf/TemplateXUnitHarness/TemplateXUnitHarness.xml
@@ -578,6 +582,7 @@ tests/smoke/runtime-profile-migration-helper.sh
 tests/smoke/tdd-xunit-wrapper-contract.sh
 tests/smoke/template-xunit-contour-contract.sh
 tests/smoke/update-1c-project-wrapper.sh
+tests/smoke/vanessa-bdd-warm-service-contract.sh
 tests/smoke/web-client-diagnostic-contract.sh
 tests/smoke/yaxunit-contour-contract.sh
 tests/smoke/yaxunit-warm-rpc-contour-contract.sh

@@ -574,7 +574,7 @@ check_generated_runtime_support_matrix_contract() {
     '(.statuses | sort) == ["operator-local","provisioned","supported","unsupported"]' \
     "runtime support matrix must define the canonical status set"
   require_jq_expr "$generated_matrix_json_rel" \
-    '(.contours | map(.id)) as $ids | ["codex-onboard","agent-verify","export-context-check","doctor","xunit","bdd","smoke","publish-http","load-diff-src","load-task-src"] | all(. as $id | $ids | index($id))' \
+    '(.contours | map(.id)) as $ids | ["codex-onboard","agent-verify","export-context-check","doctor","xunit","bdd","bdd-warm-service","smoke","publish-http","load-diff-src","load-task-src"] | all(. as $id | $ids | index($id))' \
     "runtime support matrix must cover the required contour ids"
   require_jq_expr "$generated_matrix_json_rel" \
     '.contours | type == "array" and length > 0 and all(.[]; (.id | type == "string" and length > 0) and (.status | type == "string" and length > 0) and (.profileProvenance | type == "string" and length > 0) and (((.entrypoint // "") | type == "string" and length > 0) or ((.runbookPath // "") | type == "string" and length > 0)))' \
@@ -1042,11 +1042,14 @@ require_contains "automation/context/templates/generated-project-project-delta-h
 require_contains "automation/context/templates/generated-project-runtime-support-matrix.json" "requiredContourIds"
 require_contains "automation/context/templates/generated-project-runtime-support-matrix.md" "# Runtime Support Matrix Reference"
 require_contains "automation/context/templates/generated-project-runtime-support-matrix.md" "projectSpecificBaselineExtension"
+require_contains "automation/context/templates/generated-project-runtime-support-matrix.md" "bdd-warm-service"
+require_contains "automation/context/templates/generated-project-operator-local-targets.json" "operatorLocalTargets"
 require_contains "automation/context/templates/generated-project-runtime-support-matrix.md" "docs/agent/runtime-quickstart.md"
 require_contains "automation/context/templates/generated-project-runtime-support-matrix.md" "docs/agent/operator-local-runbook.md"
 require_contains "automation/context/template-managed-paths.txt" "docs/agent/codex-workflows.md"
 require_contains "automation/context/template-managed-paths.txt" "automation/context/templates/generated-project-runtime-support-matrix.json"
 require_contains "automation/context/template-managed-paths.txt" "automation/context/templates/generated-project-runtime-support-matrix.md"
+require_contains "automation/context/template-managed-paths.txt" "automation/context/templates/generated-project-operator-local-targets.json"
 require_contains "automation/context/template-managed-paths.txt" "automation/context/templates/generated-project-architecture-map.md"
 require_contains "automation/context/template-managed-paths.txt" "automation/context/templates/generated-project-recommended-skills.md"
 require_contains "automation/context/template-managed-paths.txt" "automation/context/templates/generated-project-operator-local-runbook.md"
