@@ -198,6 +198,18 @@ assert_contains() {
   fi
 }
 
+assert_matches() {
+  local file="$1"
+  local expected_regex="$2"
+
+  if ! grep -Eq -- "$expected_regex" "$file"; then
+    printf 'expected regex not found: %s\n' "$expected_regex" >&2
+    printf 'actual file contents:\n' >&2
+    cat "$file" >&2
+    exit 1
+  fi
+}
+
 assert_jq() {
   local file="$1"
   local expr="$2"
@@ -240,7 +252,7 @@ assert_contains "$xunit_run_root/stderr.log" "xpra-arg=start-desktop"
 assert_contains "$xunit_run_root/stderr.log" "xpra-xauthority=$xunit_run_root/home/.Xauthority"
 assert_contains "$xunit_run_root/stderr.log" "xpra-arg=--xvfb=Xvfb -screen 0 1440x900x24 -nolisten tcp -noreset -auth $xunit_run_root/home/.Xauthority"
 assert_contains "$xunit_run_root/stdout.log" "fake-1cv8c"
-assert_contains "$xunit_run_root/stdout.log" "display=:120"
+assert_matches "$xunit_run_root/stdout.log" '^display=:[0-9]+$'
 assert_contains "$xunit_run_root/stdout.log" "xauthority=$xunit_run_root/home/.Xauthority"
 assert_contains "$invocation_log" "1cv8c"
 

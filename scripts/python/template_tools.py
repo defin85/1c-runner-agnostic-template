@@ -410,7 +410,7 @@ def _runtime_support_matrix_json() -> dict[str, object]:
                 "entrypoint": "make bdd-warm-service",
                 "profileProvenance": "operator-local env/local.json plus automation/context/operator-local-targets.json",
                 "runbookPath": "docs/agent/operator-local-runbook.md",
-                "summary": "Fail-closed Vanessa BDD warm-service skeleton for projects that provide Vanessa Automation Single, warmup feature, libraries, step definitions, and extension scope.",
+                "summary": "Vanessa BDD warm-service launcher with /TESTMANAGER and /TestClient sessions; project-owned 1C code handles capabilities.bddWarmService.launchParameterName.",
             },
             {
                 "id": "smoke",

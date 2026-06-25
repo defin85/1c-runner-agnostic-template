@@ -118,8 +118,10 @@ run_xpra_wrapped_command() {
   local run_root="${ONEC_CAPABILITY_RUN_ROOT:-${TMPDIR:-/tmp}}"
   local xpra_root=""
   local xpra_log=""
+  local xpra_session_name="${ONEC_DIRECT_PLATFORM_XPRA_SESSION_NAME:-}"
   local xpra_xvfb_args="${ONEC_DIRECT_PLATFORM_XPRA_XVFB_ARGS:-}"
   local xpra_start_child="${ONEC_DIRECT_PLATFORM_XPRA_START_CHILD:-openbox}"
+  local -a xpra_args=()
   local xauth_file=""
   local exit_code=0
   local waited=0
@@ -147,16 +149,21 @@ run_xpra_wrapped_command() {
   xpra_log="$xpra_root/xpra-${display_number}.log"
   trap 'xpra stop "$display_value" >/dev/null 2>&1 || true' EXIT INT TERM
 
-  XAUTHORITY="$xauth_file" xpra start-desktop "$display_value" \
-    --daemon=yes \
-    --attach=no \
-    --mdns=no \
-    --systemd-run=no \
-    --exit-with-children=no \
-    --html=off \
-    --xvfb="$xpra_xvfb_args" \
-    --log-file="$xpra_log" \
-    ${xpra_start_child:+--start-child="$xpra_start_child"} >&2
+  xpra_args=(
+    start-desktop "$display_value"
+    --daemon=yes
+    --attach=no
+    --mdns=no
+    --systemd-run=no
+    --exit-with-children=no
+    --html=off
+    --xvfb="$xpra_xvfb_args"
+    --log-file="$xpra_log"
+  )
+  [ -z "$xpra_session_name" ] || xpra_args+=(--session-name="$xpra_session_name")
+  [ -z "$xpra_start_child" ] || xpra_args+=(--start-child="$xpra_start_child")
+
+  XAUTHORITY="$xauth_file" xpra "${xpra_args[@]}" >&2
 
   while [ "$waited" -lt 100 ]; do
     if DISPLAY="$display_value" XAUTHORITY="$xauth_file" xdpyinfo >/dev/null 2>&1; then
@@ -173,6 +180,17 @@ run_xpra_wrapped_command() {
     fi
     xpra stop "$display_value" >/dev/null 2>&1 || true
     exit 1
+  fi
+
+  if [ -n "$xpra_start_child" ] && [ -f "$xpra_log" ]; then
+    waited=0
+    while [ "$waited" -lt 100 ]; do
+      if grep -F "started command \`${xpra_start_child%% *}\`" "$xpra_log" >/dev/null 2>&1; then
+        break
+      fi
+      sleep 0.1
+      waited=$((waited + 1))
+    done
   fi
 
   printf 'direct-platform xpra display=%s log=%s\n' "$display_value" "$xpra_log" >&2

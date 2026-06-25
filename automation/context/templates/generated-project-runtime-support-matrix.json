@@ -45,7 +45,7 @@
     "Multi-target extension workspaces declare checked-in target metadata in automation/context/target-matrix.json and keep operator-local profile binding in profile target.id.",
     "Target-aware contour entries should list target ids and reference the extension set selected for each target.",
     "golden-baseline is a mandatory project regression contour and should fail closed until the project wires tests/golden/run.sh or GOLDEN_BASELINE_COMMAND.",
-    "bdd-warm-service is an operator-local Vanessa Automation warm contour and must stay fail-closed until automation/context/operator-local-targets.json and local Vanessa inputs are configured.",
+    "bdd-warm-service is an operator-local Vanessa Automation warm contour: the template starts /TESTMANAGER and /TestClient, while project-owned 1C code must handle capabilities.bddWarmService.launchParameterName.",
     "If a project adds an extra no-1C smoke contour, declare it via projectSpecificBaselineExtension and keep it separate from the template baseline."
   ]
 }

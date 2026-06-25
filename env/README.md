@@ -260,14 +260,13 @@ Inline shell snippets и trivial success commands вроде `true`, `echo ...` 
       "vanessaSinglePath": "/path/to/vanessa-automation-single.epf",
       "warmupFeaturePath": "features/warmup.feature",
       "libraryPaths": ["features/libraries"],
-      "stepDefinitionPaths": ["features/step_definitions"],
-      "extensionScope": ["ProjectBddExtension"]
+      "launchParameterName": "ProjectBddWarmServiceConfig"
     }
   }
 }
 ```
 
-`./scripts/test/run-bdd-warm-service.sh up --profile env/local.json --run-root /tmp/bdd-warm-service-run` завершится fail-closed, если target truth, Vanessa Automation Single, warmup feature, libraries, step definitions или extension scope не заданы.
+`./scripts/test/run-bdd-warm-service.sh up --profile env/local.json --run-root /tmp/bdd-warm-service-run` поднимает два Xpra-сеанса: менеджер тестирования с `/TESTMANAGER` и клиент тестирования с `/TestClient -TPort...`. Проект должен добавить 1С-код, который читает `/C <launchParameterName>=<service-config-path>` и инициализирует Vanessa Automation; если target truth, Vanessa Automation Single или warmup feature не заданы, запуск завершается fail-closed.
 
 Native Windows direct-platform contour:
 

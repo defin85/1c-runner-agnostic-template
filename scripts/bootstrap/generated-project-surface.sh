@@ -574,7 +574,7 @@ EOF
 | `web-client-diagnostic` | `operator-local` | `./scripts/test/run-web-client-diagnostic.sh --profile env/local.json --run-root /tmp/web-client-diagnostic-run` | `published web client + diagnostic profile capability` | `docs/agent/operator-local-runbook.md` |
 | `golden-baseline` | `operator-local` | `./scripts/test/run-golden-baseline.sh --run-root /tmp/golden-baseline-run` | `project-owned tests/golden/run.sh or GOLDEN_BASELINE_COMMAND` | `tests/golden/README.md` |
 | `bdd` | `unsupported` | `./scripts/test/run-bdd.sh --profile env/local.json --run-root /tmp/bdd-run` | `future project-owned contour or sanctioned preset` | `docs/agent/generated-project-verification.md` |
-| `bdd-warm-service` | `operator-local` | `./scripts/test/run-bdd-warm-service.sh up --profile env/local.json --run-root /tmp/bdd-warm-service-run` | `automation/context/operator-local-targets.json + local Vanessa inputs` | `docs/agent/operator-local-runbook.md` |
+| `bdd-warm-service` | `operator-local` | `./scripts/test/run-bdd-warm-service.sh up --profile env/local.json --run-root /tmp/bdd-warm-service-run` | `operator-local target truth + Vanessa inputs + project-owned launchParameterName handler` | `docs/agent/operator-local-runbook.md` |
 | `smoke` | `unsupported` | `./scripts/test/run-smoke.sh --profile env/local.json --run-root /tmp/smoke-run` | `future project-owned contour or sanctioned preset` | `docs/agent/generated-project-verification.md` |
 | `publish-http` | `unsupported` | `./scripts/platform/publish-http.sh --profile env/local.json --run-root /tmp/publish-http-run` | `future project-owned contour or sanctioned preset` | `docs/agent/generated-project-verification.md` |
 
@@ -947,7 +947,7 @@ write_runtime_support_matrix_json_starter() {
       "entrypoint": "./scripts/test/run-bdd-warm-service.sh up --profile env/local.json --run-root /tmp/bdd-warm-service-run",
       "profileProvenance": "operator-local env/local.json plus automation/context/operator-local-targets.json",
       "runbookPath": "docs/agent/operator-local-runbook.md",
-      "summary": "Fail-closed Vanessa BDD warm-service skeleton for projects that provide Vanessa Automation Single, warmup feature, libraries, step definitions, and extension scope."
+      "summary": "Vanessa BDD warm-service launcher with /TESTMANAGER and /TestClient sessions; project-owned 1C code handles capabilities.bddWarmService.launchParameterName."
     },
     {
       "id": "smoke",
