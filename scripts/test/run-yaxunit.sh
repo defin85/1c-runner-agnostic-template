@@ -369,6 +369,20 @@ collect_required_source_extensions() {
   done < <(jq -r '(.filter.extensions // [])[]?' "$EFFECTIVE_CONFIG")
 }
 
+yaxunit_sync_command_hint() {
+  local command="./scripts/test/sync-yaxunit-runtime.sh --profile $PROFILE_PATH --run-root /tmp/yaxunit-sync-run"
+  local extension_name=""
+
+  if [ -n "$TARGET_INPUT" ]; then
+    command+=" --target $TARGET_INPUT"
+  fi
+  for extension_name in "${REQUIRED_SOURCE_EXTENSIONS[@]}"; do
+    command+=" --extension $extension_name"
+  done
+
+  printf '%s\n' "$command"
+}
+
 check_sync_evidence() {
   local selected_extensions_json=""
   local current_hash=""
@@ -385,7 +399,7 @@ check_sync_evidence() {
 
   if [ ! -f "$SYNC_EVIDENCE_PATH" ]; then
     SYNC_STATUS="missing"
-    SYNC_MESSAGE="YAxUnit sync evidence is missing. Run ./scripts/test/sync-yaxunit-runtime.sh --profile $PROFILE_PATH --run-root /tmp/yaxunit-sync-run before run-yaxunit."
+    SYNC_MESSAGE="YAxUnit sync evidence is missing. Run $(yaxunit_sync_command_hint) before run-yaxunit."
     fail_with_summary 65 "yaxunit-sync required" "$SYNC_MESSAGE"
   fi
 
@@ -421,7 +435,7 @@ check_sync_evidence() {
   evidence_hash="$(jq -r '.contract_hash // empty' "$SYNC_EVIDENCE_PATH")"
   if [ "$evidence_hash" != "$current_hash" ]; then
     SYNC_STATUS="stale"
-    SYNC_MESSAGE="YAxUnit sync evidence is stale for selected source extensions. Run ./scripts/test/sync-yaxunit-runtime.sh --profile $PROFILE_PATH --run-root /tmp/yaxunit-sync-run."
+    SYNC_MESSAGE="YAxUnit sync evidence is stale for selected source extensions. Run $(yaxunit_sync_command_hint)."
     fail_with_summary 65 "yaxunit-sync required" "$SYNC_MESSAGE"
   fi
 

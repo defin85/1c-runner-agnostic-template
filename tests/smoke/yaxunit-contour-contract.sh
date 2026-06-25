@@ -13,6 +13,7 @@ state_root="$tmpdir/state"
 invocation_log="$tmpdir/stage-invocations.log"
 profile_path="$fixture_root/env/local.json"
 sync_run_root="$tmpdir/sync-run"
+target_sync_run_root="$tmpdir/target-sync-run"
 run_root="$tmpdir/yaxunit-run"
 empty_run_root="$tmpdir/empty-run"
 failed_run_root="$tmpdir/failed-run"
@@ -116,6 +117,7 @@ write_stage_stub() {
 #!/usr/bin/env bash
 set -euo pipefail
 
+args=("$@")
 run_root=""
 while [ "$#" -gt 0 ]; do
   case "$1" in
@@ -131,7 +133,7 @@ done
 
 [ -n "$run_root" ] || { printf 'missing --run-root\n' >&2; exit 64; }
 mkdir -p "$run_root"
-printf '%s %s\n' "$(basename -- "$0")" "$*" >>"${YAXUNIT_STAGE_INVOCATION_LOG:?}"
+printf '%s %s\n' "$(basename -- "$0")" "${args[*]}" >>"${YAXUNIT_STAGE_INVOCATION_LOG:?}"
 jq -n --arg status success --arg stage "$(basename -- "$0")" '{
   status: $status,
   stage: $stage,
@@ -230,6 +232,17 @@ assert_jq "$sync_run_root/summary.json" '.runtime_flag_extensions == ["YAXUNIT",
 assert_jq "$evidence_path" '.status == "success" and .contour_id == "yaxunit-light-contour"' "evidence-status"
 assert_jq "$evidence_path" '.selected_source_extensions == ["YAxUnit", "YAxUnitTests"]' "evidence-source-extensions"
 assert_jq "$evidence_path" '.runtime_flag_extensions == ["YAXUNIT", "YAxUnitTests"]' "evidence-runtime-extensions"
+
+(
+  cd "$fixture_root"
+  ONEC_YAXUNIT_STATE_ROOT="$state_root/target-sync" \
+  YAXUNIT_STAGE_INVOCATION_LOG="$invocation_log" \
+  ./scripts/test/sync-yaxunit-runtime.sh --profile "$profile_path" --target ut22 --extension YAxUnitTests --run-root "$target_sync_run_root" >/dev/null
+)
+assert_contains "$invocation_log" "load-cfe.sh --profile $profile_path --run-root $target_sync_run_root/load-cfe --target ut22 --extension YAxUnitTests"
+assert_contains "$invocation_log" "update-db.sh --profile $profile_path --run-root $target_sync_run_root/update-db --target ut22"
+assert_jq "$target_sync_run_root/summary.json" '.status == "success"' "target-sync-status"
+assert_jq "$target_sync_run_root/summary.json" '.selected_source_extensions == ["YAxUnitTests"]' "target-sync-source-extension"
 
 (
   cd "$fixture_root"

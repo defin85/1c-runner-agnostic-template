@@ -14,6 +14,7 @@ fake_designer="$fake_platform_dir/1cv8"
 fake_client="$fake_platform_dir/1cv8c"
 run_root="$tmpdir/run"
 load_cfe_root="$tmpdir/load-cfe"
+load_cfe_selected_root="$tmpdir/load-cfe-selected"
 yaxunit_root="$tmpdir/yaxunit"
 warm_root="$tmpdir/yaxunit-warm"
 metadata_root="$tmpdir/metadata"
@@ -27,7 +28,8 @@ mkdir -p \
   "$fixture_root/src/cf/ut22/CommonModules" \
   "$fixture_root/src/cf/unf/CommonModules" \
   "$fixture_root/src/cfe/ExtCommon" \
-  "$fixture_root/src/cfe/ExtUt"
+  "$fixture_root/src/cfe/ExtUt" \
+  "$fixture_root/src/cfe/ExtUnf"
 
 cat >"$fake_ibcmd" <<'EOF'
 #!/usr/bin/env bash
@@ -96,7 +98,7 @@ cat >"$fixture_root/automation/context/target-matrix.json" <<'EOF'
   ],
   "extensionMatrix": {
     "ut22": ["ExtCommon", "ExtUt"],
-    "unf": ["ExtCommon"]
+    "unf": ["ExtCommon", "ExtUnf"]
   }
 }
 EOF
@@ -115,6 +117,7 @@ printf '<Configuration name="UT22" uuid="ut22-uuid" />\n' >"$fixture_root/src/cf
 printf '<Configuration name="UNF" uuid="unf-uuid" />\n' >"$fixture_root/src/cf/unf/Configuration.xml"
 printf '<extension />\n' >"$fixture_root/src/cfe/ExtCommon/Configuration.xml"
 printf '<extension />\n' >"$fixture_root/src/cfe/ExtUt/Configuration.xml"
+printf '<extension />\n' >"$fixture_root/src/cfe/ExtUnf/Configuration.xml"
 
 assert_contains() {
   local file="$1"
@@ -182,6 +185,26 @@ assert_jq "$run_root/load-src/summary.json" '.driver_context.source_dir == $ARGS
 )
 assert_jq "$load_cfe_root/summary.json" '(.extension_source.selected_names | sort) == ["ExtCommon", "ExtUt"]' "target-extension-set"
 assert_jq "$load_cfe_root/summary.json" '.extension_source.target_id == "ut22"' "target-extension-id"
+
+(
+  cd "$fixture_root"
+  ./scripts/platform/load-cfe.sh --profile env/local.json --target ut22 --extension ExtCommon --run-root "$load_cfe_selected_root" --dry-run >/dev/null
+)
+assert_jq "$load_cfe_selected_root/summary.json" '.extension_source.selected_names == ["ExtCommon"]' "target-selected-extension"
+assert_jq "$load_cfe_selected_root/summary.json" '.extension_source.target_id == "ut22"' "target-selected-extension-id"
+
+set +e
+(
+  cd "$fixture_root"
+  ./scripts/platform/load-cfe.sh --profile env/local.json --target ut22 --extension ExtUnf --run-root "$tmpdir/load-cfe-wrong-target" --dry-run 2>"$tmpdir/load-cfe-wrong-target.stderr"
+)
+status=$?
+set -e
+[ "$status" -ne 0 ] || {
+  printf 'load-cfe accepted extension outside target matrix\n' >&2
+  exit 1
+}
+assert_contains "$tmpdir/load-cfe-wrong-target.stderr" "requested extension is not present in target matrix for target=ut22: ExtUnf"
 
 (
   cd "$fixture_root"

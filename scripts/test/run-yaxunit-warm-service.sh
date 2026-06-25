@@ -516,6 +516,20 @@ collect_warm_source_extensions() {
   fi
 }
 
+yaxunit_warm_sync_command_hint() {
+  local command="./scripts/test/sync-yaxunit-runtime.sh --profile $PROFILE_PATH --run-root /tmp/yaxunit-sync-run"
+  local extension_name=""
+
+  if [ -n "$TARGET_INPUT" ]; then
+    command+=" --target $TARGET_INPUT"
+  fi
+  for extension_name in "${WARM_SOURCE_EXTENSIONS[@]}"; do
+    command+=" --extension $extension_name"
+  done
+
+  printf '%s\n' "$command"
+}
+
 prepare_sync_guard() {
   local required_extension=""
   local current_hash=""
@@ -535,7 +549,7 @@ prepare_sync_guard() {
 
   if [ ! -f "$SYNC_EVIDENCE_PATH" ]; then
     SYNC_REQUIRED=1
-    SYNC_FAILURE_REASON="yaxunit-sync required; run ./scripts/test/sync-yaxunit-runtime.sh --profile $PROFILE_PATH --run-root /tmp/yaxunit-sync-run"
+    SYNC_FAILURE_REASON="yaxunit-sync required; run $(yaxunit_warm_sync_command_hint)"
     return 0
   fi
   if [ "$(jq -r '.status // empty' "$SYNC_EVIDENCE_PATH")" != "success" ]; then
@@ -569,7 +583,7 @@ prepare_sync_guard() {
   evidence_hash="$(jq -r '.contract_hash // empty' "$SYNC_EVIDENCE_PATH")"
   if [ "$evidence_hash" != "$current_hash" ]; then
     SYNC_REQUIRED=1
-    SYNC_FAILURE_REASON="yaxunit-sync required; selected YAxUnit scope changed after sync. Run ./scripts/test/sync-yaxunit-runtime.sh --profile $PROFILE_PATH --run-root /tmp/yaxunit-sync-run"
+    SYNC_FAILURE_REASON="yaxunit-sync required; selected YAxUnit scope changed after sync. Run $(yaxunit_warm_sync_command_hint)"
     return 0
   fi
 

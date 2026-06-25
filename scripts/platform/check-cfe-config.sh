@@ -143,7 +143,22 @@ resolve_selected_extensions() {
   SELECTED_EXTENSIONS=()
   if target_matrix_enabled "$PROJECT_ROOT"; then
     if [ "${#REQUESTED_EXTENSIONS[@]}" -gt 0 ]; then
-      fail "--extension cannot be combined with --target in a multi-target workspace"
+      target_require_requested "$PROJECT_ROOT" "$TARGET_INPUT"
+      for requested in "${REQUESTED_EXTENSIONS[@]}"; do
+        exists=0
+        for available in "${AVAILABLE_EXTENSIONS[@]}"; do
+          if [ "$available" = "$requested" ]; then
+            exists=1
+            break
+          fi
+        done
+        [ "$exists" -eq 1 ] || fail "requested extension is not present under $SOURCE_ROOT: $requested"
+        target_extensions_json "$PROJECT_ROOT" "$TARGET_INPUT" |
+          jq -e --arg extension "$requested" 'index($extension) != null' >/dev/null ||
+          fail "requested extension is not present in target matrix for target=$TARGET_INPUT: $requested"
+        SELECTED_EXTENSIONS+=("$requested")
+      done
+      return 0
     fi
     target_fill_extensions_array "$PROJECT_ROOT" "$TARGET_INPUT" SELECTED_EXTENSIONS
     return 0

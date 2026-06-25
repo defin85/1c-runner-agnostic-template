@@ -13,6 +13,7 @@ source "$SCRIPT_DIR/../lib/yaxunit.sh"
 
 PROFILE_INPUT=""
 RUN_ROOT_INPUT=""
+TARGET_INPUT=""
 SYNC_LABEL="yaxunit-runtime"
 DRY_RUN=0
 WITH_DESIGNER_CHECKS=0
@@ -26,6 +27,7 @@ Usage: ./scripts/test/sync-yaxunit-runtime.sh [options]
 Options:
   --profile <file>       Runtime profile JSON
   --run-root <dir>       Directory for stage summary and delegated artifacts
+  --target <id>          Target id from automation/context/target-matrix.json
   --sync-label <label>   Label recorded in YAxUnit sync evidence
   --extension <name>     Source extension directory to sync; repeatable. Defaults to YAxUnit and YAxUnitTests when present.
   --with-designer-checks Run selected Designer applicability/config diagnostics before update-db
@@ -64,6 +66,11 @@ parse_args() {
       --run-root)
         [ "$#" -ge 2 ] || fail "--run-root requires a value"
         RUN_ROOT_INPUT="$2"
+        shift 2
+        ;;
+      --target)
+        [ "$#" -ge 2 ] || fail "--target requires a value"
+        TARGET_INPUT="$2"
         shift 2
         ;;
       --sync-label)
@@ -347,6 +354,7 @@ UPDATE_DB_RUN_ROOT="$RUN_ROOT/update-db"
 STEP_FAILED=""
 STEP_EXIT_CODE=0
 STEP_ARGS=()
+TARGET_ARGS=()
 SOURCE_EXTENSION_ARGS=()
 RUNTIME_FLAG_EXTENSION_ARGS=()
 
@@ -356,6 +364,9 @@ mkdir -p "$RUN_ROOT"
 
 if [ "$DRY_RUN" = "1" ]; then
   STEP_ARGS+=(--dry-run)
+fi
+if [ -n "$TARGET_INPUT" ]; then
+  TARGET_ARGS=(--target "$TARGET_INPUT")
 fi
 mapfile -t SOURCE_EXTENSION_ARGS < <(extension_args)
 mapfile -t RUNTIME_FLAG_EXTENSION_ARGS < <(runtime_flag_extension_args)
@@ -367,6 +378,7 @@ if ! run_step "load-cfe" \
   "$PROJECT_ROOT/scripts/platform/load-cfe.sh" \
   --profile "$PROFILE_PATH" \
   --run-root "$LOAD_CFE_RUN_ROOT" \
+  "${TARGET_ARGS[@]}" \
   "${SOURCE_EXTENSION_ARGS[@]}" \
   "${STEP_ARGS[@]}"; then
   status="failed"
@@ -381,6 +393,7 @@ elif [ "$WITH_DESIGNER_CHECKS" = "1" ] && ! run_step "check-cfe-applicability" \
   "$PROJECT_ROOT/scripts/platform/check-cfe-applicability.sh" \
   --profile "$PROFILE_PATH" \
   --run-root "$CHECK_CFE_APPLICABILITY_RUN_ROOT" \
+  "${TARGET_ARGS[@]}" \
   "${SOURCE_EXTENSION_ARGS[@]}" \
   "${STEP_ARGS[@]}"; then
   status="failed"
@@ -388,6 +401,7 @@ elif [ "$WITH_DESIGNER_CHECKS" = "1" ] && ! run_step "check-cfe-config" \
   "$PROJECT_ROOT/scripts/platform/check-cfe-config.sh" \
   --profile "$PROFILE_PATH" \
   --run-root "$CHECK_CFE_CONFIG_RUN_ROOT" \
+  "${TARGET_ARGS[@]}" \
   "${SOURCE_EXTENSION_ARGS[@]}" \
   "${STEP_ARGS[@]}"; then
   status="failed"
@@ -395,6 +409,7 @@ elif ! run_step "update-db" \
   "$PROJECT_ROOT/scripts/platform/update-db.sh" \
   --profile "$PROFILE_PATH" \
   --run-root "$UPDATE_DB_RUN_ROOT" \
+  "${TARGET_ARGS[@]}" \
   "${STEP_ARGS[@]}"; then
   status="failed"
 fi

@@ -128,7 +128,15 @@ collect_extension_names() {
   SELECTED_EXTENSIONS=()
   if target_matrix_enabled "$PROJECT_ROOT"; then
     if [ "${#EXPLICIT_EXTENSIONS[@]}" -gt 0 ]; then
-      fail "--extension cannot be combined with --target in a multi-target workspace"
+      target_require_requested "$PROJECT_ROOT" "$TARGET_INPUT"
+      for extension_name in "${EXPLICIT_EXTENSIONS[@]}"; do
+        [ -d "$source_root/$extension_name" ] || fail "extension source not found under $source_root: $extension_name"
+        target_extensions_json "$PROJECT_ROOT" "$TARGET_INPUT" |
+          jq -e --arg extension "$extension_name" 'index($extension) != null' >/dev/null ||
+          fail "requested extension is not present in target matrix for target=$TARGET_INPUT: $extension_name"
+        SELECTED_EXTENSIONS+=("$extension_name")
+      done
+      return 0
     fi
     target_fill_extensions_array "$PROJECT_ROOT" "$TARGET_INPUT" SELECTED_EXTENSIONS
     return 0

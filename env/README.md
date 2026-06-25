@@ -219,6 +219,7 @@ export ONEC_IB_PASSWORD='...'
 
 Если `target.id` отсутствует или не совпадает с `--target`, wrapper завершится до запуска 1С.
 `load-src`, `load-diff-src` и `load-task-src` используют `src/cf/<target-id>` или `sourcePath` из `target-matrix.json`; CFE wrappers берут список расширений из `extensionMatrix`.
+Перед тестовыми контурами не запускайте полный `load-cfe --target <id>` по умолчанию. Для изменения одного тестового расширения используйте `./scripts/platform/load-cfe.sh --profile env/local.json --target <id> --extension <ExtensionName> --run-root /tmp/load-cfe-<target>-<ExtensionName>`; wrapper проверит, что `<ExtensionName>` входит в `extensionMatrix` выбранной цели. Полный `load-cfe --target <id>` оставляйте для первичной подготовки ИБ, массового обновления расширений или изменения `extensionMatrix`.
 
 Если contour пока не реализован, используйте fail-closed shape вместо `echo TODO`:
 
@@ -267,6 +268,7 @@ Inline shell snippets и trivial success commands вроде `true`, `echo ...` 
 ```
 
 `./scripts/test/run-bdd-warm-service.sh up --profile env/local.json --run-root /tmp/bdd-warm-service-run` поднимает два Xpra-сеанса: менеджер тестирования с `/TESTMANAGER` и клиент тестирования с `/TestClient -TPort...`. Проект должен добавить 1С-код, который читает `/C <launchParameterName>=<service-config-path>` и инициализирует Vanessa Automation; если target truth, Vanessa Automation Single или warmup feature не заданы, запуск завершается fail-closed.
+Если проектное расширение поддержки BDD менялось перед warm-service, обновляйте только его: `./scripts/platform/load-cfe.sh --profile env/local.json --target <id> --extension <BddSupportExtension> --run-root /tmp/load-cfe-bdd-support`. Не перезагружайте весь набор `src/cfe` при каждом старте warm-service.
 
 Native Windows direct-platform contour:
 
