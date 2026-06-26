@@ -510,6 +510,7 @@ write_operator_local_runbook_starter() {
 
 - Перед YAxUnit используйте `./scripts/test/sync-yaxunit-runtime.sh --profile env/local.json --target <id> --extension <YAxUnitTestsExtension> --run-root /tmp/yaxunit-sync-run`, затем запускайте `run-yaxunit` или `run-yaxunit-warm-service`.
 - Перед BDD warm-service обновляйте только проектное расширение поддержки: `./scripts/platform/load-cfe.sh --profile env/local.json --target <id> --extension <BddSupportExtension> --run-root /tmp/load-cfe-bdd-support`.
+- BDD warm-service считается готовым только после `READY` от менеджера и открытого порта клиента тестирования; для параллельных запусков используйте разные `--run-root`, а warmup feature подключайте к уже поднятому клиенту по порту.
 - Полный `./scripts/platform/load-cfe.sh --profile env/local.json --target <id> --run-root /tmp/load-cfe-run` используйте только для первичной подготовки ИБ, массового обновления расширений или изменения `automation/context/target-matrix.json`.
 - В multi-target workspace сочетание `--target <id> --extension <name>` допустимо только для расширений, перечисленных в `extensionMatrix` этой цели.
 

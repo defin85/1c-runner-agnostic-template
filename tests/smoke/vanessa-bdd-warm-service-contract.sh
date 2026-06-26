@@ -21,9 +21,54 @@ cp -R "$SOURCE_ROOT/scripts/tools" "$fixture_root/scripts/tools"
 cat >"$bindir/1cv8" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
+config_path=""
+test_client_port=""
+previous_arg=""
+for arg in "$@"; do
+  if [ "$previous_arg" = "/C" ]; then
+    case "$arg" in
+      *=*)
+        config_path="${arg#*=}"
+        config_path="${config_path%%;*}"
+        ;;
+    esac
+  fi
+  case "$arg" in
+    -TPort*)
+      test_client_port="${arg#-TPort}"
+      ;;
+  esac
+  previous_arg="$arg"
+done
 printf 'fake-%s\n' "$(basename "$0")"
 printf 'display=%s\n' "${DISPLAY:-}"
 printf 'xauthority=%s\n' "${XAUTHORITY:-}"
+if [ -n "$config_path" ] && [ -f "$config_path" ]; then
+  ready_path="$(sed -n 's/^ReadyFile=//p' "$config_path")"
+  response_path="$(sed -n 's/^ResponseFile=//p' "$config_path")"
+  [ -z "$ready_path" ] || printf '\357\273\277READY\r\n' >"$ready_path"
+  [ -z "$response_path" ] || : >"$response_path"
+fi
+if [ -n "$test_client_port" ]; then
+  python3 - "$test_client_port" <<'PY' &
+import socket
+import sys
+import time
+
+port = int(sys.argv[1])
+sock = socket.socket()
+sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+sock.bind(("127.0.0.1", port))
+sock.listen(1)
+try:
+    while True:
+        time.sleep(1)
+finally:
+    sock.close()
+PY
+  server_pid="$!"
+  trap 'kill "$server_pid" >/dev/null 2>&1 || true' EXIT
+fi
 sleep 300
 EOF
 cp "$bindir/1cv8" "$bindir/1cv8c"
@@ -154,11 +199,15 @@ assert_contains() {
 )
 assert_jq "$run_root/up/summary.json" '.status == "success" and .service.state == "ready"' "up-ready"
 state_path="$(jq -r '.service.state_json' "$run_root/up/summary.json")"
+config_path="$(jq -r '.service_files.config' "$state_path")"
 assert_jq "$state_path" '.roles.manager.pid != null and .roles.test_client.pid != null and .roles.test_client.port != null' "role-pids"
+assert_contains "$SOURCE_ROOT/scripts/adapters/direct-platform.sh" "flock -x 9"
+assert_contains "$config_path" "TestClientConnectionString=File=\"$tmpdir/ib\";"
 assert_contains "$(jq -r '.roles.manager.artifacts.stderr_log' "$state_path")" "xpra-arg=--session-name=BDD manager local-bdd"
 assert_contains "$(jq -r '.roles.test_client.artifacts.stderr_log' "$state_path")" "xpra-arg=--session-name=BDD test-client local-bdd"
 assert_contains "$(jq -r '.roles.manager.artifacts.command_txt' "$state_path")" "/TESTMANAGER"
 assert_contains "$(jq -r '.roles.manager.artifacts.command_txt' "$state_path")" "ProjectBddWarmServiceConfig="
+assert_contains "$(jq -r '.roles.manager.artifacts.command_txt' "$state_path")" "ДанныеКлиентовТестирования="
 assert_contains "$(jq -r '.roles.manager.artifacts.command_txt' "$state_path")" "/out"
 assert_contains "$(jq -r '.roles.test_client.artifacts.command_txt' "$state_path")" "/TestClient"
 assert_contains "$(jq -r '.roles.test_client.artifacts.command_txt' "$state_path")" "-TPort"

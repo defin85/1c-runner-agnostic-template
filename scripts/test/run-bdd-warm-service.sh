@@ -22,7 +22,7 @@ COMMAND="${1:-}"
 PROFILE_INPUT=""
 TARGET_INPUT=""
 RUN_ROOT_INPUT=""
-TIMEOUT_SECONDS=60
+TIMEOUT_SECONDS=180
 
 PROFILE_PATH=""
 REQUESTED_PROFILE_PATH=""
@@ -88,6 +88,23 @@ process_alive() {
   local pid="${1:-}"
 
   [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null
+}
+
+read_service_token() {
+  local file="$1"
+  local value=""
+
+  [ -f "$file" ] || return 0
+  value="$(head -n 1 "$file" | tr -d '\r')"
+  value="${value#$'\xef\xbb\xbf'}"
+  printf '%s' "$value"
+}
+
+tcp_port_listening() {
+  local port="$1"
+
+  command -v ss >/dev/null 2>&1 || return 1
+  ss -ltn "sport = :$port" 2>/dev/null | awk 'NR > 1 { found = 1 } END { exit(found ? 0 : 1) }'
 }
 
 parse_args() {
@@ -278,7 +295,10 @@ service_state() {
     return 0
   fi
 
-  if process_alive "$MANAGER_PID" && process_alive "$TEST_CLIENT_PID"; then
+  if process_alive "$MANAGER_PID" \
+    && process_alive "$TEST_CLIENT_PID" \
+    && [ "$(read_service_token "${READY_FILE:-}")" = "READY" ] \
+    && tcp_port_listening "${TEST_CLIENT_PORT:-0}"; then
     printf 'ready\n'
     return 0
   fi
@@ -456,17 +476,49 @@ build_connection_string_for_vanessa() {
   case "$mode" in
     file)
       file_path="$(require_profile_string '.infobase.filePath // empty' 'infobase.filePath')"
-      printf '/F%s\n' "$file_path"
+      printf 'File="%s";\n' "$file_path"
       ;;
     client-server)
       server="$(require_profile_string '.infobase.server // empty' 'infobase.server')"
       ref="$(require_profile_string '.infobase.ref // empty' 'infobase.ref')"
-      printf '/S%s/%s\n' "$server" "$ref"
+      printf 'Srvr="%s";Ref="%s";\n' "$server" "$ref"
       ;;
     *)
       die "unsupported infobase.mode=$mode in $RUNTIME_PROFILE_PATH"
       ;;
   esac
+}
+
+build_connection_string_for_vanessa_launch_json() {
+  build_connection_string_for_vanessa | sed 's/;/\\;/g'
+}
+
+build_test_client_extra_args_for_vanessa() {
+  local configured_extra_args=""
+
+  configured_extra_args="$(profile_string '.capabilities.bddWarmService.testClientExtraArgs // "/iTaxi"')"
+  printf '%s\n' "$configured_extra_args"
+}
+
+build_vanessa_test_clients_launch_json() {
+  local connection_string=""
+  local extra_args=""
+
+  connection_string="$(build_connection_string_for_vanessa_launch_json)"
+  extra_args="$(build_test_client_extra_args_for_vanessa)"
+  jq -cn \
+    --arg connection_string "$connection_string" \
+    --arg port "$TEST_CLIENT_PORT" \
+    --arg extra_args "$extra_args" \
+    '[{
+      "Имя": "Этот клиент",
+      "Синоним": "",
+      "ПутьКИнфобазе": $connection_string,
+      "ПортЗапускаТестКлиента": ($port | tonumber),
+      "ДопПараметры": $extra_args,
+      "ТипКлиента": "Тонкий",
+      "ИмяКомпьютера": "localhost"
+    }]'
 }
 
 acquire_test_client_port() {
@@ -486,9 +538,11 @@ write_service_config() {
   local test_client_extra_args=""
 
   single_path="$(require_profile_string '.capabilities.bddWarmService.vanessaSinglePath // empty' 'capabilities.bddWarmService.vanessaSinglePath')"
+  single_path="$(resolve_project_tree_path "$single_path")"
   [ -f "$single_path" ] || die "Vanessa Automation Single file is not found: $single_path"
 
   warmup_feature_path="$(require_profile_string '.capabilities.bddWarmService.warmupFeaturePath // empty' 'capabilities.bddWarmService.warmupFeaturePath')"
+  warmup_feature_path="$(resolve_project_tree_path "$warmup_feature_path")"
   [ -f "$warmup_feature_path" ] || die "BDD warmup feature file is not found: $warmup_feature_path"
 
   feature_runtime_path="$SESSION_ROOT/runtime.feature"
@@ -544,10 +598,10 @@ start_role() {
   case "$role" in
     manager)
       launch_parameter_name="$(profile_string '.capabilities.bddWarmService.launchParameterName // "VanessaBddWarmServiceConfig"')"
-      command+=("/C" "$launch_parameter_name=$SERVICE_CONFIG_PATH" "/TESTMANAGER" "/out$out_log")
+      command+=("/C" "$launch_parameter_name=$SERVICE_CONFIG_PATH;ДанныеКлиентовТестирования=$(build_vanessa_test_clients_launch_json)" "/TESTMANAGER" "/out$out_log")
       ;;
     test-client)
-      command+=("/CОтключитьЛогикуНачалаРаботыСистемы" "/TestClient" "-TPort$TEST_CLIENT_PORT" "/iTaxi" "/out$out_log")
+      command+=("/CОтключитьЛогикуНачалаРаботыСистемы" "/TestClient" "-TPort$TEST_CLIENT_PORT" "$(build_test_client_extra_args_for_vanessa)" "/out$out_log")
       ;;
     *)
       die "unsupported bdd-warm-service role: $role"
@@ -602,6 +656,25 @@ wait_for_log_ready() {
   return 2
 }
 
+wait_for_test_client_ready() {
+  local pid="$1"
+  local _stderr_log="$2"
+  local port="$3"
+  local deadline="$((SECONDS + TIMEOUT_SECONDS))"
+
+  while [ "$SECONDS" -lt "$deadline" ]; do
+    if ! process_alive "$pid"; then
+      return 1
+    fi
+    if tcp_port_listening "$port"; then
+      return 0
+    fi
+    sleep 1
+  done
+
+  return 2
+}
+
 wait_for_service_startup_sanity() {
   local deadline="$((SECONDS + ${ONEC_BDD_WARM_SERVICE_SANITY_SECONDS:-5}))"
 
@@ -609,7 +682,7 @@ wait_for_service_startup_sanity() {
     if [ -s "$ERROR_FILE" ]; then
       return 1
     fi
-    if [ -f "$READY_FILE" ] && [ "$(cat "$READY_FILE")" = "READY" ]; then
+    if [ "$(read_service_token "$READY_FILE")" = "READY" ]; then
       return 0
     fi
     if ! process_alive "$MANAGER_PID" || ! process_alive "$TEST_CLIENT_PID"; then
@@ -618,7 +691,7 @@ wait_for_service_startup_sanity() {
     sleep 1
   done
 
-  [ ! -s "$ERROR_FILE" ]
+  return 2
 }
 
 stop_role() {
@@ -687,7 +760,7 @@ command_up() {
   ln -sfn "$SESSION_ROOT" "$(current_link)"
   HAS_ACTIVE_SESSION=1
 
-  if wait_for_log_ready "$TEST_CLIENT_PID" "$TEST_CLIENT_STDERR_LOG" && wait_for_service_startup_sanity; then
+  if wait_for_test_client_ready "$TEST_CLIENT_PID" "$TEST_CLIENT_STDERR_LOG" "$TEST_CLIENT_PORT" && wait_for_service_startup_sanity; then
     write_service_state "ready" "BDD manager and test client started"
     write_summary "success" 0 "BDD warm service is ready"
     return 0

@@ -118,6 +118,8 @@ run_xpra_wrapped_command() {
   local run_root="${ONEC_CAPABILITY_RUN_ROOT:-${TMPDIR:-/tmp}}"
   local xpra_root=""
   local xpra_log=""
+  local xpra_lock_dir="${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}/$(basename "$(project_root)")-xpra"
+  local xpra_lock_file=""
   local xpra_session_name="${ONEC_DIRECT_PLATFORM_XPRA_SESSION_NAME:-}"
   local xpra_xvfb_args="${ONEC_DIRECT_PLATFORM_XPRA_XVFB_ARGS:-}"
   local xpra_start_child="${ONEC_DIRECT_PLATFORM_XPRA_START_CHILD:-openbox}"
@@ -127,6 +129,7 @@ run_xpra_wrapped_command() {
   local waited=0
 
   require_command xpra
+  require_command flock
   require_command Xvfb
   require_command xdpyinfo
   if [ -n "$xpra_start_child" ]; then
@@ -144,43 +147,51 @@ run_xpra_wrapped_command() {
   mkdir -p "$(dirname -- "$xauth_file")"
   xpra_xvfb_args="${xpra_xvfb_args//\$\{XAUTHORITY\}/$xauth_file}"
   xpra_xvfb_args="${xpra_xvfb_args//\$XAUTHORITY/$xauth_file}"
-  display_number="$(pick_unused_xpra_display_number)"
-  display_value=":${display_number}"
-  xpra_log="$xpra_root/xpra-${display_number}.log"
+  mkdir -p "$xpra_lock_dir"
+  xpra_lock_file="$xpra_lock_dir/display.lock"
+  (
+    flock -x 9
+    display_number="$(pick_unused_xpra_display_number)"
+    display_value=":${display_number}"
+    xpra_log="$xpra_root/xpra-${display_number}.log"
+    xpra_args=(
+      start-desktop "$display_value"
+      --daemon=yes
+      --attach=no
+      --mdns=no
+      --systemd-run=no
+      --exit-with-children=no
+      --html=off
+      --xvfb="$xpra_xvfb_args"
+      --log-file="$xpra_log"
+    )
+    [ -z "$xpra_session_name" ] || xpra_args+=(--session-name="$xpra_session_name")
+    [ -z "$xpra_start_child" ] || xpra_args+=(--start-child="$xpra_start_child")
+
+    XAUTHORITY="$xauth_file" xpra "${xpra_args[@]}" 9>&- >&2
+
+    while [ "$waited" -lt 100 ]; do
+      if DISPLAY="$display_value" XAUTHORITY="$xauth_file" xdpyinfo >/dev/null 2>&1; then
+        break
+      fi
+      sleep 0.1
+      waited=$((waited + 1))
+    done
+
+    if ! DISPLAY="$display_value" XAUTHORITY="$xauth_file" xdpyinfo >/dev/null 2>&1; then
+      printf 'xpra display did not become ready: DISPLAY=%s log=%s\n' "$display_value" "$xpra_log" >&2
+      if [ -f "$xpra_log" ]; then
+        tail -80 "$xpra_log" >&2 || true
+      fi
+      xpra stop "$display_value" >/dev/null 2>&1 || true
+      exit 1
+    fi
+
+    printf '%s\n%s\n' "$display_value" "$xpra_log" >"$xpra_root/active-display.env"
+  ) 9>"$xpra_lock_file"
+  display_value="$(sed -n '1p' "$xpra_root/active-display.env")"
+  xpra_log="$(sed -n '2p' "$xpra_root/active-display.env")"
   trap 'xpra stop "$display_value" >/dev/null 2>&1 || true' EXIT INT TERM
-
-  xpra_args=(
-    start-desktop "$display_value"
-    --daemon=yes
-    --attach=no
-    --mdns=no
-    --systemd-run=no
-    --exit-with-children=no
-    --html=off
-    --xvfb="$xpra_xvfb_args"
-    --log-file="$xpra_log"
-  )
-  [ -z "$xpra_session_name" ] || xpra_args+=(--session-name="$xpra_session_name")
-  [ -z "$xpra_start_child" ] || xpra_args+=(--start-child="$xpra_start_child")
-
-  XAUTHORITY="$xauth_file" xpra "${xpra_args[@]}" >&2
-
-  while [ "$waited" -lt 100 ]; do
-    if DISPLAY="$display_value" XAUTHORITY="$xauth_file" xdpyinfo >/dev/null 2>&1; then
-      break
-    fi
-    sleep 0.1
-    waited=$((waited + 1))
-  done
-
-  if ! DISPLAY="$display_value" XAUTHORITY="$xauth_file" xdpyinfo >/dev/null 2>&1; then
-    printf 'xpra display did not become ready: DISPLAY=%s log=%s\n' "$display_value" "$xpra_log" >&2
-    if [ -f "$xpra_log" ]; then
-      tail -80 "$xpra_log" >&2 || true
-    fi
-    xpra stop "$display_value" >/dev/null 2>&1 || true
-    exit 1
-  fi
 
   if [ -n "$xpra_start_child" ] && [ -f "$xpra_log" ]; then
     waited=0
