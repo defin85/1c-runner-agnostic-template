@@ -13,9 +13,14 @@ Usage: ./scripts/test/run-bdd.sh [options]
 
 Options:
   --profile <file>   Runtime profile JSON (defaults to env/local.json if present)
+  --target <id>      Target infobase id for multi-target repositories
   --run-root <dir>   Directory for summary.json and command logs
   --dry-run          Resolve adapter/profile and write dry-run summary only
   -h, --help         Show this help
+
+For warmed BDD profiles:
+  ONEC_BDD_MANIFEST=<file>    Manifest with feature paths
+  ONEC_BDD_FEATURES=<list>    Newline- or comma-separated feature paths
 EOF
 }
 

@@ -522,6 +522,7 @@ scripts/template/update-template.ps1
 scripts/template/update-template.sh
 scripts/test/build-xunit-epf.ps1
 scripts/test/build-xunit-epf.sh
+scripts/test/run-bdd-warm-run.sh
 scripts/test/run-bdd-warm-service.sh
 scripts/test/run-bdd.ps1
 scripts/test/run-bdd.sh

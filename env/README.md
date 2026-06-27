@@ -272,6 +272,28 @@ Inline shell snippets и trivial success commands вроде `true`, `echo ...` 
 Warmup feature должен подключаться к уже поднятому клиенту по порту из service config, а не запускать новый клиент через сохранённый профиль TestClient Vanessa Automation.
 Если проектное расширение поддержки BDD менялось перед warm-service, обновляйте только его: `./scripts/platform/load-cfe.sh --profile env/local.json --target <id> --extension <BddSupportExtension> --run-root /tmp/load-cfe-bdd-support`. Не перезагружайте весь набор `src/cfe` при каждом старте warm-service.
 
+Шаблонный warmed BDD runner подключается через обычный `bdd` capability:
+
+```json
+{
+  "capabilities": {
+    "bdd": {
+      "command": ["./scripts/test/run-bdd-warm-run.sh"],
+      "manifestPath": "tests/bdd/vanessa/manifests/smoke-manifest.txt"
+    }
+  }
+}
+```
+
+`manifestPath` можно заменить на `featurePaths`, если нужен явный список feature-файлов. Для разовых narrow rerun без изменения profile используйте переменные:
+
+```bash
+ONEC_BDD_FEATURES='features/vanessa/example.feature' \
+  ./scripts/test/run-bdd.sh --profile env/local.json --target <target-id> --run-root /tmp/bdd-run
+```
+
+Runner сам поднимет `bdd-warm-service`, если активной ready-сессии ещё нет, и выполнит выбранные feature-файлы через уже запущенный TestManager/TestClient.
+
 Native Windows direct-platform contour:
 
 - `env/windows-local.example.json` показывает canonical PowerShell-first preset без WSL/Git Bash;

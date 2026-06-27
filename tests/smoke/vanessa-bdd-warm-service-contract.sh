@@ -45,9 +45,33 @@ printf 'display=%s\n' "${DISPLAY:-}"
 printf 'xauthority=%s\n' "${XAUTHORITY:-}"
 if [ -n "$config_path" ] && [ -f "$config_path" ]; then
   ready_path="$(sed -n 's/^ReadyFile=//p' "$config_path")"
+  request_path="$(sed -n 's/^RequestFile=//p' "$config_path")"
   response_path="$(sed -n 's/^ResponseFile=//p' "$config_path")"
+  build_status_path="$(sed -n 's/^BuildStatusPath=//p' "$config_path")"
+  vanessa_online_path="$(sed -n 's/^VanessaOnlinePath=//p' "$config_path")"
   [ -z "$ready_path" ] || printf '\357\273\277READY\r\n' >"$ready_path"
   [ -z "$response_path" ] || : >"$response_path"
+  if [ -n "$request_path" ] && [ -n "$response_path" ]; then
+    (
+      while true; do
+        request="$(head -n 1 "$request_path" 2>/dev/null | tr -d '\r' | sed 's/^\xef\xbb\xbf//')"
+        case "$request" in
+          RUN)
+            : >"$request_path"
+            [ -z "$build_status_path" ] || printf '0\n' >"$build_status_path"
+            [ -z "$vanessa_online_path" ] || printf 'fake warmed run ok\n' >"$vanessa_online_path"
+            printf 'OK\n' >"$response_path"
+            ;;
+          STOP)
+            exit 0
+            ;;
+        esac
+        sleep 1
+      done
+    ) &
+    command_pid="$!"
+    trap 'kill "$command_pid" >/dev/null 2>&1 || true' EXIT
+  fi
 fi
 if [ -n "$test_client_port" ]; then
   python3 - "$test_client_port" <<'PY' &
@@ -147,6 +171,10 @@ cat >"$fixture_root/env/local.json" <<EOF
       "vanessaSinglePath": "$fixture_root/vanessa-automation-single.epf",
       "warmupFeaturePath": "$fixture_root/features/warmup.feature",
       "launchParameterName": "ProjectBddWarmServiceConfig"
+    },
+    "bdd": {
+      "command": ["./scripts/test/run-bdd-warm-run.sh"],
+      "featurePaths": ["features/example.feature"]
     }
   }
 }
@@ -168,6 +196,7 @@ cat >"$fixture_root/automation/context/operator-local-targets.json" <<EOF
 EOF
 printf 'fake epf\n' >"$fixture_root/vanessa-automation-single.epf"
 printf '# language: ru\nФункционал: warmup\n' >"$fixture_root/features/warmup.feature"
+printf '# language: ru\nФункционал: example\n' >"$fixture_root/features/example.feature"
 
 assert_jq() {
   local file="$1"
@@ -202,6 +231,9 @@ state_path="$(jq -r '.service.state_json' "$run_root/up/summary.json")"
 config_path="$(jq -r '.service_files.config' "$state_path")"
 assert_jq "$state_path" '.roles.manager.pid != null and .roles.test_client.pid != null and .roles.test_client.port != null' "role-pids"
 assert_contains "$SOURCE_ROOT/scripts/adapters/direct-platform.sh" "flock -x 9"
+assert_contains "$SOURCE_ROOT/scripts/test/run-bdd.sh" "--target <id>"
+assert_contains "$SOURCE_ROOT/scripts/test/run-bdd-warm-run.sh" "capabilities.bdd.manifestPath"
+assert_contains "$SOURCE_ROOT/scripts/test/run-bdd-warm-run.sh" "capabilities.bdd.featurePaths"
 assert_contains "$config_path" "TestClientConnectionString=File=\"$tmpdir/ib\";"
 assert_contains "$(jq -r '.roles.manager.artifacts.stderr_log' "$state_path")" "xpra-arg=--session-name=BDD manager local-bdd"
 assert_contains "$(jq -r '.roles.test_client.artifacts.stderr_log' "$state_path")" "xpra-arg=--session-name=BDD test-client local-bdd"
@@ -212,6 +244,15 @@ assert_contains "$(jq -r '.roles.manager.artifacts.command_txt' "$state_path")" 
 assert_contains "$(jq -r '.roles.test_client.artifacts.command_txt' "$state_path")" "/TestClient"
 assert_contains "$(jq -r '.roles.test_client.artifacts.command_txt' "$state_path")" "-TPort"
 assert_contains "$(jq -r '.roles.test_client.artifacts.command_txt' "$state_path")" "/out"
+
+(
+  cd "$fixture_root"
+  PATH="$bindir:$PATH" ONEC_FAKE_XPRA_READY_FILE="$ready_file" \
+    ./scripts/test/run-bdd.sh --profile env/local.json --target local-bdd --run-root "$run_root/run-bdd"
+)
+assert_jq "$run_root/run-bdd/summary.json" '.status == "success" and .execution.source == "profile-command"' "run-bdd-warm-success"
+assert_jq "$run_root/run-bdd/bdd-warm-run-summary.json" '.status == "success" and .contour.runner == "bdd-warm-run"' "warm-run-summary"
+assert_contains "$run_root/run-bdd/results.tsv" "features/example.feature"
 
 (
   cd "$fixture_root"
