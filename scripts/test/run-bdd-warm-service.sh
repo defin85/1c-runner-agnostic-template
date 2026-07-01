@@ -541,6 +541,7 @@ write_service_config() {
   local feature_runtime_path=""
   local library_paths=""
   local test_client_extra_args=""
+  local visible_manager=""
 
   single_path="$(require_profile_string '.capabilities.bddWarmService.vanessaSinglePath // empty' 'capabilities.bddWarmService.vanessaSinglePath')"
   single_path="$(resolve_project_tree_path "$single_path")"
@@ -555,6 +556,14 @@ write_service_config() {
 
   library_paths="$(profile_jq_raw '.capabilities.bddWarmService.libraryPaths // [] | if type == "array" then join(":") else "" end')"
   test_client_extra_args="$(profile_string '.capabilities.bddWarmService.testClientExtraArgs // "/iTaxi"')"
+  visible_manager="$(profile_string '(.capabilities.bddWarmService.visibleManager // false) | tostring')"
+  case "$visible_manager" in
+    true|false)
+      ;;
+    *)
+      die "runtime profile field must be a boolean: .capabilities.bddWarmService.visibleManager"
+      ;;
+  esac
 
   cat >"$SERVICE_CONFIG_PATH" <<EOF
 SinglePath=$single_path
@@ -573,6 +582,7 @@ ErrorFile=$ERROR_FILE
 TestClientConnectionString=$(build_connection_string_for_vanessa)
 TestClientPort=$TEST_CLIENT_PORT
 TestClientExtraArgs=$test_client_extra_args
+VisibleManager=$visible_manager
 EOF
   ensure_dir "$SESSION_ROOT/screens"
   : >"$READY_FILE"

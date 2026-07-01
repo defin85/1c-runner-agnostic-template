@@ -29,16 +29,23 @@ if [ "$#" -ne 3 ] || [ "$1" != "init" ] || [ "$2" != "--tools" ]; then
   exit 1
 fi
 
-if [ ! -f AGENTS.md ]; then
-  cat >AGENTS.md <<'EOT'
-<!-- OPENSPEC:START -->
-# OpenSpec Instructions
-<!-- OPENSPEC:END -->
-EOT
-fi
+mkdir -p openspec/changes openspec/specs
 EOF
 
 chmod +x "$bindir/openspec"
+
+cat >"$project_root/AGENTS.md" <<'EOF'
+<!-- OPENSPEC:START -->
+# OpenSpec Instructions
+
+Always open `@/openspec/AGENTS.md` when the request:
+- Mentions planning or proposals
+
+Use `@/openspec/AGENTS.md` to learn:
+- How to create and apply change proposals
+
+<!-- OPENSPEC:END -->
+EOF
 
 run_bootstrap() {
   (
@@ -63,6 +70,18 @@ assert_contains() {
 
   if ! grep -Fq -- "$expected" "$file"; then
     printf 'expected text not found: %s\n' "$expected" >&2
+    printf 'actual file contents:\n' >&2
+    cat "$file" >&2
+    exit 1
+  fi
+}
+
+assert_not_contains() {
+  local file="$1"
+  local unexpected="$2"
+
+  if grep -Fq -- "$unexpected" "$file"; then
+    printf 'unexpected text found: %s\n' "$unexpected" >&2
     printf 'actual file contents:\n' >&2
     cat "$file" >&2
     exit 1
@@ -167,6 +186,9 @@ cf_agents_file="$project_root/src/cf/AGENTS.md"
 cf_readme_file="$project_root/src/cf/README.md"
 
 assert_contains "$agents_file" "We operate in a cycle: **OpenSpec (What) -> Execution Plan -> Code (Implementation)**."
+assert_contains "$agents_file" 'Always check `openspec/project.md` when the request:'
+assert_contains "$agents_file" 'Use `openspec/project.md` and existing `openspec/changes/` artifacts to learn:'
+assert_not_contains "$agents_file" "@/openspec/AGENTS.md"
 assert_contains "$agents_file" 'This repository is a generated 1С-project created from `1c-runner-agnostic-template`.'
 assert_contains "$agents_file" 'Start with [docs/agent/generated-project-index.md](docs/agent/generated-project-index.md) for the generated-project-first onboarding path.'
 assert_contains "$agents_file" 'Use [automation/context/project-map.md](automation/context/project-map.md) as the project-owned repo map.'

@@ -210,6 +210,25 @@ check_markdown_links() {
   done < <(grep -nEo '!\[[^][]*\]\([^)]*\)|\[[^][]+\]\([^)]*\)' "$abs" || true)
 }
 
+check_agent_at_path_references() {
+  local rel="$1"
+  local abs="$root/$rel"
+  local match=""
+  local line=""
+  local target=""
+
+  while IFS= read -r match; do
+    [ -n "$match" ] || continue
+    line="${match%%:*}"
+    target="${match#*:}"
+    target="${target#@/}"
+    if [ ! -e "$root/$target" ]; then
+      printf 'broken agent path reference in %s:%s: @/%s\n' "$rel" "$line" "$target" >&2
+      status=1
+    fi
+  done < <(grep -nEo '@/[^`"[:space:],)]+' "$abs" || true)
+}
+
 check_no_line_specific_links() {
   local rel="$1"
   if grep -nE '\]\([^)]*(#L[0-9]+|:[0-9]+)\)' "$root/$rel" >/dev/null; then
@@ -1132,6 +1151,7 @@ for rel in \
   .claude/skills/README.md; do
   check_no_line_specific_links "$rel"
   check_markdown_links "$rel"
+  check_agent_at_path_references "$rel"
 done
 
 check_forbidden_src_cf_docs
@@ -1225,6 +1245,7 @@ else
     src/AGENTS.md; do
     check_no_line_specific_links "$rel"
     check_markdown_links "$rel"
+    check_agent_at_path_references "$rel"
   done
 
   require_markdown_link "AGENTS.md" "docs/agent/generated-project-index.md"

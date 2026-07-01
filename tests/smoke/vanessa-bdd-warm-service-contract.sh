@@ -182,7 +182,8 @@ cat >"$fixture_root/env/local.json" <<EOF
     "bddWarmService": {
       "vanessaSinglePath": "$fixture_root/vanessa-automation-single.epf",
       "warmupFeaturePath": "$fixture_root/features/warmup.feature",
-      "launchParameterName": "ProjectBddWarmServiceConfig"
+      "launchParameterName": "ProjectBddWarmServiceConfig",
+      "visibleManager": true
     },
     "bdd": {
       "command": ["./scripts/test/run-bdd-warm-run.sh"],
@@ -253,6 +254,7 @@ assert_contains "$SOURCE_ROOT/scripts/test/run-bdd-warm-run.sh" "capabilities.bd
 assert_contains "$SOURCE_ROOT/scripts/test/run-bdd-warm-run.sh" "capabilities.bdd.eventLogDir"
 assert_contains "$SOURCE_ROOT/scripts/test/run-bdd-warm-run.sh" "__ONEC_VANESSA_FIXTURES_ROOT__"
 assert_contains "$config_path" "TestClientConnectionString=File=\"$tmpdir/ib\";"
+assert_contains "$config_path" "VisibleManager=true"
 assert_contains "$(jq -r '.roles.manager.artifacts.stderr_log' "$state_path")" "xpra-arg=--session-name=BDD manager local-bdd"
 assert_contains "$(jq -r '.roles.test_client.artifacts.stderr_log' "$state_path")" "xpra-arg=--session-name=BDD test-client local-bdd"
 assert_contains "$(jq -r '.roles.manager.artifacts.command_txt' "$state_path")" "/TESTMANAGER"

@@ -11,12 +11,12 @@ write_generated_agents_scaffold() {
 
 These instructions are for AI assistants working in this project.
 
-Always open `@/openspec/AGENTS.md` when the request:
+Always check `openspec/project.md` when the request:
 - Mentions planning or proposals (words like proposal, spec, change, plan)
 - Introduces new capabilities, breaking changes, architecture shifts, or big performance/security work
 - Sounds ambiguous and you need the authoritative spec before coding
 
-Use `@/openspec/AGENTS.md` to learn:
+Use `openspec/project.md` and existing `openspec/changes/` artifacts to learn:
 - How to create and apply change proposals
 - Spec format and conventions
 - Project structure and guidelines
@@ -84,10 +84,28 @@ trim_trailing_blank_lines() {
   mv "$tmp_file" "$target_file"
 }
 
+refresh_stale_openspec_agents_scaffold() {
+  local agents_file="$1"
+  local tmp_file
+
+  if ! grep -Fq -- "@/openspec/AGENTS.md" "$agents_file"; then
+    return 0
+  fi
+
+  remove_managed_block "$agents_file" "<!-- OPENSPEC:START -->" "<!-- OPENSPEC:END -->"
+
+  tmp_file="$(mktemp)"
+  write_generated_agents_scaffold >"$tmp_file"
+  printf '\n' >>"$tmp_file"
+  cat "$agents_file" >>"$tmp_file"
+  mv "$tmp_file" "$agents_file"
+}
+
 append_project_agents_overlay() {
   local agents_file="$1"
 
   ensure_agents_file "$agents_file"
+  refresh_stale_openspec_agents_scaffold "$agents_file"
   remove_managed_block "$agents_file" "$project_agents_block_start" "$project_agents_block_end"
   trim_trailing_blank_lines "$agents_file"
 

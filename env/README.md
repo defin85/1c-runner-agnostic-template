@@ -261,13 +261,15 @@ Inline shell snippets и trivial success commands вроде `true`, `echo ...` 
       "vanessaSinglePath": "/path/to/vanessa-automation-single.epf",
       "warmupFeaturePath": "features/warmup.feature",
       "libraryPaths": ["features/libraries"],
-      "launchParameterName": "ProjectBddWarmServiceConfig"
+      "launchParameterName": "ProjectBddWarmServiceConfig",
+      "visibleManager": true
     }
   }
 }
 ```
 
 `./scripts/test/run-bdd-warm-service.sh up --profile env/local.json --run-root /tmp/bdd-warm-service-run` поднимает два Xpra-сеанса: менеджер тестирования с `/TESTMANAGER` и клиент тестирования с `/TestClient -TPort...`. Проект должен добавить 1С-код, который читает `/C <launchParameterName>=<service-config-path>` и инициализирует Vanessa Automation; если target truth, Vanessa Automation Single или warmup feature не заданы, запуск завершается fail-closed.
+По умолчанию менеджер остаётся скрытым; `capabilities.bddWarmService.visibleManager=true` только передаёт `VisibleManager=true` в service config, а видимость формы реализует project-owned 1С-обработчик.
 Контур считается готовым только когда менеджер записал `READY`, оба процесса живы, а клиент тестирования слушает выделенный порт. Для параллельных агентских запусков используйте разные `--run-root`; Xpra display выбирается под repo-level lock, порт клиента берётся через repo-owned lease.
 Warmup feature должен подключаться к уже поднятому клиенту по порту из service config, а не запускать новый клиент через сохранённый профиль TestClient Vanessa Automation.
 Если проектное расширение поддержки BDD менялось перед warm-service, обновляйте только его: `./scripts/platform/load-cfe.sh --profile env/local.json --target <id> --extension <BddSupportExtension> --run-root /tmp/load-cfe-bdd-support`. Не перезагружайте весь набор `src/cfe` при каждом старте warm-service.

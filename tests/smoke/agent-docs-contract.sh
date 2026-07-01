@@ -83,11 +83,6 @@ if [ "$1" = "init" ] && [ "$#" -eq 3 ] && [ "$2" = "--tools" ]; then
   cat >openspec/project.md <<'EOT'
 # OpenSpec Project
 EOT
-  cat >AGENTS.md <<'EOT'
-<!-- OPENSPEC:START -->
-# OpenSpec Instructions
-<!-- OPENSPEC:END -->
-EOT
   exit 0
 fi
 
