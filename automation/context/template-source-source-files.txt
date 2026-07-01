@@ -715,6 +715,7 @@
 ./scripts/platform/publish-http.sh
 ./scripts/platform/update-db.ps1
 ./scripts/platform/update-db.sh
+./scripts/platform/v8unpack.sh
 ./scripts/python/__init__.py
 ./scripts/python/cli.py
 ./scripts/python/common.py
@@ -850,6 +851,7 @@
 ./tests/smoke/template-release-workflow.sh
 ./tests/smoke/template-xunit-contour-contract.sh
 ./tests/smoke/update-1c-project-wrapper.sh
+./tests/smoke/v8unpack-contract.sh
 ./tests/smoke/vanessa-bdd-warm-service-contract.sh
 ./tests/smoke/web-client-diagnostic-contract.sh
 ./tests/smoke/yaxunit-contour-contract.sh

@@ -1,6 +1,6 @@
 SHELL := bash
 
-.PHONY: help agent-verify act-preflight qa analyze-bsl format-bsl check-agent-docs check-skill-bindings check-overlay-manifest codex-onboard imported-skills-readiness create-ib dump-src load-src load-cfe manage-cfe configure-cfe-runtime-flags check-cfe-applicability check-cfe-config load-diff-src load-task-src update-db diff-src doctor check-x11-contour test-xunit tdd-xunit test-yaxunit sync-yaxunit-runtime yaxunit-warm-service web-client-diagnostic golden-create golden-restore golden-baseline test-bdd bdd-warm-service smoke export-context export-context-preview export-context-check export-context-write verify-traceability template-check-update template-update
+.PHONY: help agent-verify act-preflight qa analyze-bsl format-bsl check-agent-docs check-skill-bindings check-overlay-manifest codex-onboard imported-skills-readiness create-ib dump-src load-src load-cfe manage-cfe v8unpack configure-cfe-runtime-flags check-cfe-applicability check-cfe-config load-diff-src load-task-src update-db diff-src doctor check-x11-contour test-xunit tdd-xunit test-yaxunit sync-yaxunit-runtime yaxunit-warm-service web-client-diagnostic golden-create golden-restore golden-baseline test-bdd bdd-warm-service smoke export-context export-context-preview export-context-check export-context-write verify-traceability template-check-update template-update
 
 help:
 	@printf '%s\n' \
@@ -20,6 +20,7 @@ help:
 		'  make load-src' \
 		'  make load-cfe' \
 		'  make manage-cfe' \
+		'  make v8unpack' \
 		'  make configure-cfe-runtime-flags' \
 		'  make check-cfe-applicability' \
 		'  make check-cfe-config' \
@@ -92,6 +93,9 @@ load-cfe:
 
 manage-cfe:
 	@./scripts/platform/manage-cfe.sh $(ARGS)
+
+v8unpack:
+	@./scripts/platform/v8unpack.sh $(ARGS)
 
 configure-cfe-runtime-flags:
 	@./scripts/platform/configure-cfe-runtime-flags.sh
