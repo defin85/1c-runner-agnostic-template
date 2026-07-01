@@ -710,6 +710,7 @@
 ./scripts/platform/load-src.sh
 ./scripts/platform/load-task-src.ps1
 ./scripts/platform/load-task-src.sh
+./scripts/platform/manage-cfe.sh
 ./scripts/platform/publish-http.ps1
 ./scripts/platform/publish-http.sh
 ./scripts/platform/update-db.ps1
@@ -827,6 +828,7 @@
 ./tests/smoke/golden-baseline-contract.sh
 ./tests/smoke/imported-skills-contract.sh
 ./tests/smoke/load-cfe-contract.sh
+./tests/smoke/manage-cfe-contract.sh
 ./tests/smoke/multi-target-extension-workspace-contract.sh
 ./tests/smoke/new-1c-project-current-dir-defaults.sh
 ./tests/smoke/onec-port-lease-contract.sh

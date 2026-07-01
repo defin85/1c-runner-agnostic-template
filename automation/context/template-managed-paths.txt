@@ -476,6 +476,7 @@ scripts/platform/diff-src.sh
 scripts/platform/dump-src.ps1
 scripts/platform/dump-src.sh
 scripts/platform/load-cfe.sh
+scripts/platform/manage-cfe.sh
 scripts/platform/load-diff-src.ps1
 scripts/platform/load-diff-src.sh
 scripts/platform/load-src.ps1
@@ -590,6 +591,7 @@ tests/smoke/git-task-trailer-contract.sh
 tests/smoke/golden-baseline-contract.sh
 tests/smoke/imported-skills-contract.sh
 tests/smoke/load-cfe-contract.sh
+tests/smoke/manage-cfe-contract.sh
 tests/smoke/multi-target-extension-workspace-contract.sh
 tests/smoke/new-1c-project-current-dir-defaults.sh
 tests/smoke/onec-port-lease-contract.sh
