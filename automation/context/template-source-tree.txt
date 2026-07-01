@@ -229,6 +229,7 @@
 ./scripts/adapters
 ./scripts/bootstrap
 ./scripts/diag
+./scripts/epf
 ./scripts/git
 ./scripts/lib
 ./scripts/llm
@@ -243,8 +244,10 @@
 ./src
 ./src/cf
 ./src/cfe
+./src/cfe/_templates
 ./src/epf
 ./src/epf/TemplateXUnitHarness
+./src/epf/_templates
 ./src/erf
 ./tests
 ./tests/fixtures

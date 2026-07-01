@@ -104,6 +104,13 @@ def check_overlay_manifest(root: Path | None = None) -> int:
     manifest = repo_root / "automation" / "context" / "template-managed-paths.txt"
     if not manifest.is_file():
         die(f"overlay manifest is missing: {manifest}")
+    def is_managed_src_scaffold(path: str) -> bool:
+        return (
+            path.startswith("src/epf/TemplateXUnitHarness/")
+            or path in {"src/epf/AGENT_TEMPLATES.md", "src/cfe/AGENT_TEMPLATES.md"}
+            or path.startswith("src/epf/_templates/")
+            or path.startswith("src/cfe/_templates/")
+        )
     if not (repo_root / "automation" / "context" / "template-source-project-map.md").is_file():
         forbidden_prefixes = ("openspec/", "tooling/")
         forbidden_exact = {"AGENTS.md", "README.md", "copier.yml"}
@@ -114,7 +121,7 @@ def check_overlay_manifest(root: Path | None = None) -> int:
             if line in forbidden_exact or any(line.startswith(prefix) for prefix in forbidden_prefixes):
                 print("generated-project overlay manifest must not manage source-only or project-owned paths", file=os.sys.stderr)
                 return 1
-            if line.startswith("src/") and line not in {"src/AGENTS.md", "src/README.md"} and not line.startswith("src/epf/TemplateXUnitHarness/"):
+            if line.startswith("src/") and line not in {"src/AGENTS.md", "src/README.md"} and not is_managed_src_scaffold(line):
                 print("generated-project overlay manifest must not manage source-only or project-owned paths", file=os.sys.stderr)
                 return 1
         return 0
@@ -142,7 +149,7 @@ def check_overlay_manifest(root: Path | None = None) -> int:
             continue
         if entry.startswith("docs/work-items/"):
             continue
-        if entry.startswith("src/") and entry not in {"src/AGENTS.md", "src/README.md"} and not entry.startswith("src/epf/TemplateXUnitHarness/"):
+        if entry.startswith("src/") and entry not in {"src/AGENTS.md", "src/README.md"} and not is_managed_src_scaffold(entry):
             continue
         expected.append(entry)
     actual = [

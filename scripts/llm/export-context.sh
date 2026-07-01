@@ -72,7 +72,7 @@ emit_source_repo_files() {
 
   if git -C "$root" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
     for path in "${source_repo_inventory_roots[@]}"; do
-      git -C "$root" ls-files --cached --others --exclude-standard -- "$path"
+      git -C "$root" -c core.quotePath=false ls-files --cached --others --exclude-standard -- "$path"
     done | while IFS= read -r path; do
       [ -f "$root/$path" ] || continue
       printf './%s\n' "$path"

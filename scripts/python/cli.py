@@ -6,6 +6,7 @@ from pathlib import Path
 
 from .common import CommandError, die
 from .context import export_context, verify_traceability
+from .epf_templates import init_epf_from_template
 from .imported_skills import render_imported_skill_readiness, run_imported_skill, sync_imported_skills
 from .qa import agent_verify, analyze_bsl, check_agent_docs, check_overlay_manifest, check_skill_bindings, codex_onboard, format_bsl
 from .runtime import run_doctor, run_load_diff_src, run_load_task_src, run_profile_capability, run_tdd_xunit, task_trailers_render, task_trailers_select_commits, task_trailers_validate_message
@@ -121,6 +122,8 @@ def main(argv: list[str] | None = None) -> int:
             return analyze_bsl()
         if command == "format-bsl":
             return format_bsl()
+        if command == "init-epf-from-template":
+            return init_epf_from_template(args)
         if command == "task-trailers-render":
             work_item = ""
             index = 0

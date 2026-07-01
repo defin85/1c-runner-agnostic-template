@@ -41,7 +41,7 @@ def _tracked_source_files(root: Path, roots: list[str]) -> list[Path] | None:
     if probe.returncode != 0:
         return None
 
-    result = run_process(["git", "-C", str(root), "ls-files", "--", *roots], check=True)
+    result = run_process(["git", "-C", str(root), "-c", "core.quotePath=false", "ls-files", "--", *roots], check=True)
     files: list[Path] = []
     for line in result.stdout.splitlines():
         rel = line.strip()
