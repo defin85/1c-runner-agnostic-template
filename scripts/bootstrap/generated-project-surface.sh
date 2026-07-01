@@ -508,11 +508,11 @@ write_operator_local_runbook_starter() {
 
 ## Синхронизация runtime перед тестами
 
-- Перед YAxUnit используйте `./scripts/test/sync-yaxunit-runtime.sh --profile env/local.json --target <id> --extension <YAxUnitTestsExtension> --run-root /tmp/yaxunit-sync-run`, затем запускайте `run-yaxunit` или `run-yaxunit-warm-service`.
-- Перед BDD warm-service обновляйте только проектное расширение поддержки: `./scripts/platform/load-cfe.sh --profile env/local.json --target <id> --extension <BddSupportExtension> --run-root /tmp/load-cfe-bdd-support`.
+- Перед YAxUnit используйте `./scripts/test/sync-yaxunit-runtime.sh --profile env/local.json --target target-id --extension YAxUnitTestsExtension --run-root /tmp/yaxunit-sync-run`, затем запускайте `run-yaxunit` или `run-yaxunit-warm-service`.
+- Перед BDD warm-service обновляйте только проектное расширение поддержки: `./scripts/platform/load-cfe.sh --profile env/local.json --target target-id --extension BddSupportExtension --run-root /tmp/load-cfe-bdd-support`.
 - BDD warm-service считается готовым только после `READY` от менеджера и открытого порта клиента тестирования; для параллельных запусков используйте разные `--run-root`, а warmup feature подключайте к уже поднятому клиенту по порту.
-- Полный `./scripts/platform/load-cfe.sh --profile env/local.json --target <id> --run-root /tmp/load-cfe-run` используйте только для первичной подготовки ИБ, массового обновления расширений или изменения `automation/context/target-matrix.json`.
-- В multi-target workspace сочетание `--target <id> --extension <name>` допустимо только для расширений, перечисленных в `extensionMatrix` этой цели.
+- Полный `./scripts/platform/load-cfe.sh --profile env/local.json --target target-id --run-root /tmp/load-cfe-run` используйте только для первичной подготовки ИБ, массового обновления расширений или изменения `automation/context/target-matrix.json`.
+- В multi-target workspace сочетание `--target target-id --extension ExtensionName` допустимо только для расширений, перечисленных в `extensionMatrix` этой цели.
 
 ## Project Extensions
 
@@ -570,15 +570,15 @@ EOF
 | `export-context-check` | `supported` | `make export-context-check` | `shell-only` | `docs/agent/generated-project-verification.md` |
 | `doctor` | `operator-local` | `./scripts/diag/doctor.sh --profile env/local.json --run-root /tmp/doctor-run` | `1C runtime + operator-owned profile` | `docs/agent/operator-local-runbook.md` |
 | `check-x11-contour` | `operator-local` | `./scripts/diag/check-x11-contour.sh --profile env/local.json --run-root /tmp/check-x11-contour-run` | `GUI/X11 runtime + operator-owned profile` | `docs/agent/operator-local-runbook.md` |
-| `load-cfe` | `operator-local` | `./scripts/platform/load-cfe.sh --profile env/local.json --target <id> --extension <name> --run-root /tmp/load-cfe-run` | `ibcmd-ready operator-owned profile + src/cfe`; полная загрузка цели только для первичной подготовки или массовой синхронизации | `docs/agent/operator-local-runbook.md` |
+| `load-cfe` | `operator-local` | `./scripts/platform/load-cfe.sh --profile env/local.json --target target-id --extension ExtensionName --run-root /tmp/load-cfe-run` | `ibcmd-ready operator-owned profile + src/cfe`; полная загрузка цели только для первичной подготовки или массовой синхронизации | `docs/agent/operator-local-runbook.md` |
 | `configure-cfe-runtime-flags` | `operator-local` | `./scripts/platform/configure-cfe-runtime-flags.sh --profile env/local.json --run-root /tmp/configure-cfe-runtime-flags-run` | `ibcmd-ready operator-owned profile + src/cfe` | `docs/agent/operator-local-runbook.md` |
 | `check-cfe-applicability` | `operator-local` | `./scripts/platform/check-cfe-applicability.sh --profile env/local.json --run-root /tmp/check-cfe-applicability-run` | `Designer-ready operator-owned profile + src/cfe` | `docs/agent/operator-local-runbook.md` |
 | `check-cfe-config` | `operator-local` | `./scripts/platform/check-cfe-config.sh --profile env/local.json --run-root /tmp/check-cfe-config-run` | `Designer-ready operator-owned profile + src/cfe` | `docs/agent/operator-local-runbook.md` |
 | `load-diff-src` | `operator-local` | `./scripts/platform/load-diff-src.sh --profile env/local.json --run-root /tmp/load-diff-src-run` | `ibcmd-ready operator-owned profile + prepared infobase + git worktree` | `docs/agent/operator-local-runbook.md` |
 | `load-task-src` | `operator-local` | `./scripts/platform/load-task-src.sh --profile env/local.json --work-item 93984 --run-root /tmp/load-task-src-run` | `ibcmd-ready operator-owned profile + prepared infobase + task markers or explicit revset` | `docs/agent/operator-local-runbook.md` |
 | `xunit` | `operator-local` | `./scripts/test/run-xunit.sh --profile env/local.json --run-root /tmp/xunit-run` | `direct-platform profile with wired addRoot + local 1C runtime` | `docs/testing/xunit-direct-platform.md` |
-| `yaxunit` | `operator-local` | `./scripts/test/sync-yaxunit-runtime.sh --profile env/local.json --target <id> --extension <name> --run-root /tmp/yaxunit-sync-run && ./scripts/test/run-yaxunit.sh --profile env/local.json --run-root /tmp/yaxunit-run` | `YAxUnit extensions + operator-owned profile` | `docs/agent/operator-local-runbook.md` |
-| `yaxunit-warm-rpc` | `operator-local` | `./scripts/test/sync-yaxunit-runtime.sh --profile env/local.json --target <id> --extension <name> --run-root /tmp/yaxunit-sync-run && ./scripts/test/run-yaxunit-warm-service.sh up --profile env/local.json --run-root /tmp/yaxunit-warm-rpc-up-run` | `YAxUnit extensions + operator-owned profile` | `docs/agent/operator-local-runbook.md` |
+| `yaxunit` | `operator-local` | `./scripts/test/run-yaxunit.sh --profile env/local.json --run-root /tmp/yaxunit-run` | `YAxUnit extensions + operator-owned profile; перед первым запуском выполните sync-yaxunit-runtime для target-id/extension` | `docs/agent/operator-local-runbook.md` |
+| `yaxunit-warm-rpc` | `operator-local` | `./scripts/test/run-yaxunit-warm-service.sh up --profile env/local.json --run-root /tmp/yaxunit-warm-rpc-up-run` | `YAxUnit extensions + operator-owned profile; перед первым запуском выполните sync-yaxunit-runtime для target-id/extension` | `docs/agent/operator-local-runbook.md` |
 | `web-client-diagnostic` | `operator-local` | `./scripts/test/run-web-client-diagnostic.sh --profile env/local.json --run-root /tmp/web-client-diagnostic-run` | `published web client + diagnostic profile capability` | `docs/agent/operator-local-runbook.md` |
 | `golden-baseline` | `operator-local` | `./scripts/test/run-golden-baseline.sh --run-root /tmp/golden-baseline-run` | `project-owned tests/golden/run.sh or GOLDEN_BASELINE_COMMAND` | `tests/golden/README.md` |
 | `bdd` | `unsupported` | `./scripts/test/run-bdd.sh --profile env/local.json --run-root /tmp/bdd-run` | `future project-owned contour or sanctioned preset` | `docs/agent/generated-project-verification.md` |
@@ -780,6 +780,19 @@ write_operator_local_targets_starter() {
 EOF
 }
 
+write_target_matrix_starter() {
+  local target_file="$1"
+
+  ensure_parent_dir "$target_file"
+  cat >"$target_file" <<'EOF'
+{
+  "schemaVersion": 1,
+  "targets": [],
+  "extensionMatrix": {}
+}
+EOF
+}
+
 write_runtime_support_matrix_json_starter() {
   local target_file="$1"
 
@@ -844,7 +857,7 @@ write_runtime_support_matrix_json_starter() {
       "id": "load-cfe",
       "layer": "profile-required",
       "status": "operator-local",
-      "entrypoint": "./scripts/platform/load-cfe.sh --profile env/local.json --target <id> --extension <name> --run-root /tmp/load-cfe-run",
+      "entrypoint": "./scripts/platform/load-cfe.sh --profile env/local.json --target target-id --extension ExtensionName --run-root /tmp/load-cfe-run",
       "profileProvenance": "operator-local env/local.json or explicit --profile",
       "runbookPath": "docs/agent/operator-local-runbook.md",
       "summary": "Sequential ibcmd load/check/apply for selected extensions under src/cfe; use full target load only for initial setup or mass sync."
@@ -1010,15 +1023,15 @@ write_runtime_support_matrix_markdown_starter() {
 | --- | --- | --- | --- | --- |
 | `doctor` | `operator-local` | `env/local.json` или явный `--profile` | `./scripts/diag/doctor.sh --profile env/local.json --run-root /tmp/doctor-run` | `docs/agent/operator-local-runbook.md` |
 | `check-x11-contour` | `operator-local` | `env/local.json` или явный `--profile` | `./scripts/diag/check-x11-contour.sh --profile env/local.json --run-root /tmp/check-x11-contour-run` | `docs/agent/operator-local-runbook.md` |
-| `load-cfe` | `operator-local` | `env/local.json` или явный `--profile` | `./scripts/platform/load-cfe.sh --profile env/local.json --target <id> --extension <name> --run-root /tmp/load-cfe-run` | `docs/agent/operator-local-runbook.md` |
+| `load-cfe` | `operator-local` | `env/local.json` или явный `--profile` | `./scripts/platform/load-cfe.sh --profile env/local.json --target target-id --extension ExtensionName --run-root /tmp/load-cfe-run` | `docs/agent/operator-local-runbook.md` |
 | `configure-cfe-runtime-flags` | `operator-local` | `env/local.json` или явный `--profile` | `./scripts/platform/configure-cfe-runtime-flags.sh --profile env/local.json --run-root /tmp/configure-cfe-runtime-flags-run` | `docs/agent/operator-local-runbook.md` |
 | `check-cfe-applicability` | `operator-local` | `env/local.json` или явный `--profile` | `./scripts/platform/check-cfe-applicability.sh --profile env/local.json --run-root /tmp/check-cfe-applicability-run` | `docs/agent/operator-local-runbook.md` |
 | `check-cfe-config` | `operator-local` | `env/local.json` или явный `--profile` | `./scripts/platform/check-cfe-config.sh --profile env/local.json --run-root /tmp/check-cfe-config-run` | `docs/agent/operator-local-runbook.md` |
 | `load-diff-src` | `operator-local` | `env/local.json` с ready partial-import contour или явный `--profile` | `./scripts/platform/load-diff-src.sh --profile env/local.json --run-root /tmp/load-diff-src-run` | `docs/agent/operator-local-runbook.md` |
 | `load-task-src` | `operator-local` | `env/local.json` с ready partial-import contour или явный `--profile` | `./scripts/platform/load-task-src.sh --profile env/local.json --work-item 93984 --run-root /tmp/load-task-src-run` | `docs/agent/operator-local-runbook.md` |
 | `xunit` | `operator-local` | `env/local.json`, `env/wsl.json`, `env/ci.json` или явный `--profile` с wired `capabilities.xunit` | `./scripts/test/run-xunit.sh --profile env/local.json --run-root /tmp/xunit-run` | `docs/testing/xunit-direct-platform.md` |
-| `yaxunit` | `operator-local` | `env/local.json` или явный `--profile` | `./scripts/test/sync-yaxunit-runtime.sh --profile env/local.json --target <id> --extension <name> --run-root /tmp/yaxunit-sync-run && ./scripts/test/run-yaxunit.sh --profile env/local.json --run-root /tmp/yaxunit-run` | `docs/agent/operator-local-runbook.md` |
-| `yaxunit-warm-rpc` | `operator-local` | `env/local.json` или явный `--profile` | `./scripts/test/sync-yaxunit-runtime.sh --profile env/local.json --target <id> --extension <name> --run-root /tmp/yaxunit-sync-run && ./scripts/test/run-yaxunit-warm-service.sh up --profile env/local.json --run-root /tmp/yaxunit-warm-rpc-up-run` | `docs/agent/operator-local-runbook.md` |
+| `yaxunit` | `operator-local` | `env/local.json` или явный `--profile` | `./scripts/test/sync-yaxunit-runtime.sh --profile env/local.json --target target-id --extension YAxUnitTestsExtension --run-root /tmp/yaxunit-sync-run && ./scripts/test/run-yaxunit.sh --profile env/local.json --run-root /tmp/yaxunit-run` | `docs/agent/operator-local-runbook.md` |
+| `yaxunit-warm-rpc` | `operator-local` | `env/local.json` или явный `--profile` | `./scripts/test/sync-yaxunit-runtime.sh --profile env/local.json --target target-id --extension YAxUnitTestsExtension --run-root /tmp/yaxunit-sync-run && ./scripts/test/run-yaxunit-warm-service.sh up --profile env/local.json --run-root /tmp/yaxunit-warm-rpc-up-run` | `docs/agent/operator-local-runbook.md` |
 | `web-client-diagnostic` | `operator-local` | `env/local.json` или явный `--profile` | `./scripts/test/run-web-client-diagnostic.sh --profile env/local.json --run-root /tmp/web-client-diagnostic-run` | `docs/agent/operator-local-runbook.md` |
 | `golden-baseline` | `operator-local` | `tests/golden/run.sh` или `GOLDEN_BASELINE_COMMAND` | `./scripts/test/run-golden-baseline.sh --run-root /tmp/golden-baseline-run` | `tests/golden/README.md` |
 | `bdd` | `unsupported` | project decides later | `./scripts/test/run-bdd.sh --profile env/local.json --run-root /tmp/bdd-run` | `docs/agent/generated-project-verification.md` |
@@ -1148,6 +1161,7 @@ seed_generated_project_surface_on_copy() {
   write_work_items_template_starter "$root/docs/work-items/TEMPLATE.md"
   write_project_delta_hints_starter "$root/automation/context/project-delta-hints.json"
   write_runtime_profile_policy_starter "$root/automation/context/runtime-profile-policy.json"
+  write_target_matrix_starter "$root/automation/context/target-matrix.json"
   write_operator_local_targets_starter "$root/automation/context/operator-local-targets.json"
   write_runtime_support_matrix_json_starter "$root/automation/context/runtime-support-matrix.json"
   write_runtime_support_matrix_markdown_starter "$root/automation/context/runtime-support-matrix.md"
@@ -1194,6 +1208,10 @@ refresh_generated_project_surface_on_update() {
 
   if [ ! -f "$root/automation/context/runtime-profile-policy.json" ]; then
     write_runtime_profile_policy_starter "$root/automation/context/runtime-profile-policy.json"
+  fi
+
+  if [ ! -f "$root/automation/context/target-matrix.json" ]; then
+    write_target_matrix_starter "$root/automation/context/target-matrix.json"
   fi
 
   if [ ! -f "$root/automation/context/operator-local-targets.json" ]; then

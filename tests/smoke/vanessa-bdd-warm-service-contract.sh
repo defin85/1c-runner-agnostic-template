@@ -97,6 +97,17 @@ sleep 300
 EOF
 cp "$bindir/1cv8" "$bindir/1cv8c"
 
+cat >"$bindir/ibcmd" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+if [ "${1:-}" = "eventlog" ] && [ "${2:-}" = "export" ]; then
+  printf '{"EventLog":[]}\n'
+  exit 0
+fi
+printf 'unexpected fake ibcmd command: %s\n' "$*" >&2
+exit 2
+EOF
+
 cat >"$bindir/xpra" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
@@ -153,6 +164,7 @@ cat >"$fixture_root/env/local.json" <<EOF
   },
   "platform": {
     "binaryPath": "$bindir/1cv8",
+    "ibcmdPath": "$bindir/ibcmd",
     "xpra": {
       "enabled": true,
       "startChild": "openbox",
@@ -174,12 +186,14 @@ cat >"$fixture_root/env/local.json" <<EOF
     },
     "bdd": {
       "command": ["./scripts/test/run-bdd-warm-run.sh"],
+      "eventLogDir": "$tmpdir/eventlog",
       "featurePaths": ["features/example.feature"]
     }
   }
 }
 EOF
 
+mkdir -p "$tmpdir/eventlog"
 cat >"$fixture_root/automation/context/operator-local-targets.json" <<EOF
 {
   "schemaVersion": 1,
@@ -230,10 +244,14 @@ assert_jq "$run_root/up/summary.json" '.status == "success" and .service.state =
 state_path="$(jq -r '.service.state_json' "$run_root/up/summary.json")"
 config_path="$(jq -r '.service_files.config' "$state_path")"
 assert_jq "$state_path" '.roles.manager.pid != null and .roles.test_client.pid != null and .roles.test_client.port != null' "role-pids"
+assert_jq "$state_path" '.service_files.run_complete != null' "run-complete-file"
 assert_contains "$SOURCE_ROOT/scripts/adapters/direct-platform.sh" "flock -x 9"
+assert_contains "$SOURCE_ROOT/scripts/adapters/direct-platform.sh" "process-cleanup-baseline.txt"
 assert_contains "$SOURCE_ROOT/scripts/test/run-bdd.sh" "--target <id>"
 assert_contains "$SOURCE_ROOT/scripts/test/run-bdd-warm-run.sh" "capabilities.bdd.manifestPath"
 assert_contains "$SOURCE_ROOT/scripts/test/run-bdd-warm-run.sh" "capabilities.bdd.featurePaths"
+assert_contains "$SOURCE_ROOT/scripts/test/run-bdd-warm-run.sh" "capabilities.bdd.eventLogDir"
+assert_contains "$SOURCE_ROOT/scripts/test/run-bdd-warm-run.sh" "__ONEC_VANESSA_FIXTURES_ROOT__"
 assert_contains "$config_path" "TestClientConnectionString=File=\"$tmpdir/ib\";"
 assert_contains "$(jq -r '.roles.manager.artifacts.stderr_log' "$state_path")" "xpra-arg=--session-name=BDD manager local-bdd"
 assert_contains "$(jq -r '.roles.test_client.artifacts.stderr_log' "$state_path")" "xpra-arg=--session-name=BDD test-client local-bdd"
@@ -252,7 +270,9 @@ assert_contains "$(jq -r '.roles.test_client.artifacts.command_txt' "$state_path
 )
 assert_jq "$run_root/run-bdd/summary.json" '.status == "success" and .execution.source == "profile-command"' "run-bdd-warm-success"
 assert_jq "$run_root/run-bdd/bdd-warm-run-summary.json" '.status == "success" and .contour.runner == "bdd-warm-run"' "warm-run-summary"
+assert_jq "$run_root/run-bdd/bdd-warm-run-summary.json" '.event_log.enabled == true and .event_log.dir != null' "warm-run-eventlog-summary"
 assert_contains "$run_root/run-bdd/results.tsv" "features/example.feature"
+[ -f "$run_root/run-bdd/features/001/eventlog-errors.json" ] || { printf 'eventlog error artifact not found\n' >&2; exit 1; }
 
 (
   cd "$fixture_root"

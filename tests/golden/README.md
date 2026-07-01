@@ -2,6 +2,15 @@
 
 `golden-baseline` является обязательным проектным регрессионным контуром.
 
-Минимальная настройка: замените stub `tests/golden/run.sh` на исполняемый скрипт, который сравнивает текущий результат проекта с проверенным эталоном и возвращает ненулевой код при расхождении.
+По умолчанию `tests/golden/run.sh` восстанавливает PostgreSQL snapshot через `tests/golden/restore.sh`.
+Snapshot создаётся командой:
 
-До настройки `make golden-baseline` завершается fail-closed.
+```bash
+./tests/golden/create.sh --profile env/local.json --target target-id
+```
+
+Путь по умолчанию: `.artifacts/golden/target-id.dump`.
+
+Для другого типа эталона замените `tests/golden/run.sh` на исполняемый проектный скрипт, который возвращает ненулевой код при расхождении.
+
+До настройки профиля и snapshot `make golden-baseline` завершается fail-closed.

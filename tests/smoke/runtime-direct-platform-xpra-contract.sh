@@ -116,7 +116,7 @@ mirror_commands() {
   local command_name=""
 
   mkdir -p "$target_dir"
-  for command_name in awk bash basename cat date dirname env flock git grep jq locale mkdir mktemp realpath rg sed seq sleep tee tail tr; do
+  for command_name in awk bash basename cat date dirname env flock git grep jq kill locale mkdir mktemp ps realpath rg sed seq sleep tee tail tr; do
     ln -sf "$(command -v "$command_name")" "$target_dir/$command_name"
   done
 }
@@ -250,6 +250,8 @@ assert_jq "$xunit_run_root/summary.json" '.adapter_context.wrapper == "xpra"' "x
 assert_contains "$xunit_run_root/stderr.log" "fake-xpra"
 assert_contains "$xunit_run_root/stderr.log" "xpra-arg=start-desktop"
 assert_contains "$SOURCE_ROOT/scripts/adapters/direct-platform.sh" "flock -x 9"
+assert_contains "$SOURCE_ROOT/scripts/adapters/direct-platform.sh" "ONEC_DIRECT_PLATFORM_XPRA_SESSION_TOKEN"
+assert_contains "$SOURCE_ROOT/scripts/adapters/direct-platform.sh" "process-cleanup-baseline.txt"
 assert_contains "$xunit_run_root/stderr.log" "xpra-xauthority=$xunit_run_root/home/.Xauthority"
 assert_contains "$xunit_run_root/stderr.log" "xpra-arg=--xvfb=Xvfb -screen 0 1440x900x24 -nolisten tcp -noreset -auth $xunit_run_root/home/.Xauthority"
 assert_contains "$xunit_run_root/stdout.log" "fake-1cv8c"

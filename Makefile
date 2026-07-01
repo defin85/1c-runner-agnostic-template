@@ -1,6 +1,6 @@
 SHELL := bash
 
-.PHONY: help agent-verify act-preflight qa analyze-bsl format-bsl check-agent-docs check-skill-bindings check-overlay-manifest codex-onboard imported-skills-readiness create-ib dump-src load-src load-cfe configure-cfe-runtime-flags check-cfe-applicability check-cfe-config load-diff-src load-task-src update-db diff-src doctor check-x11-contour test-xunit tdd-xunit test-yaxunit sync-yaxunit-runtime yaxunit-warm-service web-client-diagnostic golden-baseline test-bdd bdd-warm-service smoke export-context export-context-preview export-context-check export-context-write verify-traceability template-check-update template-update
+.PHONY: help agent-verify act-preflight qa analyze-bsl format-bsl check-agent-docs check-skill-bindings check-overlay-manifest codex-onboard imported-skills-readiness create-ib dump-src load-src load-cfe configure-cfe-runtime-flags check-cfe-applicability check-cfe-config load-diff-src load-task-src update-db diff-src doctor check-x11-contour test-xunit tdd-xunit test-yaxunit sync-yaxunit-runtime yaxunit-warm-service web-client-diagnostic golden-create golden-restore golden-baseline test-bdd bdd-warm-service smoke export-context export-context-preview export-context-check export-context-write verify-traceability template-check-update template-update
 
 help:
 	@printf '%s\n' \
@@ -34,6 +34,8 @@ help:
 		'  make sync-yaxunit-runtime' \
 		'  make yaxunit-warm-service' \
 		'  make web-client-diagnostic' \
+		'  make golden-create' \
+		'  make golden-restore' \
 		'  make golden-baseline' \
 		'  make test-bdd' \
 		'  make bdd-warm-service' \
@@ -131,6 +133,12 @@ yaxunit-warm-service:
 
 web-client-diagnostic:
 	@./scripts/test/run-web-client-diagnostic.sh
+
+golden-create:
+	@./tests/golden/create.sh
+
+golden-restore:
+	@./tests/golden/restore.sh
 
 golden-baseline:
 	@./scripts/test/run-golden-baseline.sh

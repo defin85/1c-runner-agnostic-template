@@ -112,15 +112,74 @@ pick_unused_xpra_display_number() {
   exit 1
 }
 
+cleanup_xpra_session_processes() {
+  local xpra_session_token="$1"
+  local baseline_file="${2:-}"
+  local pid=""
+  local comm=""
+  local -a pids=()
+
+  [ -n "$xpra_session_token" ] || return 0
+
+  for environ_path in /proc/[0-9]*/environ; do
+    [ -r "$environ_path" ] || continue
+    pid="${environ_path#/proc/}"
+    pid="${pid%/environ}"
+    [ "$pid" != "$$" ] || continue
+    if ! tr '\0' '\n' <"$environ_path" 2>/dev/null | grep -Fxq "ONEC_DIRECT_PLATFORM_XPRA_SESSION_TOKEN=$xpra_session_token"; then
+      continue
+    fi
+    comm="$(cat "/proc/$pid/comm" 2>/dev/null || true)"
+    case "$comm" in
+      dbus-daemon|gvfsd|gvfsd-*|xpra|Xvfb|openbox)
+        pids+=("$pid")
+        ;;
+    esac
+  done
+
+  if [ -n "$baseline_file" ] && [ -f "$baseline_file" ]; then
+    while IFS= read -r pid; do
+      [ -n "$pid" ] || continue
+      if grep -Fxq "$pid" "$baseline_file"; then
+        continue
+      fi
+      comm="$(cat "/proc/$pid/comm" 2>/dev/null || true)"
+      case "$comm" in
+        dbus-daemon|gvfsd)
+          pids+=("$pid")
+          ;;
+      esac
+    done < <(
+      ps -u "$USER" -o pid=,ppid=,comm=,cmd= \
+        | awk '$2 == 1 || $2 ~ /^[0-9]+$/ { if (($3 == "dbus-daemon" && /--session/ && /--print-address/) || ($3 == "gvfsd" && $0 ~ /\/usr\/libexec\/gvfsd$/)) print $1 }'
+    )
+  fi
+
+  [ "${#pids[@]}" -eq 0 ] || kill -TERM "${pids[@]}" 2>/dev/null || true
+  sleep 0.5
+  [ "${#pids[@]}" -eq 0 ] || kill -KILL "${pids[@]}" 2>/dev/null || true
+}
+
+stop_xpra_session() {
+  local display_value="$1"
+  local xpra_session_token="$2"
+  local baseline_file="${3:-}"
+
+  [ -z "$display_value" ] || xpra stop "$display_value" >/dev/null 2>&1 || true
+  cleanup_xpra_session_processes "$xpra_session_token" "$baseline_file"
+}
+
 run_xpra_wrapped_command() {
   local display_number=""
   local display_value=""
   local run_root="${ONEC_CAPABILITY_RUN_ROOT:-${TMPDIR:-/tmp}}"
   local xpra_root=""
   local xpra_log=""
+  local xpra_cleanup_baseline=""
   local xpra_lock_dir="${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}/$(basename "$(project_root)")-xpra"
   local xpra_lock_file=""
   local xpra_session_name="${ONEC_DIRECT_PLATFORM_XPRA_SESSION_NAME:-}"
+  local xpra_session_token="${ONEC_DIRECT_PLATFORM_XPRA_SESSION_TOKEN:-onec-xpra-$$-$(date +%s%N)}"
   local xpra_xvfb_args="${ONEC_DIRECT_PLATFORM_XPRA_XVFB_ARGS:-}"
   local xpra_start_child="${ONEC_DIRECT_PLATFORM_XPRA_START_CHILD:-openbox}"
   local -a xpra_args=()
@@ -143,6 +202,10 @@ run_xpra_wrapped_command() {
   mkdir -p "$run_root"
   xpra_root="$run_root/xpra"
   mkdir -p "$xpra_root"
+  xpra_cleanup_baseline="$xpra_root/process-cleanup-baseline.txt"
+  ps -u "$USER" -o pid=,ppid=,comm=,cmd= \
+    | awk '$2 == 1 || $2 ~ /^[0-9]+$/ { if (($3 == "dbus-daemon" && /--session/ && /--print-address/) || ($3 == "gvfsd" && $0 ~ /\/usr\/libexec\/gvfsd$/)) print $1 }' \
+    >"$xpra_cleanup_baseline"
   xauth_file="$run_root/home/.Xauthority"
   mkdir -p "$(dirname -- "$xauth_file")"
   xpra_xvfb_args="${xpra_xvfb_args//\$\{XAUTHORITY\}/$xauth_file}"
@@ -168,7 +231,7 @@ run_xpra_wrapped_command() {
     [ -z "$xpra_session_name" ] || xpra_args+=(--session-name="$xpra_session_name")
     [ -z "$xpra_start_child" ] || xpra_args+=(--start-child="$xpra_start_child")
 
-    XAUTHORITY="$xauth_file" xpra "${xpra_args[@]}" 9>&- >&2
+    XAUTHORITY="$xauth_file" ONEC_DIRECT_PLATFORM_XPRA_SESSION_TOKEN="$xpra_session_token" xpra "${xpra_args[@]}" 9>&- >&2
 
     while [ "$waited" -lt 100 ]; do
       if DISPLAY="$display_value" XAUTHORITY="$xauth_file" xdpyinfo >/dev/null 2>&1; then
@@ -183,7 +246,7 @@ run_xpra_wrapped_command() {
       if [ -f "$xpra_log" ]; then
         tail -80 "$xpra_log" >&2 || true
       fi
-      xpra stop "$display_value" >/dev/null 2>&1 || true
+      stop_xpra_session "$display_value" "$xpra_session_token" "$xpra_cleanup_baseline"
       exit 1
     fi
 
@@ -191,7 +254,7 @@ run_xpra_wrapped_command() {
   ) 9>"$xpra_lock_file"
   display_value="$(sed -n '1p' "$xpra_root/active-display.env")"
   xpra_log="$(sed -n '2p' "$xpra_root/active-display.env")"
-  trap 'xpra stop "$display_value" >/dev/null 2>&1 || true' EXIT INT TERM
+  trap 'stop_xpra_session "$display_value" "$xpra_session_token" "$xpra_cleanup_baseline"' EXIT INT TERM
 
   if [ -n "$xpra_start_child" ] && [ -f "$xpra_log" ]; then
     waited=0
@@ -215,7 +278,7 @@ run_xpra_wrapped_command() {
   exit_code=$?
   set -e
 
-  xpra stop "$display_value" >/dev/null 2>&1 || true
+  stop_xpra_session "$display_value" "$xpra_session_token" "$xpra_cleanup_baseline"
   trap - EXIT INT TERM
   return "$exit_code"
 }

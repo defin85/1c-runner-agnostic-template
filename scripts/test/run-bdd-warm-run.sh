@@ -31,6 +31,10 @@ read_service_token() {
   printf '%s' "$value"
 }
 
+sed_replacement_escape() {
+  printf '%s' "$1" | sed 's/[&|]/\\&/g'
+}
+
 resolve_feature_path() {
   local value="$1"
 
@@ -133,8 +137,126 @@ load_service_paths() {
   READY_FILE="$(jq -r '.service_files.ready' "$state_json")"
   BUILD_STATUS_FILE="$(jq -r '.service_files.build_status' "$state_json")"
   VANESSA_ONLINE_FILE="$(jq -r '.service_files.vanessa_online' "$state_json")"
+  RUN_COMPLETE_FILE="$(jq -r '.service_files.run_complete' "$state_json")"
   FEATURE_RUNTIME_FILE="$(sed -n 's/^FeatureRuntimePath=//p' "$SERVICE_CONFIG")"
   TEST_CLIENT_PORT="$(jq -r '.roles.test_client.port' "$state_json")"
+}
+
+load_eventlog_settings() {
+  EVENT_LOG_DIR="$(profile_string '.capabilities.bdd.eventLogDir // empty')"
+  EVENT_LOG_USE_SUDO="$(profile_string '(.capabilities.bdd.eventLogUseSudo // false) | tostring')"
+  EVENT_LOG_IBCMD="$(profile_string '.platform.ibcmdPath // empty')"
+}
+
+capture_feature_eventlog() {
+  local started_at="$1"
+  local archive_dir="$2"
+  local finished_at=""
+  local raw_json=""
+  local errors_json=""
+  local errors_txt=""
+  local stderr_log=""
+  local error_count=0
+  local -a command=()
+
+  EVENT_LOG_ERROR_COUNT=0
+  [ -n "${EVENT_LOG_DIR:-}" ] || return 0
+  [ -n "${EVENT_LOG_IBCMD:-}" ] || { printf 'platform.ibcmdPath is required for BDD event log check\n' >&2; return 65; }
+  if [ "${EVENT_LOG_USE_SUDO:-false}" = "true" ]; then
+    sudo -n test -d "$EVENT_LOG_DIR" || { printf 'BDD event log directory not found: %s\n' "$EVENT_LOG_DIR" >&2; return 65; }
+  else
+    [ -d "$EVENT_LOG_DIR" ] || { printf 'BDD event log directory not found: %s\n' "$EVENT_LOG_DIR" >&2; return 65; }
+  fi
+
+  finished_at="$(date '+%Y-%m-%dT%H:%M:%S')"
+  raw_json="$archive_dir/eventlog.json"
+  errors_json="$archive_dir/eventlog-errors.json"
+  errors_txt="$archive_dir/eventlog-errors.txt"
+  stderr_log="$archive_dir/eventlog-export.stderr"
+
+  if [ "${EVENT_LOG_USE_SUDO:-false}" = "true" ]; then
+    command=(sudo -n "$EVENT_LOG_IBCMD")
+  else
+    command=("$EVENT_LOG_IBCMD")
+  fi
+  command+=(
+    eventlog export
+    --format=json
+    "--from=$started_at"
+    "--to=$finished_at"
+    "$EVENT_LOG_DIR"
+  )
+
+  if ! "${command[@]}" >"$raw_json" 2>"$stderr_log"; then
+    printf 'BDD event log export failed; see %s\n' "$stderr_log" >&2
+    return 65
+  fi
+
+  jq '[.EventLog[]? | select(.Level == "Error") | select(.Event == "_$PerformError$_")]' "$raw_json" >"$errors_json"
+  error_count="$(jq 'length' "$errors_json")"
+  EVENT_LOG_ERROR_COUNT="$error_count"
+  if [ "$error_count" -eq 0 ]; then
+    return 0
+  fi
+
+  jq -r '.[] | [.Date, .Session, .Event, (.Comment | gsub("\n"; " | "))] | @tsv' "$errors_json" >"$errors_txt"
+  printf 'BDD event log has %s execution error(s); see %s\n' "$error_count" "$errors_txt" >&2
+  return 1
+}
+
+finish_feature_ok() {
+  local index="$1"
+  local feature_path="$2"
+  local archive_dir="$3"
+  local started_at="$4"
+  local eventlog_status=0
+
+  cp "$VANESSA_ONLINE_FILE" "$archive_dir/vanessa-online.log" 2>/dev/null || true
+  if grep -q '^Failed:' "$archive_dir/vanessa-online.log" 2>/dev/null; then
+    cp "$ERROR_FILE" "$archive_dir/error.txt" 2>/dev/null || true
+    printf '%s\tERROR\t%s\n' "$index" "$feature_path" >>"$RUN_ROOT/results.tsv"
+    return 1
+  fi
+
+  if capture_feature_eventlog "$started_at" "$archive_dir"; then
+    printf '%s\tOK\t%s\n' "$index" "$feature_path" >>"$RUN_ROOT/results.tsv"
+    return 0
+  else
+    eventlog_status=$?
+  fi
+
+  if [ "$eventlog_status" -eq 65 ]; then
+    printf '%s\tEVENTLOG_CHECK_ERROR\t%s\n' "$index" "$feature_path" >>"$RUN_ROOT/results.tsv"
+    return 65
+  fi
+
+  printf '%s\tEVENTLOG_ERROR\t%s\n' "$index" "$feature_path" >>"$RUN_ROOT/results.tsv"
+  return 1
+}
+
+finish_feature_error() {
+  local index="$1"
+  local feature_path="$2"
+  local archive_dir="$3"
+  local started_at="$4"
+  local eventlog_status=0
+
+  cp "$VANESSA_ONLINE_FILE" "$archive_dir/vanessa-online.log" 2>/dev/null || true
+  cp "$ERROR_FILE" "$archive_dir/error.txt" 2>/dev/null || true
+  if capture_feature_eventlog "$started_at" "$archive_dir"; then
+    printf '%s\tERROR\t%s\n' "$index" "$feature_path" >>"$RUN_ROOT/results.tsv"
+    return 1
+  else
+    eventlog_status=$?
+  fi
+
+  if [ "$eventlog_status" -eq 65 ]; then
+    printf '%s\tEVENTLOG_CHECK_ERROR\t%s\n' "$index" "$feature_path" >>"$RUN_ROOT/results.tsv"
+    return 65
+  fi
+
+  printf '%s\tERROR_EVENTLOG_ERROR\t%s\n' "$index" "$feature_path" >>"$RUN_ROOT/results.tsv"
+  return 1
 }
 
 run_feature() {
@@ -144,6 +266,7 @@ run_feature() {
   local archive_dir=""
   local deadline=0
   local response=""
+  local feature_started_at=""
 
   [ -f "$feature_path" ] || { printf 'BDD feature not found: %s\n' "$feature_path" >&2; return 2; }
 
@@ -153,9 +276,23 @@ run_feature() {
 
   cp "$feature_path" "$FEATURE_RUNTIME_FILE"
   sed -i "s/__ONEC_TESTCLIENT_PORT__/$TEST_CLIENT_PORT/g" "$FEATURE_RUNTIME_FILE"
+  sed -i "s|__ONEC_VANESSA_FIXTURES_ROOT__|$(sed_replacement_escape "${ONEC_VANESSA_FIXTURES_ROOT:-$PROJECT_ROOT/tests/fixtures}")|g" "$FEATURE_RUNTIME_FILE"
+  cat >>"$FEATURE_RUNTIME_FILE" <<EOF
+
+	@bdd-warm-run-complete
+	Сценарий: <Warmed BDD run complete>
+		И я выполняю код встроенного языка
+			"""bsl
+			Текст = Новый ТекстовыйДокумент;
+			Текст.ДобавитьСтроку("DONE");
+			Текст.Записать("$RUN_COMPLETE_FILE", КодировкаТекста.UTF8);
+			"""
+EOF
   : >"$RESPONSE_FILE"
   : >"$ERROR_FILE"
   : >"$BUILD_STATUS_FILE"
+  : >"$RUN_COMPLETE_FILE"
+  feature_started_at="$(date '+%Y-%m-%dT%H:%M:%S')"
   printf 'RUN\n' >"$REQUEST_FILE"
 
   deadline=$((SECONDS + TIMEOUT_SECONDS))
@@ -163,25 +300,14 @@ run_feature() {
     response="$(read_service_token "$RESPONSE_FILE")"
     case "$response" in
       OK)
-        cp "$VANESSA_ONLINE_FILE" "$archive_dir/vanessa-online.log" 2>/dev/null || true
-        printf '%s\tOK\t%s\n' "$index" "$feature_path" >>"$RUN_ROOT/results.tsv"
-        return 0
+        finish_feature_ok "$index" "$feature_path" "$archive_dir" "$feature_started_at"
+        return $?
         ;;
       ERROR)
-        cp "$VANESSA_ONLINE_FILE" "$archive_dir/vanessa-online.log" 2>/dev/null || true
-        cp "$ERROR_FILE" "$archive_dir/error.txt" 2>/dev/null || true
-        printf '%s\tERROR\t%s\n' "$index" "$feature_path" >>"$RUN_ROOT/results.tsv"
-        return 1
+        finish_feature_error "$index" "$feature_path" "$archive_dir" "$feature_started_at"
+        return $?
         ;;
     esac
-    if [ "$(read_service_token "$READY_FILE")" = "READY" ] && [ -s "$BUILD_STATUS_FILE" ]; then
-      response="$(read_service_token "$BUILD_STATUS_FILE")"
-      if [ "$response" = "0" ]; then
-        cp "$VANESSA_ONLINE_FILE" "$archive_dir/vanessa-online.log" 2>/dev/null || true
-        printf '%s\tOK\t%s\n' "$index" "$feature_path" >>"$RUN_ROOT/results.tsv"
-        return 0
-      fi
-    fi
     sleep 1
   done
 
@@ -200,6 +326,7 @@ write_summary() {
     --arg target "$TARGET_ID" \
     --arg run_root "$RUN_ROOT" \
     --arg state_json "${SERVICE_STATE_JSON:-}" \
+    --arg event_log_dir "${EVENT_LOG_DIR:-}" \
     --arg results "$RUN_ROOT/results.tsv" \
     --argjson exit_code "$exit_code" \
     --argjson features "$features_json" \
@@ -210,6 +337,10 @@ write_summary() {
       runtime_profile: {target: $target},
       run_root: $run_root,
       warm_service: {state_json: (if $state_json == "" then null else $state_json end)},
+      event_log: {
+        enabled: ($event_log_dir != ""),
+        dir: (if $event_log_dir == "" then null else $event_log_dir end)
+      },
       features: $features,
       artifacts: {results_tsv: $results}
     }' >"$RUN_ROOT/bdd-warm-run-summary.json"
@@ -221,6 +352,7 @@ mapfile -t FEATURES < <(load_features)
 : >"$RUN_ROOT/results.tsv"
 ensure_warm_service_ready
 load_service_paths
+load_eventlog_settings
 
 exit_code=0
 for i in "${!FEATURES[@]}"; do

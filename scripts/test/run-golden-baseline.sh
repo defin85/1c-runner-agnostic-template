@@ -6,6 +6,10 @@ PROJECT_ROOT="$(cd -- "$SCRIPT_DIR/../.." && pwd)"
 
 RUN_ROOT_INPUT="${ONEC_CAPABILITY_RUN_ROOT:-}"
 COMMAND_INPUT="${GOLDEN_BASELINE_COMMAND:-}"
+PROFILE_INPUT="${GOLDEN_BASELINE_PROFILE:-${ONEC_PROFILE:-}}"
+TARGET_INPUT="${GOLDEN_BASELINE_TARGET:-}"
+SNAPSHOT_INPUT="${GOLDEN_BASELINE_SNAPSHOT:-}"
+DEFAULT_COMMAND=0
 
 usage() {
   cat <<'EOF'
@@ -13,7 +17,10 @@ Usage: ./scripts/test/run-golden-baseline.sh [options]
 
 Options:
   --run-root <dir>   Directory for summary.json and logs.
-  --command <cmd>    Explicit golden check command. Defaults to tests/golden/run.sh.
+  --command <cmd>    Explicit infobase restore command. Defaults to tests/golden/run.sh.
+  --profile <file>   Runtime profile for the target infobase restore.
+  --target <id>      Target id; defaults to profile target.id.
+  --snapshot <file>  Golden snapshot path; defaults to .artifacts/golden/<target>.dump.
   -h, --help         Show this help.
 EOF
 }
@@ -34,6 +41,21 @@ parse_args() {
       --command)
         [ "$#" -ge 2 ] || fail "--command requires a value"
         COMMAND_INPUT="$2"
+        shift 2
+        ;;
+      --profile)
+        [ "$#" -ge 2 ] || fail "--profile requires a value"
+        PROFILE_INPUT="$2"
+        shift 2
+        ;;
+      --target)
+        [ "$#" -ge 2 ] || fail "--target requires a value"
+        TARGET_INPUT="$2"
+        shift 2
+        ;;
+      --snapshot)
+        [ "$#" -ge 2 ] || fail "--snapshot requires a value"
+        SNAPSHOT_INPUT="$2"
         shift 2
         ;;
       -h|--help)
@@ -79,17 +101,30 @@ mkdir -p "$RUN_ROOT"
 if [ -z "$COMMAND_INPUT" ]; then
   if [ -x "$PROJECT_ROOT/tests/golden/run.sh" ]; then
     COMMAND_INPUT="./tests/golden/run.sh"
+    DEFAULT_COMMAND=1
   else
     write_summary "failed" 2 "not configured" ""
-    printf 'golden-baseline is mandatory: add executable tests/golden/run.sh or pass --command\n' >&2
+    printf 'golden-baseline is mandatory: add executable tests/golden/run.sh restore command or pass --command\n' >&2
     exit 2
   fi
+fi
+
+if [ "$DEFAULT_COMMAND" = "1" ] \
+  && [ -z "$PROFILE_INPUT" ] \
+  && [ -z "${ONEC_PROFILE:-}" ] \
+  && [ ! -f "$PROJECT_ROOT/env/local.json" ]; then
+  write_summary "failed" 2 "not configured" "$COMMAND_INPUT"
+  printf 'golden-baseline restore requires --profile <file>, ONEC_PROFILE, or env/local.json\n' >&2
+  exit 2
 fi
 
 set +e
 (
   cd "$PROJECT_ROOT"
-  bash -lc "$COMMAND_INPUT"
+  GOLDEN_BASELINE_PROFILE="$PROFILE_INPUT" \
+    GOLDEN_BASELINE_TARGET="$TARGET_INPUT" \
+    GOLDEN_BASELINE_SNAPSHOT="$SNAPSHOT_INPUT" \
+    bash -lc "$COMMAND_INPUT"
 ) >"$RUN_ROOT/stdout.log" 2>"$RUN_ROOT/stderr.log"
 exit_code=$?
 set -e

@@ -638,6 +638,11 @@
 ./openspec/changes/archive/2026-06-24-remove-deployable-source-agent-docs/specs/template-overlay-delivery/spec.md
 ./openspec/changes/archive/2026-06-24-remove-deployable-source-agent-docs/tasks.md
 ./openspec/changes/archive/2026-06-24-remove-deployable-source-agent-docs/traceability.md
+./openspec/changes/harden-warm-runtime-contours/proposal.md
+./openspec/changes/harden-warm-runtime-contours/specs/runtime-profile-schema/spec.md
+./openspec/changes/harden-warm-runtime-contours/specs/template-ci-contours/spec.md
+./openspec/changes/harden-warm-runtime-contours/tasks.md
+./openspec/changes/harden-warm-runtime-contours/traceability.md
 ./openspec/config.yaml
 ./openspec/project.md
 ./openspec/specs/agent-runtime-toolkit/spec.md
@@ -780,6 +785,9 @@
 ./tests/README.md
 ./tests/fixtures/README.md
 ./tests/golden/README.md
+./tests/golden/create.sh
+./tests/golden/db.sh
+./tests/golden/restore.sh
 ./tests/golden/run.sh
 ./tests/python/__init__.py
 ./tests/python/test_cross_platform.py

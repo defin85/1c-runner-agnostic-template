@@ -50,6 +50,7 @@ RESPONSE_FILE=""
 ERROR_FILE=""
 BUILD_STATUS_PATH=""
 VANESSA_ONLINE_PATH=""
+RUN_COMPLETE_PATH=""
 STARTED_AT=""
 CURRENT_LINK=""
 HAS_ACTIVE_SESSION=0
@@ -267,6 +268,7 @@ RESPONSE_FILE=$(printf '%q' "${RESPONSE_FILE:-}")
 ERROR_FILE=$(printf '%q' "${ERROR_FILE:-}")
 BUILD_STATUS_PATH=$(printf '%q' "${BUILD_STATUS_PATH:-}")
 VANESSA_ONLINE_PATH=$(printf '%q' "${VANESSA_ONLINE_PATH:-}")
+RUN_COMPLETE_PATH=$(printf '%q' "${RUN_COMPLETE_PATH:-}")
 PROFILE_PATH=$(printf '%q' "$PROFILE_PATH")
 TARGET_INPUT=$(printf '%q' "$TARGET_INPUT")
 STARTED_AT=$(printf '%q' "$STARTED_AT")
@@ -331,6 +333,7 @@ write_service_state() {
     --arg error_file "${ERROR_FILE:-}" \
     --arg build_status_path "${BUILD_STATUS_PATH:-}" \
     --arg vanessa_online_path "${VANESSA_ONLINE_PATH:-}" \
+    --arg run_complete_path "${RUN_COMPLETE_PATH:-}" \
     --arg test_client_stdout "$TEST_CLIENT_STDOUT_LOG" \
     --arg test_client_stderr "$TEST_CLIENT_STDERR_LOG" \
     --arg test_client_out "$TEST_CLIENT_OUT_LOG" \
@@ -350,7 +353,8 @@ write_service_state() {
         response: (if $response_file == "" then null else $response_file end),
         error: (if $error_file == "" then null else $error_file end),
         build_status: (if $build_status_path == "" then null else $build_status_path end),
-        vanessa_online: (if $vanessa_online_path == "" then null else $vanessa_online_path end)
+        vanessa_online: (if $vanessa_online_path == "" then null else $vanessa_online_path end),
+        run_complete: (if $run_complete_path == "" then null else $run_complete_path end)
       },
       roles: {
         manager: {
@@ -437,6 +441,7 @@ prepare_session_layout() {
   ERROR_FILE="$SESSION_ROOT/error.txt"
   BUILD_STATUS_PATH="$SESSION_ROOT/build-status.txt"
   VANESSA_ONLINE_PATH="$SESSION_ROOT/vanessa-online.log"
+  RUN_COMPLETE_PATH="$SESSION_ROOT/run-complete.txt"
   MANAGER_STDOUT_LOG="$SESSION_ROOT/manager.stdout.log"
   MANAGER_STDERR_LOG="$SESSION_ROOT/manager.stderr.log"
   MANAGER_OUT_LOG="$SESSION_ROOT/manager.1c.out"
@@ -557,6 +562,7 @@ WarmupFeaturePath=$warmup_feature_path
 FeatureRuntimePath=$feature_runtime_path
 BuildStatusPath=$BUILD_STATUS_PATH
 VanessaOnlinePath=$VANESSA_ONLINE_PATH
+RunCompletePath=$RUN_COMPLETE_PATH
 ScreensDir=$SESSION_ROOT/screens
 WorkspaceRoot=$PROJECT_ROOT
 LibraryPaths=$library_paths
@@ -575,6 +581,7 @@ EOF
   : >"$ERROR_FILE"
   : >"$BUILD_STATUS_PATH"
   : >"$VANESSA_ONLINE_PATH"
+  : >"$RUN_COMPLETE_PATH"
 }
 
 start_role() {
@@ -697,7 +704,12 @@ wait_for_service_startup_sanity() {
 stop_role() {
   local pid="$1"
   local stderr_log="$2"
+  local role="${3:-}"
   local display_value=""
+  local baseline_file=""
+  local stale_pid=""
+  local comm=""
+  local -a stale_pids=()
 
   if [ -f "$stderr_log" ]; then
     display_value="$(sed -n 's/.*direct-platform xpra display=\([^ ]*\).*/\1/p' "$stderr_log" | tail -n 1)"
@@ -713,11 +725,33 @@ stop_role() {
   if process_alive "$pid"; then
     kill -KILL "-$pid" 2>/dev/null || kill -KILL "$pid" 2>/dev/null || true
   fi
+
+  if [ -n "$role" ]; then
+    baseline_file="$SESSION_ROOT/$role/xpra/process-cleanup-baseline.txt"
+  fi
+  if [ -f "$baseline_file" ]; then
+    while IFS= read -r stale_pid; do
+      [ -n "$stale_pid" ] || continue
+      grep -Fxq "$stale_pid" "$baseline_file" && continue
+      comm="$(cat "/proc/$stale_pid/comm" 2>/dev/null || true)"
+      case "$comm" in
+        dbus-daemon|gvfsd)
+          stale_pids+=("$stale_pid")
+          ;;
+      esac
+    done < <(
+      ps -u "$USER" -o pid=,comm=,cmd= \
+        | awk '($2 == "dbus-daemon" && /--session/ && /--print-address/) || ($2 == "gvfsd" && $0 ~ /\/usr\/libexec\/gvfsd$/) {print $1}'
+    )
+  fi
+  [ "${#stale_pids[@]}" -eq 0 ] || kill -TERM "${stale_pids[@]}" 2>/dev/null || true
+  sleep 0.5
+  [ "${#stale_pids[@]}" -eq 0 ] || kill -KILL "${stale_pids[@]}" 2>/dev/null || true
 }
 
 stop_service() {
-  stop_role "${TEST_CLIENT_PID:-}" "${TEST_CLIENT_STDERR_LOG:-/dev/null}"
-  stop_role "${MANAGER_PID:-}" "${MANAGER_STDERR_LOG:-/dev/null}"
+  stop_role "${TEST_CLIENT_PID:-}" "${TEST_CLIENT_STDERR_LOG:-/dev/null}" "test-client"
+  stop_role "${MANAGER_PID:-}" "${MANAGER_STDERR_LOG:-/dev/null}" "manager"
   onec_port_lease_release_by_id "${TEST_CLIENT_PORT_LEASE_ID:-}" || true
   TEST_CLIENT_PORT_LEASE_ID=""
 }

@@ -36,6 +36,8 @@ Runtime and test:
 - `./scripts/test/run-xunit-direct-platform.sh`
 - `./scripts/test/build-xunit-epf.sh`
 - `./scripts/test/tdd-xunit.sh`
+- `./tests/golden/create.sh`
+- `./tests/golden/restore.sh`
 - `./scripts/test/run-bdd.sh`
 - `./scripts/test/run-smoke.sh`
 
