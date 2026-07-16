@@ -156,7 +156,7 @@ The template SHALL seed a project-owned operator-local runtime runbook for gener
 
 #### Scenario: Agent asks whether an operator-local contour is runnable here
 
-- **WHEN** a generated repository contains operator-local contours such as `doctor` or `xunit`
+- **WHEN** a generated repository contains operator-local contours such as `doctor` or `yaxunit`
 - **THEN** the repository MUST include a project-owned scaffold such as `docs/agent/operator-local-runbook.md`
 - **AND** that runbook MUST be designed to capture preflight checks, required env vars, expected fail-closed states, and canonical entrypoints for operator-local contours
 - **AND** `docs/agent/runtime-quickstart.md`, generated onboarding docs, and read-only onboarding output MUST be able to route to that runbook without forcing the agent to assemble the answer from multiple unrelated docs
@@ -183,28 +183,6 @@ The template SHALL route generated repositories through one canonical AI-readine
 - **THEN** the generated-project guidance MUST identify one canonical readiness or recommendation surface for template-managed skills
 - **AND** that surface MUST distinguish compact first-hour recommendations from the full `.agents/skills/` catalog
 - **AND** if executable imported skills need extra local bootstrap, the same routing layer MUST point to the canonical readiness/bootstrap path instead of leaving the agent to infer it from helper crashes
-
-### Requirement: Template-Shipped Operator-Local xUnit Contour For Generated Repositories
-
-Шаблон MUST поставлять generated repositories template-managed xUnit contour для `direct-platform`, а не только placeholder launcher slot.
-
-#### Scenario: New generated project receives reusable xUnit baseline
-
-- **WHEN** `copier copy` или overlay update создаёт generated repository из шаблона
-- **THEN** repository MUST include repo-owned xUnit assets как минимум `./scripts/test/run-xunit-direct-platform.sh`, `./scripts/test/build-xunit-epf.sh`, `tests/xunit/smoke.quickstart.json` и generic harness source под `src/epf/`
-- **AND** shipped harness MUST be server-side only и MUST NOT depend on managed-form default runtime
-- **AND** generated docs MUST route the agent from `./scripts/test/run-xunit.sh` to the shipped contour instead of claiming that xUnit is always project-specific by default
-
-### Requirement: Canonical Local TDD Loop For xUnit
-
-Шаблон MUST давать generated repositories один documented local xUnit loop для быстрых `src/cf`-итераций.
-
-#### Scenario: Developer wants to run xUnit against fresh configuration changes
-
-- **WHEN** operator-local generated repository меняет `src/cf` и хочет проверить эти изменения через xUnit
-- **THEN** the repository MUST provide one canonical wrapper or runbooked command path that performs `load-diff-src`, `update-db`, and `run-xunit` in that order on the default path
-- **AND** that loop MUST stay fail-closed for unsupported delta shapes such as delete-only or rename-style changes that cannot be safely replayed through the diff bridge
-- **AND** docs MUST point to the manual full-sync path instead of silently falling back to a broader reload
 
 ### Requirement: Deployable Main Configuration Root Stays Free Of Routing Docs
 

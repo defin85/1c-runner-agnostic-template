@@ -26,7 +26,6 @@ The runtime support matrix SHALL be the canonical checked-in runtime truth for g
 - **AND** each matrix entry MUST include the contour identifier, status, expected profile provenance, and canonical runbook or entrypoint
 - **AND** operator-local contours MUST remain visible to the agent without being misrepresented as shared baseline-ready checks
 - **AND** operator-local contours SHOULD be able to route through one project-owned operator-local decision runbook rather than forcing manual navigation across multiple runtime docs
-- **AND** the template-shipped `xunit` contour MUST be classified as `operator-local` whenever the generated starter surface wires the reusable direct-platform runner but still depends on operator-owned local profile values such as platform paths or ADD root
 
 ### Requirement: Runtime Support Matrix Freshness
 
@@ -71,4 +70,3 @@ The template SHALL represent the optional Vanessa BDD warm-service contour in ge
 - **AND** the entry MUST classify the contour as `operator-local` or `unsupported`, not `supported`
 - **AND** the entry MUST point to a project-owned runbook or entrypoint explaining required local Vanessa inputs: Vanessa Automation Single path, warmup feature path, library paths, step definitions, extension scope, and `operatorLocalTargets.vanessaBdd` target binding
 - **AND** the entry MUST NOT include applied-project infobase names, extension names, file paths, or business scenario names
-

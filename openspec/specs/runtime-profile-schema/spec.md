@@ -103,7 +103,7 @@ The template SHALL keep the root `env/` layout predictable by reserving root-lev
 
 #### Scenario: Generated project documents shared runtime support
 
-- **WHEN** a generated repository advertises `xunit`, `bdd`, `smoke`, `publishHttp`, or another runtime contour in durable checked-in docs
+- **WHEN** a generated repository advertises `bdd`, `smoke`, `publishHttp`, or another runtime contour in durable checked-in docs
 - **THEN** any contour that depends only on ignored local-private profiles such as `env/local.json` or `env/.local/*.json` MUST be classified as `operator-local` in the checked-in runtime support matrix
 - **AND** the repository MUST NOT treat that local-private profile as the sole shared source of truth for baseline-ready contours
 - **AND** sanctioned checked-in presets and operator-local contours MUST remain distinguishable in documentation and machine-readable policy
@@ -169,21 +169,10 @@ Runtime profiles SHALL represent the way `ibcmd` reaches the target standalone s
 
 #### Scenario: Generated project wires a repo-owned verification entrypoint
 
-- **WHEN** generated repository задаёт `smoke`, `xunit`, `bdd`, `publishHttp` или другой profile-defined `command` через repo-owned entrypoint
+- **WHEN** generated repository задаёт `smoke`, `bdd`, `publishHttp` или другой profile-defined `command` через repo-owned entrypoint
 - **THEN** launcher ДОЛЖЕН передать entrypoint-у как минимум `ONEC_PROJECT_ROOT`, `ONEC_PROFILE_PATH`, `ONEC_RUNNER_ADAPTER`, `ONEC_CAPABILITY_ID`, `ONEC_CAPABILITY_LABEL` и `ONEC_CAPABILITY_RUN_ROOT`
 - **AND** runtime-profile docs ДОЛЖНЫ документировать этот env contract как canonical reusable boundary
 - **AND** smoke или fixture checks ДОЛЖНЫ механически подтверждать, что contract реально доезжает до profile-defined command на default launcher path
-
-### Requirement: Direct-Platform xUnit Starter Profile Fields
-
-Шаблон MUST документировать reusable profile shape для shipped direct-platform xUnit contour в generated repositories.
-
-#### Scenario: Generated repo wires the shipped xUnit runner in a checked-in example profile
-
-- **WHEN** a generated repository uses the template-shipped direct-platform xUnit contour in `env/*.example.json`
-- **THEN** `capabilities.xunit.command[0]` MUST point to the repo-owned entrypoint `./scripts/test/run-xunit-direct-platform.sh` or an equivalent direct template-managed path
-- **AND** the example profile and durable docs MUST document the required helper fields for that contour, including ADD root, harness source dir, and timeout/config overrides when they are part of the shipped runner contract
-- **AND** adapters or presets that do not ship a runnable xUnit contour MUST continue to use `unsupportedReason` instead of pretending the contour is baseline-ready
 
 ### Requirement: Target-Aware Runtime Profiles
 Runtime profiles SHALL support binding an operator-local profile to an explicit generated-project target configuration when a repository declares multiple target configurations.
@@ -232,4 +221,3 @@ The direct-platform adapter SHALL clean up wrapper-owned GUI session processes a
 - **THEN** the wrapper MUST tag the `xpra` session with a per-run token
 - **AND** shutdown MUST stop the display and terminate wrapper-owned `xpra`, `Xvfb`, window manager, `dbus`, and `gvfs` helper processes
 - **AND** cleanup MUST avoid killing processes that existed before the wrapper started
-

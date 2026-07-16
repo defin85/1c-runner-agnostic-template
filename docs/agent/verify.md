@@ -63,8 +63,8 @@ bash tests/smoke/template-release-workflow.sh
 ```bash
 bash tests/smoke/runtime-capability-contract.sh
 bash tests/smoke/runtime-doctor-contract.sh
-bash tests/smoke/template-xunit-contour-contract.sh
-bash tests/smoke/tdd-xunit-wrapper-contract.sh
+bash tests/smoke/yaxunit-contour-contract.sh
+bash tests/smoke/yaxunit-warm-rpc-contour-contract.sh
 ```
 
 И к более узким smoke для конкретного contour, если он затронут.

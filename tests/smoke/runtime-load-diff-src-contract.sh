@@ -78,9 +78,6 @@ cat >"$fixture_root/env/local.json" <<EOF
       "driver": "ibcmd",
       "sourceDir": "./src/cf"
     },
-    "xunit": {
-      "command": ["bash", "-lc", "printf 'xunit-ok\\\\n'"]
-    },
     "bdd": {
       "command": ["bash", "-lc", "printf 'bdd-ok\\\\n'"]
     },

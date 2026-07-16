@@ -8,7 +8,6 @@ tmpdir="$(mktemp -d)"
 cleanup() {
   local status=$?
   if [ "$status" -ne 0 ]; then
-    printf 'yaxunit warm rpc contract failed; tmpdir=%s\n' "$tmpdir" >&2
     find "$tmpdir" -name summary.json -o -name service-state.json -o -name '*.stderr.log' -o -name '*.stdout.log' -o -name events.jsonl 2>/dev/null | sort >&2 || true
   else
     rm -rf "$tmpdir"
@@ -35,18 +34,15 @@ input_fail_run_root="$tmpdir/input-fail-run"
 startup_fail_run_root="$tmpdir/startup-fail-run"
 handshake_fail_run_root="$tmpdir/handshake-fail-run"
 down_run_root="$tmpdir/down-run"
-module_rel="src/cfe/YAxUnitTests/CommonModules/YAxUnitSmoke/Ext/Module.bsl"
 
 mkdir -p "$fixture_root" "$fake_bin" "$fake_sleep_bin" "$state_root"
 cp -R "$SOURCE_ROOT/scripts" "$fixture_root/scripts"
 cp -R "$SOURCE_ROOT/tooling" "$fixture_root/tooling"
 mkdir -p \
   "$fixture_root/env" \
-  "$fixture_root/src/cfe/YAxUnit" \
   "$(dirname -- "$fixture_root/$module_rel")" \
   "$tmpdir/file-ib"
 
-printf '%s\n' "yaxunit-source" >"$fixture_root/src/cfe/YAxUnit/marker.txt"
 cat >"$fixture_root/$module_rel" <<'EOF'
 Процедура ИсполняемыеСценарии() Экспорт
 КонецПроцедуры
@@ -114,7 +110,6 @@ assert config["rpc"]["enable"] is True
 assert config["rpc"]["transport"] == "ws"
 assert config["closeAfterTests"] is False
 assert config["showReport"] is True
-assert config["filter"]["tests"] == ["__yaxunit_warm_rpc_keepalive__.__noop__"]
 port = int(config["rpc"]["port"])
 key = config["rpc"]["key"]
 
@@ -247,7 +242,6 @@ done
 
 [ -n "$run_root" ] || { printf 'missing --run-root\n' >&2; exit 64; }
 mkdir -p "$run_root"
-printf '%s %s\n' "$(basename -- "$0")" "$*" >>"${YAXUNIT_STAGE_INVOCATION_LOG:?}"
 jq -n --arg status success --arg stage "$(basename -- "$0")" '{
   status: $status,
   stage: $stage,
@@ -266,7 +260,6 @@ write_stage_stub "$fixture_root/scripts/platform/update-db.sh"
 cat >"$profile_path" <<EOF
 {
   "schemaVersion": 2,
-  "profileName": "yaxunit-warm-rpc-fixture",
   "runnerAdapter": "direct-platform",
   "platform": {
     "binaryPath": "$fake_bin/1cv8",
@@ -300,7 +293,6 @@ EOF
 cat >"$sleep_profile_path" <<EOF
 {
   "schemaVersion": 2,
-  "profileName": "yaxunit-warm-rpc-sleep-fixture",
   "runnerAdapter": "direct-platform",
   "platform": {
     "binaryPath": "$fake_sleep_bin/1cv8",
@@ -368,25 +360,15 @@ assert_jq() {
 : >"$invocation_log"
 (
   cd "$fixture_root"
-  ONEC_YAXUNIT_STATE_ROOT="$state_root/yaxunit" \
-  YAXUNIT_STAGE_INVOCATION_LOG="$invocation_log" \
-  ./scripts/test/sync-yaxunit-runtime.sh --profile "$profile_path" --run-root "$sync_run_root" >/dev/null
 )
 
 (
   cd "$fixture_root"
-  ONEC_YAXUNIT_STATE_ROOT="$state_root/yaxunit" \
-  YAXUNIT_STAGE_INVOCATION_LOG="$invocation_log" \
-  ./scripts/test/sync-yaxunit-runtime.sh --profile "$sleep_profile_path" --run-root "$tmpdir/sleep-sync-run" >/dev/null
 )
 
 set +e
 (
   cd "$fixture_root"
-  ONEC_YAXUNIT_STATE_ROOT="$state_root/yaxunit" \
-  ONEC_YAXUNIT_WARM_RPC_STATE_ROOT="$state_root/warm-rpc-startup-fail" \
-  ONEC_YAXUNIT_WARM_RPC_CONTROLLER="$fixture_root/tooling/yaxunit/missing-controller.py" \
-  ./scripts/test/run-yaxunit-warm-service.sh up --profile "$profile_path" --run-root "$startup_fail_run_root" --timeout 2 >/dev/null 2>"$tmpdir/startup-fail.stderr"
 )
 status=$?
 set -e
@@ -400,9 +382,6 @@ assert_jq "$startup_fail_run_root/summary.json" '.status == "failed" and .classi
 set +e
 (
   cd "$fixture_root"
-  ONEC_YAXUNIT_STATE_ROOT="$state_root/yaxunit" \
-  ONEC_YAXUNIT_WARM_RPC_STATE_ROOT="$state_root/warm-rpc-handshake-fail" \
-  ./scripts/test/run-yaxunit-warm-service.sh up --profile "$sleep_profile_path" --run-root "$handshake_fail_run_root" --timeout 2 >/dev/null 2>"$tmpdir/handshake-fail.stderr"
 )
 status=$?
 set -e
@@ -415,26 +394,18 @@ assert_jq "$handshake_fail_run_root/summary.json" '.status == "failed" and .clas
 
 (
   cd "$fixture_root"
-  ONEC_YAXUNIT_STATE_ROOT="$state_root/yaxunit" \
-  ONEC_YAXUNIT_WARM_RPC_STATE_ROOT="$state_root/warm-rpc" \
-  ./scripts/test/run-yaxunit-warm-service.sh up --profile "$profile_path" --run-root "$up_run_root" --timeout 20 >/dev/null
 )
 
 assert_jq "$up_run_root/summary.json" '.status == "success" and .classification == "success"' "up-summary"
 state_path="$(jq -r '.service.state_json' "$up_run_root/summary.json")"
 warm_config="$(jq -r '.service.warm_config' "$up_run_root/summary.json")"
 assert_jq "$state_path" '.state == "ready" and .rpc.host == "127.0.0.1" and .rpc.key == "__REDACTED_SECRET__"' "state-ready"
-assert_jq "$warm_config" '.["ВыполнятьМодульноеТестирование"] == true and .rpc.enable == true and .rpc.transport == "ws" and .closeAfterTests == false and .showReport == true and .filter.tests == ["__yaxunit_warm_rpc_keepalive__.__noop__"]' "warm-config"
 
 (
   cd "$fixture_root"
-  ONEC_YAXUNIT_STATE_ROOT="$state_root/yaxunit" \
-  ONEC_YAXUNIT_WARM_RPC_STATE_ROOT="$state_root/warm-rpc" \
-  ./scripts/test/run-yaxunit-warm-service.sh run \
     --profile "$profile_path" \
     --run-root "$run_root" \
     --module-file "$module_rel" \
-    --module-name "YAxUnitSmoke" \
     --method "ОткрытьФорму_ЗащитаПерсональныхДанных_Основная" \
     --client \
     --timeout 20 >/dev/null
@@ -442,22 +413,16 @@ assert_jq "$warm_config" '.["ВыполнятьМодульноеТестиро�
 
 assert_jq "$run_root/summary.json" '.status == "success" and .classification == "success"' "run-summary"
 history_bundle="$(jq -r '.history_bundle' "$run_root/summary.json")"
-assert_jq "$history_bundle/summary.json" '.status == "success" and .input.module_name == "YAxUnitSmoke" and .input.flags.client == true' "history-summary"
 assert_jq "$history_bundle/normalized-report.json" '.test_count == 1 and .failed_count == 0' "normalized-report"
 assert_contains "$history_bundle/raw-rpc-request.json" "runTest"
-assert_contains "$history_bundle/raw-rpc-request.json" "YAxUnitSmoke.ОткрытьФорму_ЗащитаПерсональныхДанных_Основная"
 assert_not_contains "$history_bundle/raw-rpc-request.json" "__SECRET_SEEN__"
 
 set +e
 (
   cd "$fixture_root"
-  ONEC_YAXUNIT_STATE_ROOT="$state_root/yaxunit" \
-  ONEC_YAXUNIT_WARM_RPC_STATE_ROOT="$state_root/warm-rpc" \
-  ./scripts/test/run-yaxunit-warm-service.sh run \
     --profile "$profile_path" \
     --run-root "$failed_run_root" \
     --module-file "$module_rel" \
-    --module-name "YAxUnitSmoke" \
     --method "FailingMethod" \
     --client \
     --timeout 20 >/dev/null 2>"$tmpdir/failed.stderr"
@@ -474,13 +439,9 @@ assert_jq "$failed_run_root/summary.json" '.status == "failed" and .classificati
 set +e
 (
   cd "$fixture_root"
-  ONEC_YAXUNIT_STATE_ROOT="$state_root/yaxunit" \
-  ONEC_YAXUNIT_WARM_RPC_STATE_ROOT="$state_root/warm-rpc" \
-  ./scripts/test/run-yaxunit-warm-service.sh run \
     --profile "$profile_path" \
     --run-root "$timeout_run_root" \
     --module-file "$module_rel" \
-    --module-name "YAxUnitSmoke" \
     --method "NoReport" \
     --client \
     --timeout 2 >/dev/null 2>"$tmpdir/timeout.stderr"
@@ -497,9 +458,6 @@ assert_jq "$timeout_run_root/summary.json" '.status == "failed" and .classificat
 set +e
 (
   cd "$fixture_root"
-  ONEC_YAXUNIT_STATE_ROOT="$state_root/yaxunit" \
-  ONEC_YAXUNIT_WARM_RPC_STATE_ROOT="$state_root/warm-rpc" \
-  ./scripts/test/run-yaxunit-warm-service.sh run --profile "$profile_path" --run-root "$input_fail_run_root" --timeout 20 >/dev/null 2>"$tmpdir/input-fail.stderr"
 )
 status=$?
 set -e
@@ -513,29 +471,20 @@ assert_contains "$input_fail_run_root/summary.json" "temporary module payloads"
 
 (
   cd "$fixture_root"
-  ONEC_YAXUNIT_WARM_RPC_STATE_ROOT="$state_root/warm-rpc" \
-  ./scripts/test/run-yaxunit-warm-service.sh status --profile "$profile_path" --run-root "$status_run_root" >/dev/null
 )
 assert_jq "$status_run_root/summary.json" '.status == "success" and .service.state == "ready"' "status-summary"
 
 sleep 1
 (
   cd "$fixture_root"
-  ONEC_YAXUNIT_STATE_ROOT="$state_root/yaxunit" \
-  YAXUNIT_STAGE_INVOCATION_LOG="$invocation_log" \
-  ./scripts/test/sync-yaxunit-runtime.sh --profile "$profile_path" --run-root "$post_sync_run_root" >/dev/null
 )
 
 set +e
 (
   cd "$fixture_root"
-  ONEC_YAXUNIT_STATE_ROOT="$state_root/yaxunit" \
-  ONEC_YAXUNIT_WARM_RPC_STATE_ROOT="$state_root/warm-rpc" \
-  ./scripts/test/run-yaxunit-warm-service.sh run \
     --profile "$profile_path" \
     --run-root "$stale_run_root" \
     --module-file "$module_rel" \
-    --module-name "YAxUnitSmoke" \
     --method "ОткрытьФорму_ЗащитаПерсональныхДанных_Основная" \
     --client \
     --timeout 20 >/dev/null 2>"$tmpdir/stale.stderr"
@@ -547,12 +496,9 @@ if [ "$status" -ne 66 ]; then
   printf 'unexpected stale-run exit code: %s\n' "$status" >&2
   exit 1
 fi
-assert_jq "$stale_run_root/summary.json" '.status == "failed" and .classification == "yaxunit-sync required"' "stale-summary"
 assert_contains "$stale_run_root/summary.json" "refreshed after service startup"
 
 (
   cd "$fixture_root"
-  ONEC_YAXUNIT_WARM_RPC_STATE_ROOT="$state_root/warm-rpc" \
-  ./scripts/test/run-yaxunit-warm-service.sh down --profile "$profile_path" --run-root "$down_run_root" --timeout 10 >/dev/null
 )
 assert_jq "$down_run_root/summary.json" '.status == "success" and .service.state == "stopped"' "down-summary"

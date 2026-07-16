@@ -155,9 +155,6 @@ jobs:
       - name: Runtime smoke
         run: ./scripts/test/run-smoke.sh --profile env/ci.json --run-root ./.artifacts/runtime/smoke
 
-      - name: Runtime xUnit
-        run: ./scripts/test/run-xunit.sh --profile env/ci.json --run-root ./.artifacts/runtime/xunit
-
       - name: Upload runtime artifacts
         if: always()
         uses: actions/upload-artifact@v4

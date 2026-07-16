@@ -459,9 +459,6 @@ cat >"$generated_sanctioned_placeholder_root/env/develop.json" <<'EOF'
     "smoke": {
       "unsupportedReason": "Contour is not wired yet"
     },
-    "xunit": {
-      "unsupportedReason": "Contour is not wired yet"
-    },
     "bdd": {
       "unsupportedReason": "Contour is not wired yet"
     }

@@ -7,8 +7,7 @@
   "runnerAdapter": "direct-platform",
   "notes": [
     "Этот preset предназначен для нативного PowerShell запуска на Windows.",
-    "platform.xvfb и platform.ldPreload оставлены только для POSIX direct-platform contour-ов и не должны включаться здесь.",
-    "Template-managed xUnit contour на Windows по умолчанию остаётся fail-closed, пока проект не wired repo-owned capabilities.xunit.command."
+    "platform.xvfb и platform.ldPreload оставлены только для POSIX direct-platform contour-ов и не должны включаться здесь."
   ],
   "platform": {
     "binaryPath": "C:/Program Files/1cv8/8.3.27.1859/bin/1cv8.exe",
@@ -55,9 +54,6 @@
     },
     "diffSrc": {
       "command": ["git", "diff", "--", "./src"]
-    },
-    "xunit": {
-      "unsupportedReason": "Windows xUnit contour is project-specific; wire a repo-owned capabilities.xunit.command before treating this profile as green."
     },
     "bdd": {
       "unsupportedReason": "Windows BDD contour is project-specific; wire a real command before treating this profile as green."

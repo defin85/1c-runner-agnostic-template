@@ -39,14 +39,13 @@ CAPABILITY_KEY_MAP = {
     "load-src": "loadSrc",
     "update-db": "updateDb",
     "diff-src": "diffSrc",
-    "run-xunit": "xunit",
     "run-bdd": "bdd",
     "run-smoke": "smoke",
     "publish-http": "publishHttp",
 }
 
 DRIVER_CAPABILITIES = {"create-ib", "dump-src", "load-src", "update-db"}
-VERIFICATION_CAPABILITIES = {"run-xunit", "run-bdd", "run-smoke", "publish-http"}
+VERIFICATION_CAPABILITIES = {"run-bdd", "run-smoke", "publish-http"}
 
 
 def capability_key(capability_id: str) -> str:
@@ -1426,7 +1425,6 @@ def run_doctor(argv: list[str]) -> int:
         "load-src",
         "update-db",
         "diff-src",
-        "run-xunit",
         "run-bdd",
         "run-smoke",
     ]
@@ -1467,7 +1465,7 @@ def run_doctor(argv: list[str]) -> int:
     for capability_id in required_capabilities:
         reason = doctor_capability_failure_reason(profile, capability_id, adapter)
         item_status = "present" if not reason else "missing"
-        if capability_id in {"run-xunit", "run-bdd", "run-smoke"} and profile_unsupported_reason(profile, capability_id):
+        if capability_id in {"run-bdd", "run-smoke"} and profile_unsupported_reason(profile, capability_id):
             item_status = "unsupported"
         checks["required_capabilities"].append(
             {"name": capability_id, "status": item_status, "required": True, "reason": reason or None}
@@ -1685,7 +1683,6 @@ def run_load_diff_src(argv: list[str]) -> int:
     log(f"summary_json={summary_path}")
     return exit_code
 
-
 def run_load_task_src(argv: list[str]) -> int:
     profile_input = ""
     run_root_input = ""
@@ -1805,146 +1802,4 @@ def run_load_task_src(argv: list[str]) -> int:
         driver=driver,
     )
     log(f"summary_json={summary_path}")
-    return exit_code
-
-
-def run_tdd_xunit(argv: list[str]) -> int:
-    profile_input = ""
-    run_root_input = ""
-    index = 0
-    while index < len(argv):
-        arg = argv[index]
-        if arg in {"-h", "--help"}:
-            raise CommandError("help-requested", 2)
-        if arg == "--profile":
-            index += 1
-            profile_input = argv[index]
-        elif arg == "--run-root":
-            index += 1
-            run_root_input = argv[index]
-        else:
-            die(f"unknown argument: {arg}")
-        index += 1
-    root = project_root()
-    if not git_is_worktree(root):
-        die("tdd-xunit requires a git worktree")
-    profile_path = resolve_runtime_profile_path(profile_input)
-    if profile_path is None:
-        die("runtime profile is required")
-    run_root = prepare_capability_run_root("tdd-xunit", run_root_input)
-    summary_path = run_root / "summary.json"
-    started_at = timestamp_utc()
-    base_ref = "HEAD" if run_git(["rev-parse", "--verify", "HEAD"], cwd=root).returncode == 0 else "4b825dc642cb6eb9a060e54bf8d69288fbee4904"
-    diff_lines = git_lines(["diff", "--name-status", base_ref, "--", "src/cf"], cwd=root) + [
-        f"??\t{line}" for line in git_lines(["ls-files", "--others", "--exclude-standard", "--", "src/cf"], cwd=root)
-    ]
-    unsupported = [line for line in diff_lines if not line.startswith(("A\t", "M\t", "??\t"))]
-    if unsupported:
-        write_json(
-            summary_path,
-            {
-                "status": "failed",
-                "profile_path": str(profile_path),
-                "run_root": str(run_root),
-                "started_at": started_at,
-                "finished_at": timestamp_utc(),
-                "exit_code": 65,
-                "sync": {
-                    "required": False,
-                    "action": "unsupported-delta-shape",
-                    "cf_changes": diff_lines,
-                    "unsupported_cf_changes": unsupported,
-                    "message": "tdd-xunit supports only added, modified, or untracked files under src/cf",
-                },
-                "delegated": {"load_diff_run_root": None, "update_db_run_root": None, "xunit_run_root": None},
-            },
-        )
-        return 65
-    sync_required = bool(diff_lines)
-    exit_code = 0
-    load_diff_run_root = ""
-    update_db_run_root = ""
-    xunit_run_root = str(run_root / "xunit")
-    if sync_required:
-        load_diff_run_root = str(run_root / "load-diff-src")
-        exit_code = run_load_diff_src(["--profile", str(profile_path), "--run-root", load_diff_run_root])
-        if exit_code != 0:
-            write_json(
-                summary_path,
-                {
-                    "status": "failed",
-                    "profile_path": str(profile_path),
-                    "run_root": str(run_root),
-                    "started_at": started_at,
-                    "finished_at": timestamp_utc(),
-                    "exit_code": exit_code,
-                    "sync": {
-                        "required": True,
-                        "action": "load-diff-src-failed",
-                        "cf_changes": diff_lines,
-                        "unsupported_cf_changes": [],
-                        "message": "Load git-backed src/cf diff failed",
-                    },
-                    "delegated": {
-                        "load_diff_run_root": load_diff_run_root,
-                        "update_db_run_root": None,
-                        "xunit_run_root": None,
-                    },
-                },
-            )
-            return exit_code
-        update_db_run_root = str(run_root / "update-db")
-        exit_code = run_profile_capability(
-            "update-db", "Update DB configuration", ["--profile", str(profile_path), "--run-root", update_db_run_root]
-        ).exit_code
-        if exit_code != 0:
-            write_json(
-                summary_path,
-                {
-                    "status": "failed",
-                    "profile_path": str(profile_path),
-                    "run_root": str(run_root),
-                    "started_at": started_at,
-                    "finished_at": timestamp_utc(),
-                    "exit_code": exit_code,
-                    "sync": {
-                        "required": True,
-                        "action": "update-db-failed",
-                        "cf_changes": diff_lines,
-                        "unsupported_cf_changes": [],
-                        "message": "Update DB configuration failed",
-                    },
-                    "delegated": {
-                        "load_diff_run_root": load_diff_run_root,
-                        "update_db_run_root": update_db_run_root,
-                        "xunit_run_root": None,
-                    },
-                },
-            )
-            return exit_code
-    exit_code = run_profile_capability("run-xunit", "Run xUnit checks", ["--profile", str(profile_path), "--run-root", xunit_run_root]).exit_code
-    status = "success" if exit_code == 0 else "failed"
-    write_json(
-        summary_path,
-        {
-            "status": status,
-            "profile_path": str(profile_path),
-            "run_root": str(run_root),
-            "started_at": started_at,
-            "finished_at": timestamp_utc(),
-            "exit_code": exit_code,
-            "sync": {
-                "required": sync_required,
-                "action": "load-diff-src-and-update-db" if sync_required else "skip-clean-src-cf",
-                "cf_changes": diff_lines,
-                "unsupported_cf_changes": unsupported,
-                "message": None,
-            },
-            "delegated": {
-                "load_diff_run_root": load_diff_run_root or None,
-                "update_db_run_root": update_db_run_root or None,
-                "xunit_run_root": xunit_run_root,
-            },
-        },
-    )
     return exit_code

@@ -22,7 +22,6 @@
     "check-cfe-config",
     "load-diff-src",
     "load-task-src",
-    "xunit",
     "yaxunit",
     "yaxunit-warm-rpc",
     "web-client-diagnostic",

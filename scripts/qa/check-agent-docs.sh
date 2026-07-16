@@ -376,7 +376,7 @@ check_checked_in_verification_contract() {
   local rel="$1"
   local capability=""
 
-  for capability in smoke xunit bdd; do
+  for capability in smoke bdd; do
     check_checked_in_verification_command_shape "$rel" "$capability"
   done
 }
@@ -593,7 +593,7 @@ check_generated_runtime_support_matrix_contract() {
     '(.statuses | sort) == ["operator-local","provisioned","supported","unsupported"]' \
     "runtime support matrix must define the canonical status set"
   require_jq_expr "$generated_matrix_json_rel" \
-    '(.contours | map(.id)) as $ids | ["codex-onboard","agent-verify","export-context-check","doctor","xunit","bdd","bdd-warm-service","smoke","publish-http","load-diff-src","load-task-src"] | all(. as $id | $ids | index($id))' \
+    '(.contours | map(.id)) as $ids | ["codex-onboard","agent-verify","export-context-check","doctor","bdd","bdd-warm-service","smoke","publish-http","load-diff-src","load-task-src"] | all(. as $id | $ids | index($id))' \
     "runtime support matrix must cover the required contour ids"
   require_jq_expr "$generated_matrix_json_rel" \
     '.contours | type == "array" and length > 0 and all(.[]; (.id | type == "string" and length > 0) and (.status | type == "string" and length > 0) and (.profileProvenance | type == "string" and length > 0) and (((.entrypoint // "") | type == "string" and length > 0) or ((.runbookPath // "") | type == "string" and length > 0)))' \
@@ -601,9 +601,6 @@ check_generated_runtime_support_matrix_contract() {
   require_jq_expr "$generated_matrix_json_rel" \
     '.projectSpecificBaselineExtension == null or ((.projectSpecificBaselineExtension.id // "") != "" and (.projectSpecificBaselineExtension.entrypoint // "") != "" and (.projectSpecificBaselineExtension.runbookPath // "") != "" and (.projectSpecificBaselineExtension.summary // "") != "")' \
     "runtime support matrix projectSpecificBaselineExtension must be null or a complete object"
-  require_jq_expr "$generated_matrix_json_rel" \
-    '(.contours[] | select(.id == "xunit") | .status) == "operator-local" and (.contours[] | select(.id == "xunit") | .runbookPath) == "docs/testing/xunit-direct-platform.md"' \
-    "runtime support matrix must classify template-shipped xunit as operator-local with the xunit runbook"
 }
 
 check_generated_architecture_map_contract() {
@@ -662,8 +659,6 @@ check_generated_operator_local_runbook_contract() {
   require_contains "$generated_operator_local_runbook_rel" "docs/agent/runtime-quickstart.md"
   require_contains "$generated_operator_local_runbook_rel" "env/README.md"
   require_contains "$generated_operator_local_runbook_rel" "docs/agent/generated-project-verification.md"
-  require_contains "$generated_operator_local_runbook_rel" "docs/testing/xunit-direct-platform.md"
-  require_contains "$generated_operator_local_runbook_rel" "./scripts/test/run-xunit.sh --profile env/local.json --run-root /tmp/xunit-run"
   check_curated_representative_paths "$generated_operator_local_runbook_rel"
 }
 
@@ -967,8 +962,6 @@ require_contains "docs/agent/generated-project-verification.md" "runtime-support
 require_contains "docs/agent/generated-project-verification.md" "runtime-quickstart.md"
 require_contains "docs/agent/generated-project-verification.md" "operator-local-runbook.md"
 require_contains "docs/agent/generated-project-verification.md" "projectSpecificBaselineExtension"
-require_contains "docs/agent/generated-project-verification.md" "docs/testing/xunit-direct-platform.md"
-require_contains "docs/agent/generated-project-verification.md" "./scripts/test/tdd-xunit.sh"
 require_contains "docs/template-maintenance.md" "template maintenance"
 require_contains "docs/template-maintenance.md" "make template-check-update"
 require_contains "docs/template-maintenance.md" "make template-update"
@@ -1043,7 +1036,6 @@ require_contains "automation/context/templates/generated-project-hotspots-summar
 require_contains "automation/context/templates/generated-project-operator-local-runbook.md" "runtime-support-matrix.md"
 require_contains "automation/context/templates/generated-project-operator-local-runbook.md" "./scripts/platform/load-diff-src.sh --profile env/local.json --run-root /tmp/load-diff-src-run"
 require_contains "automation/context/templates/generated-project-operator-local-runbook.md" "./scripts/platform/load-task-src.sh --profile env/local.json --work-item 93984 --run-root /tmp/load-task-src-run"
-require_contains "automation/context/templates/generated-project-operator-local-runbook.md" "docs/testing/xunit-direct-platform.md"
 require_contains "automation/context/templates/generated-project-architecture-map.md" "docs/agent/runtime-quickstart.md"
 require_contains "automation/context/templates/generated-project-architecture-map.md" "recommended-skills.generated.md"
 require_contains "automation/context/templates/generated-project-architecture-map.md" "project-delta-hotspots.generated.md"
@@ -1077,17 +1069,10 @@ require_contains "automation/context/template-managed-paths.txt" "automation/con
 require_contains "automation/context/template-managed-paths.txt" "automation/context/templates/generated-project-runtime-quickstart.md"
 require_contains "automation/context/template-managed-paths.txt" "automation/context/templates/generated-project-work-items-readme.md"
 require_contains "automation/context/template-managed-paths.txt" "automation/context/templates/generated-project-work-items-template.md"
-require_contains "automation/context/template-managed-paths.txt" "docs/testing/xunit-direct-platform.md"
 require_contains "automation/context/template-managed-paths.txt" "scripts/qa/codex-onboard.sh"
-require_contains "automation/context/template-managed-paths.txt" "scripts/test/build-xunit-epf.sh"
-require_contains "automation/context/template-managed-paths.txt" "scripts/test/run-xunit-direct-platform.sh"
-require_contains "automation/context/template-managed-paths.txt" "scripts/test/tdd-xunit.sh"
 require_contains "automation/context/template-managed-paths.txt" "docs/exec-plans/TEMPLATE.md"
 require_contains "automation/context/template-managed-paths.txt" "docs/exec-plans/EXAMPLE.md"
 require_contains "automation/context/template-managed-paths.txt" "src/README.md"
-require_contains "automation/context/template-managed-paths.txt" "src/epf/TemplateXUnitHarness/TemplateXUnitHarness.xml"
-require_contains "automation/context/template-managed-paths.txt" "src/epf/TemplateXUnitHarness/TemplateXUnitHarness/Ext/ObjectModule.bsl"
-require_contains "automation/context/template-managed-paths.txt" "tests/xunit/smoke.quickstart.json"
 require_absent_regex "automation/context/template-managed-paths.txt" '^src/cf/AGENTS\.md$' \
   "deployable src/cf router must not stay template-managed"
 require_absent_regex "automation/context/template-managed-paths.txt" '^docs/work-items/README\.md$' \

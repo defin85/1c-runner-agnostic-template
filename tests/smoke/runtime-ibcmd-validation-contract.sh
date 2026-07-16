@@ -159,14 +159,12 @@ write_profile() {
 
 dump_src_capability_json='{
   "dumpSrc": {"driver": "ibcmd"},
-  "xunit": {"command": ["bash", "-lc", "printf '\''xunit-ok\\n'\''"]},
   "bdd": {"command": ["bash", "-lc", "printf '\''bdd-ok\\n'\''"]},
   "smoke": {"command": ["bash", "-lc", "printf '\''smoke-ok\\n'\''"]}
 }'
 
 create_only_capability_json='{
   "createIb": {"driver": "ibcmd"},
-  "xunit": {"command": ["bash", "-lc", "printf '\''xunit-ok\\n'\''"]},
   "bdd": {"command": ["bash", "-lc", "printf '\''bdd-ok\\n'\''"]},
   "smoke": {"command": ["bash", "-lc", "printf '\''smoke-ok\\n'\''"]}
 }'
@@ -194,9 +192,6 @@ cat >"$designer_partial_profile" <<EOF
       "driver": "designer",
       "sourceDir": "./src/cf"
     },
-    "xunit": {
-      "command": ["bash", "-lc", "printf 'xunit-ok\\\\n'"]
-    },
     "bdd": {
       "command": ["bash", "-lc", "printf 'bdd-ok\\\\n'"]
     },
@@ -214,7 +209,6 @@ write_profile \
   "direct-platform" \
   "file-infobase" \
   "{\"fileInfobase\":{\"databasePath\":\"$tmpdir/file-ib/db\"}}" \
-  '{"dumpSrc":{"driver":"ibcmd","command":["bash","-lc","printf '\''bad-mix\\n'\''"]},"xunit":{"command":["bash","-lc","printf '\''xunit-ok\\n'\''"]},"bdd":{"command":["bash","-lc","printf '\''bdd-ok\\n'\''"]},"smoke":{"command":["bash","-lc","printf '\''smoke-ok\\n'\''"]}}' \
   true \
   "data-dir" \
   "$tmpdir/driver-and-command-server"
@@ -466,7 +460,6 @@ write_profile \
   "direct-platform" \
   "file-infobase" \
   "{\"fileInfobase\":{\"databasePath\":\"$tmpdir/file-ib/db\"}}" \
-  '{"loadSrc":{"driver":"ibcmd","sourceDir":"./src/cf"},"xunit":{"command":["bash","-lc","printf '\''xunit-ok\\n'\''"]},"bdd":{"command":["bash","-lc","printf '\''bdd-ok\\n'\''"]},"smoke":{"command":["bash","-lc","printf '\''smoke-ok\\n'\''"]}}' \
   true \
   "data-dir" \
   "$tmpdir/file-server"

@@ -123,9 +123,6 @@ write_fixture_repo() {
       "driver": "ibcmd",
       "sourceDir": "./src/cf"
     },
-    "xunit": {
-      "command": ["bash", "-lc", "printf 'xunit-ok\\\\n'"]
-    },
     "bdd": {
       "command": ["bash", "-lc", "printf 'bdd-ok\\\\n'"]
     },

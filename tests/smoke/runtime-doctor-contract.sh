@@ -67,9 +67,6 @@ cat >"$profile_path" <<EOF
     }
   },
   "capabilities": {
-    "xunit": {
-      "command": ["bash", "-lc", "printf 'xunit-ok\\\\n'"]
-    },
     "bdd": {
       "command": ["bash", "-lc", "printf 'bdd-ok\\\\n'"]
     },
@@ -147,9 +144,6 @@ cat >"$unsupported_profile_path" <<EOF
     }
   },
   "capabilities": {
-    "xunit": {
-      "unsupportedReason": "xUnit contour is not wired yet"
-    },
     "bdd": {
       "unsupportedReason": "BDD contour is not wired yet"
     },
@@ -170,7 +164,6 @@ EOF
 
 assert_jq "$unsupported_run_root/summary.json" '.status == "success"' "doctor-unsupported-status"
 assert_jq "$unsupported_run_root/summary.json" '[.checks.required_capabilities[] | select(.status == "missing")] | length == 0' "doctor-unsupported-no-missing"
-assert_jq "$unsupported_run_root/summary.json" '[.checks.required_capabilities[] | select(.name == "run-xunit" and .status == "unsupported" and .reason == "xUnit contour is not wired yet")] | length == 1' "doctor-unsupported-xunit"
 assert_jq "$unsupported_run_root/summary.json" '[.checks.required_capabilities[] | select(.name == "run-bdd" and .status == "unsupported" and .reason == "BDD contour is not wired yet")] | length == 1' "doctor-unsupported-bdd"
 assert_jq "$unsupported_run_root/summary.json" '[.checks.required_capabilities[] | select(.name == "run-smoke" and .status == "unsupported" and .reason == "Smoke contour is not wired yet")] | length == 1' "doctor-unsupported-smoke"
 assert_jq "$unsupported_run_root/summary.json" '[.checks.optional_capabilities[] | select(.name == "publish-http" and .status == "unsupported" and .reason == "Publish contour is not wired yet")] | length == 1' "doctor-unsupported-publish-http"
@@ -250,9 +243,6 @@ cat >"$command_override_profile_path" <<EOF
     "updateDb": {
       "command": ["bash", "-lc", "printf 'update-command-ok\\\\n'"]
     },
-    "xunit": {
-      "command": ["bash", "-lc", "printf 'xunit-ok\\\\n'"]
-    },
     "bdd": {
       "command": ["bash", "-lc", "printf 'bdd-ok\\\\n'"]
     },
@@ -300,9 +290,6 @@ cat >"$ld_preload_profile_path" <<EOF
     }
   },
   "capabilities": {
-    "xunit": {
-      "command": ["$fake_binary", "ENTERPRISE", "/F", "/tmp/doctor-ld-preload-fixture"]
-    },
     "bdd": {
       "command": ["bash", "-lc", "printf 'bdd-ok\\\\n'"]
     },
@@ -324,7 +311,6 @@ assert_jq "$ld_preload_run_root/summary.json" '.adapter_context.ld_preload.libra
   --args "$fake_libstdcpp" "$fake_libgcc"
 assert_jq "$ld_preload_run_root/summary.json" '[.checks.required_profile_fields[] | select(.name == "platform.ldPreload.enabled" and .status == "present")] | length == 1' "doctor-ld-preload-required-enabled"
 assert_jq "$ld_preload_run_root/summary.json" '[.checks.required_profile_fields[] | select(.name == "platform.ldPreload.libraries" and .status == "present")] | length == 1' "doctor-ld-preload-required-libraries"
-assert_jq "$ld_preload_run_root/summary.json" '[.checks.required_capabilities[] | select(.name == "run-xunit" and .status == "present")] | length == 1' "doctor-ld-preload-capability"
 
 if grep -Fq -- "LD_PRELOAD=" "$ld_preload_run_root/summary.json"; then
   printf 'doctor summary.json must not contain raw LD_PRELOAD prefixes\n' >&2

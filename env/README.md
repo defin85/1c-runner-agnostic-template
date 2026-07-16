@@ -186,17 +186,13 @@ export ONEC_IB_PASSWORD='...'
    Если `driver` опущен, используется `designer`.
 
 2. profile-defined command array
-   Для repo-owned contour вроде template-managed `xunit` или project-specific `bdd`, `smoke`, `publishHttp` profile задаёт `command` как массив строк:
+   Для project-specific contour вроде `bdd`, `smoke` или `publishHttp` profile задаёт `command` как массив строк:
 
 ```json
 {
   "capabilities": {
-    "xunit": {
-      "command": ["./scripts/test/run-xunit-direct-platform.sh"],
-      "addRoot": "/opt/onec/add",
-      "harnessSourceDir": "./src/epf/TemplateXUnitHarness",
-      "configPath": "./tests/xunit/smoke.quickstart.json",
-      "timeoutSeconds": 900
+    "bdd": {
+      "command": ["./scripts/test/run-bdd.sh"]
     }
   }
 }
@@ -242,7 +238,7 @@ export ONEC_IB_PASSWORD='...'
 
 Shared checked-in runtime truth для generated repo должна идти через `automation/context/runtime-support-matrix.md` и `automation/context/runtime-support-matrix.json`, а не через ignored local-private profile как единственный durable source of truth.
 
-Для checked-in example profiles и sanctioned additional presets в `smoke` / `xunit` / `bdd` используйте либо `unsupportedReason`, либо прямой repo-owned entrypoint в `command[0]` вроде `./scripts/...` / `scripts/...`, либо `make <target>`.
+Для checked-in example profiles и sanctioned additional presets в `smoke` / `bdd` используйте либо `unsupportedReason`, либо прямой repo-owned entrypoint в `command[0]` вроде `./scripts/...` / `scripts/...`, либо `make <target>`.
 Inline shell snippets и trivial success commands вроде `true`, `echo ...` или `bash -lc "./scripts/... || true"` semantic baseline должен отклонять. Repo-owned path внутри shell-wrapper не считается допустимым checked-in contract.
 
 ## Vanessa BDD Warm-Service
@@ -318,30 +314,14 @@ Profile-defined `command` запускается с repo-owned launcher env cont
 ```json
 {
   "capabilities": {
-    "xunit": {
-      "command": ["./scripts/test/run-xunit-direct-platform.sh"],
-      "addRoot": "/opt/onec/add"
+    "bdd": {
+      "command": ["./scripts/test/run-bdd.sh"]
     }
   }
 }
 ```
 
 Такой repo-owned entrypoint может читать `ONEC_*` переменные из окружения и, если contour пишет временные артефакты, по умолчанию складывать их в `ONEC_CAPABILITY_RUN_ROOT`.
-
-Для template-managed direct-platform xUnit contour canonical local loop такой:
-
-```bash
-./scripts/test/tdd-xunit.sh --profile env/local.json --run-root /tmp/tdd-xunit-run
-```
-
-Wrapper синхронизирует add/modify/untracked diff под `src/cf` через `load-diff-src`, затем делает `update-db` и только после этого запускает `run-xunit`.
-Если под `src/cf` есть delete/rename/conflict-style изменения, wrapper останавливается fail-closed и просит manual full path:
-
-```bash
-./scripts/platform/load-src.sh --profile env/local.json --run-root /tmp/load-src-run
-./scripts/platform/update-db.sh --profile env/local.json --run-root /tmp/update-db-run
-./scripts/test/run-xunit.sh --profile env/local.json --run-root /tmp/xunit-run
-```
 
 `diffSrc.command` тоже можно задать явно, но по умолчанию script использует `git diff -- ./src`.
 

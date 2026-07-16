@@ -41,7 +41,7 @@
 1. Проверьте `platform.binaryPath`.
 2. Проверьте `infobase.mode`, `server`/`ref` или `filePath`.
 3. Задайте `passwordEnv` вместо literal password.
-4. Проверьте `capabilities.xunit`, `capabilities.bdd`, `capabilities.smoke` и `capabilities.publishHttp`.
+4. Проверьте `capabilities.bdd`, `capabilities.smoke` и `capabilities.publishHttp`.
    Generic shell placeholders, no-op commands и shell-wrapper chains helper теперь переводит в `unsupportedReason`.
    Автоматически сохраняются только прямой repo-owned entrypoint вроде `./scripts/...` или `make <target>` без `||`, `&&`, `;`, pipe/redirection.
 5. Замените старый profile новым.
@@ -56,7 +56,7 @@
   "schemaVersion": 1,
   "shellEnv": {
     "LOAD_SRC_CMD": "/opt/1cv8/1cv8 DESIGNER /S localhost/project /LoadConfigFromFiles ./src/cf",
-    "XUNIT_RUN_CMD": "echo run xunit"
+    "BDD_RUN_CMD": "echo run bdd"
   }
 }
 ```
@@ -84,8 +84,8 @@
     "loadSrc": {
       "sourceDir": "./src/cf"
     },
-    "xunit": {
-      "unsupportedReason": "Legacy xUnit contour looked like a placeholder or no-op command; replace it with a repo-owned entrypoint before treating this profile as green."
+    "bdd": {
+      "unsupportedReason": "Legacy BDD contour looked like a placeholder or no-op command; replace it with a repo-owned entrypoint before treating this profile as green."
     }
   }
 }

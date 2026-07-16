@@ -26,7 +26,6 @@ cat >"$legacy_profile" <<'EOF'
     "LOAD_SRC_CMD": "/opt/1cv8/1cv8 DESIGNER /S localhost/legacy-ref /N legacy-user /LoadConfigFromFiles ./src/cf",
     "UPDATE_DB_CMD": "/opt/1cv8/1cv8 DESIGNER /S localhost/legacy-ref /N legacy-user /UpdateDBCfg",
     "DIFF_SRC_CMD": "git diff -- ./src",
-    "XUNIT_RUN_CMD": "echo legacy xunit",
     "BDD_RUN_CMD": "echo legacy bdd",
     "SMOKE_RUN_CMD": "echo legacy smoke"
   }
@@ -47,10 +46,8 @@ jq -e '.infobase.mode == "client-server"' "$converted_profile" >/dev/null
 jq -e '.infobase.server == "localhost"' "$converted_profile" >/dev/null
 jq -e '.infobase.ref == "legacy-ref"' "$converted_profile" >/dev/null
 jq -e '.infobase.auth.user == "legacy-user"' "$converted_profile" >/dev/null
-jq -e '.capabilities.xunit.unsupportedReason == "Legacy xUnit contour looked like a placeholder or no-op command; replace it with a repo-owned entrypoint before treating this profile as green."' "$converted_profile" >/dev/null
 jq -e '.capabilities.bdd.unsupportedReason == "Legacy BDD contour looked like a placeholder or no-op command; replace it with a repo-owned entrypoint before treating this profile as green."' "$converted_profile" >/dev/null
 jq -e '.capabilities.smoke.unsupportedReason == "Legacy smoke contour looked like a placeholder or no-op command; replace it with a repo-owned entrypoint before treating this profile as green."' "$converted_profile" >/dev/null
-jq -e '.capabilities.xunit.command == null' "$converted_profile" >/dev/null
 jq -e '.capabilities.bdd.command == null' "$converted_profile" >/dev/null
 jq -e '.capabilities.smoke.command == null' "$converted_profile" >/dev/null
 
@@ -71,11 +68,9 @@ EOF
   ./scripts/template/migrate-runtime-profile-v2.sh "$placeholder_profile" >"$placeholder_converted_profile"
 )
 
-jq -e '.capabilities.xunit.unsupportedReason == "xUnit contour is not wired yet; migrate it before treating this profile as green."' "$placeholder_converted_profile" >/dev/null
 jq -e '.capabilities.bdd.unsupportedReason == "BDD contour is not wired yet; migrate it before treating this profile as green."' "$placeholder_converted_profile" >/dev/null
 jq -e '.capabilities.smoke.unsupportedReason == "Smoke contour is not wired yet; migrate it before treating this profile as green."' "$placeholder_converted_profile" >/dev/null
 jq -e '.capabilities.publishHttp.unsupportedReason == "Publish HTTP contour is not wired yet; migrate it before treating this profile as green."' "$placeholder_converted_profile" >/dev/null
-jq -e '.capabilities.xunit.command == null' "$placeholder_converted_profile" >/dev/null
 jq -e '.capabilities.bdd.command == null' "$placeholder_converted_profile" >/dev/null
 jq -e '.capabilities.smoke.command == null' "$placeholder_converted_profile" >/dev/null
 jq -e '.capabilities.publishHttp.command == null' "$placeholder_converted_profile" >/dev/null

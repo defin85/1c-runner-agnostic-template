@@ -13,7 +13,6 @@
 ./.agents/skills/1c-publish-http
 ./.agents/skills/1c-run-bdd
 ./.agents/skills/1c-run-smoke
-./.agents/skills/1c-run-xunit
 ./.agents/skills/1c-update-db
 ./.agents/skills/cf-edit
 ./.agents/skills/cf-info
@@ -97,7 +96,6 @@
 ./.claude/skills/1c-publish-http
 ./.claude/skills/1c-run-bdd
 ./.claude/skills/1c-run-smoke
-./.claude/skills/1c-run-xunit
 ./.claude/skills/1c-update-db
 ./.claude/skills/cf-edit
 ./.claude/skills/cf-info
@@ -210,6 +208,7 @@
 ./features/examples
 ./openspec
 ./openspec/changes
+./openspec/changes/add-reusable-testing-campaign
 ./openspec/changes/archive
 ./openspec/specs
 ./openspec/specs/agent-runtime-toolkit
@@ -243,7 +242,6 @@
 ./src/cfe
 ./src/cfe/_templates
 ./src/epf
-./src/epf/TemplateXUnitHarness
 ./src/epf/_templates
 ./src/erf
 ./tests
@@ -252,5 +250,4 @@
 ./tests/python
 ./tests/shell-fixtures
 ./tests/smoke
-./tests/xunit
 ./tooling

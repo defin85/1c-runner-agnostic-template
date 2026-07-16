@@ -163,7 +163,6 @@ main() {
   local load_cmd=""
   local update_cmd=""
   local diff_cmd=""
-  local xunit_cmd=""
   local bdd_cmd=""
   local smoke_cmd=""
   local publish_cmd=""
@@ -176,7 +175,6 @@ main() {
   local auth_mode="os"
   local password_env="null"
   local password_env_json="null"
-  local xunit_json=""
   local bdd_json=""
   local smoke_json=""
   local publish_json=""
@@ -210,7 +208,6 @@ main() {
   load_cmd="$(legacy_string "$legacy_profile" '.shellEnv.LOAD_SRC_CMD')"
   update_cmd="$(legacy_string "$legacy_profile" '.shellEnv.UPDATE_DB_CMD')"
   diff_cmd="$(legacy_string "$legacy_profile" '.shellEnv.DIFF_SRC_CMD')"
-  xunit_cmd="$(legacy_string "$legacy_profile" '.shellEnv.XUNIT_RUN_CMD')"
   bdd_cmd="$(legacy_string "$legacy_profile" '.shellEnv.BDD_RUN_CMD')"
   smoke_cmd="$(legacy_string "$legacy_profile" '.shellEnv.SMOKE_RUN_CMD')"
   publish_cmd="$(legacy_string "$legacy_profile" '.shellEnv.PUBLISH_HTTP_CMD')"
@@ -248,7 +245,6 @@ main() {
     password_env_json='"ONEC_IB_PASSWORD"'
   fi
 
-  xunit_json="$(migrate_verification_capability_json "$xunit_cmd" "xUnit contour is not wired yet; migrate it before treating this profile as green." "Legacy xUnit contour looked like a placeholder or no-op command; replace it with a repo-owned entrypoint before treating this profile as green.")"
   bdd_json="$(migrate_verification_capability_json "$bdd_cmd" "BDD contour is not wired yet; migrate it before treating this profile as green." "Legacy BDD contour looked like a placeholder or no-op command; replace it with a repo-owned entrypoint before treating this profile as green.")"
   smoke_json="$(migrate_verification_capability_json "$smoke_cmd" "Smoke contour is not wired yet; migrate it before treating this profile as green." "Legacy smoke contour looked like a placeholder or no-op command; replace it with a repo-owned entrypoint before treating this profile as green.")"
   publish_json="$(migrate_verification_capability_json "$publish_cmd" "Publish HTTP contour is not wired yet; migrate it before treating this profile as green." "Legacy publish contour looked like a placeholder or no-op command; replace it with a repo-owned entrypoint before treating this profile as green.")"
@@ -269,7 +265,6 @@ main() {
     --argjson password_env "$password_env_json" \
     --argjson notes "$notes_json" \
     --argjson diff_command "$diff_json" \
-    --argjson xunit_command "$xunit_json" \
     --argjson bdd_command "$bdd_json" \
     --argjson smoke_command "$smoke_json" \
     --argjson publish_command "$publish_json" \
@@ -324,7 +319,6 @@ main() {
             { command: $diff_command }
           end
         ),
-        xunit: $xunit_command,
         bdd: $bdd_command,
         smoke: $smoke_command,
         publishHttp: $publish_command

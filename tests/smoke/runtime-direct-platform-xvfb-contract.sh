@@ -15,7 +15,7 @@ profile_path="$tmpdir/profile.json"
 profile_disabled_path="$tmpdir/profile-disabled.json"
 doctor_run_root="$tmpdir/doctor-run"
 create_run_root="$tmpdir/create-run"
-xunit_run_root="$tmpdir/xunit-run"
+bdd_run_root="$tmpdir/bdd-run"
 default_run_root="$tmpdir/default-run"
 runtime_missing_xauth_run_root="$tmpdir/runtime-missing-xauth-run"
 runtime_missing_xvfb_run_root="$tmpdir/runtime-missing-xvfb-run"
@@ -130,11 +130,8 @@ cat >"$profile_path" <<EOF
     }
   },
   "capabilities": {
-    "xunit": {
-      "command": ["$fake_client", "ENTERPRISE", "/F", "/tmp/xvfb-fixture"]
-    },
     "bdd": {
-      "command": ["bash", "-lc", "printf 'bdd-ok\\\\n'"]
+      "command": ["$fake_client", "ENTERPRISE", "/F", "/tmp/xvfb-fixture"]
     },
     "smoke": {
       "command": ["bash", "-lc", "printf 'smoke-ok\\\\n'"]
@@ -193,7 +190,7 @@ assert_jq "$doctor_run_root/summary.json" '.adapter_context.xvfb.enabled == true
 assert_jq "$doctor_run_root/summary.json" '.adapter_context.xvfb.server_args == ["-screen","0","1440x900x24","-noreset"]' "doctor-server-args"
 assert_jq "$doctor_run_root/summary.json" '[.checks.required_tools[] | select(.name == "xvfb-run" and .status == "present")] | length == 1' "doctor-required-xvfb-run"
 assert_jq "$doctor_run_root/summary.json" '[.checks.required_tools[] | select(.name == "xauth" and .status == "present")] | length == 1' "doctor-required-xauth"
-assert_jq "$doctor_run_root/summary.json" '[.checks.required_capabilities[] | select(.name == "run-xunit" and .status == "present")] | length == 1' "doctor-xunit-capability"
+assert_jq "$doctor_run_root/summary.json" '[.checks.required_capabilities[] | select(.name == "run-bdd" and .status == "present")] | length == 1' "doctor-bdd-capability"
 
 (
   cd "$SOURCE_ROOT"
@@ -212,20 +209,20 @@ assert_contains "$invocation_log" "1cv8"
 
 (
   cd "$SOURCE_ROOT"
-  PATH="$path_success" ONEC_INVOCATION_LOG="$invocation_log" ./scripts/test/run-xunit.sh --profile "$profile_path" --run-root "$xunit_run_root" >/dev/null
+  PATH="$path_success" ONEC_INVOCATION_LOG="$invocation_log" ./scripts/test/run-bdd.sh --profile "$profile_path" --run-root "$bdd_run_root" >/dev/null
 )
 
-assert_jq "$xunit_run_root/summary.json" '.status == "success"' "xunit-status"
-assert_jq "$xunit_run_root/summary.json" '.execution.source == "profile-command"' "xunit-source"
-assert_jq "$xunit_run_root/summary.json" '.execution.executor == "adapter-wrapper"' "xunit-executor"
-assert_jq "$xunit_run_root/summary.json" '.adapter_context.wrapper == "xvfb-run"' "xunit-wrapper"
-assert_contains "$xunit_run_root/stdout.log" "fake-xvfb-run"
-assert_contains "$xunit_run_root/stdout.log" "fake-1cv8c"
+assert_jq "$bdd_run_root/summary.json" '.status == "success"' "bdd-status"
+assert_jq "$bdd_run_root/summary.json" '.execution.source == "profile-command"' "bdd-source"
+assert_jq "$bdd_run_root/summary.json" '.execution.executor == "adapter-wrapper"' "bdd-executor"
+assert_jq "$bdd_run_root/summary.json" '.adapter_context.wrapper == "xvfb-run"' "bdd-wrapper"
+assert_contains "$bdd_run_root/stdout.log" "fake-xvfb-run"
+assert_contains "$bdd_run_root/stdout.log" "fake-1cv8c"
 assert_contains "$invocation_log" "1cv8c"
 
 (
   cd "$SOURCE_ROOT"
-  PATH="$path_missing_xvfb" ONEC_INVOCATION_LOG="$invocation_log" ./scripts/test/run-xunit.sh --profile "$profile_disabled_path" --run-root "$default_run_root" >/dev/null
+  PATH="$path_missing_xvfb" ONEC_INVOCATION_LOG="$invocation_log" ./scripts/test/run-bdd.sh --profile "$profile_disabled_path" --run-root "$default_run_root" >/dev/null
 )
 
 assert_jq "$default_run_root/summary.json" '.status == "success"' "default-status"
@@ -252,13 +249,13 @@ assert_contains "$runtime_missing_xauth_run_root/stderr.log" "command not found:
 set +e
 (
   cd "$SOURCE_ROOT"
-  PATH="$path_missing_xvfb" ONEC_INVOCATION_LOG="$invocation_log" ./scripts/test/run-xunit.sh --profile "$profile_path" --run-root "$runtime_missing_xvfb_run_root" >/dev/null
+  PATH="$path_missing_xvfb" ONEC_INVOCATION_LOG="$invocation_log" ./scripts/test/run-bdd.sh --profile "$profile_path" --run-root "$runtime_missing_xvfb_run_root" >/dev/null
 )
 status_missing_xvfb=$?
 set -e
 
 if [ "$status_missing_xvfb" -eq 0 ]; then
-  printf 'expected run-xunit to fail when xvfb-run is missing\n' >&2
+  printf 'expected run-bdd to fail when xvfb-run is missing\n' >&2
   exit 1
 fi
 
@@ -281,7 +278,7 @@ fi
 assert_jq "$doctor_missing_xauth_run_root/summary.json" '.status == "failed"' "doctor-missing-xauth-status"
 assert_jq "$doctor_missing_xauth_run_root/summary.json" '[.checks.required_tools[] | select(.name == "xauth" and .status == "missing")] | length == 1' "doctor-missing-xauth-tool"
 assert_jq "$doctor_missing_xauth_run_root/summary.json" '[.checks.required_capabilities[] | select(.name == "create-ib" and .reason == "missing xauth for direct-platform xvfb wrapper")] | length == 1' "doctor-missing-xauth-create"
-assert_jq "$doctor_missing_xauth_run_root/summary.json" '[.checks.required_capabilities[] | select(.name == "run-xunit" and .reason == "missing xauth for direct-platform xvfb wrapper")] | length == 1' "doctor-missing-xauth-xunit"
+assert_jq "$doctor_missing_xauth_run_root/summary.json" '[.checks.required_capabilities[] | select(.name == "run-bdd" and .reason == "missing xauth for direct-platform xvfb wrapper")] | length == 1' "doctor-missing-xauth-bdd"
 
 set +e
 (
@@ -299,4 +296,4 @@ fi
 assert_jq "$doctor_missing_xvfb_run_root/summary.json" '.status == "failed"' "doctor-missing-xvfb-status"
 assert_jq "$doctor_missing_xvfb_run_root/summary.json" '[.checks.required_tools[] | select(.name == "xvfb-run" and .status == "missing")] | length == 1' "doctor-missing-xvfb-tool"
 assert_jq "$doctor_missing_xvfb_run_root/summary.json" '[.checks.required_capabilities[] | select(.name == "create-ib" and .reason == "missing xvfb-run for direct-platform xvfb wrapper")] | length == 1' "doctor-missing-xvfb-create"
-assert_jq "$doctor_missing_xvfb_run_root/summary.json" '[.checks.required_capabilities[] | select(.name == "run-xunit" and .reason == "missing xvfb-run for direct-platform xvfb wrapper")] | length == 1' "doctor-missing-xvfb-xunit"
+assert_jq "$doctor_missing_xvfb_run_root/summary.json" '[.checks.required_capabilities[] | select(.name == "run-bdd" and .reason == "missing xvfb-run for direct-platform xvfb wrapper")] | length == 1' "doctor-missing-xvfb-bdd"

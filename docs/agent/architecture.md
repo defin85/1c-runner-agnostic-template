@@ -12,7 +12,7 @@
 - `src/` — source tree, который template делает доступным generated projects.
 - `scripts/` — канонические entrypoint-скрипты для runtime, test, QA, template bootstrap/update и agent automation.
 - `env/` — checked-in examples для runtime profiles и local profile conventions.
-- `tests/` и `features/` — smoke, fixture, xUnit и BDD слои проверки.
+- `tests/` и `features/` — smoke, fixture, YAxUnit и BDD слои проверки.
 - `automation/` — machine-readable context, reusable prompts и checklists для агентов.
 - `.agents/skills/` и `.claude/skills/` — repeatable agent workflows как thin wrappers над repo-owned scripts.
 - `.codex/` — project-scoped Codex guidance и optional config examples.
@@ -32,10 +32,8 @@ Runtime and test:
 - `./scripts/platform/diff-src.sh`
 - `./scripts/platform/publish-http.sh`
 - `./scripts/diag/doctor.sh`
-- `./scripts/test/run-xunit.sh`
-- `./scripts/test/run-xunit-direct-platform.sh`
-- `./scripts/test/build-xunit-epf.sh`
-- `./scripts/test/tdd-xunit.sh`
+- `./scripts/test/run-yaxunit.sh`
+- `./scripts/test/run-yaxunit-warm-service.sh`
 - `./tests/golden/create.sh`
 - `./tests/golden/restore.sh`
 - `./scripts/test/run-bdd.sh`

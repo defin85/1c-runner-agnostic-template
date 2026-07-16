@@ -122,8 +122,7 @@ chmod +x "$lease_helper"
 launcher_files=()
 for candidate in \
   "$SOURCE_ROOT/tooling/vanessa/run-bdd.sh" \
-  "$SOURCE_ROOT/scripts/test/run-bdd-service.sh" \
-  "$SOURCE_ROOT/scripts/test/run-xunit-direct-platform.sh"; do
+  "$SOURCE_ROOT/scripts/test/run-bdd-service.sh"; do
   [ -f "$candidate" ] && launcher_files+=("$candidate")
 done
 

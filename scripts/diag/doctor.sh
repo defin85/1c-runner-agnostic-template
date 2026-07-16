@@ -264,7 +264,7 @@ capability_status() {
 
 doctor_allows_unsupported_required_capability() {
   case "$1" in
-    run-xunit|run-bdd|run-smoke)
+    run-bdd|run-smoke)
       return 0
       ;;
     *)
@@ -314,7 +314,7 @@ main() {
   local -a optional_tools=(openspec)
   local -a required_fields=()
   local -a required_env_refs=()
-  local -a required_capabilities=(create-ib dump-src load-src update-db diff-src run-xunit run-bdd run-smoke)
+  local -a required_capabilities=(create-ib dump-src load-src update-db diff-src run-bdd run-smoke)
   local -a optional_capabilities=(publish-http)
   local -a derived_contours=(load-diff-src load-task-src)
 

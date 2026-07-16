@@ -63,7 +63,6 @@ Generated projects получают собственные root entrypoint-ы п
 
 - `src/` — deployable source tree: конфигурация, расширения, обработки, отчеты.
 - `openspec/` — пространство спецификаций, создаваемое `openspec init`.
-- `tests/xunit/` — code-level TDD и unit-style проверки.
 - `tests/smoke/` — короткие регрессионные и инфраструктурные проверки.
 - `features/` — acceptance / BDD сценарии.
 - `scripts/` — канонические входные точки для людей, CI и агентов.
@@ -108,10 +107,6 @@ Generated projects получают отдельный стартовый сло
 - `./scripts/platform/diff-src.sh`
 - `./scripts/platform/publish-http.sh`
 - `./scripts/diag/doctor.sh`
-- `./scripts/test/run-xunit.sh`
-- `./scripts/test/run-xunit-direct-platform.sh`
-- `./scripts/test/build-xunit-epf.sh`
-- `./scripts/test/tdd-xunit.sh`
 - `./scripts/test/run-bdd.sh`
 - `./scripts/test/run-smoke.sh`
 - `./scripts/qa/analyze-bsl.sh`
@@ -131,7 +126,6 @@ Backend выбирается через `RUNNER_ADAPTER`:
 - opt-in: `ibcmd` только вместе с `RUNNER_ADAPTER=direct-platform`
 - `env/local.example.json` показывает mixed-profile c `ibcmd.runtimeMode=file-infobase`, чтобы partial import был готов из checked-in preset
 - `env/wsl.example.json` показывает canonical WSL/Linux contour с `platform.xvfb` и `platform.ldPreload`, чтобы локальные `1cv8`/`1cv8c` запускались без мигания GUI-окон на хосте и с repo-owned linker compatibility contour
-- direct-platform example profiles также уже wires template-managed xUnit contour через `./scripts/test/run-xunit-direct-platform.sh`; operator-local `addRoot` нужно заменить на реальный ADD path
 
 Параметры подключения к ИБ, `ibcmd` coordinates и platform paths задаются через structured runtime profile. Для project-specific contour допускаются `command`-массивы в секции `capabilities`.
 
@@ -181,8 +175,6 @@ Backend выбирается через `RUNNER_ADAPTER`:
 - `load-task-src`
 - `update-db`
 - `diff-src`
-- `run-xunit`
-- `tdd-xunit`
 - `run-bdd`
 - `run-smoke`
 - `doctor`
@@ -371,8 +363,6 @@ update-1c-project /path/to/generated-project --vcs-ref v0.1.1
 - `make update-db`
 - `make diff-src`
 - `make doctor`
-- `make test-xunit`
-- `make tdd-xunit`
 - `make test-bdd`
 - `make smoke`
 - `make export-context`

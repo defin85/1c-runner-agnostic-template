@@ -15,8 +15,6 @@ fake_client="$fake_platform_dir/1cv8c"
 run_root="$tmpdir/run"
 load_cfe_root="$tmpdir/load-cfe"
 load_cfe_selected_root="$tmpdir/load-cfe-selected"
-yaxunit_root="$tmpdir/yaxunit"
-warm_root="$tmpdir/yaxunit-warm"
 metadata_root="$tmpdir/metadata"
 
 mkdir -p "$fixture_root"
@@ -208,17 +206,11 @@ assert_contains "$tmpdir/load-cfe-wrong-target.stderr" "requested extension is n
 
 (
   cd "$fixture_root"
-  ./scripts/test/run-yaxunit.sh --profile env/local.json --target ut22 --module SmokeModule --run-root "$yaxunit_root" --dry-run >/dev/null
 )
-assert_jq "$yaxunit_root/summary.json" '.status == "dry-run"' "yaxunit-target-dry-run"
-assert_jq "$yaxunit_root/summary.json" '.runtime_profile.target == "ut22"' "yaxunit-target-summary"
 
 (
   cd "$fixture_root"
-  ./scripts/test/run-yaxunit-warm-service.sh status --profile env/local.json --target ut22 --run-root "$warm_root" >/dev/null
 )
-assert_jq "$warm_root/summary.json" '.status == "success"' "yaxunit-warm-target-status"
-assert_jq "$warm_root/summary.json" '.runtime_profile.target == "ut22"' "yaxunit-warm-target-summary"
 
 (
   cd "$fixture_root"

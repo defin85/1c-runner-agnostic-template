@@ -18,7 +18,6 @@ Generated project получает:
 - launcher scripts;
 - env examples;
 - CI workflow;
-- template-managed starter harness в `src/epf/TemplateXUnitHarness/` для operator-local xUnit contour;
 - `.agents/skills/` и `.claude/skills/`;
 - `docs/agent/` как template-managed стартовый слой, включая [generated-project-index.md](generated-project-index.md) и [generated-project-verification.md](generated-project-verification.md);
 - project-owned `docs/work-items/` как companion workspace для supporting artifacts длинных задач;

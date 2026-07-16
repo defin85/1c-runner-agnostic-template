@@ -10,7 +10,6 @@
 ./.agents/skills/1c-publish-http/SKILL.md
 ./.agents/skills/1c-run-bdd/SKILL.md
 ./.agents/skills/1c-run-smoke/SKILL.md
-./.agents/skills/1c-run-xunit/SKILL.md
 ./.agents/skills/1c-update-db/SKILL.md
 ./.agents/skills/README.md
 ./.agents/skills/cf-edit/SKILL.md
@@ -100,7 +99,6 @@
 ./.claude/skills/1c-publish-http/SKILL.md
 ./.claude/skills/1c-run-bdd/SKILL.md
 ./.claude/skills/1c-run-smoke/SKILL.md
-./.claude/skills/1c-run-xunit/SKILL.md
 ./.claude/skills/1c-update-db/SKILL.md
 ./.claude/skills/README.md
 ./.claude/skills/cf-edit/SKILL.md
@@ -447,7 +445,6 @@
 ./docs/template-maintenance.md
 ./docs/template-release.md
 ./docs/testing/designer-hidden-xpra.md
-./docs/testing/xunit-direct-platform.md
 ./docs/work-items/README.md
 ./docs/work-items/TEMPLATE.md
 ./env/.local/README.md
@@ -465,6 +462,12 @@
 ./env/wsl.example.json.jinja
 ./features/README.md
 ./features/examples/tdd-starter.feature
+./openspec/changes/add-reusable-testing-campaign/.openspec.yaml
+./openspec/changes/add-reusable-testing-campaign/design.md
+./openspec/changes/add-reusable-testing-campaign/proposal.md
+./openspec/changes/add-reusable-testing-campaign/specs/reusable-testing-campaign/spec.md
+./openspec/changes/add-reusable-testing-campaign/tasks.md
+./openspec/changes/add-reusable-testing-campaign/traceability.md
 ./openspec/changes/archive/2026-03-18-add-agent-toolkit-and-ci-contours/design.md
 ./openspec/changes/archive/2026-03-18-add-agent-toolkit-and-ci-contours/proposal.md
 ./openspec/changes/archive/2026-03-18-add-agent-toolkit-and-ci-contours/specs/agent-runtime-toolkit/spec.md
@@ -758,8 +761,6 @@
 ./scripts/template/migrate-runtime-profile-v2.sh
 ./scripts/template/update-template.ps1
 ./scripts/template/update-template.sh
-./scripts/test/build-xunit-epf.ps1
-./scripts/test/build-xunit-epf.sh
 ./scripts/test/run-bdd-warm-run.sh
 ./scripts/test/run-bdd-warm-service.sh
 ./scripts/test/run-bdd.ps1
@@ -768,15 +769,9 @@
 ./scripts/test/run-smoke.ps1
 ./scripts/test/run-smoke.sh
 ./scripts/test/run-web-client-diagnostic.sh
-./scripts/test/run-xunit-direct-platform.ps1
-./scripts/test/run-xunit-direct-platform.sh
-./scripts/test/run-xunit.ps1
-./scripts/test/run-xunit.sh
 ./scripts/test/run-yaxunit-warm-service.sh
 ./scripts/test/run-yaxunit.sh
 ./scripts/test/sync-yaxunit-runtime.sh
-./scripts/test/tdd-xunit.ps1
-./scripts/test/tdd-xunit.sh
 ./scripts/tools/onec-test-port-lease
 ./src/AGENTS.md
 ./src/README.md
@@ -791,8 +786,6 @@
 ./src/cfe/_templates/TemplatePatchExtension/Roles/TemplatePatchExtension_ОсновнаяРоль.xml
 ./src/epf/AGENT_TEMPLATES.md
 ./src/epf/README.md
-./src/epf/TemplateXUnitHarness/TemplateXUnitHarness.xml
-./src/epf/TemplateXUnitHarness/TemplateXUnitHarness/Ext/ObjectModule.bsl
 ./src/epf/_templates/README.md
 ./src/epf/_templates/TemplateSyncAsyncProcessor/TemplateSyncAsyncProcessor.xml
 ./src/epf/_templates/TemplateSyncAsyncProcessor/TemplateSyncAsyncProcessor/Ext/ObjectModule.bsl
@@ -847,14 +840,10 @@
 ./tests/smoke/runtime-load-task-src-validation-contract.sh
 ./tests/smoke/runtime-profile-legacy-rejection.sh
 ./tests/smoke/runtime-profile-migration-helper.sh
-./tests/smoke/tdd-xunit-wrapper-contract.sh
 ./tests/smoke/template-release-workflow.sh
-./tests/smoke/template-xunit-contour-contract.sh
 ./tests/smoke/update-1c-project-wrapper.sh
 ./tests/smoke/v8unpack-contract.sh
 ./tests/smoke/vanessa-bdd-warm-service-contract.sh
 ./tests/smoke/web-client-diagnostic-contract.sh
 ./tests/smoke/yaxunit-contour-contract.sh
 ./tests/smoke/yaxunit-warm-rpc-contour-contract.sh
-./tests/xunit/README.md
-./tests/xunit/smoke.quickstart.json

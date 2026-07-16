@@ -17,7 +17,6 @@ Codex-facing equivalents лежат в [.agents/skills/README.md](../../.agents/
 | Этот скилл SHOULD быть вызван, когда пользователь просит опубликовать HTTP-сервис или веб-контур через канонический repo entrypoint. | `1c-publish-http` | `1c-publish-http` | `./scripts/platform/publish-http.sh` | native template capability |
 | Этот скилл MUST быть вызван, когда пользователь просит запустить BDD / acceptance-контур через канонический test entrypoint проекта. | `1c-run-bdd` | `1c-run-bdd` | `./scripts/test/run-bdd.sh` | native template capability |
 | Этот скилл MUST быть вызван, когда пользователь просит запустить smoke-контур через канонический test entrypoint проекта. | `1c-run-smoke` | `1c-run-smoke` | `./scripts/test/run-smoke.sh` | native template capability |
-| Этот скилл MUST быть вызван, когда пользователь просит запустить xUnit-контур через канонический test entrypoint проекта. | `1c-run-xunit` | `1c-run-xunit` | `./scripts/test/run-xunit.sh` | native template capability |
 | Этот скилл MUST быть вызван, когда пользователь просит применить изменения основной конфигурации к конфигурации базы данных. | `1c-update-db` | `1c-update-db` | `./scripts/platform/update-db.sh` | native template capability |
 
 ## Imported Compatibility Pack (`cc-1c-skills`)

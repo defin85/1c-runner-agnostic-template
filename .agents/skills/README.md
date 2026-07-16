@@ -17,7 +17,6 @@ Claude-facing equivalents лежат в [.claude/skills/README.md](../../.claude
 | Используйте, когда нужно опубликовать HTTP-сервис или web contour через канонический repo entrypoint. | `1c-publish-http` | `1c-publish-http` | `./scripts/platform/publish-http.sh` | native template capability |
 | Используйте, когда нужно прогнать BDD или acceptance contour через канонический test entrypoint проекта. | `1c-run-bdd` | `1c-run-bdd` | `./scripts/test/run-bdd.sh` | native template capability |
 | Используйте, когда нужно запустить smoke contour через канонический test entrypoint проекта. | `1c-run-smoke` | `1c-run-smoke` | `./scripts/test/run-smoke.sh` | native template capability |
-| Используйте, когда нужно прогнать xUnit contour через канонический test entrypoint проекта. | `1c-run-xunit` | `1c-run-xunit` | `./scripts/test/run-xunit.sh` | native template capability |
 | Используйте, когда нужно применить изменения основной конфигурации к конфигурации базы данных. | `1c-update-db` | `1c-update-db` | `./scripts/platform/update-db.sh` | native template capability |
 | Запускает lightweight baseline verification для docs, OpenSpec, skills и live context этого репозитория. | `repo-agent-verify` | `-` | `./scripts/qa/agent-verify.sh` | native template capability |
 

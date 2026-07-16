@@ -95,7 +95,6 @@ capability_profile_key() {
     load-src) printf 'loadSrc\n' ;;
     update-db) printf 'updateDb\n' ;;
     diff-src) printf 'diffSrc\n' ;;
-    run-xunit) printf 'xunit\n' ;;
     run-bdd) printf 'bdd\n' ;;
     run-smoke) printf 'smoke\n' ;;
     publish-http) printf 'publishHttp\n' ;;
@@ -1582,7 +1581,7 @@ doctor_capability_failure_reason() {
         return 0
       fi
       ;;
-    run-xunit|run-bdd|run-smoke|publish-http)
+    run-bdd|run-smoke|publish-http)
       if ! capability_has_profile_command "$capability_id"; then
         printf 'missing %s\n' "$(capability_command_expr "$capability_id")"
         return 0

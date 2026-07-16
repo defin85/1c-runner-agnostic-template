@@ -12,7 +12,7 @@ path_success="$tmpdir/path-success"
 path_missing_xpra="$tmpdir/path-missing-xpra"
 profile_path="$tmpdir/profile.json"
 doctor_run_root="$tmpdir/doctor-run"
-xunit_run_root="$tmpdir/xunit-run"
+bdd_run_root="$tmpdir/bdd-run"
 runtime_missing_xpra_run_root="$tmpdir/runtime-missing-xpra-run"
 doctor_missing_xpra_run_root="$tmpdir/doctor-missing-xpra-run"
 fake_ready_file="$tmpdir/xpra-ready-display"
@@ -173,11 +173,8 @@ cat >"$profile_path" <<EOF
     }
   },
   "capabilities": {
-    "xunit": {
-      "command": ["$fake_client", "ENTERPRISE", "/F", "/tmp/xpra-fixture"]
-    },
     "bdd": {
-      "command": ["bash", "-lc", "printf 'bdd-ok\\\\n'"]
+      "command": ["$fake_client", "ENTERPRISE", "/F", "/tmp/xpra-fixture"]
     },
     "smoke": {
       "command": ["bash", "-lc", "printf 'smoke-ok\\\\n'"]
@@ -241,34 +238,34 @@ assert_jq "$doctor_run_root/summary.json" '[.checks.required_tools[] | select(.n
 
 (
   cd "$SOURCE_ROOT"
-  PATH="$path_success" XAUTHORITY="$tmpdir/stale.Xauthority" ONEC_FAKE_XPRA_READY_FILE="$fake_ready_file" ONEC_INVOCATION_LOG="$invocation_log" ./scripts/test/run-xunit.sh --profile "$profile_path" --run-root "$xunit_run_root" >/dev/null
+  PATH="$path_success" XAUTHORITY="$tmpdir/stale.Xauthority" ONEC_FAKE_XPRA_READY_FILE="$fake_ready_file" ONEC_INVOCATION_LOG="$invocation_log" ./scripts/test/run-bdd.sh --profile "$profile_path" --run-root "$bdd_run_root" >/dev/null
 )
 
-assert_jq "$xunit_run_root/summary.json" '.status == "success"' "xunit-status"
-assert_jq "$xunit_run_root/summary.json" '.execution.executor == "adapter-wrapper"' "xunit-executor"
-assert_jq "$xunit_run_root/summary.json" '.adapter_context.wrapper == "xpra"' "xunit-wrapper"
-assert_contains "$xunit_run_root/stderr.log" "fake-xpra"
-assert_contains "$xunit_run_root/stderr.log" "xpra-arg=start-desktop"
+assert_jq "$bdd_run_root/summary.json" '.status == "success"' "bdd-status"
+assert_jq "$bdd_run_root/summary.json" '.execution.executor == "adapter-wrapper"' "bdd-executor"
+assert_jq "$bdd_run_root/summary.json" '.adapter_context.wrapper == "xpra"' "bdd-wrapper"
+assert_contains "$bdd_run_root/stderr.log" "fake-xpra"
+assert_contains "$bdd_run_root/stderr.log" "xpra-arg=start-desktop"
 assert_contains "$SOURCE_ROOT/scripts/adapters/direct-platform.sh" "flock -x 9"
 assert_contains "$SOURCE_ROOT/scripts/adapters/direct-platform.sh" "ONEC_DIRECT_PLATFORM_XPRA_SESSION_TOKEN"
 assert_contains "$SOURCE_ROOT/scripts/adapters/direct-platform.sh" "process-cleanup-baseline.txt"
-assert_contains "$xunit_run_root/stderr.log" "xpra-xauthority=$xunit_run_root/home/.Xauthority"
-assert_contains "$xunit_run_root/stderr.log" "xpra-arg=--xvfb=Xvfb -screen 0 1440x900x24 -nolisten tcp -noreset -auth $xunit_run_root/home/.Xauthority"
-assert_contains "$xunit_run_root/stdout.log" "fake-1cv8c"
-assert_matches "$xunit_run_root/stdout.log" '^display=:[0-9]+$'
-assert_contains "$xunit_run_root/stdout.log" "xauthority=$xunit_run_root/home/.Xauthority"
+assert_contains "$bdd_run_root/stderr.log" "xpra-xauthority=$bdd_run_root/home/.Xauthority"
+assert_contains "$bdd_run_root/stderr.log" "xpra-arg=--xvfb=Xvfb -screen 0 1440x900x24 -nolisten tcp -noreset -auth $bdd_run_root/home/.Xauthority"
+assert_contains "$bdd_run_root/stdout.log" "fake-1cv8c"
+assert_matches "$bdd_run_root/stdout.log" '^display=:[0-9]+$'
+assert_contains "$bdd_run_root/stdout.log" "xauthority=$bdd_run_root/home/.Xauthority"
 assert_contains "$invocation_log" "1cv8c"
 
 set +e
 (
   cd "$SOURCE_ROOT"
-  PATH="$path_missing_xpra" ONEC_FAKE_XPRA_READY_FILE="$fake_ready_file" ./scripts/test/run-xunit.sh --profile "$profile_path" --run-root "$runtime_missing_xpra_run_root" >/dev/null
+  PATH="$path_missing_xpra" ONEC_FAKE_XPRA_READY_FILE="$fake_ready_file" ./scripts/test/run-bdd.sh --profile "$profile_path" --run-root "$runtime_missing_xpra_run_root" >/dev/null
 )
 status_missing_xpra=$?
 set -e
 
 if [ "$status_missing_xpra" -eq 0 ]; then
-  printf 'expected run-xunit to fail when xpra is missing\n' >&2
+  printf 'expected run-bdd to fail when xpra is missing\n' >&2
   exit 1
 fi
 
@@ -290,4 +287,4 @@ fi
 
 assert_jq "$doctor_missing_xpra_run_root/summary.json" '.status == "failed"' "doctor-missing-xpra-status"
 assert_jq "$doctor_missing_xpra_run_root/summary.json" '[.checks.required_tools[] | select(.name == "xpra" and .status == "missing")] | length == 1' "doctor-missing-xpra-tool"
-assert_jq "$doctor_missing_xpra_run_root/summary.json" '[.checks.required_capabilities[] | select(.name == "run-xunit" and .reason == "missing xpra for direct-platform xpra wrapper")] | length == 1' "doctor-missing-xpra-xunit"
+assert_jq "$doctor_missing_xpra_run_root/summary.json" '[.checks.required_capabilities[] | select(.name == "run-bdd" and .reason == "missing xpra for direct-platform xpra wrapper")] | length == 1' "doctor-missing-xpra-bdd"

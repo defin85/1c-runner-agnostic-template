@@ -12,8 +12,6 @@ run_root_success="$tmpdir/run-success"
 run_root_failure="$tmpdir/run-failure"
 run_root_load="$tmpdir/run-load"
 run_root_update="$tmpdir/run-update"
-run_root_xunit="$tmpdir/run-xunit"
-run_root_unsupported="$tmpdir/run-unsupported"
 fake_binary="$tmpdir/fake-1cv8"
 expected_src_cf="$(realpath -m "$SOURCE_ROOT/src/cf")"
 
@@ -61,9 +59,6 @@ cat >"$profile_path" <<EOF
     },
     "loadSrc": {
       "sourceDir": "./src/cf"
-    },
-    "xunit": {
-      "command": ["bash", "-lc", "printf 'xunit-ok\\\\ncapability=%s\\\\nrun-root=%s\\\\nprofile=%s\\\\n' \"\$ONEC_CAPABILITY_ID\" \"\$ONEC_CAPABILITY_RUN_ROOT\" \"\$ONEC_PROFILE_PATH\""]
     },
     "bdd": {
       "command": ["bash", "-lc", "printf 'bdd-ok\\\\n'"]
@@ -166,67 +161,3 @@ assert_jq "$run_root_update/summary.json" '.status == "success"' "update-status"
 assert_jq "$run_root_update/summary.json" '.driver == "designer"' "update-driver"
 assert_jq "$run_root_update/summary.json" '.execution.source == "standard-builder"' "update-execution-source"
 assert_contains "$run_root_update/stdout.log" "/UpdateDBCfg"
-
-(
-  cd "$SOURCE_ROOT"
-  ./scripts/test/run-xunit.sh --profile "$profile_path" --run-root "$run_root_xunit" >/dev/null
-)
-
-assert_jq "$run_root_xunit/summary.json" '.status == "success"' "xunit-status"
-assert_jq "$run_root_xunit/summary.json" '.execution.source == "profile-command"' "xunit-execution-source"
-assert_contains "$run_root_xunit/stdout.log" "xunit-ok"
-assert_contains "$run_root_xunit/stdout.log" "capability=run-xunit"
-assert_contains "$run_root_xunit/stdout.log" "run-root=$run_root_xunit"
-assert_contains "$run_root_xunit/stdout.log" "profile=$profile_path"
-
-unsupported_profile_path="$tmpdir/unsupported-profile.json"
-cat >"$unsupported_profile_path" <<EOF
-{
-  "schemaVersion": 2,
-  "profileName": "unsupported-fixture",
-  "runnerAdapter": "direct-platform",
-  "platform": {
-    "binaryPath": "$fake_binary"
-  },
-  "infobase": {
-    "mode": "file",
-    "filePath": "/var/tmp/unsupported-fixture",
-    "auth": {
-      "mode": "os",
-      "user": null,
-      "passwordEnv": null
-    }
-  },
-  "capabilities": {
-    "xunit": {
-      "unsupportedReason": "xUnit contour is not wired yet."
-    },
-    "bdd": {
-      "command": ["bash", "-lc", "printf 'bdd-ok\\\\n'"]
-    },
-    "smoke": {
-      "command": ["bash", "-lc", "printf 'smoke-ok\\\\n'"]
-    }
-  }
-}
-EOF
-
-set +e
-(
-  cd "$SOURCE_ROOT"
-  ./scripts/test/run-xunit.sh --profile "$unsupported_profile_path" --run-root "$run_root_unsupported" >/dev/null
-)
-status=$?
-set -e
-
-if [ "$status" -ne 64 ]; then
-  printf 'unexpected exit code for unsupported xunit contour: %s\n' "$status" >&2
-  exit 1
-fi
-
-assert_jq "$run_root_unsupported/summary.json" '.status == "failed"' "unsupported-status"
-assert_jq "$run_root_unsupported/summary.json" '.exit_code == 64' "unsupported-exit-code"
-assert_jq "$run_root_unsupported/summary.json" '.execution.source == "unsupported-profile"' "unsupported-source"
-assert_jq "$run_root_unsupported/summary.json" '.unsupported.placeholder == true' "unsupported-placeholder"
-assert_jq "$run_root_unsupported/summary.json" '.unsupported.reason == "xUnit contour is not wired yet."' "unsupported-reason"
-assert_contains "$run_root_unsupported/stderr.log" "unsupported contour: xUnit contour is not wired yet."

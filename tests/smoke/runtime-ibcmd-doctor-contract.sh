@@ -97,9 +97,6 @@ cat >"$profile_path" <<EOF
     "updateDb": {
       "driver": "ibcmd"
     },
-    "xunit": {
-      "command": ["bash", "-lc", "printf 'xunit-ok\\\\n'"]
-    },
     "bdd": {
       "command": ["bash", "-lc", "printf 'bdd-ok\\\\n'"]
     },
@@ -195,9 +192,6 @@ cat >"$non_git_root/env/local.json" <<EOF
     "updateDb": {
       "driver": "ibcmd"
     },
-    "xunit": {
-      "command": ["bash", "-lc", "printf 'xunit-ok\\\\n'"]
-    },
     "bdd": {
       "command": ["bash", "-lc", "printf 'bdd-ok\\\\n'"]
     },
@@ -272,9 +266,6 @@ cat >"$invalid_profile_path" <<EOF
     "dumpSrc": {
       "driver": "ibcmd"
     },
-    "xunit": {
-      "command": ["bash", "-lc", "printf 'xunit-ok\\\\n'"]
-    },
     "bdd": {
       "command": ["bash", "-lc", "printf 'bdd-ok\\\\n'"]
     },
@@ -338,9 +329,6 @@ cat >"$create_only_profile_path" <<EOF
   "capabilities": {
     "createIb": {
       "driver": "ibcmd"
-    },
-    "xunit": {
-      "command": ["bash", "-lc", "printf 'xunit-ok\\\\n'"]
     },
     "bdd": {
       "command": ["bash", "-lc", "printf 'bdd-ok\\\\n'"]
@@ -416,9 +404,6 @@ cat >"$helper_repo/env/local.json" <<EOF
     },
     "diffSrc": {
       "command": ["git", "diff", "--", "./src"]
-    },
-    "xunit": {
-      "command": ["bash", "-lc", "printf 'xunit-ok\\\\n'"]
     },
     "bdd": {
       "command": ["bash", "-lc", "printf 'bdd-ok\\\\n'"]

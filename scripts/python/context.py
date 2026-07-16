@@ -290,7 +290,7 @@ def render_generated_recommended_skills(root: Path, metadata_json: str) -> str:
         ),
         (
             "Git-backed partial import loop",
-            "`1c-load-diff-src` -> `1c-update-db` -> `1c-run-xunit`",
+            "`1c-load-diff-src` -> `1c-update-db` -> `1c-run-yaxunit`",
             "Это preferred native path для быстрых изменений в `src/cf` и локальной проверки.",
         ),
         (

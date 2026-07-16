@@ -139,14 +139,12 @@ all_ibcmd_capabilities_json='{
   "dumpSrc": {"driver": "ibcmd", "outputDir": "./src/cf"},
   "loadSrc": {"driver": "ibcmd", "sourceDir": "./src/cf"},
   "updateDb": {"driver": "ibcmd"},
-  "xunit": {"command": ["bash", "-lc", "printf '\''xunit-ok\\n'\''"]},
   "bdd": {"command": ["bash", "-lc", "printf '\''bdd-ok\\n'\''"]},
   "smoke": {"command": ["bash", "-lc", "printf '\''smoke-ok\\n'\''"]}
 }'
 
 mixed_capabilities_json='{
   "loadSrc": {"driver": "ibcmd", "sourceDir": "./src/cf"},
-  "xunit": {"command": ["bash", "-lc", "printf '\''xunit-ok\\n'\''"]},
   "bdd": {"command": ["bash", "-lc", "printf '\''bdd-ok\\n'\''"]},
   "smoke": {"command": ["bash", "-lc", "printf '\''smoke-ok\\n'\''"]}
 }'

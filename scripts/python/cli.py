@@ -9,7 +9,7 @@ from .context import export_context, verify_traceability
 from .epf_templates import init_epf_from_template
 from .imported_skills import render_imported_skill_readiness, run_imported_skill, sync_imported_skills
 from .qa import agent_verify, analyze_bsl, check_agent_docs, check_overlay_manifest, check_skill_bindings, codex_onboard, format_bsl
-from .runtime import run_doctor, run_load_diff_src, run_load_task_src, run_profile_capability, run_tdd_xunit, task_trailers_render, task_trailers_select_commits, task_trailers_validate_message
+from .runtime import run_doctor, run_load_diff_src, run_load_task_src, run_profile_capability, task_trailers_render, task_trailers_select_commits, task_trailers_validate_message
 from .template_tools import (
     bootstrap_post_copy,
     bootstrap_post_update,
@@ -28,7 +28,6 @@ CAPABILITY_LABELS = {
     "load-src": "Load source tree",
     "update-db": "Update DB configuration",
     "diff-src": "Diff source tree",
-    "run-xunit": "Run xUnit checks",
     "run-bdd": "Run BDD checks",
     "run-smoke": "Run smoke checks",
     "publish-http": "Publish HTTP service",
@@ -61,8 +60,6 @@ def main(argv: list[str] | None = None) -> int:
             return run_load_diff_src(args)
         if command == "load-task-src":
             return run_load_task_src(args)
-        if command == "tdd-xunit":
-            return run_tdd_xunit(args)
         if command == "export-context":
             mode = args[0] if args else "--help"
             return export_context(mode)

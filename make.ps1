@@ -37,8 +37,6 @@ $targets = @{
     "update-db" = @((Resolve-TargetScript "scripts\platform\update-db.ps1"))
     "diff-src" = @((Resolve-TargetScript "scripts\platform\diff-src.ps1"))
     "doctor" = @((Resolve-TargetScript "scripts\diag\doctor.ps1"))
-    "test-xunit" = @((Resolve-TargetScript "scripts\test\run-xunit.ps1"))
-    "tdd-xunit" = @((Resolve-TargetScript "scripts\test\tdd-xunit.ps1"))
     "test-bdd" = @((Resolve-TargetScript "scripts\test\run-bdd.ps1"))
     "smoke" = @((Resolve-TargetScript "scripts\test\run-smoke.ps1"))
     "export-context" = @((Resolve-TargetScript "scripts\llm\export-context.ps1"))
@@ -71,8 +69,6 @@ if ($Target -eq "help") {
         "  ./make.ps1 update-db",
         "  ./make.ps1 diff-src",
         "  ./make.ps1 doctor",
-        "  ./make.ps1 test-xunit",
-        "  ./make.ps1 tdd-xunit",
         "  ./make.ps1 test-bdd",
         "  ./make.ps1 smoke",
         "  ./make.ps1 export-context",
