@@ -25,7 +25,7 @@
 {
   "prepareGolden": "./tests/golden/restore.sh --profile env/local.json --target ut",
   "startWarmService": "./scripts/test/run-bdd-warm-service.sh up --profile env/local.json",
-  "runJob": "./scripts/test/run-bdd-warm-run.sh --profile env/local.json --feature-path <featurePath>"
+  "runJob": "ONEC_PROFILE_PATH=env/local.json ONEC_TARGET_ID=ut ONEC_BDD_FEATURES=<featurePath> ./scripts/test/run-bdd-warm-run.sh"
 }
 ```
 
@@ -36,7 +36,19 @@
 {"id":"unit-common","kind":"yaxunit","status":"pending","selector":{"filters":{"extensions":["ProjectYAxUnitTests"],"tags":["smoke"]}}}
 ```
 
-`vanessa-bdd` передаёт `featurePath` существующему BDD-запускателю. `yaxunit` передаёт `filters` существующему YAxUnit-запускателю после синхронизации расширений. Разрешены фильтры `extensions`, `modules`, `tests`, `tags`, `paths`; каждый заданный фильтр — непустой массив строк.
+`vanessa-bdd` преобразуется в явный запуск одного feature-файла:
+
+```bash
+ONEC_PROFILE_PATH=env/local.json ONEC_TARGET_ID=ut ONEC_BDD_FEATURES="features/login.feature" ./scripts/test/run-bdd-warm-run.sh
+```
+
+`yaxunit` запускается после синхронизации расширений; значения `filters` передаются одноимённым параметрам существующего запуска:
+
+```bash
+./scripts/test/run-yaxunit.sh --profile env/local.json --target ut --extension ProjectYAxUnitTests --tag smoke
+```
+
+Разрешены фильтры `extensions`, `modules`, `tests`, `tags`, `paths`; каждый заданный фильтр — непустой массив строк. Инструмент кампании только возвращает selector как JSON и сам эти команды не запускает.
 
 ## Работа
 

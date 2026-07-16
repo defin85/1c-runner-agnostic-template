@@ -969,6 +969,7 @@
 ./openspec/changes/add-reusable-testing-campaign/specs/template-overlay-delivery/spec.md
 ./openspec/changes/add-reusable-testing-campaign/tasks.md
 ./openspec/changes/add-reusable-testing-campaign/traceability.md
+./openspec/changes/add-reusable-testing-campaign/verification-report.md
 ./openspec/changes/archive/2026-03-18-add-agent-toolkit-and-ci-contours/design.md
 ./openspec/changes/archive/2026-03-18-add-agent-toolkit-and-ci-contours/proposal.md
 ./openspec/changes/archive/2026-03-18-add-agent-toolkit-and-ci-contours/specs/agent-runtime-toolkit/spec.md

@@ -18,7 +18,7 @@ sys.path.insert(0, str(SOURCE_ROOT))
 from scripts.python import common
 from scripts.python.common import CommandError
 from scripts.python.testing_campaign import STATUSES, TRANSITIONS, run_testing_campaign
-from scripts.python.testing_tooling import init_test_tooling, install_test_tooling
+from scripts.python.testing_tooling import CLASS_ID_RE, UUID_RE, init_test_tooling, install_test_tooling
 
 
 def expect_failure(call, contains: str = "") -> None:
@@ -63,6 +63,9 @@ def campaign_contract(root: Path) -> None:
     assert json.loads(output.getvalue())["job"]["id"] == "retry"
     run_testing_campaign(["set", "retry", "running"])
     run_testing_campaign(["set", "retry", "done", "--result-dir", ".artifacts/retry"])
+    with contextlib.redirect_stdout(io.StringIO()) as output:
+        run_testing_campaign(["next"])
+    assert json.loads(output.getvalue())["job"]["id"] == "running"
     expect_failure(lambda: run_testing_campaign(["set", "retry", "running"]), "transition is not allowed")
     expect_failure(lambda: run_testing_campaign(["set", "pending", "done", "--result-dir", "out"]), "transition is not allowed")
     expect_failure(lambda: run_testing_campaign(["set", "running", "done"]), "resultDir")
@@ -70,14 +73,19 @@ def campaign_contract(root: Path) -> None:
     run_testing_campaign(["set", "running", "blocked"])
     run_testing_campaign(["set", "pending", "skipped_by_policy"])
     with contextlib.redirect_stdout(io.StringIO()) as output:
+        run_testing_campaign(["next"])
+    assert json.loads(output.getvalue())["job"]["id"] == "unit"
+    with contextlib.redirect_stdout(io.StringIO()) as output:
         run_testing_campaign(["status"])
     status = json.loads(output.getvalue())
     assert status["campaignId"] == "main" and set(status["counts"]) == set(STATUSES)
 
-    init_campaign(root, "empty", [])
+    init_campaign(root, "exhausted", [bdd("done", "done", resultDir="results/done"), bdd("blocked", "blocked")])
     with contextlib.redirect_stdout(io.StringIO()) as output:
         run_testing_campaign(["next"])
-    assert json.loads(output.getvalue()) == {"campaignId": "empty", "job": None}
+    assert json.loads(output.getvalue()) == {"campaignId": "exhausted", "job": None}
+    entries, queue = write_inputs(root, [])
+    expect_failure(lambda: run_testing_campaign(["init", "--id", "empty", "--queue", str(queue), "--entrypoints", str(entries)]), "at least one job")
     run_testing_campaign(["use", "main"])
 
     entries, queue = write_inputs(root, [bdd("same"), bdd("same")])
@@ -86,6 +94,8 @@ def campaign_contract(root: Path) -> None:
     expect_failure(lambda: run_testing_campaign(["init", "--id", "unknown", "--queue", str(queue), "--entrypoints", str(entries)]), "unknown fields")
     entries, queue = write_inputs(root, [bdd("escape", selector={"featurePath": "../x"})])
     expect_failure(lambda: run_testing_campaign(["init", "--id", "escape", "--queue", str(queue), "--entrypoints", str(entries)]), "project-relative")
+    entries, queue = write_inputs(root, [bdd("dot", selector={"featurePath": "features/./a.feature"})])
+    expect_failure(lambda: run_testing_campaign(["init", "--id", "dot", "--queue", str(queue), "--entrypoints", str(entries)]), "project-relative")
     entries, queue = write_inputs(root, [bdd("extra")], extra_entrypoint=True)
     expect_failure(lambda: run_testing_campaign(["init", "--id", "extra", "--queue", str(queue), "--entrypoints", str(entries)]), "unknown fields")
     symlink = root / "features" / "linked.feature"
@@ -100,6 +110,20 @@ def campaign_contract(root: Path) -> None:
     campaign_file.write_text(json.dumps(broken), encoding="utf-8")
     expect_failure(lambda: run_testing_campaign(["use", "main"]), "schemaVersion")
     campaign_file.write_text(original, encoding="utf-8")
+
+    pointer = root / "analysis/testing/active-campaign.txt"
+    pointer.unlink()
+    pointer.symlink_to(campaign_file)
+    expect_failure(lambda: run_testing_campaign(["use", "main"]), "symbolic links")
+    pointer.unlink()
+    pointer.write_text("main\n", encoding="utf-8")
+    campaign_queue = root / "analysis/testing/campaigns/main/queue.jsonl"
+    queue_text = campaign_queue.read_text(encoding="utf-8")
+    campaign_queue.unlink()
+    campaign_queue.symlink_to(root / "queue.jsonl")
+    expect_failure(lambda: run_testing_campaign(["status"]), "symbolic links")
+    campaign_queue.unlink()
+    campaign_queue.write_text(queue_text, encoding="utf-8")
 
     for old in STATUSES:
         for new in STATUSES:
@@ -130,9 +154,10 @@ def campaign_state_symlink_contract(root: Path) -> None:
         outside.rmdir()
 
 
-def tree_hash(root: Path) -> str:
+def tree_hash(root: Path, excluded: set[str] | None = None) -> str:
     digest = hashlib.sha256()
-    for path in sorted(p for p in root.rglob("*") if p.is_file() and p.name not in {"LICENSE", "UPSTREAM.json"}):
+    excluded = excluded or {"LICENSE", "UPSTREAM.json"}
+    for path in sorted(p for p in root.rglob("*") if p.is_file() and p.name not in excluded):
         digest.update(path.relative_to(root).as_posix().encode() + b"\0" + hashlib.sha256(path.read_bytes()).hexdigest().encode() + b"\n")
     return digest.hexdigest()
 
@@ -143,13 +168,44 @@ def source_contract() -> None:
     assert "Delans" not in all_template_text
     assert "ЗащитаПерсональныхДанных" not in all_template_text
     assert "ОбщегоНазначенияКлиентПереопределяемый" not in all_template_text
+    assert "b5856766-e641-4da0-bbe1-84679f609410" not in all_template_text
+    assert "2976c29f-f482-463d-8f6e-6a632fb50893" not in all_template_text
     vatest = (base / "templates/VATestContour/CommonModules/VATestContour_VanessaAutomationСервисГлобальный/Ext/Module.bsl").read_text(encoding="utf-8-sig")
     assert "RunCompletePath" in vatest and "VisibleManager" in vatest
-    for name in ("YAxUnit", "VAExtension"):
+    template_trees = {
+        "VATestContour": "3a289ff004088f3dece757ea41cc9081ac45d813",
+        "ProjectYAxUnitTests": "ca01a015dcb5a310d6b0c602fe41051bc0c7d23c",
+    }
+    for name, git_tree in template_trees.items():
+        template = base / "templates" / name
+        source = json.loads((template / "SOURCE.json").read_text(encoding="utf-8"))
+        assert source["delansGitTree"] == git_tree
+        assert tree_hash(template, {"SOURCE.json"}) == source["sourceTreeSha256"]
+    vendor_sources = {
+        "YAxUnit": ("25.12", "805a2277c997a3c24be0b0d080696479e91e4a15ed7e27aaf3991a7346522d70", "9df32496af0985735968594c126a7e4bffb54e18"),
+        "VAExtension": ("1.29", "fc557bb23371a37dbe22a7a7a83e28f6db75b57f87e8802028cf1f90c4e00605", "2d8b3b72df05c0282403f5b0c34d2235e2369462"),
+    }
+    for name, expected in vendor_sources.items():
         vendor = base / "vendor" / name
         upstream = json.loads((vendor / "UPSTREAM.json").read_text(encoding="utf-8"))
         assert (vendor / "LICENSE").is_file()
+        assert (upstream["tag"], upstream["assetSha256"], upstream["delansGitTree"]) == expected
         assert tree_hash(vendor) == upstream["sourceTreeSha256"]
+
+
+def actual_tooling_contract(root: Path) -> None:
+    shutil.copytree(SOURCE_ROOT / "automation/testing", root / "automation/testing")
+    original = "\n".join(path.read_text(encoding="utf-8-sig", errors="ignore") for path in (root / "automation/testing/templates/ProjectYAxUnitTests").rglob("*") if path.is_file())
+    protected = {value.lower() for value in CLASS_ID_RE.findall(original)}
+    original_ids = {value.lower() for value in UUID_RE.findall(original)} - protected
+    init_test_tooling(["--project-tests-name", "AcmeTests"])
+    for name in ("VATestContour", "AcmeTests", "YAxUnit", "VAExtension"):
+        assert (root / "src/cfe" / name / "Configuration.xml").is_file()
+    text = "\n".join(path.read_text(encoding="utf-8-sig", errors="ignore") for path in (root / "src/cfe/AcmeTests").rglob("*") if path.is_file())
+    assert "ProjectYAxUnitTests" not in text
+    generated_ids = {value.lower() for value in UUID_RE.findall(text)}
+    assert not original_ids & generated_ids
+    assert protected <= generated_ids
 
 
 def fixture_sources(root: Path) -> None:
@@ -161,6 +217,13 @@ def fixture_sources(root: Path) -> None:
 
 def tooling_contract(root: Path) -> None:
     fixture_sources(root)
+    expect_failure(lambda: init_test_tooling(["--project-tests-name", "yaxunit"]), "conflicts")
+    existing = root / "src/cfe/VAExtension"
+    existing.mkdir(parents=True)
+    (existing / "marker.txt").write_text("keep", encoding="utf-8")
+    expect_failure(lambda: init_test_tooling(["--project-tests-name", "AcmeTests"]), "already exists")
+    assert [path.name for path in (root / "src/cfe").iterdir()] == ["VAExtension"]
+    shutil.rmtree(existing)
     init_test_tooling(["--project-tests-name", "AcmeTests"])
     targets = [root / "src/cfe" / name for name in ("VATestContour", "AcmeTests", "YAxUnit", "VAExtension")]
     assert all(path.is_dir() for path in targets)
@@ -183,12 +246,28 @@ def tooling_contract(root: Path) -> None:
     target = root / dependencies["vanessaAutomationSingle"]["installPath"]
     assert target.read_bytes() == payload
     install_test_tooling(["--archive", str(archive)])
+    dependencies["vanessaAutomationSingle"]["installPath"] = ".artifacts/testing/vanessa/next/vanessa-automation-single.epf"
+    (root / "automation/testing/dependencies.json").write_text(json.dumps(dependencies), encoding="utf-8")
+    install_test_tooling(["--archive", str(archive)])
+    assert target.read_bytes() == payload
+    assert (root / dependencies["vanessaAutomationSingle"]["installPath"]).read_bytes() == payload
+    dependencies["vanessaAutomationSingle"]["installPath"] = ".artifacts/testing/vanessa/test/vanessa-automation-single.epf"
+    (root / "automation/testing/dependencies.json").write_text(json.dumps(dependencies), encoding="utf-8")
     bad = root / "bad.zip"
     bad.write_bytes(archive.read_bytes() + b"bad")
     target.write_bytes(b"previous file")
     expect_failure(lambda: install_test_tooling(["--archive", str(bad)]), "SHA-256")
     assert target.read_bytes() == b"previous file"
     target.unlink()
+    wrong_epf = root / "wrong-epf.zip"
+    with zipfile.ZipFile(wrong_epf, "w") as bundle:
+        bundle.writestr("vanessa-automation-single.epf", b"wrong epf")
+    dependencies["vanessaAutomationSingle"]["zipSha256"] = hashlib.sha256(wrong_epf.read_bytes()).hexdigest()
+    dependencies["vanessaAutomationSingle"]["installPath"] = ".artifacts/testing/vanessa/wrong/vanessa-automation-single.epf"
+    (root / "automation/testing/dependencies.json").write_text(json.dumps(dependencies), encoding="utf-8")
+    expect_failure(lambda: install_test_tooling(["--archive", str(wrong_epf)]), "EPF SHA-256")
+    assert not (root / dependencies["vanessaAutomationSingle"]["installPath"]).exists()
+    dependencies["vanessaAutomationSingle"]["installPath"] = ".artifacts/testing/vanessa/test/vanessa-automation-single.epf"
     unsafe = root / "unsafe.zip"
     with zipfile.ZipFile(unsafe, "w") as bundle:
         bundle.writestr("../vanessa-automation-single.epf", payload)
@@ -211,6 +290,20 @@ def tooling_contract(root: Path) -> None:
     dependencies["vanessaAutomationSingle"]["zipSha256"] = hashlib.sha256(unexpected.read_bytes()).hexdigest()
     (root / "automation/testing/dependencies.json").write_text(json.dumps(dependencies), encoding="utf-8")
     expect_failure(lambda: install_test_tooling(["--archive", str(unexpected)]), "unexpected ZIP")
+    dependencies["vanessaAutomationSingle"]["installPath"] = "../outside.epf"
+    (root / "automation/testing/dependencies.json").write_text(json.dumps(dependencies), encoding="utf-8")
+    expect_failure(lambda: install_test_tooling(["--archive", str(archive)]), "project-relative")
+    dependencies["vanessaAutomationSingle"]["installPath"] = ".artifacts/testing/vanessa/test/vanessa-automation-single.epf"
+    outside = root.parent / f"{root.name}-artifacts"
+    outside.mkdir()
+    shutil.rmtree(root / ".artifacts")
+    (root / ".artifacts").symlink_to(outside, target_is_directory=True)
+    (root / "automation/testing/dependencies.json").write_text(json.dumps(dependencies), encoding="utf-8")
+    try:
+        expect_failure(lambda: install_test_tooling(["--archive", str(archive)]), "symbolic links")
+    finally:
+        (root / ".artifacts").unlink()
+        outside.rmdir()
 
 
 def wrapper_contract() -> None:
@@ -233,6 +326,9 @@ def main() -> None:
         with tempfile.TemporaryDirectory(prefix="tooling-contract-") as temp:
             common.PROJECT_ROOT = Path(temp)
             tooling_contract(common.PROJECT_ROOT)
+        with tempfile.TemporaryDirectory(prefix="actual-tooling-contract-") as temp:
+            common.PROJECT_ROOT = Path(temp)
+            actual_tooling_contract(common.PROJECT_ROOT)
     finally:
         common.PROJECT_ROOT = old_root
     print("reusable testing contract passed")

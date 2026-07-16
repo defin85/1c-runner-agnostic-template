@@ -37,6 +37,21 @@ def _dependencies(root: Path) -> dict:
         die(f"cannot read testing dependencies: {error}")
 
 
+def _project_target(root: Path, value: object) -> Path:
+    if not isinstance(value, str) or not value:
+        die("testing dependency installPath must be project-relative")
+    relative = PurePosixPath(value.replace("\\", "/"))
+    if relative.is_absolute() or ".." in relative.parts:
+        die("testing dependency installPath must be project-relative")
+    target = root.joinpath(*relative.parts)
+    current = root
+    for part in relative.parts:
+        current /= part
+        if current.is_symlink():
+            die("symbolic links are not allowed in testing dependency installPath")
+    return target
+
+
 def _rewrite_project_template(root: Path, name: str) -> None:
     if not NAME_RE.fullmatch(name):
         die("--project-tests-name must be a valid 1C metadata name")
@@ -75,7 +90,7 @@ def init_test_tooling(argv: list[str]) -> int:
     target_root = root / "src" / "cfe"
     if not NAME_RE.fullmatch(args.project_tests_name):
         die("--project-tests-name must be a valid 1C metadata name")
-    if args.project_tests_name in {"VATestContour", "YAxUnit", "VAExtension"}:
+    if args.project_tests_name.casefold() in {name.casefold() for name in ("VATestContour", "YAxUnit", "VAExtension")}:
         die("--project-tests-name conflicts with a fixed test-tooling extension name")
     if (root / "src").is_symlink() or target_root.is_symlink():
         die("symbolic links are not allowed in src/cfe")
@@ -130,7 +145,7 @@ def install_test_tooling(argv: list[str]) -> int:
     args = parser.parse_args(argv)
     root = project_root()
     dep = _dependencies(root)["vanessaAutomationSingle"]
-    target = root / dep["installPath"]
+    target = _project_target(root, dep["installPath"])
     if target.is_file() and _sha256(target) == dep["epfSha256"]:
         return 0
     target.parent.mkdir(parents=True, exist_ok=True)

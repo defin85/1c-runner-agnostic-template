@@ -910,7 +910,7 @@ write_runtime_support_matrix_json_starter() {
       "entrypoint": "./scripts/test/run-yaxunit.sh --profile env/local.json --run-root /tmp/yaxunit-run",
       "profileProvenance": "operator-local env/local.json or explicit --profile",
       "runbookPath": "docs/agent/operator-local-runbook.md",
-      "summary": "Generic YAxUnit runner."
+      "summary": "Run init-test-tooling when pinned sources are absent, then sync-yaxunit-runtime for the selected target before this YAxUnit runner."
     },
     {
       "id": "yaxunit-warm-rpc",
@@ -919,7 +919,7 @@ write_runtime_support_matrix_json_starter() {
       "entrypoint": "./scripts/test/run-yaxunit-warm-service.sh up --profile env/local.json --run-root /tmp/yaxunit-warm-rpc-up-run",
       "profileProvenance": "operator-local env/local.json or explicit --profile",
       "runbookPath": "docs/agent/operator-local-runbook.md",
-      "summary": "Reusable warm RPC service for YAxUnit runs."
+      "summary": "Run init-test-tooling when pinned sources are absent, then sync-yaxunit-runtime for the selected target before this warm RPC service."
     },
     {
       "id": "web-client-diagnostic",
@@ -955,7 +955,7 @@ write_runtime_support_matrix_json_starter() {
       "entrypoint": "./scripts/test/run-bdd-warm-service.sh up --profile env/local.json --run-root /tmp/bdd-warm-service-run",
       "profileProvenance": "operator-local env/local.json plus automation/context/operator-local-targets.json",
       "runbookPath": "docs/agent/operator-local-runbook.md",
-      "summary": "Vanessa BDD warm-service launcher with /TESTMANAGER and /TestClient sessions; project-owned 1C code handles capabilities.bddWarmService.launchParameterName."
+      "summary": "Run init-test-tooling and install-test-tooling when their outputs are absent, sync the selected extensions, then start /TESTMANAGER and /TestClient; project-owned 1C code handles capabilities.bddWarmService.launchParameterName."
     },
     {
       "id": "smoke",
@@ -1024,6 +1024,8 @@ write_runtime_support_matrix_markdown_starter() {
 | `bdd-warm-service` | `operator-local` | `env/local.json` + `automation/context/operator-local-targets.json` | `./scripts/test/run-bdd-warm-service.sh up --profile env/local.json --run-root /tmp/bdd-warm-service-run` | `docs/agent/operator-local-runbook.md` |
 | `smoke` | `unsupported` | project decides later | `./scripts/test/run-smoke.sh --profile env/local.json --run-root /tmp/smoke-run` | `docs/agent/generated-project-verification.md` |
 | `publish-http` | `unsupported` | project decides later | `./scripts/platform/publish-http.sh --profile env/local.json --run-root /tmp/publish-http-run` | `docs/agent/generated-project-verification.md` |
+
+Missing test sources route to `init-test-tooling`; installed YAxUnit sources route to `sync-yaxunit-runtime`; Vanessa BDD additionally routes missing Vanessa Automation Single to `install-test-tooling`.
 
 ## Optional Project-Specific Baseline Extension
 

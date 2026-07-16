@@ -8,7 +8,7 @@ from pathlib import Path
 
 from .common import die, project_root, run_process
 from .context import export_context, is_source_repo, verify_traceability
-from .imported_skills import imported_skill_readiness_payload
+from .imported_skills import _is_overlay_managed, imported_skill_readiness_payload
 
 
 def _frontmatter_lines(text: str) -> list[tuple[int, str]]:
@@ -125,33 +125,8 @@ def check_overlay_manifest(root: Path | None = None) -> int:
                 print("generated-project overlay manifest must not manage source-only or project-owned paths", file=os.sys.stderr)
                 return 1
         return 0
-    tracked = run_process(["git", "ls-files", "--cached", "--others", "--exclude-standard"], cwd=repo_root, check=True).stdout.splitlines()
-    expected: list[str] = []
-    for entry in tracked:
-        if entry == "[[[ _copier_conf.answers_file ]]]":
-            continue
-        if entry in {"AGENTS.md", "CLAUDE.md", "README.md", "copier.yml"}:
-            continue
-        if entry.startswith("openspec/") or entry.startswith(".claude/commands/") or entry.startswith("tooling/") or entry.startswith("analysis/testing/"):
-            continue
-        if entry in {
-            "automation/context/template-source-metadata-index.json",
-            "automation/context/template-source-project-map.md",
-            "automation/context/template-source-source-files.txt",
-            "automation/context/template-source-tree.txt",
-            "automation/context/template-update-preserve-paths.txt",
-            ".codex/config.toml",
-        }:
-            continue
-        if entry.startswith(".githooks/") or entry.startswith("scripts/release/"):
-            continue
-        if entry == "tests/smoke/template-release-workflow.sh":
-            continue
-        if entry.startswith("docs/work-items/"):
-            continue
-        if entry.startswith("src/") and entry not in {"src/AGENTS.md", "src/README.md"} and not is_managed_src_scaffold(entry):
-            continue
-        expected.append(entry)
+    tracked = run_process(["git", "-c", "core.quotePath=false", "ls-files", "--cached", "--others", "--exclude-standard"], cwd=repo_root, check=True).stdout.splitlines()
+    expected = [entry for entry in tracked if _is_overlay_managed(entry)]
     actual = [
         line.strip()
         for line in manifest.read_text(encoding="utf-8").splitlines()

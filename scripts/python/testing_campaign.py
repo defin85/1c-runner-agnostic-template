@@ -55,8 +55,9 @@ def _valid_id(value: object, name: str) -> str:
 def _relative_path(value: object, name: str) -> str:
     if not isinstance(value, str) or not value:
         die(f"{name} must be a non-empty project-relative path")
-    path = PurePosixPath(value.replace("\\", "/"))
-    if path.is_absolute() or ".." in path.parts or "." in path.parts:
+    normalized = value.replace("\\", "/")
+    path = PurePosixPath(normalized)
+    if path.is_absolute() or ".." in path.parts or normalized != path.as_posix():
         die(f"{name} must be a normalized project-relative path")
     current = project_root()
     for part in path.parts:
@@ -139,6 +140,8 @@ def _load_queue(path: Path) -> list[dict]:
     except json.JSONDecodeError as error:
         die(f"queue contains invalid JSON: {error}")
     ids = [job["id"] for job in jobs]
+    if not jobs:
+        die("queue must contain at least one job")
     if len(ids) != len(set(ids)):
         die("job ids must be unique")
     return jobs
@@ -168,6 +171,8 @@ def _state_root(root: Path) -> Path:
 
 
 def _atomic_text(path: Path, text: str) -> None:
+    if path.is_symlink():
+        die(f"symbolic links are not allowed in state file: {path.name}")
     path.parent.mkdir(parents=True, exist_ok=True)
     fd, temp_name = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
     try:

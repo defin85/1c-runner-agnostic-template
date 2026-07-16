@@ -578,7 +578,12 @@ assert_contains "$rendered_root/automation/context/project-map.md" "env/README.m
 assert_contains "$rendered_root/automation/context/project-map.md" "docs/exec-plans/README.md"
 assert_contains "$rendered_root/automation/context/runtime-support-matrix.md" "# Runtime Support Matrix"
 assert_contains "$rendered_root/automation/context/runtime-support-matrix.md" '`operator-local`'
+assert_contains "$rendered_root/automation/context/runtime-support-matrix.md" '`init-test-tooling`'
+assert_contains "$rendered_root/automation/context/runtime-support-matrix.md" '`sync-yaxunit-runtime`'
+assert_contains "$rendered_root/automation/context/runtime-support-matrix.md" '`install-test-tooling`'
 assert_contains "$rendered_root/automation/context/runtime-support-matrix.md" "## Optional Project-Specific Baseline Extension"
+assert_jq "$rendered_root/automation/context/runtime-support-matrix.json" '[.contours[] | select(.id == "yaxunit" or .id == "yaxunit-warm-rpc") | .summary | contains("init-test-tooling") and contains("sync-yaxunit-runtime")] | all' "generated-yaxunit-prerequisites"
+assert_jq "$rendered_root/automation/context/runtime-support-matrix.json" '.contours[] | select(.id == "bdd-warm-service") | .summary | contains("init-test-tooling") and contains("install-test-tooling")' "generated-bdd-prerequisites"
 assert_contains "$rendered_root/automation/context/recommended-skills.generated.md" "# Generated Recommended Skills"
 assert_contains "$rendered_root/automation/context/recommended-skills.generated.md" "make imported-skills-readiness"
 assert_contains "$rendered_root/automation/context/recommended-skills.generated.md" ".agents/skills/README.md"
