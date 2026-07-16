@@ -278,6 +278,8 @@ assert_not_exists "$rendered_root/tooling/new-1c-project"
 assert_not_exists "$rendered_root/tooling/update-1c-project"
 assert_exists "$rendered_root/automation/context/project-map.md"
 assert_exists "$rendered_root/automation/context/runtime-profile-policy.json"
+assert_exists "$rendered_root/analysis/testing/campaigns/.gitkeep"
+assert_not_exists "$rendered_root/analysis/testing/active-campaign.txt"
 assert_exists "$rendered_root/automation/context/target-matrix.json"
 assert_exists "$rendered_root/automation/context/operator-local-targets.json"
 assert_exists "$rendered_root/automation/context/runtime-support-matrix.json"
@@ -779,7 +781,16 @@ cat >>"$rendered_root/.codex/config.toml" <<'EOF'
 LOCAL_SMOKE_MARKER = "must survive template overlay apply"
 EOF
 
-git -C "$rendered_root" add README.md automation/context/project-map.md openspec/project.md .codex/config.toml
+mkdir -p \
+  "$rendered_root/src/cfe/ProjectYAxUnitTests" \
+  "$rendered_root/analysis/testing/campaigns/local-campaign" \
+  "$rendered_root/.artifacts/testing/vanessa/local"
+printf '%s\n' 'project-owned extension marker' >"$rendered_root/src/cfe/ProjectYAxUnitTests/marker.txt"
+printf '%s\n' 'project-owned campaign marker' >"$rendered_root/analysis/testing/campaigns/local-campaign/queue.jsonl"
+printf '%s\n' 'project-owned artifact marker' >"$rendered_root/.artifacts/testing/vanessa/local/vanessa-automation-single.epf"
+
+git -C "$rendered_root" add README.md automation/context/project-map.md openspec/project.md .codex/config.toml src/cfe/ProjectYAxUnitTests analysis/testing
+git -C "$rendered_root" add -f .artifacts/testing/vanessa/local/vanessa-automation-single.epf
 git -C "$rendered_root" commit -qm "project-owned edits"
 
 rm -f "$rendered_root/src/cf/DataProcessors/TestProcessor/Ext/ObjectModule.bsl"
@@ -856,6 +867,9 @@ assert_contains "$template_update_output" "Current overlay version: v0.1.0"
 assert_contains "$template_update_output" "Target overlay release: v0.2.0"
 
 assert_exists "$rendered_root/docs/template-update-note.txt"
+assert_contains "$rendered_root/src/cfe/ProjectYAxUnitTests/marker.txt" "project-owned extension marker"
+assert_contains "$rendered_root/analysis/testing/campaigns/local-campaign/queue.jsonl" "project-owned campaign marker"
+assert_contains "$rendered_root/.artifacts/testing/vanessa/local/vanessa-automation-single.epf" "project-owned artifact marker"
 assert_exists "$rendered_root/AGENTS.md"
 assert_contains "$rendered_root/AGENTS.md" "Refresh managed AGENTS overlays during template updates."
 assert_contains "$rendered_root/.gitignore" ".codex/*"

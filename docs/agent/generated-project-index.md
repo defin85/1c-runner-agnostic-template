@@ -67,6 +67,7 @@
 9. Raw inventory `automation/context/metadata-index.generated.json` открывайте только когда curated и summary-first layers уже не хватает.
 10. Для детальных Codex-native workflows переходите в [docs/agent/codex-workflows.md](codex-workflows.md).
 11. Пройдите safe-local baseline: `make agent-verify`, затем `make export-context-check`.
+12. Для YAxUnit и Vanessa BDD сначала выполните явные шаги из [кампании тестирования](../testing/testing-campaign.md): `init-test-tooling`, `install-test-tooling`, настройку профиля и синхронизацию расширений.
 12. Перед изменениями поведения сверяйтесь с `automation/context/project-map.md` и [docs/agent/review.md](review.md).
 13. Если работа становится multi-session, скопируйте [docs/exec-plans/TEMPLATE.md](../exec-plans/TEMPLATE.md) и держите supporting artifacts через [docs/work-items/README.md](../work-items/README.md).
 14. Для repeatable действий ищите готовый workflow в [.agents/skills/README.md](../../.agents/skills/README.md) и [.codex/README.md](../../.codex/README.md).

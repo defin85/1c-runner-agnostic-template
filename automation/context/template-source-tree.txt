@@ -192,6 +192,9 @@
 ./automation/context
 ./automation/context/templates
 ./automation/prompts
+./automation/testing
+./automation/testing/templates
+./automation/testing/vendor
 ./automation/vendor
 ./automation/vendor/cc-1c-skills
 ./docs

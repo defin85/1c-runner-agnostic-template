@@ -765,6 +765,7 @@ run_yaxunit() {
 
   wrapped_command=("$PROJECT_ROOT/scripts/adapters/direct-platform.sh" "${launch_command[@]}")
   prepare_adapter_wrapper_env "$ADAPTER" adapter_env
+  adapter_env+=("ONEC_CAPABILITY_RUN_ROOT=$RUN_ROOT")
   if [ -n "$TARGET_INPUT" ]; then
     target_env=("ONEC_TARGET_ID=$TARGET_INPUT")
   fi

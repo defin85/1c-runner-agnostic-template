@@ -39,4 +39,7 @@ printf '%s' "$readiness_json" | jq -e '
   (.representative.node.ready or ((.representative.node.bootstrap_commands | length) > 0))
 ' >/dev/null
 
+log "Check reusable testing contract"
+"$root/tests/smoke/reusable-testing-contract.sh"
+
 log "Baseline agent verification passed"

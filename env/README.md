@@ -254,7 +254,7 @@ Inline shell snippets и trivial success commands вроде `true`, `echo ...` 
   },
   "capabilities": {
     "bddWarmService": {
-      "vanessaSinglePath": "/path/to/vanessa-automation-single.epf",
+      "vanessaSinglePath": ".artifacts/testing/vanessa/1.2.043.28/vanessa-automation-single.epf",
       "warmupFeaturePath": "features/warmup.feature",
       "libraryPaths": ["features/libraries"],
       "launchParameterName": "ProjectBddWarmServiceConfig",

@@ -790,6 +790,7 @@ def _render_vendor_readme(imported_entries: list[dict[str, object]], upstream: d
 def _is_overlay_managed(rel: str) -> bool:
     excluded_exact = {
         "[[[ _copier_conf.answers_file ]]]",
+        "[[[ _copier_conf.answers_file ]]].jinja",
         "AGENTS.md",
         "CLAUDE.md",
         "README.md",
@@ -804,6 +805,8 @@ def _is_overlay_managed(rel: str) -> bool:
         "docs/work-items/TEMPLATE.md",
         "tests/smoke/template-release-workflow.sh",
     }
+    if rel.startswith("env/") and rel.endswith(".example.json.jinja"):
+        return False
     if rel in excluded_exact:
         return False
     excluded_prefixes = (
@@ -812,13 +815,21 @@ def _is_overlay_managed(rel: str) -> bool:
         "tooling/",
         ".githooks/",
         "scripts/release/",
+        "analysis/testing/",
+        ".claude/skills/openspec-",
+        ".codex/skills/openspec-",
     )
     if rel.startswith(excluded_prefixes):
         return False
     if rel.startswith("src/"):
         if rel in {"src/AGENTS.md", "src/README.md"}:
             return True
-        return rel.startswith("src/epf/TemplateXUnitHarness/")
+        return (
+            rel.startswith("src/epf/TemplateXUnitHarness/")
+            or rel in {"src/epf/AGENT_TEMPLATES.md", "src/cfe/AGENT_TEMPLATES.md"}
+            or rel.startswith("src/epf/_templates/")
+            or rel.startswith("src/cfe/_templates/")
+        )
     return True
 
 

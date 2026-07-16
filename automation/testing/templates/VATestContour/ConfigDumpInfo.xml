@@ -1,0 +1,15 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<ConfigDumpInfo xmlns="http://v8.1c.ru/8.3/xcf/dumpinfo" xmlns:xen="http://v8.1c.ru/8.3/xcf/enums" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" format="Hierarchical" version="2.20">
+	<ConfigVersions>
+		<Metadata name="CommonModule.VATestContour_VanessaAutomationСервисВызовСервера" id="ca38dfb2-59de-43b7-986f-2f397af76adb" configVersion="dadc35f74a15a9d2c4098f4567c881b66e6cdfaf"/>
+		<Metadata name="CommonModule.VATestContour_VanessaAutomationСервисВызовСервера.Module" id="ca38dfb2-59de-43b7-986f-2f397af76adb.0" configVersion="e3c6ee5df352cfc73b788a0c286f4c7c87a9ecbb"/>
+		<Metadata name="CommonModule.VATestContour_VanessaAutomationСервисГлобальный" id="9c5422cc-9f6f-4ceb-b3fc-252011e9a11b" configVersion="f6f914a458da49163785efeecece8767c9ef5ec8"/>
+		<Metadata name="CommonModule.VATestContour_VanessaAutomationСервисГлобальный.Module" id="9c5422cc-9f6f-4ceb-b3fc-252011e9a11b.0" configVersion="122af9ab2f62bbdf840542382c9e8510f0ebf9df"/>
+		<Metadata name="Configuration.VATestContour" id="1d437c09-6586-4c44-8c0b-487574dfe6ff" configVersion="26d01298edb3fd0b2dd68cd666a4d0608ece7a8d"/>
+		<Metadata name="Configuration.VATestContour.CommandInterface" id="a39f4b5d-39a8-481e-b104-9699ee518ce9.a" configVersion="fdaec039eea90396e8275a4185f01ff2ce9f09af"/>
+		<Metadata name="Configuration.VATestContour.MainSectionCommandInterface" id="a39f4b5d-39a8-481e-b104-9699ee518ce9.9" configVersion="fdaec039eea90396e8275a4185f01ff2ce9f09af"/>
+		<Metadata name="Language.Русский" id="c4dbbe2a-9fc4-4eb3-a631-6be4dc1c6959" configVersion="428e1398e8eb59ffd00f352217aa5ba402835b3a"/>
+		<Metadata name="Role.VATestContour_ОсновнаяРоль" id="3eb1406a-58d0-45f7-a667-030eb92ff780" configVersion="b52a0d018825a7c7ad1b938dda316067a1c2b650"/>
+		<Metadata name="Role.VATestContour_ОсновнаяРоль.Rights" id="3eb1406a-58d0-45f7-a667-030eb92ff780.0" configVersion="945ca08e5fa00dd442aaa42b9afe0f4ca7f73d26"/>
+	</ConfigVersions>
+</ConfigDumpInfo>

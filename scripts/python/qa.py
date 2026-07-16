@@ -112,7 +112,7 @@ def check_overlay_manifest(root: Path | None = None) -> int:
             or path.startswith("src/cfe/_templates/")
         )
     if not (repo_root / "automation" / "context" / "template-source-project-map.md").is_file():
-        forbidden_prefixes = ("openspec/", "tooling/")
+        forbidden_prefixes = ("openspec/", "tooling/", "analysis/testing/")
         forbidden_exact = {"AGENTS.md", "README.md", "copier.yml"}
         for line in manifest.read_text(encoding="utf-8").splitlines():
             line = line.strip()
@@ -132,7 +132,7 @@ def check_overlay_manifest(root: Path | None = None) -> int:
             continue
         if entry in {"AGENTS.md", "CLAUDE.md", "README.md", "copier.yml"}:
             continue
-        if entry.startswith("openspec/") or entry.startswith(".claude/commands/") or entry.startswith("tooling/"):
+        if entry.startswith("openspec/") or entry.startswith(".claude/commands/") or entry.startswith("tooling/") or entry.startswith("analysis/testing/"):
             continue
         if entry in {
             "automation/context/template-source-metadata-index.json",

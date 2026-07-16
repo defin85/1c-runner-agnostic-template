@@ -1,0 +1,10 @@
+{
+  "delansGitTree": "3a289ff004088f3dece757ea41cc9081ac45d813",
+  "removedBorrowedObject": "ОбщегоНазначенияКлиентПереопределяемый",
+  "comparedBehaviorSources": {
+    "DC_BDDWarmServiceGlobal": "4ff1fc4e73c22f8df210911986598fe58c2dc92b7314b880bf2468ceeca3bb09",
+    "DC_BDDWarmServiceServerCall": "100f170cdceda532312952d11dcc72bab0af5ceaf120e59fbab1f794467a2fa2"
+  },
+  "transferredFixes": ["RunCompletePath completion signal", "VisibleManager behavior"],
+  "sourceTreeSha256": "49f50b369cdaed7cd9cc0fd6ca4c5a124f8f7233f47e4fcbca4ea835b91da79f"
+}

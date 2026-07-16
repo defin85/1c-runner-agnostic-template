@@ -1,0 +1,11 @@
+{
+  "repository": "https://github.com/bia-technologies/yaxunit",
+  "release": "https://github.com/bia-technologies/yaxunit/releases/tag/25.12",
+  "tag": "25.12",
+  "asset": "YAxUnit.cfe",
+  "assetSha256": "805a2277c997a3c24be0b0d080696479e91e4a15ed7e27aaf3991a7346522d70",
+  "delansGitTree": "9df32496af0985735968594c126a7e4bffb54e18",
+  "sourceTreeSha256": "fa9052d0672f30004c90e5abf1e3d30815e9d3488ab865783c7cfe662b0a6ada",
+  "sourceTreeAlgorithm": "sha256(sorted(relative-path + NUL + file-sha256 + LF), excluding LICENSE and UPSTREAM.json)",
+  "license": "Apache-2.0"
+}

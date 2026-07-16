@@ -176,6 +176,19 @@ class CrossPlatformSmokeTests(unittest.TestCase):
         self.assertEqual(payload["representative"]["python"]["representative_skill"], "cf-edit")
         self.assertEqual(payload["representative"]["node"]["representative_skill"], "web-test")
 
+    def test_testing_tooling_wrappers_route_to_python_cli(self) -> None:
+        wrappers = {
+            "testing-campaign.ps1": "testing-campaign",
+            "init-test-tooling.ps1": "init-test-tooling",
+            "install-test-tooling.ps1": "install-test-tooling",
+        }
+        for filename, command in wrappers.items():
+            text = (ROOT / "scripts" / "test" / filename).read_text(encoding="utf-8")
+            self.assertIn(f'"{command}" @RemainingArgs', text)
+        result = run_command(["bash", "scripts/test/testing-campaign.sh", "--help"])
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("testing-campaign", result.stdout)
+
 
 if __name__ == "__main__":
     unittest.main()

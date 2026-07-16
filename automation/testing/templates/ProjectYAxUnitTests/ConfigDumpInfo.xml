@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ConfigDumpInfo xmlns="http://v8.1c.ru/8.3/xcf/dumpinfo" xmlns:xen="http://v8.1c.ru/8.3/xcf/enums" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" format="Hierarchical" version="2.20">
+	<ConfigVersions>
+		<Metadata name="CommonModule.ProjectYAxUnitTestsRegistration" id="b13018a8-d1ad-4a4f-9f7d-6df131d8a2d4" configVersion="a0d81ddf0e8adf997a2fb924c7c9f8bd78dbfc63"/>
+		<Metadata name="CommonModule.ProjectYAxUnitTestsRegistration.Module" id="b13018a8-d1ad-4a4f-9f7d-6df131d8a2d4.0" configVersion="cf2cb7fd058f80d7f42dc8914f3a9559ffdfd7c8"/>
+		<Metadata name="Configuration.ProjectYAxUnitTests" id="4d7d8ef8-43b9-4f87-9fa7-a90ea7d9a3a1" configVersion="f556a2bb22d7c15f35c1ad3b9b9590e12f6a65f0"/>
+		<Metadata name="Subsystem.ProjectYAxUnitTests_ЮТПодключаемыеМодули" id="fd33b3bb-c158-42f9-a8fb-8f7cc3461004" configVersion="bc0dd2c0a41dd09942d9cde2f5b6802d8f2afed6"/>
+		<Metadata name="Subsystem.ProjectYAxUnitTests_ЮТПодключаемыеМодули.Subsystem.ДымовыеТесты" id="1e01285f-17b8-4c21-89b0-061ee4d1199b" configVersion="e8531af0159de909ad85796c36d50958eb0adf32"/>
+	</ConfigVersions>
+</ConfigDumpInfo>

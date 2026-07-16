@@ -1,0 +1,11 @@
+{
+  "repository": "https://github.com/Pr-Mex/vanessa-automation",
+  "release": "https://github.com/Pr-Mex/vanessa-automation/releases/tag/1.2.043.28",
+  "tag": "1.29",
+  "asset": "VAExtension.1.29.cfe",
+  "assetSha256": "fc557bb23371a37dbe22a7a7a83e28f6db75b57f87e8802028cf1f90c4e00605",
+  "delansGitTree": "2d8b3b72df05c0282403f5b0c34d2235e2369462",
+  "sourceTreeSha256": "261b3b9a3450de806c52b0ec56ad4ae1a2f7043b869789a99d1f6630800cdb7e",
+  "sourceTreeAlgorithm": "sha256(sorted(relative-path + NUL + file-sha256 + LF), excluding LICENSE and UPSTREAM.json)",
+  "license": "BSD-3-Clause"
+}

@@ -1,0 +1,12 @@
+{
+  "vanessaAutomationSingle": {
+    "version": "1.2.043.28",
+    "url": "https://github.com/Pr-Mex/vanessa-automation/releases/download/1.2.043.28/vanessa-automation-single.1.2.043.28.zip",
+    "asset": "vanessa-automation-single.1.2.043.28.zip",
+    "zipSha256": "cd0a017a8af69328f471f628ac1367a0e5148f790df9c28c318348b30f08f32a",
+    "epfName": "vanessa-automation-single.epf",
+    "epfSha256": "97cf472753c44f3b391062ad918f01a6e0a5932f230570c3102ab22e44df7a48",
+    "installPath": ".artifacts/testing/vanessa/1.2.043.28/vanessa-automation-single.epf",
+    "license": "BSD-3-Clause"
+  }
+}

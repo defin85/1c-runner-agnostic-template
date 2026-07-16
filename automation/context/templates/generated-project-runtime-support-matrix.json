@@ -45,6 +45,7 @@
     "Target-aware contour entries should list target ids and reference the extension set selected for each target.",
     "golden-baseline is a mandatory project regression contour and should fail closed until the project wires tests/golden/run.sh or GOLDEN_BASELINE_COMMAND.",
     "bdd-warm-service is an operator-local Vanessa Automation warm contour: the template starts /TESTMANAGER and /TestClient, while project-owned 1C code must handle capabilities.bddWarmService.launchParameterName.",
+    "YAxUnit and Vanessa BDD require explicit init-test-tooling, install-test-tooling where applicable, profile setup and extension synchronization; Vanessa Automation Single uses the versioned repo-relative .artifacts/testing path.",
     "If a project adds an extra no-1C smoke contour, declare it via projectSpecificBaselineExtension and keep it separate from the template baseline."
   ]
 }

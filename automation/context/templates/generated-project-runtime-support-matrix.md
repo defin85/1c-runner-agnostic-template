@@ -11,6 +11,7 @@
 - покрывает как минимум `codex-onboard`, `agent-verify`, `export-context-check`, `doctor`, `check-x11-contour`, `load-cfe`, `configure-cfe-runtime-flags`, `check-cfe-applicability`, `check-cfe-config`, `load-diff-src`, `load-task-src`, `yaxunit`, `yaxunit-warm-rpc`, `web-client-diagnostic`, `golden-baseline`, `bdd`, `bdd-warm-service`, `smoke`, `publish-http`;
 - classifies `golden-baseline` as mandatory project regression baseline and keeps it fail-closed until the project wires `tests/golden/run.sh` or `GOLDEN_BASELINE_COMMAND`;
 - classifies `bdd-warm-service` as `operator-local` or `unsupported`; the template launcher starts `/TESTMANAGER` and `/TestClient`, while project-owned 1С code must handle `capabilities.bddWarmService.launchParameterName`;
+- requires explicit `init-test-tooling`, `install-test-tooling`, profile setup and extension sync before YAxUnit or Vanessa BDD runtime runs; Vanessa Automation Single lives at `.artifacts/testing/vanessa/1.2.043.28/vanessa-automation-single.epf`;
 - маршрутизирует `operator-local` contours через `docs/agent/operator-local-runbook.md` или другой явно объявленный project-owned runbook;
 - может опционально объявлять `projectSpecificBaselineExtension` для extra no-1C smoke, но не смешивает его с template baseline;
 - не использует ignored local-private profile как единственный durable shared source of truth;

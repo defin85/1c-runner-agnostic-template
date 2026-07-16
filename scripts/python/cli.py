@@ -20,6 +20,8 @@ from .template_tools import (
     update_project,
     update_template,
 )
+from .testing_campaign import run_testing_campaign
+from .testing_tooling import init_test_tooling, install_test_tooling
 
 
 CAPABILITY_LABELS = {
@@ -56,6 +58,12 @@ def main(argv: list[str] | None = None) -> int:
             return run_profile_capability(command, CAPABILITY_LABELS[command], args).exit_code
         if command == "doctor":
             return run_doctor(args)
+        if command == "testing-campaign":
+            return run_testing_campaign(args)
+        if command == "init-test-tooling":
+            return init_test_tooling(args)
+        if command == "install-test-tooling":
+            return install_test_tooling(args)
         if command == "load-diff-src":
             return run_load_diff_src(args)
         if command == "load-task-src":

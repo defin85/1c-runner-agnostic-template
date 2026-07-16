@@ -35,13 +35,14 @@ git -C "$root" -c core.quotePath=false ls-files --cached --others --exclude-stan
       /^README\.md$/ { next }
       /^copier\.yml$/ { next }
       /^openspec\// { next }
+      /^analysis\/testing\// { next }
       /^\.claude\/commands\// { next }
       /^\.claude\/skills\/openspec-/ { next }
       /^\.codex\/config\.toml$/ { next }
       /^\.codex\/skills\/openspec-/ { next }
       /^env\/.*\.example\.json\.jinja$/ { next }
       /^\[\[\[ _copier_conf\.answers_file \]\]\]\.jinja$/ { next }
-      /^tooling\/(new-1c-project|update-1c-project)(\.ps1)?$/ { next }
+      /^tooling\// { next }
       /^automation\/context\/template-source-(metadata-index\.json|project-map\.md|source-files\.txt|tree\.txt)$/ { next }
       /^automation\/context\/template-update-preserve-paths\.txt$/ { next }
       /^docs\/work-items\/(README|TEMPLATE)\.md$/ { next }
