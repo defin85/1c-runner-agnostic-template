@@ -1,7 +1,7 @@
 # Agent Docs Index
 
 Этот каталог является agent-facing system of record для репозитория.
-Если high-level overview в `README.md`, `docs/README.md` или `openspec/project.md` короче либо частично пересекается с этим слоем, для onboarding приоритет у `docs/agent/`.
+Если high-level overview в `README.md` или `docs/README.md` короче либо частично пересекается с этим слоем, для onboarding приоритет у `docs/agent/`.
 
 ## Быстрый маршрут
 

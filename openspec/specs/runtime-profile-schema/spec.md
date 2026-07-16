@@ -185,3 +185,51 @@ Runtime profiles SHALL represent the way `ibcmd` reaches the target standalone s
 - **AND** the example profile and durable docs MUST document the required helper fields for that contour, including ADD root, harness source dir, and timeout/config overrides when they are part of the shipped runner contract
 - **AND** adapters or presets that do not ship a runnable xUnit contour MUST continue to use `unsupportedReason` instead of pretending the contour is baseline-ready
 
+### Requirement: Target-Aware Runtime Profiles
+Runtime profiles SHALL support binding an operator-local profile to an explicit generated-project target configuration when a repository declares multiple target configurations.
+
+#### Scenario: Profile declares its target
+- **WHEN** a generated repository declares more than one target under project-owned target metadata
+- **THEN** a target-aware runtime profile MUST identify the target it belongs to by stable target id
+- **AND** launcher diagnostics MUST expose the selected target id without leaking secrets
+- **AND** target-aware commands MUST fail closed when the selected profile target is absent from project-owned target metadata
+
+#### Scenario: Multi-target source commands require target
+- **WHEN** a generated repository declares project-owned multi-target metadata
+- **THEN** source and extension runtime commands that can affect a target infobase MUST require an explicit target id
+- **AND** commands MUST fail closed when the runtime profile target and requested target disagree
+
+### Requirement: Vanessa BDD Target Contract
+The template SHALL provide a checked-in target contract for operator-local Vanessa BDD profiles.
+
+#### Scenario: Local BDD profile is selected for warm-service
+- **WHEN** a generated repository runs a Vanessa BDD or BDD warm-service entrypoint with a local-private runtime profile
+- **THEN** the entrypoint MUST validate the profile against checked-in target truth at `automation/context/operator-local-targets.json` under `operatorLocalTargets.vanessaBdd`
+- **AND** the target truth MUST include a stable target id, expected infobase mode, and the non-secret infobase identity fields needed for that mode, such as file path for file infobases or server/ref for client-server infobases
+- **AND** the entrypoint MUST fail closed when the local-private profile target id or infobase identity does not match the checked-in target truth
+- **AND** local-private profiles MUST remain credential and path carriers rather than the only durable source of target identity
+- **AND** the validation contract MUST allow projects to keep BDD unsupported until they explicitly configure their target truth
+
+### Requirement: Repo-Local Port Lease Helper Fallback
+The template SHALL provide a repo-local port lease helper fallback for operator-local runtime contours.
+
+#### Scenario: Global port lease helper is not installed
+- **WHEN** an operator-local contour needs a TestClient port lease
+- **AND** `ONEC_TEST_PORT_LEASE_HELPER` is not set
+- **AND** no `onec-test-port-lease` command is available in `PATH`
+- **THEN** the contour MUST be able to use a template-managed repo-local helper
+- **AND** the helper MUST support at least `lease`, `release`, and `status`
+- **AND** the lookup order MUST prefer `ONEC_TEST_PORT_LEASE_HELPER`, then `PATH`, then the template-managed repo-local helper
+- **AND** the helper MUST avoid embedding project-specific repository names by default
+
+### Requirement: Direct-Platform Xpra Process Cleanup
+
+The direct-platform adapter SHALL clean up wrapper-owned GUI session processes after an `xpra` runtime command exits.
+
+#### Scenario: Xpra wrapper starts helper processes
+
+- **WHEN** a direct-platform command runs with `platform.xpra.enabled=true`
+- **THEN** the wrapper MUST tag the `xpra` session with a per-run token
+- **AND** shutdown MUST stop the display and terminate wrapper-owned `xpra`, `Xvfb`, window manager, `dbus`, and `gvfs` helper processes
+- **AND** cleanup MUST avoid killing processes that existed before the wrapper started
+

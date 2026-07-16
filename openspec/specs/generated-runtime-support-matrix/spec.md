@@ -12,7 +12,7 @@ The template SHALL seed a project-owned runtime support matrix for generated rep
 - **AND** the machine-readable artifact MUST live at `automation/context/runtime-support-matrix.json`
 - **AND** the human-readable companion MUST live at `automation/context/runtime-support-matrix.md`
 - **AND** the matrix MUST classify each documented runtime contour at least as `supported`, `unsupported`, `operator-local`, or `provisioned`
-- **AND** reusable CFE, X11, port lease, web-client diagnostic, YAxUnit, and golden-baseline contours seeded by the template MUST be represented without project-specific target names
+- **AND** reusable CFE, X11, port lease, web-client diagnostic, YAxUnit, Vanessa BDD warm-service, and golden-baseline contours seeded by the template MUST be represented without project-specific target names
 - **AND** the golden-baseline contour MUST be represented as a mandatory project regression baseline that fails closed until the project supplies its comparison hook
 
 ### Requirement: Runtime Support Matrix Drives Generated Onboarding
@@ -47,4 +47,28 @@ The template SHALL keep a concise runtime quick reference aligned with the proje
 - **AND** each quick-reference contour summary MUST point back to the corresponding canonical runbook, entrypoint, or matrix entry
 - **AND** the runtime quick reference MUST remain short enough to answer “what can I run here and with what prerequisites?” without requiring the full general-purpose runtime contract first
 - **AND** reusable operator-local contours MUST describe their profile or explicit argument prerequisites rather than naming a source-project infobase or publication
+
+### Requirement: Target-Aware Runtime Support Matrix
+The runtime support matrix SHALL represent runtime contours that are valid only for selected target configurations.
+
+#### Scenario: Matrix documents target-specific extension checks
+- **WHEN** a generated project documents extension load, applicability, config check, update-db, or YAxUnit contours for a multi-target workspace
+- **THEN** the matrix entry MUST identify the target ids to which the contour applies
+- **AND** the entry MUST list or reference the extension set selected for each target
+- **AND** operator-local target profiles MUST remain distinguishable from shared checked-in target metadata
+
+#### Scenario: Matrix and target metadata drift
+- **WHEN** a matrix entry references a target id or extension name that no longer exists in project-owned target metadata
+- **THEN** semantic checks MUST fail
+- **AND** the failure MUST identify the stale target or extension reference
+
+### Requirement: Vanessa BDD Warm-Service Matrix Entry
+The template SHALL represent the optional Vanessa BDD warm-service contour in generated-project runtime support artifacts.
+
+#### Scenario: Generated repository advertises scenario-testing warm runs
+- **WHEN** a generated repository receives runtime support matrix artifacts from the template
+- **THEN** the matrix MUST include a `bdd-warm-service` contour entry
+- **AND** the entry MUST classify the contour as `operator-local` or `unsupported`, not `supported`
+- **AND** the entry MUST point to a project-owned runbook or entrypoint explaining required local Vanessa inputs: Vanessa Automation Single path, warmup feature path, library paths, step definitions, extension scope, and `operatorLocalTargets.vanessaBdd` target binding
+- **AND** the entry MUST NOT include applied-project infobase names, extension names, file paths, or business scenario names
 

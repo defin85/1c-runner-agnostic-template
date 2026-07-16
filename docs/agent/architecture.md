@@ -62,7 +62,7 @@ Template lifecycle:
 
 ## First-Pass Orientation
 
-- Если нужно понять repo contract, начните с [openspec/project.md](../../openspec/project.md).
+- Если нужно понять repo contract, начните с [docs/agent/index.md](index.md).
 - Если нужно быстро проверить repo integrity, используйте [docs/agent/verify.md](verify.md) и `make agent-verify`.
 - Если нужно поймать Linux-reproducible GitHub Actions drift до push, используйте `make act-preflight`.
 - Если нужно выпустить новый overlay release tag source repo, переходите в [docs/template-release.md](../template-release.md).

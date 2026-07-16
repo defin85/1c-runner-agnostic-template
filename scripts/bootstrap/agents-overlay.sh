@@ -4,35 +4,12 @@ set -euo pipefail
 project_agents_block_start="<!-- RUNNER_AGNOSTIC_TEMPLATE:START -->"
 project_agents_block_end="<!-- RUNNER_AGNOSTIC_TEMPLATE:END -->"
 
-write_generated_agents_scaffold() {
-  cat <<'EOF'
-<!-- OPENSPEC:START -->
-# OpenSpec Instructions
-
-These instructions are for AI assistants working in this project.
-
-Always check `openspec/project.md` when the request:
-- Mentions planning or proposals (words like proposal, spec, change, plan)
-- Introduces new capabilities, breaking changes, architecture shifts, or big performance/security work
-- Sounds ambiguous and you need the authoritative spec before coding
-
-Use `openspec/project.md` and existing `openspec/changes/` artifacts to learn:
-- How to create and apply change proposals
-- Spec format and conventions
-- Project structure and guidelines
-
-Keep this managed block so 'openspec update' can refresh the instructions.
-
-<!-- OPENSPEC:END -->
-EOF
-}
-
 ensure_agents_file() {
   local agents_file="$1"
 
   if [ ! -f "$agents_file" ]; then
     mkdir -p "$(dirname "$agents_file")"
-    write_generated_agents_scaffold >"$agents_file"
+    : >"$agents_file"
   fi
 }
 
@@ -84,28 +61,21 @@ trim_trailing_blank_lines() {
   mv "$tmp_file" "$target_file"
 }
 
-refresh_stale_openspec_agents_scaffold() {
+remove_stale_openspec_agents_scaffold() {
   local agents_file="$1"
-  local tmp_file
 
   if ! grep -Fq -- "@/openspec/AGENTS.md" "$agents_file"; then
     return 0
   fi
 
   remove_managed_block "$agents_file" "<!-- OPENSPEC:START -->" "<!-- OPENSPEC:END -->"
-
-  tmp_file="$(mktemp)"
-  write_generated_agents_scaffold >"$tmp_file"
-  printf '\n' >>"$tmp_file"
-  cat "$agents_file" >>"$tmp_file"
-  mv "$tmp_file" "$agents_file"
 }
 
 append_project_agents_overlay() {
   local agents_file="$1"
 
   ensure_agents_file "$agents_file"
-  refresh_stale_openspec_agents_scaffold "$agents_file"
+  remove_stale_openspec_agents_scaffold "$agents_file"
   remove_managed_block "$agents_file" "$project_agents_block_start" "$project_agents_block_end"
   trim_trailing_blank_lines "$agents_file"
 
@@ -145,9 +115,6 @@ We operate in a cycle: **OpenSpec (What) -> Execution Plan -> Code (Implementati
 
 - Any new capability, breaking change, architecture shift, major performance or security work, or ambiguous request starts with a change in `openspec/changes/<change-id>/`.
 - Before code changes begin, the change must be brought to a signable contract through `proposal.md`, one or more `specs/<capability>/spec.md` deltas, `tasks.md`, and `traceability.md`.
-- Do not move to production code for new or major changes without explicit approval. Canonical signal: `Go!`.
-- Before approval, analysis, requirement clarification, and spec edits are allowed; production code changes are not.
-
 ## 2. Execution And Delivery
 
 - Before coding, build an execution matrix: `Requirement/Scenario -> target files -> automated checks`.

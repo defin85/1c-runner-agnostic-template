@@ -275,7 +275,7 @@ write_generated_readme_starter() {
 ## Ownership Classes
 
 - `template-managed`: `scripts/`, template docs, shared skills, CI contours, managed blocks, `.template-overlay-version`.
-- `seed-once / project-owned`: `README.md`, `openspec/project.md`, `.codex/config.toml`, `automation/context/project-map.md`, `docs/agent/architecture-map.md`, `docs/agent/operator-local-runbook.md`, `docs/agent/runtime-quickstart.md`, `docs/work-items/README.md`, `docs/work-items/TEMPLATE.md`, `automation/context/project-delta-hints.json`, `automation/context/runtime-profile-policy.json`, `automation/context/runtime-support-matrix.md`, `automation/context/runtime-support-matrix.json`.
+- `seed-once / project-owned`: `README.md`, `.codex/config.toml`, `automation/context/project-map.md`, `docs/agent/architecture-map.md`, `docs/agent/operator-local-runbook.md`, `docs/agent/runtime-quickstart.md`, `docs/work-items/README.md`, `docs/work-items/TEMPLATE.md`, `automation/context/project-delta-hints.json`, `automation/context/runtime-profile-policy.json`, `automation/context/runtime-support-matrix.md`, `automation/context/runtime-support-matrix.json`.
 - `generated-derived`: `automation/context/source-tree.generated.txt`, `automation/context/metadata-index.generated.json`, `automation/context/recommended-skills.generated.md`, `automation/context/hotspots-summary.generated.md`, `automation/context/project-delta-hotspots.generated.md`.
 - `local-private`: `env/local.json`, `env/wsl.json`, `env/.local/*.json`, host-specific MCP/Codex overrides вне checked-in `.codex/config.toml`.
 
@@ -355,7 +355,7 @@ EOF
 ## Ownership Model
 
 - `template-managed`: shared runtime/test/QA contract, template docs, shared skills, managed blocks
-- `seed-once / project-owned`: этот файл, `README.md`, `openspec/project.md`, `docs/work-items/README.md`, `docs/work-items/TEMPLATE.md`
+- `seed-once / project-owned`: этот файл, `README.md`, `docs/work-items/README.md`, `docs/work-items/TEMPLATE.md`
 - `project-owned policy`: `automation/context/runtime-profile-policy.json`
 - `project-owned hints`: `automation/context/project-delta-hints.json`
 - `generated-derived`: `automation/context/source-tree.generated.txt`, `automation/context/metadata-index.generated.json`, `automation/context/recommended-skills.generated.md`, `automation/context/hotspots-summary.generated.md`, `automation/context/project-delta-hotspots.generated.md`
@@ -1053,27 +1053,6 @@ write_runtime_support_matrix_markdown_starter() {
 EOF
 }
 
-openspec_project_is_bootstrap_stub() {
-  local target_file="$1"
-
-  [ -f "$target_file" ] || return 1
-
-  awk '
-    /^[[:space:]]*$/ {
-      next
-    }
-    {
-      count++
-      if ($0 != "# OpenSpec Project") {
-        mismatch = 1
-      }
-    }
-    END {
-      exit !(!mismatch && count == 1)
-    }
-  ' "$target_file"
-}
-
 write_openspec_project_starter() {
   local target_file="$1"
   local project_name="$2"
@@ -1165,7 +1144,6 @@ seed_generated_project_surface_on_copy() {
   write_operator_local_targets_starter "$root/automation/context/operator-local-targets.json"
   write_runtime_support_matrix_json_starter "$root/automation/context/runtime-support-matrix.json"
   write_runtime_support_matrix_markdown_starter "$root/automation/context/runtime-support-matrix.md"
-  write_openspec_project_starter "$root/openspec/project.md" "$project_name" "$project_slug" "$project_description"
 }
 
 refresh_generated_project_surface_on_update() {
@@ -1226,7 +1204,4 @@ refresh_generated_project_surface_on_update() {
     write_runtime_support_matrix_markdown_starter "$root/automation/context/runtime-support-matrix.md"
   fi
 
-  if [ ! -f "$root/openspec/project.md" ] || openspec_project_is_bootstrap_stub "$root/openspec/project.md"; then
-    write_openspec_project_starter "$root/openspec/project.md" "$project_name" "$project_slug" "$project_description"
-  fi
 }

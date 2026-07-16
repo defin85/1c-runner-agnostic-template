@@ -88,3 +88,55 @@ The template SHALL provide a minimal reproducible golden baseline contour for ge
 - **THEN** the contour MUST execute that project-owned command
 - **AND** it MUST propagate the command exit code
 - **AND** it MUST write a run-root `summary.json` with the command, logs, status, and classification
+
+### Requirement: Vanessa BDD Warm-Service Fixture Contract
+The template SHALL provide fixture-level checks for the reusable Vanessa BDD warm-service contour.
+
+#### Scenario: Warm-service contour is not project-configured
+- **WHEN** the generated repository has not supplied Vanessa Automation Single, warmup feature, and project extension scope
+- **THEN** `bdd-warm-service` lifecycle entrypoints for `up`, `status`, `run`, and `down` MUST fail closed before launching a real 1C runtime when required project-owned inputs are missing
+- **AND** the failure MUST write a machine-readable run-root summary containing `status`, `classification`, `message`, `missing_inputs`, and non-secret profile/target metadata
+- **AND** the failure MUST explain which project-owned input is missing
+
+#### Scenario: Applied-project values are accidentally copied
+- **WHEN** reusable Vanessa BDD warm-service code is rendered into a generated repository
+- **THEN** fixture checks MUST fail if generated artifacts contain applied-project infobase names, local user paths, extension defaults, or business scenario names from the source project
+- **AND** the audit MUST cover scripts, generated-project docs, generated runtime matrices, fixture templates, and example profiles
+- **AND** any remaining match MUST be explicitly justified as non-generated historical context
+
+### Requirement: Warmed BDD Runtime Diagnostics
+
+The template SHALL provide reusable diagnostics for warmed BDD runs without requiring project-specific scenarios.
+
+#### Scenario: BDD feature finishes but runtime logged execution errors
+
+- **WHEN** warmed BDD runner executes a selected feature
+- **AND** the runtime profile defines `capabilities.bdd.eventLogDir`
+- **THEN** the runner MUST export the event log for the feature execution window
+- **AND** it MUST fail the feature when 1C execution errors are present
+- **AND** it MUST write event log artifacts under the feature run archive
+
+#### Scenario: Warmed BDD feature uses reusable placeholders
+
+- **WHEN** warmed BDD runner materializes a feature into the warm-service runtime file
+- **THEN** it MUST replace the test client port placeholder
+- **AND** it MUST replace the fixtures-root placeholder with a project-local or caller-provided fixtures path
+- **AND** it MUST use an explicit completion marker rather than treating an intermediate build-status file as final success
+
+### Requirement: PostgreSQL Golden Snapshot Contour
+
+The template SHALL provide a reusable PostgreSQL golden snapshot contour for generated repositories that use DBMS-backed runtime profiles.
+
+#### Scenario: Project restores a PostgreSQL golden snapshot
+
+- **WHEN** `make golden-baseline` uses the template-provided `tests/golden/run.sh`
+- **AND** the caller provides a schemaVersion 2 profile with PostgreSQL DBMS infobase fields
+- **THEN** the contour MUST restore the configured snapshot into the target database
+- **AND** it MUST require DB credentials through the profile's password environment variable
+- **AND** it MUST fail closed for missing profile, missing snapshot, unsupported DBMS kind, or unsafe PostgreSQL identifiers
+
+#### Scenario: Project creates a PostgreSQL golden snapshot
+
+- **WHEN** the caller runs the template-provided golden create command with a PostgreSQL DBMS profile
+- **THEN** the contour MUST create a custom-format PostgreSQL dump at the selected snapshot path
+- **AND** it MUST keep the snapshot under `.artifacts/golden/<target>.dump` by default

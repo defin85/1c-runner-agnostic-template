@@ -14,7 +14,7 @@ Generated projects получают собственные root entrypoint-ы п
 
 - project-first `README.md`;
 - bootstrap overlay в `AGENTS.md`;
-- project-owned `automation/context/project-map.md` и `openspec/project.md`;
+- project-owned `automation/context/project-map.md`;
 - generated-project docs вроде `docs/agent/generated-project-index.md` и `docs/agent/generated-project-verification.md`.
 
 Шаблон проекта для разработки на 1С по принципам:
@@ -81,7 +81,7 @@ System of record для нового агента находится в [docs/ag
 
 В template source repo этот индекс объясняет устройство самого шаблона.
 Generated projects получают отдельный стартовый слой в [docs/agent/generated-project-index.md](docs/agent/generated-project-index.md) и verification matrix в [docs/agent/generated-project-verification.md](docs/agent/generated-project-verification.md).
-Если high-level overview из `README.md` и `openspec/project.md` кажется недостаточным или частично дублирующимся, приоритет для onboarding у `docs/agent/`.
+Если high-level overview из `README.md` кажется недостаточным, приоритет для onboarding у `docs/agent/`.
 
 Минимальный маршрут discovery такой:
 

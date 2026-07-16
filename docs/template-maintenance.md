@@ -36,7 +36,7 @@ make template-update
 - `.template-overlay-version` хранит текущий applied wrapper overlay release;
 - `template-managed` слой обновляется через versioned overlay apply, а не через reconciliation product source tree;
 - если root `AGENTS.md` или `README.md` отсутствует, `template-update` восстанавливает generated-project entry surface перед refresh managed overlay/router;
-- `seed-once / project-owned` артефакты вроде root `README.md`, `openspec/project.md`, `.codex/config.toml` и `automation/context/project-map.md` должны оставаться под контролем команды проекта;
+- `seed-once / project-owned` артефакты вроде root `README.md`, `.codex/config.toml` и `automation/context/project-map.md` должны оставаться под контролем команды проекта;
 - `generated-derived` артефакты refresh-ятся отдельной repo-owned командой `./scripts/llm/export-context.sh --write`;
 - `local-private` machine-specific настройки не входят в checked-in template contract.
 

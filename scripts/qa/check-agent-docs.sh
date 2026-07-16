@@ -1222,7 +1222,6 @@ else
     docs/work-items/TEMPLATE.md \
     docs/exec-plans/TEMPLATE.md \
     docs/exec-plans/EXAMPLE.md \
-    openspec/project.md \
     env/AGENTS.md \
     tests/AGENTS.md \
     scripts/AGENTS.md \
@@ -1322,7 +1321,6 @@ else
   require_contains "automation/context/project-map.md" "docs/agent/architecture-map.md"
   require_contains "automation/context/project-map.md" "docs/agent/runtime-quickstart.md"
   require_contains "automation/context/project-map.md" "docs/work-items/README.md"
-  require_contains "openspec/project.md" "generated 1С-проект"
   require_contains "env/AGENTS.md" "automation/context/runtime-profile-policy.json"
   require_contains "tests/AGENTS.md" "scripts/qa/check-agent-docs.sh"
   require_contains "scripts/AGENTS.md" "automation/context/hotspots-summary.generated.md"
@@ -1339,7 +1337,6 @@ else
   require_no_placeholder_pattern "docs/agent/architecture-map.md" '<[[:alnum:]_][^>]*>'
   require_no_placeholder_pattern "docs/agent/operator-local-runbook.md" '<[[:alnum:]_][^>]*>'
   require_no_placeholder_pattern "docs/agent/runtime-quickstart.md" '<[[:alnum:]_][^>]*>'
-  require_no_placeholder_pattern "openspec/project.md" '<[[:alnum:]_][^>]*>'
   require_no_placeholder_pattern "README.md" 'template source repo'
   require_no_placeholder_pattern "automation/context/project-map.md" 'template source repo'
   require_absent_regex "README.md" 'docs/agent/index\.md' \

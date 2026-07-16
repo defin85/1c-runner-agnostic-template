@@ -542,6 +542,7 @@ def bootstrap_post_copy(
     if init_git_repository == "yes" and not (repo_root / ".git").exists():
         run_git(["init"], cwd=repo_root, check=True)
     run_process(["openspec", "init", "--tools", openspec_tools], cwd=repo_root, check=True, capture_output=False)
+    write_text(repo_root / "openspec" / "config.yaml", "schema: spec-driven\n")
     seed_generated_project_surface(repo_root, project_name, project_slug, project_description)
     append_agents_overlay(repo_root / "AGENTS.md")
     sync_overlay_manifests(

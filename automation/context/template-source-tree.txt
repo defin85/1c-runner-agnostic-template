@@ -210,10 +210,7 @@
 ./features/examples
 ./openspec
 ./openspec/changes
-./openspec/changes/add-multi-target-extension-workspace
-./openspec/changes/add-vanessa-bdd-warm-service-contour
 ./openspec/changes/archive
-./openspec/changes/harden-warm-runtime-contours
 ./openspec/specs
 ./openspec/specs/agent-runtime-toolkit
 ./openspec/specs/generated-context-artifacts

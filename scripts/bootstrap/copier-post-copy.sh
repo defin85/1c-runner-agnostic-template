@@ -50,6 +50,7 @@ printf '\n'
 
 if [ "${DRY_RUN:-0}" != "1" ]; then
   "${cmd[@]}"
+  printf 'schema: spec-driven\n' >"$root/openspec/config.yaml"
 fi
 
 if [ -z "$template_src_path" ]; then

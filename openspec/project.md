@@ -52,7 +52,6 @@
 - Шаблон версионируется в Git и публикует overlay-ready версии через теги.
 - Generated projects должны хранить `.copier-answers.yml` как bootstrap provenance и `.template-overlay-version` как applied overlay state.
 - Сессия с кодовыми изменениями не считается завершенной, пока `git push` не выполнен успешно, если нет внешнего блокера.
-- Для крупных и новых изменений сначала оформляется OpenSpec change proposal; production code начинается только после явного согласования (`Go!`).
 
 ## Domain Context
 - Домен проекта: автоматизация разработки 1С-репозиториев и agent-friendly operational tooling вокруг 1С.
@@ -70,7 +69,6 @@
 - Bootstrap и update hooks нельзя смешивать: одноразовая инициализация (`openspec`, `git`) не должна повторяться на update.
 - Шаблон не должен содержать секреты, реальные строки подключения и machine-specific credentials.
 - Решения должны работать без обязательной зависимости на Windows-only tooling.
-- Для новых и крупных изменений код нельзя начинать до явного `Go!`.
 
 ## External Dependencies
 - `openspec` CLI

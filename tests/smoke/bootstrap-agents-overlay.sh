@@ -173,7 +173,6 @@ hotspots_summary_file="$project_root/automation/context/hotspots-summary.generat
 project_delta_hints_file="$project_root/automation/context/project-delta-hints.json"
 project_delta_hotspots_file="$project_root/automation/context/project-delta-hotspots.generated.md"
 source_tree_file="$project_root/automation/context/source-tree.generated.txt"
-openspec_project_file="$project_root/openspec/project.md"
 overlay_version_file="$project_root/.template-overlay-version"
 manifest_file="$project_root/automation/context/template-managed-paths.txt"
 docs_agents_file="$project_root/docs/AGENTS.md"
@@ -186,9 +185,8 @@ cf_agents_file="$project_root/src/cf/AGENTS.md"
 cf_readme_file="$project_root/src/cf/README.md"
 
 assert_contains "$agents_file" "We operate in a cycle: **OpenSpec (What) -> Execution Plan -> Code (Implementation)**."
-assert_contains "$agents_file" 'Always check `openspec/project.md` when the request:'
-assert_contains "$agents_file" 'Use `openspec/project.md` and existing `openspec/changes/` artifacts to learn:'
 assert_not_contains "$agents_file" "@/openspec/AGENTS.md"
+assert_not_contains "$agents_file" "<!-- OPENSPEC:START -->"
 assert_contains "$agents_file" 'This repository is a generated 1С-project created from `1c-runner-agnostic-template`.'
 assert_contains "$agents_file" 'Start with [docs/agent/generated-project-index.md](docs/agent/generated-project-index.md) for the generated-project-first onboarding path.'
 assert_contains "$agents_file" 'Use [automation/context/project-map.md](automation/context/project-map.md) as the project-owned repo map.'
@@ -198,13 +196,11 @@ assert_contains "$agents_file" 'Use [docs/agent/generated-project-verification.m
 assert_contains "$agents_file" 'Use [docs/template-maintenance.md](docs/template-maintenance.md) only for template refresh and maintenance work.'
 assert_contains "$agents_file" 'Use [docs/agent/codex-workflows.md](docs/agent/codex-workflows.md) as the canonical Codex workflow guide after the first router step.'
 assert_contains "$agents_file" 'Use [docs/agent/review.md](docs/agent/review.md), [docs/agent/operator-local-runbook.md](docs/agent/operator-local-runbook.md), [env/README.md](env/README.md), [.agents/skills/README.md](.agents/skills/README.md), [docs/exec-plans/README.md](docs/exec-plans/README.md), and [docs/work-items/README.md](docs/work-items/README.md) as the main follow-up routers.'
-assert_contains "$agents_file" 'Do not move to production code for new or major changes without explicit approval. Canonical signal: `Go!`.'
 assert_contains "$agents_file" 'Final delivery must include explicit `Requirement -> Code -> Test` evidence with concrete file paths.'
 assert_contains "$agents_file" '1. `mcp__claude-context__search_code`, if available in the current environment'
 assert_contains "$agents_file" 'For remote-backed repos with a writable Git remote, a code-change session is not complete until the verified branch state is pushed.'
 assert_contains "$agents_file" 'For local-only repos or repos without a writable remote, do not invent a push-only closeout path.'
 assert_count "$agents_file" "<!-- RUNNER_AGNOSTIC_TEMPLATE:START -->" "1"
-assert_next_line "$agents_file" "<!-- OPENSPEC:END -->" "<!-- RUNNER_AGNOSTIC_TEMPLATE:START -->"
 
 assert_contains "$readme_file" "<!-- RUNNER_AGNOSTIC_PROJECT:START -->"
 assert_contains "$readme_file" "generated 1С-проект"
@@ -235,7 +231,6 @@ assert_contains "$project_map_file" "docs/agent/runtime-quickstart.md"
 assert_contains "$project_map_file" "docs/work-items/README.md"
 assert_contains "$project_map_file" "automation/context/project-delta-hints.json"
 assert_contains "$project_map_file" "automation/context/project-delta-hotspots.generated.md"
-assert_contains "$openspec_project_file" "generated 1С-проект"
 assert_contains "$architecture_map_file" "# Architecture Map"
 assert_contains "$architecture_map_file" "## Representative Change Scenarios"
 assert_contains "$architecture_map_file" "docs/agent/runtime-quickstart.md"

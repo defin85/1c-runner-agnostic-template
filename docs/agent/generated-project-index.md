@@ -48,7 +48,7 @@
 | Где repeatable skills и Codex-first runbook? | [.agents/skills/README.md](../../.agents/skills/README.md), [.codex/README.md](../../.codex/README.md) |
 | Где вести long-running living progress? | [docs/exec-plans/README.md](../exec-plans/README.md), [docs/exec-plans/TEMPLATE.md](../exec-plans/TEMPLATE.md) |
 | Где держать bulky task-local artifacts и extracted notes? | [docs/work-items/README.md](../work-items/README.md), [docs/work-items/TEMPLATE.md](../work-items/TEMPLATE.md) |
-| Где project-level intent и ограничения? | `openspec/project.md` |
+| Где project-level intent и ограничения? | `automation/context/project-map.md` |
 | Где reusable repo entrypoint-ы? | `scripts/` и `Makefile` |
 | Где template maintenance path? | [docs/template-maintenance.md](../template-maintenance.md) |
 
@@ -67,7 +67,7 @@
 9. Raw inventory `automation/context/metadata-index.generated.json` открывайте только когда curated и summary-first layers уже не хватает.
 10. Для детальных Codex-native workflows переходите в [docs/agent/codex-workflows.md](codex-workflows.md).
 11. Пройдите safe-local baseline: `make agent-verify`, затем `make export-context-check`.
-12. Перед изменениями поведения сверяйтесь с `openspec/project.md` и [docs/agent/review.md](review.md).
+12. Перед изменениями поведения сверяйтесь с `automation/context/project-map.md` и [docs/agent/review.md](review.md).
 13. Если работа становится multi-session, скопируйте [docs/exec-plans/TEMPLATE.md](../exec-plans/TEMPLATE.md) и держите supporting artifacts через [docs/work-items/README.md](../work-items/README.md).
 14. Для repeatable действий ищите готовый workflow в [.agents/skills/README.md](../../.agents/skills/README.md) и [.codex/README.md](../../.codex/README.md).
 
@@ -84,7 +84,7 @@
 ## Ownership Model
 
 - `template-managed`: `scripts/`, shared docs в `docs/agent/`, `.agents/skills/`, `.claude/skills/`, CI workflow, managed blocks в root docs.
-- `seed-once / project-owned`: root `README.md`, `openspec/project.md`, `.codex/config.toml`, `automation/context/project-map.md`, `docs/agent/architecture-map.md`, `docs/agent/operator-local-runbook.md`, `docs/agent/runtime-quickstart.md`, `docs/work-items/README.md`, `docs/work-items/TEMPLATE.md`, `automation/context/project-delta-hints.json`, `automation/context/runtime-profile-policy.json`, `automation/context/runtime-support-matrix.md`, `automation/context/runtime-support-matrix.json`.
+- `seed-once / project-owned`: root `README.md`, `.codex/config.toml`, `automation/context/project-map.md`, `docs/agent/architecture-map.md`, `docs/agent/operator-local-runbook.md`, `docs/agent/runtime-quickstart.md`, `docs/work-items/README.md`, `docs/work-items/TEMPLATE.md`, `automation/context/project-delta-hints.json`, `automation/context/runtime-profile-policy.json`, `automation/context/runtime-support-matrix.md`, `automation/context/runtime-support-matrix.json`.
 - `generated-derived`: `automation/context/source-tree.generated.txt`, `automation/context/metadata-index.generated.json`, `automation/context/hotspots-summary.generated.md`, `automation/context/project-delta-hotspots.generated.md`.
 - `local-private`: `env/local.json`, `env/wsl.json`, `env/ci.json`, `env/windows-executor.json`, `env/.local/*.json`, host-specific Codex/MCP overrides вне checked-in `.codex/config.toml` и секреты.
 
