@@ -505,6 +505,7 @@ def _delegate_shell_bootstrap(script_relpath: str, args: list[str], repo_root: P
 
 def bootstrap_post_copy(
     template_src_path: str,
+    template_source: str,
     project_name: str,
     project_slug: str,
     project_description: str,
@@ -519,6 +520,7 @@ def bootstrap_post_copy(
         "scripts/bootstrap/copier-post-copy.sh",
         [
             template_src_path,
+            template_source,
             project_name,
             project_slug,
             project_description,
@@ -536,14 +538,15 @@ def bootstrap_post_copy(
     write_text(repo_root / "openspec" / "config.yaml", "schema: spec-driven\n")
     seed_generated_project_surface(repo_root, project_name, project_slug, project_description)
     append_agents_overlay(repo_root / "AGENTS.md")
+    source_root = Path(template_src_path)
     sync_overlay_manifests(
-        Path(template_src_path),
+        source_root,
         repo_root,
         overlay_manifest_file(repo_root),
-        overlay_manifest_file(Path(template_src_path)),
+        overlay_manifest_file(source_root),
     )
     write_overlay_version(repo_root, bootstrap_template_ref_or_fallback(repo_root, Path(template_src_path)))
-    write_overlay_source(repo_root, template_src_path)
+    write_overlay_source(repo_root, template_source)
     export_context("--write", repo_root)
     return 0
 

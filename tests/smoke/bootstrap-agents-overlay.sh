@@ -52,6 +52,7 @@ run_bootstrap() {
     cd "$project_root"
     PATH="$bindir:$PATH" bash ./scripts/bootstrap/copier-post-copy.sh \
       "$SOURCE_ROOT" \
+      "$SOURCE_ROOT" \
       "Sample Project" \
       "sample-project" \
       "Тестовый generated проект" \

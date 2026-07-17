@@ -9,6 +9,7 @@ trap 'rm -rf "$tmpdir"' EXIT
 
 template_root="$tmpdir/template"
 rendered_root="$tmpdir/rendered"
+local_source_rendered_root="$tmpdir/rendered-from-dot"
 bindir="$tmpdir/bin"
 command_log="$tmpdir/commands.log"
 real_copier="$(command -v copier)"
@@ -207,6 +208,22 @@ PATH="$bindir:$PATH" COMMAND_LOG="$command_log" copier copy --trust --defaults \
   "$template_root" \
   "$rendered_root" \
   >/dev/null
+
+(
+  cd "$template_root"
+  PATH="$bindir:$PATH" COMMAND_LOG="$command_log" copier copy --trust --defaults \
+    -d project_name="Local Source Project" \
+    -d project_slug="local-source-project" \
+    -d init_git_repository=false \
+    . \
+    "$local_source_rendered_root" \
+    >/dev/null
+)
+
+assert_contains "$local_source_rendered_root/.copier-answers.yml" "_src_path: ."
+assert_contains "$local_source_rendered_root/.template-overlay-source" "."
+assert_contains "$local_source_rendered_root/.template-overlay-version" "v0.1.0"
+assert_exists "$local_source_rendered_root/.github/workflows/ci.yml"
 
 assert_exists "$rendered_root/.copier-answers.yml"
 assert_not_exists "$rendered_root/[[[ _copier_conf.answers_file ]]]"
@@ -752,7 +769,7 @@ if [ "$status_before_export" != "$status_after_export" ]; then
   exit 1
 fi
 
-assert_count "$command_log" "openspec init --tools none" "1"
+assert_count "$command_log" "openspec init --tools none" "2"
 
 git -C "$rendered_root" config user.name "Smoke Test"
 git -C "$rendered_root" config user.email "smoke@example.com"
@@ -969,8 +986,8 @@ assert_line_before \
   "$rendered_root/docs/agent/generated-project-index.md" \
   "automation/context/hotspots-summary.generated.md" \
   "automation/context/metadata-index.generated.json"
-assert_count "$command_log" "openspec init --tools none" "1"
-assert_count "$command_log" "copier copy --trust --defaults" "1"
+assert_count "$command_log" "openspec init --tools none" "2"
+assert_count "$command_log" "copier copy --trust --defaults" "2"
 
 (
   cd "$rendered_root"

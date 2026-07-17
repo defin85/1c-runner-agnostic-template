@@ -12,12 +12,13 @@ source "$SCRIPT_DIR/generated-project-surface.sh"
 source "$SCRIPT_DIR/../template/lib-overlay.sh"
 
 template_src_path="${1:-}"
-project_name="${2:-}"
-project_slug="${3:-}"
-project_description="${4:-}"
-preferred_adapter="${5:-direct-platform}"
-openspec_tools="${6:-none}"
-init_git_repository="${7:-yes}"
+template_source="${2:-}"
+project_name="${3:-}"
+project_slug="${4:-}"
+project_description="${5:-}"
+preferred_adapter="${6:-direct-platform}"
+openspec_tools="${7:-none}"
+init_git_repository="${8:-yes}"
 
 root="$(project_root)"
 
@@ -32,7 +33,6 @@ log "project_slug=$project_slug"
 log "preferred_adapter=$preferred_adapter"
 
 require_command openspec
-require_command install
 
 cd "$root"
 
@@ -53,19 +53,20 @@ if [ "${DRY_RUN:-0}" != "1" ]; then
   printf 'schema: spec-driven\n' >"$root/openspec/config.yaml"
 fi
 
-if [ -z "$template_src_path" ]; then
-  die "template source path is empty"
-fi
+[ -n "$template_src_path" ] || die "template source path is empty"
+[ -n "$template_source" ] || die "template source locator is empty"
 
 if [ "${DRY_RUN:-0}" != "1" ]; then
+  source_manifest="$(overlay_manifest_file "$template_src_path")"
+  require_command install
   sync_overlay_manifests \
     "$template_src_path" \
     "$root" \
     "$(overlay_manifest_file "$root")" \
-    "$(overlay_manifest_file "$template_src_path")"
+    "$source_manifest"
   append_project_agents_overlay "$root/AGENTS.md"
   seed_generated_project_surface_on_copy "$root" "$project_name" "$project_slug" "$project_description"
-  write_overlay_source "$root" "$template_src_path"
+  write_overlay_source "$root" "$template_source"
   write_overlay_version "$root" "$(bootstrap_template_ref_or_fallback "$root" "$template_src_path")"
   "$root/scripts/llm/export-context.sh" --write >/dev/null
 fi

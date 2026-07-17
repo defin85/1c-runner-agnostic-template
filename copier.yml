@@ -49,6 +49,7 @@ _message_before_update: |-
 _tasks:
   - command: >-
       python3 -m scripts.python.cli copier-post-copy
+      "[[[ _copier_conf.src_path ]]]"
       "[[[ _src_path ]]]"
       "[[[ project_name ]]]"
       "[[[ project_slug ]]]"

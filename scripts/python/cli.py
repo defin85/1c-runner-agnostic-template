@@ -178,8 +178,8 @@ def main(argv: list[str] | None = None) -> int:
                 print(line)
             return 0
         if command == "copier-post-copy":
-            if len(args) != 7:
-                die("copier-post-copy expects 7 arguments")
+            if len(args) != 8:
+                die("copier-post-copy expects 8 arguments")
             return bootstrap_post_copy(*args)
         if command == "copier-post-update":
             if len(args) != 4:
