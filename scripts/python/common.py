@@ -219,6 +219,8 @@ def run_process(
         check=False,
         capture_output=capture_output,
         text=text,
+        encoding="utf-8" if text else None,
+        errors="replace" if text else None,
     )
     result = ProcessResult(
         args=list(command),

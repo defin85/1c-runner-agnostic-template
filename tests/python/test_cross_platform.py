@@ -6,8 +6,10 @@ import shutil
 import subprocess
 import sys
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 
+from scripts.python.common import run_process
 from scripts.python.context import render_generated_tree
 
 
@@ -74,6 +76,11 @@ class CrossPlatformSmokeTests(unittest.TestCase):
         else:
             result = run_command(["bash", "-lc", "./scripts/llm/export-context.sh --check"])
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_run_process_decodes_output_as_utf8(self) -> None:
+        with patch("scripts.python.common.subprocess.run", wraps=subprocess.run) as mocked:
+            run_process([sys.executable, "-c", "print('Русский')"])
+        self.assertEqual(mocked.call_args.kwargs["encoding"], "utf-8")
 
     def test_python_generated_tree_excludes_local_sandbox_dir(self) -> None:
         generated_root = ARTIFACTS / "generated-tree-private-filter"
