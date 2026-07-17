@@ -155,9 +155,9 @@ assert_fails_with "$missing_link_root" "missing required markdown link in AGENTS
 broken_link_root="$tmpdir/broken-link"
 copy_repo "$broken_link_root"
 refresh_source_context "$broken_link_root"
-sed -i 's#(../../openspec/project.md)#(../../openspec/missing-project.md)#' \
-  "$broken_link_root/docs/agent/architecture.md"
-assert_fails_with "$broken_link_root" "broken markdown link in docs/agent/architecture.md:"
+sed -i 's#(architecture.md)#(missing-architecture.md)#' \
+  "$broken_link_root/docs/agent/index.md"
+assert_fails_with "$broken_link_root" "broken markdown link in docs/agent/index.md:"
 
 source_placeholder_profile_root="$tmpdir/source-placeholder-profile"
 copy_repo "$source_placeholder_profile_root"
