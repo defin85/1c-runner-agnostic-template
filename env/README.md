@@ -186,17 +186,7 @@ export ONEC_IB_PASSWORD='...'
    Если `driver` опущен, используется `designer`.
 
 2. profile-defined command array
-   Для project-specific contour вроде `bdd`, `smoke` или `publishHttp` profile задаёт `command` как массив строк:
-
-```json
-{
-  "capabilities": {
-    "bdd": {
-      "command": ["./scripts/test/run-bdd.sh"]
-    }
-  }
-}
-```
+   Для project-specific contour вроде `bdd`, `smoke` или `publishHttp` profile задаёт `command` как массив строк. Команда должна указывать на реализацию контура, а не обратно на его capability entrypoint.
 
 `driver`, `command` и `unsupportedReason` взаимоисключающие для одной capability.
 
@@ -309,19 +299,7 @@ Profile-defined `command` запускается с repo-owned launcher env cont
 
 Это позволяет project-owned runner-ам использовать уже подготовленный `--run-root`, знать активный profile/adapter и не переизобретать outer launcher только ради этих metadata.
 
-Минимальный generic пример:
-
-```json
-{
-  "capabilities": {
-    "bdd": {
-      "command": ["./scripts/test/run-bdd.sh"]
-    }
-  }
-}
-```
-
-Такой repo-owned entrypoint может читать `ONEC_*` переменные из окружения и, если contour пишет временные артефакты, по умолчанию складывать их в `ONEC_CAPABILITY_RUN_ROOT`.
+Repo-owned runner может читать `ONEC_*` переменные из окружения и, если contour пишет временные артефакты, по умолчанию складывать их в `ONEC_CAPABILITY_RUN_ROOT`.
 
 `diffSrc.command` тоже можно задать явно, но по умолчанию script использует `git diff -- ./src`.
 
