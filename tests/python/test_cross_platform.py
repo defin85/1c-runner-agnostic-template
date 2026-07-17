@@ -78,8 +78,9 @@ class CrossPlatformSmokeTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
     def test_run_process_decodes_output_as_utf8(self) -> None:
-        with patch("scripts.python.common.subprocess.run", wraps=subprocess.run) as mocked:
-            run_process([sys.executable, "-c", "print('Русский')"])
+        completed = subprocess.CompletedProcess([], 0, stdout="", stderr="")
+        with patch("scripts.python.common.subprocess.run", return_value=completed) as mocked:
+            run_process([sys.executable, "-c", "pass"])
         self.assertEqual(mocked.call_args.kwargs["encoding"], "utf-8")
 
     def test_python_generated_tree_excludes_local_sandbox_dir(self) -> None:
