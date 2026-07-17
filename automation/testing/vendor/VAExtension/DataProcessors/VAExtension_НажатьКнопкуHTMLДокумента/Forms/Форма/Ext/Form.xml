@@ -9,11 +9,6 @@
 				<CommandName>Form.Command.ВыполнитьКодКлиент</CommandName>
 				<ExtendedTooltip name="ФормаВыполнитьКодРасширеннаяПодсказка" id="5"/>
 			</Button>
-			<Button name="ФормаВыполнитьКодСервер" id="8">
-				<Type>CommandBarButton</Type>
-				<CommandName>Form.Command.ВыполнитьКодСервер</CommandName>
-				<ExtendedTooltip name="ФормаВыполнитьКодСерверРасширеннаяПодсказка" id="9"/>
-			</Button>
 			<Button name="ЗакрытьФорму" id="6">
 				<Type>CommandBarButton</Type>
 				<CommandName>Form.Command.ЗакрытьФорму</CommandName>
@@ -176,21 +171,6 @@
 				</v8:item>
 			</ToolTip>
 			<Action>ЗакрытьФорму</Action>
-		</Command>
-		<Command name="ВыполнитьКодСервер" id="3">
-			<Title>
-				<v8:item>
-					<v8:lang>ru</v8:lang>
-					<v8:content>Выполнить код сервер</v8:content>
-				</v8:item>
-			</Title>
-			<ToolTip>
-				<v8:item>
-					<v8:lang>ru</v8:lang>
-					<v8:content>Выполнить код сервер</v8:content>
-				</v8:item>
-			</ToolTip>
-			<Action>ВыполнитьКодСервер</Action>
 		</Command>
 	</Commands>
 </Form>

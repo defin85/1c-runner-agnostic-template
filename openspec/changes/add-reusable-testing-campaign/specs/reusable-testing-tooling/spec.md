@@ -25,6 +25,10 @@
 - **WHEN** оператор запускает `init-test-tooling` без доступа к сети и целевые каталоги отсутствуют
 - **THEN** заготовки VATestContour и ProjectYAxUnitTests и закреплённые YAxUnit/VAExtension создаются из содержимого репозитория
 
+#### Scenario: Производный патч VAExtension прозрачен и воспроизводим
+- **WHEN** upstream VAExtension 1.29 не проходит обязательную проверку WebClient
+- **THEN** шаблон хранит минимальный производный патч, исходный и итоговый хеши дерева и перечень отличий без изменения upstream UUID
+
 ### Requirement: Воспроизводимая установка Vanessa Automation Single
 Шаблон SHALL закреплять Vanessa Automation release `1.2.043.28`, asset `vanessa-automation-single.1.2.043.28.zip`, ZIP SHA-256 `cd0a017a8af69328f471f628ac1367a0e5148f790df9c28c318348b30f08f32a` и SHA-256 `97cf472753c44f3b391062ad918f01a6e0a5932f230570c3102ab22e44df7a48` для извлечённого `vanessa-automation-single.epf`. `install-test-tooling` SHALL принимать официальный URL либо `--archive <local-zip>`, безопасно извлекать ровно ожидаемый обычный файл, проверять оба хеша до атомарной публикации в `.artifacts/testing/vanessa/1.2.043.28/` и сохранять ранее установленные версии.
 

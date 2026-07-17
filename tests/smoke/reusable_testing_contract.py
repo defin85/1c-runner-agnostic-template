@@ -191,6 +191,13 @@ def source_contract() -> None:
         assert (vendor / "LICENSE").is_file()
         assert (upstream["tag"], upstream["assetSha256"], upstream["delansGitTree"]) == expected
         assert tree_hash(vendor) == upstream["sourceTreeSha256"]
+        if name == "VAExtension":
+            assert upstream["upstreamSourceTreeSha256"] == "261b3b9a3450de806c52b0ec56ad4ae1a2f7043b869789a99d1f6630800cdb7e"
+            assert len(upstream["patches"]) == 2
+            assert "#Если Не ВебКлиент Тогда" in (vendor / "CommonModules/VAExtensionКлиент/Ext/Module.bsl").read_text(encoding="utf-8-sig")
+            assert "#Если Не ВебКлиент Тогда" in (vendor / "DataProcessors/VAExtension_ПолучениеДанныхИзБазы/Forms/Форма/Ext/Form/Module.bsl").read_text(encoding="utf-8-sig")
+            for form in ("VAExtension_НажатьГиперссылкуHTMLДокумента", "VAExtension_НажатьКнопкуHTMLДокумента"):
+                assert "Form.Command.ВыполнитьКодСервер" not in (vendor / "DataProcessors" / form / "Forms/Форма/Ext/Form.xml").read_text(encoding="utf-8-sig")
 
 
 def actual_tooling_contract(root: Path) -> None:

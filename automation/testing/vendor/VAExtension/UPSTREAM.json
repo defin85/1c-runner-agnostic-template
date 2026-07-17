@@ -5,7 +5,12 @@
   "asset": "VAExtension.1.29.cfe",
   "assetSha256": "fc557bb23371a37dbe22a7a7a83e28f6db75b57f87e8802028cf1f90c4e00605",
   "delansGitTree": "2d8b3b72df05c0282403f5b0c34d2235e2369462",
-  "sourceTreeSha256": "261b3b9a3450de806c52b0ec56ad4ae1a2f7043b869789a99d1f6630800cdb7e",
+  "upstreamSourceTreeSha256": "261b3b9a3450de806c52b0ec56ad4ae1a2f7043b869789a99d1f6630800cdb7e",
+  "sourceTreeSha256": "2bc3e79f535a5edafc98b8bd25f7cd6cd5f6d48ecbce3e24c9e5969f53f5678e",
   "sourceTreeAlgorithm": "sha256(sorted(relative-path + NUL + file-sha256 + LF), excluding LICENSE and UPSTREAM.json)",
+  "patches": [
+    "exclude XMLТипЗнч and ПрочитатьJSON from WebClient compilation",
+    "remove two orphan form commands without handlers"
+  ],
   "license": "BSD-3-Clause"
 }

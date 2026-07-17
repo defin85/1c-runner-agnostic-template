@@ -29,10 +29,10 @@ ONEC_PROFILE_PATH=<local-profile> ONEC_TARGET_ID=<target> ONEC_BDD_FEATURES=<fea
 
 | Проверка | УТ | УНФ |
 | --- | --- | --- |
-| `check-cfe-applicability` | `success`: `/tmp/delans-reusable-gate/ut26-check-applicability-serial2/summary.json` | `success`: `/tmp/delans-reusable-gate/unf-check-applicability-serial2/summary.json` |
-| загрузка четырёх расширений | `success`: `/tmp/delans-reusable-gate/ut26-load-2/summary.json` | `success`: `/tmp/delans-reusable-gate/unf-load-2/summary.json` |
+| `check-cfe-applicability` | `success`: `/tmp/delans-reusable-gate/ut26-final-check-applicability/summary.json` | `success`: `/tmp/delans-reusable-gate/unf-final-check-applicability/summary.json` |
+| загрузка четырёх расширений | `success`: `/tmp/delans-reusable-gate/ut26-final-load/summary.json` | VATestContour и ProjectYAxUnitTests: `/tmp/delans-reusable-gate/unf-final-load/summary.json`; успешные повторы YAxUnit и VAExtension: `/tmp/delans-reusable-gate/unf-final-load-retry-yax/summary.json`, `/tmp/delans-reusable-gate/unf-final-load-retry-va/summary.json` |
 | YAxUnit | `success`: `/tmp/delans-reusable-gate/ut26-yax-run-fixture/summary.json` | `success`: `/tmp/delans-reusable-gate/unf-yax-run-fixture-4/summary.json` |
 | Vanessa BDD | `success`: `/tmp/delans-reusable-gate/ut26-bdd-run/summary.json` | `success`: `/tmp/delans-reusable-gate/unf-bdd-run/summary.json` |
-| `check-cfe-config` | `failed` только для VAExtension: `/tmp/delans-reusable-gate/ut26-check-config-serial2/summary.json` | `failed` только для VAExtension: `/tmp/delans-reusable-gate/unf-check-config-serial2/summary.json` |
+| `check-cfe-config` | `success`: `/tmp/delans-reusable-gate/ut26-final-check-config/summary.json` | `success`: `/tmp/delans-reusable-gate/unf-final-check-config/summary.json` |
 
-`VATestContour`, `ProjectYAxUnitTests` и `YAxUnit` прошли `check-cfe-config` на обоих target. Закреплённый без изменений upstream-снимок VAExtension 1.29 не компилируется для режима `-WebClient`: Designer сообщает недоступные `XMLТипЗнч`, `ПрочитатьJSON` и два отсутствующих обработчика формы. При этом применимость, загрузка и реальные thin-client запуски проходят. Поэтому успешный provisioned-runtime gate, требуемый спецификацией, пока не подтверждён; задача 6.1 остаётся открытой до явного решения по области проверки либо производному патчу VAExtension.
+VAExtension 1.29 поставляется с минимальным производным патчем: вызовы `XMLТипЗнч` и `ПрочитатьJSON` исключены из компиляции WebClient, две команды форм без обработчиков удалены. Исходный и итоговый хеши дерева и перечень отличий зафиксированы в `UPSTREAM.json`. После загрузки патча все четыре расширения прошли `check-cfe-config` и `check-cfe-applicability` на обоих target. На УНФ первая повторная загрузка YAxUnit после успешного импорта вернула общее сообщение `Integrity of configuration structure violated`; отдельный повтор YAxUnit и последующая загрузка VAExtension завершились успешно.
