@@ -775,6 +775,7 @@ start_client_process() {
   prepare_adapter_wrapper_env "$ADAPTER" adapter_env
   runtime_env=(
     "ONEC_TARGET_ID=$TARGET_INPUT"
+    "ONEC_CAPABILITY_RUN_ROOT=$SESSION_ROOT/runtime"
     "HOME=$RUNTIME_HOME"
     "XDG_CONFIG_HOME=$RUNTIME_XDG_CONFIG"
     "XDG_CACHE_HOME=$RUNTIME_XDG_CACHE"
