@@ -1068,7 +1068,6 @@ tests/golden/README.md
 tests/golden/create.sh
 tests/golden/db.sh
 tests/golden/restore.sh
-tests/golden/run.sh
 tests/python/__init__.py
 tests/python/test_cross_platform.py
 tests/python/test_epf_init_from_template_command.py
