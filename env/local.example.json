@@ -1,10 +1,9 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "profileName": "local",
   "projectName": "[[[ project_name ]]]",
   "projectSlug": "[[[ project_slug ]]]",
   "description": "Minimal direct-platform runtime profile example with mixed designer/file-infobase ibcmd source sync",
-  "runnerAdapter": "direct-platform",
   "notes": [
     "Этот файл является примером structured runtime profile.",
     "Реальные секреты не храните в JSON; используйте passwordEnv и внешние env vars.",
@@ -54,9 +53,6 @@
     },
     "updateDb": {
       "driver": "designer"
-    },
-    "diffSrc": {
-      "command": ["git", "diff", "--", "./src"]
     },
     "bdd": {
       "unsupportedReason": "BDD contour is project-specific; wire a real command before treating this profile as green."

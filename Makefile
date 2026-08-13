@@ -1,6 +1,6 @@
 SHELL := bash
 
-.PHONY: help agent-verify act-preflight qa analyze-bsl format-bsl check-agent-docs check-skill-bindings check-overlay-manifest codex-onboard imported-skills-readiness create-ib dump-src load-src load-cfe manage-cfe v8unpack configure-cfe-runtime-flags check-cfe-applicability check-cfe-config load-diff-src load-task-src update-db diff-src doctor check-x11-contour test-yaxunit sync-yaxunit-runtime yaxunit-warm-service web-client-diagnostic golden-create golden-restore golden-baseline test-bdd bdd-warm-service smoke export-context export-context-preview export-context-check export-context-write verify-traceability template-check-update template-update
+.PHONY: help agent-verify act-preflight qa analyze-bsl format-bsl check-agent-docs check-skill-bindings check-overlay-manifest codex-onboard imported-skills-readiness create-ib dump-src load-src load-cfe manage-cfe configure-cfe-runtime-flags check-cfe-applicability check-cfe-config load-diff-src load-task-src update-db diff-src doctor publish-http bsl-analyzer-mcp check-x11-contour test-yaxunit sync-yaxunit-runtime yaxunit-warm-service web-client-diagnostic golden-create golden-restore golden-baseline test-bdd bdd-warm-service smoke export-context export-context-preview export-context-check export-context-write verify-traceability template-check-update template-update
 
 help:
 	@printf '%s\n' \
@@ -28,7 +28,9 @@ help:
 		'  make load-task-src' \
 		'  make update-db' \
 			'  make diff-src' \
-			'  make doctor' \
+		'  make doctor' \
+		'  make publish-http' \
+		'  make bsl-analyzer-mcp' \
 			'  make check-x11-contour' \
 		'  make test-yaxunit' \
 		'  make sync-yaxunit-runtime' \
@@ -118,6 +120,12 @@ diff-src:
 
 doctor:
 	@./scripts/diag/doctor.sh
+
+publish-http:
+	@./scripts/platform/publish-http.sh
+
+bsl-analyzer-mcp:
+	@./scripts/platform/bsl-analyzer-mcp.sh
 
 check-x11-contour:
 	@./scripts/diag/check-x11-contour.sh

@@ -8,6 +8,7 @@ metadata:
 # Agent Skill: 1c-load-task-src
 
 Repo script: `./scripts/platform/load-task-src.sh`
+Windows launcher: `./scripts/platform/load-task-src.ps1`
 
 ## Use When
 

@@ -5,6 +5,9 @@ import sys
 from pathlib import Path
 
 from .common import CommandError, die
+from .cfe_runtime import CFE_COMMANDS, run_cfe_command
+from .http_runtime import run_publish_http
+from .bsl_mcp_runtime import run_bsl_analyzer_mcp
 from .context import export_context, verify_traceability
 from .epf_templates import init_epf_from_template
 from .imported_skills import render_imported_skill_readiness, run_imported_skill, sync_imported_skills
@@ -15,6 +18,7 @@ from .template_tools import (
     bootstrap_post_update,
     check_update,
     migrate_runtime_profile_v2,
+    migrate_runtime_profile_v3,
     new_project,
     resolve_project_template,
     update_project,
@@ -54,8 +58,14 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     command = args.pop(0)
     try:
+        if command == "publish-http":
+            return run_publish_http(args)
+        if command == "bsl-analyzer-mcp":
+            return run_bsl_analyzer_mcp(args)
         if command in CAPABILITY_LABELS:
             return run_profile_capability(command, CAPABILITY_LABELS[command], args).exit_code
+        if command in CFE_COMMANDS:
+            return run_cfe_command(command, args)
         if command == "doctor":
             return run_doctor(args)
         if command == "testing-campaign":
@@ -218,6 +228,23 @@ def main(argv: list[str] | None = None) -> int:
             if len(args) != 1:
                 die("Usage: migrate-runtime-profile-v2 <legacy-profile.json>")
             print(migrate_runtime_profile_v2(Path(args[0])), end="")
+            return 0
+        if command == "migrate-runtime-profile-v3":
+            profile_only = False
+            positional: list[str] = []
+            for arg in args:
+                if arg == "--profile-only":
+                    profile_only = True
+                elif arg.startswith("-"):
+                    die(f"unknown option: {arg}")
+                else:
+                    positional.append(arg)
+            if len(positional) != 1:
+                die("Usage: migrate-runtime-profile-v3 [--profile-only] <schema-v2-profile.json>")
+            print(
+                migrate_runtime_profile_v3(Path(positional[0]), profile_only=profile_only),
+                end="",
+            )
             return 0
         if command == "new-project":
             destination = "."

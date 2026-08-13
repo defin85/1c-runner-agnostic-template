@@ -32,11 +32,18 @@ $targets = @{
     "create-ib" = @((Resolve-TargetScript "scripts\platform\create-ib.ps1"))
     "dump-src" = @((Resolve-TargetScript "scripts\platform\dump-src.ps1"))
     "load-src" = @((Resolve-TargetScript "scripts\platform\load-src.ps1"))
+    "load-cfe" = @((Resolve-TargetScript "scripts\platform\load-cfe.ps1"))
+    "manage-cfe" = @((Resolve-TargetScript "scripts\platform\manage-cfe.ps1"))
+    "configure-cfe-runtime-flags" = @((Resolve-TargetScript "scripts\platform\configure-cfe-runtime-flags.ps1"))
+    "check-cfe-applicability" = @((Resolve-TargetScript "scripts\platform\check-cfe-applicability.ps1"))
+    "check-cfe-config" = @((Resolve-TargetScript "scripts\platform\check-cfe-config.ps1"))
     "load-diff-src" = @((Resolve-TargetScript "scripts\platform\load-diff-src.ps1"))
     "load-task-src" = @((Resolve-TargetScript "scripts\platform\load-task-src.ps1"))
     "update-db" = @((Resolve-TargetScript "scripts\platform\update-db.ps1"))
     "diff-src" = @((Resolve-TargetScript "scripts\platform\diff-src.ps1"))
     "doctor" = @((Resolve-TargetScript "scripts\diag\doctor.ps1"))
+    "publish-http" = @((Resolve-TargetScript "scripts\platform\publish-http.ps1"))
+    "bsl-analyzer-mcp" = @((Resolve-TargetScript "scripts\platform\bsl-analyzer-mcp.ps1"))
     "test-bdd" = @((Resolve-TargetScript "scripts\test\run-bdd.ps1"))
     "smoke" = @((Resolve-TargetScript "scripts\test\run-smoke.ps1"))
     "export-context" = @((Resolve-TargetScript "scripts\llm\export-context.ps1"))
@@ -64,11 +71,18 @@ if ($Target -eq "help") {
         "  ./make.ps1 create-ib",
         "  ./make.ps1 dump-src",
         "  ./make.ps1 load-src",
+        "  ./make.ps1 load-cfe",
+        "  ./make.ps1 manage-cfe",
+        "  ./make.ps1 configure-cfe-runtime-flags",
+        "  ./make.ps1 check-cfe-applicability",
+        "  ./make.ps1 check-cfe-config",
         "  ./make.ps1 load-diff-src",
         "  ./make.ps1 load-task-src",
         "  ./make.ps1 update-db",
         "  ./make.ps1 diff-src",
         "  ./make.ps1 doctor",
+        "  ./make.ps1 publish-http",
+        "  ./make.ps1 bsl-analyzer-mcp",
         "  ./make.ps1 test-bdd",
         "  ./make.ps1 smoke",
         "  ./make.ps1 export-context",

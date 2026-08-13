@@ -5,6 +5,7 @@ import os
 import shutil
 import subprocess
 import sys
+import tempfile
 import unittest
 from unittest.mock import patch
 from pathlib import Path
@@ -14,7 +15,14 @@ from scripts.python.context import render_generated_tree
 
 
 ROOT = Path(__file__).resolve().parents[2]
-ARTIFACTS = ROOT / ".artifacts" / "tests"
+ARTIFACTS = Path(tempfile.mkdtemp(prefix="template-python-tests-"))
+
+
+def powershell_command(*args: str) -> list[str]:
+    executable = shutil.which("pwsh") or shutil.which("powershell")
+    if not executable:
+        raise RuntimeError("PowerShell is required on Windows")
+    return [executable, "-NoLogo", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", *args]
 
 
 def is_source_repo() -> bool:
@@ -49,12 +57,15 @@ def run_command(command: list[str], env: dict[str, str] | None = None) -> subpro
 class CrossPlatformSmokeTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        shutil.rmtree(ARTIFACTS, ignore_errors=True)
         ARTIFACTS.mkdir(parents=True, exist_ok=True)
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        shutil.rmtree(ARTIFACTS, ignore_errors=True)
 
     def test_onboard_entrypoint(self) -> None:
         if os.name == "nt":
-            result = run_command(["pwsh", "-NoLogo", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "make.ps1", "codex-onboard"])
+            result = run_command(powershell_command("make.ps1", "codex-onboard"))
         else:
             result = run_command(["bash", "-lc", "./scripts/qa/codex-onboard.sh"])
         self.assertEqual(result.returncode, 0, result.stderr)
@@ -74,7 +85,7 @@ class CrossPlatformSmokeTests(unittest.TestCase):
 
     def test_export_context_check(self) -> None:
         if os.name == "nt":
-            result = run_command(["pwsh", "-NoLogo", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "make.ps1", "export-context-check"])
+            result = run_command(powershell_command("make.ps1", "export-context-check"))
         else:
             result = run_command(["bash", "-lc", "./scripts/llm/export-context.sh --check"])
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
@@ -103,20 +114,14 @@ class CrossPlatformSmokeTests(unittest.TestCase):
         run_root = ARTIFACTS / "doctor"
         env = {"ONEC_IBCMD_PASSWORD": "dummy"}
         if os.name == "nt":
-            command = [
-                "pwsh",
-                "-NoLogo",
-                "-NoProfile",
-                "-ExecutionPolicy",
-                "Bypass",
-                "-File",
+            command = powershell_command(
                 "scripts/diag/doctor.ps1",
                 "--profile",
                 "env/windows-local.example.json",
                 "--run-root",
                 str(run_root),
                 "--dry-run",
-            ]
+            )
         else:
             command = [
                 "bash",
@@ -143,16 +148,10 @@ class CrossPlatformSmokeTests(unittest.TestCase):
 
     def test_reference_dispatcher(self) -> None:
         if os.name == "nt":
-            command = [
-                "pwsh",
-                "-NoLogo",
-                "-NoProfile",
-                "-ExecutionPolicy",
-                "Bypass",
-                "-File",
+            command = powershell_command(
                 "scripts/skills/run-imported-skill.ps1",
                 "form-patterns",
-            ]
+            )
         else:
             command = [
                 "bash",
@@ -166,17 +165,11 @@ class CrossPlatformSmokeTests(unittest.TestCase):
 
     def test_imported_skill_readiness_contract(self) -> None:
         if os.name == "nt":
-            command = [
-                "pwsh",
-                "-NoLogo",
-                "-NoProfile",
-                "-ExecutionPolicy",
-                "Bypass",
-                "-File",
+            command = powershell_command(
                 "scripts/skills/run-imported-skill.ps1",
                 "--readiness",
                 "--json",
-            ]
+            )
         else:
             command = ["bash", "-lc", "./scripts/skills/run-imported-skill.sh --readiness --json"]
         result = run_command(command)
@@ -196,7 +189,7 @@ class CrossPlatformSmokeTests(unittest.TestCase):
             text = (ROOT / "scripts" / "test" / filename).read_text(encoding="utf-8")
             self.assertIn(f'"{command}" @RemainingArgs', text)
         if os.name == "nt":
-            result = run_command(["pwsh", "-NoProfile", "-File", "scripts/test/testing-campaign.ps1", "--help"])
+            result = run_command(powershell_command("scripts/test/testing-campaign.ps1", "--help"))
         else:
             result = run_command(["bash", "scripts/test/testing-campaign.sh", "--help"])
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)

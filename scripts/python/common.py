@@ -11,16 +11,13 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Iterable, Sequence
 
+from .runtime_errors import CommandError
+from .runtime_atomic import atomic_write_json, atomic_write_text
+
 
 WINDOWS = os.name == "nt"
 SCRIPT_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = SCRIPT_DIR.parent.parent
-
-
-class CommandError(RuntimeError):
-    def __init__(self, message: str, exit_code: int = 1) -> None:
-        super().__init__(message)
-        self.exit_code = exit_code
 
 
 def die(message: str, exit_code: int = 1) -> "CommandError":
@@ -69,17 +66,11 @@ def read_text(path: str | os.PathLike[str]) -> str:
 
 
 def write_text(path: str | os.PathLike[str], content: str) -> None:
-    target = Path(path)
-    target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text(content, encoding="utf-8", newline="\n")
+    atomic_write_text(path, content)
 
 
 def write_json(path: str | os.PathLike[str], payload: object) -> None:
-    target = Path(path)
-    target.parent.mkdir(parents=True, exist_ok=True)
-    with target.open("w", encoding="utf-8", newline="\n") as stream:
-        json.dump(payload, stream, ensure_ascii=False, indent=2)
-        stream.write("\n")
+    atomic_write_json(path, payload)
 
 
 def read_json(path: str | os.PathLike[str]) -> object:
@@ -192,75 +183,7 @@ def shlex_quote(value: str) -> str:
     return shlex.quote(value)
 
 
-@dataclass
-class ProcessResult:
-    args: list[str]
-    returncode: int
-    stdout: str
-    stderr: str
-
-
-def run_process(
-    command: Sequence[str],
-    *,
-    cwd: str | os.PathLike[str] | None = None,
-    env: dict[str, str] | None = None,
-    check: bool = False,
-    capture_output: bool = True,
-    text: bool = True,
-) -> ProcessResult:
-    final_env = os.environ.copy()
-    if env:
-        final_env.update(env)
-    completed = subprocess.run(
-        list(command),
-        cwd=str(cwd) if cwd else None,
-        env=final_env,
-        check=False,
-        capture_output=capture_output,
-        text=text,
-        encoding="utf-8" if text else None,
-        errors="replace" if text else None,
-    )
-    result = ProcessResult(
-        args=list(command),
-        returncode=completed.returncode,
-        stdout=completed.stdout or "",
-        stderr=completed.stderr or "",
-    )
-    if check and result.returncode != 0:
-        stderr = result.stderr.strip()
-        stdout = result.stdout.strip()
-        message = stderr or stdout or f"command failed: {command_display(command)}"
-        die(message, result.returncode)
-    return result
-
-
-def run_logged(
-    command: Sequence[str],
-    *,
-    stdout_path: str | os.PathLike[str],
-    stderr_path: str | os.PathLike[str],
-    cwd: str | os.PathLike[str] | None = None,
-    env: dict[str, str] | None = None,
-) -> int:
-    Path(stdout_path).parent.mkdir(parents=True, exist_ok=True)
-    Path(stderr_path).parent.mkdir(parents=True, exist_ok=True)
-    final_env = os.environ.copy()
-    if env:
-        final_env.update(env)
-    with Path(stdout_path).open("w", encoding="utf-8", newline="\n") as stdout_stream:
-        with Path(stderr_path).open("w", encoding="utf-8", newline="\n") as stderr_stream:
-            process = subprocess.run(
-                list(command),
-                cwd=str(cwd) if cwd else None,
-                env=final_env,
-                stdout=stdout_stream,
-                stderr=stderr_stream,
-                text=True,
-                check=False,
-            )
-    return process.returncode
+from .runtime_process import ProcessResult, run_logged, run_process
 
 
 def run_git(args: Sequence[str], *, cwd: str | os.PathLike[str] | None = None, check: bool = False) -> ProcessResult:

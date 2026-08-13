@@ -8,6 +8,7 @@ metadata:
 # Agent Skill: 1c-create-ib
 
 Repo script: `./scripts/platform/create-ib.sh`
+Windows launcher: `./scripts/platform/create-ib.ps1`
 
 ## Use When
 

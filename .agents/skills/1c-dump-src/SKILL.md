@@ -8,6 +8,7 @@ metadata:
 # Agent Skill: 1c-dump-src
 
 Repo script: `./scripts/platform/dump-src.sh`
+Windows launcher: `./scripts/platform/dump-src.ps1`
 
 ## Use When
 

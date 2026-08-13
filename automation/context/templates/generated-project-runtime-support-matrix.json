@@ -10,6 +10,14 @@
     "operator-local",
     "provisioned"
   ],
+  "requiredPlatforms": [
+    "linux",
+    "windows"
+  ],
+  "requiredEvidenceClasses": [
+    "contract-only",
+    "contract-plus-live"
+  ],
   "requiredContourIds": [
     "codex-onboard",
     "agent-verify",
@@ -38,6 +46,8 @@
   ],
   "notes": [
     "Treat this matrix as the checked-in runtime truth for generated-project onboarding.",
+    "Every capability/platform pair declares status, evidence class, and optional live evidence.",
+    "Supported contract-plus-live entries require a platform/runtime fingerprint, timestamp, and unexpired expiry.",
     "Operator-local contours may rely on ignored local-private profiles, but they must stay classified as operator-local here.",
     "Operator-local contours should route through docs/agent/operator-local-runbook.md or another project-owned runbook path declared in the matrix.",
     "Project map, runtime quickstart, and onboarding docs should point here instead of treating env/local.json as shared baseline truth.",

@@ -8,6 +8,7 @@ metadata:
 # Agent Skill: 1c-update-db
 
 Repo script: `./scripts/platform/update-db.sh`
+Windows launcher: `./scripts/platform/update-db.ps1`
 
 ## Use When
 
