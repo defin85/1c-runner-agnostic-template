@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import copy
 import shutil
 import tempfile
 from pathlib import Path
@@ -245,7 +246,7 @@ def _runtime_profile_policy() -> dict[str, object]:
 
 
 def _runtime_support_matrix_json() -> dict[str, object]:
-    return {
+    payload = {
         "matrixRole": "project-owned-runtime-support-matrix",
         "statuses": ["supported", "unsupported", "operator-local", "provisioned"],
         "projectSpecificBaselineExtension": None,
@@ -423,10 +424,35 @@ def _runtime_support_matrix_json() -> dict[str, object]:
             },
         ],
     }
+    posix_only = {"check-x11-contour", "yaxunit", "yaxunit-warm-rpc", "web-client-diagnostic", "golden-baseline", "bdd-warm-service"}
+    for contour in payload["contours"]:
+        evidence_class = "contract-only" if contour["layer"] == "safe-local" else "contract-plus-live"
+        contour["platforms"] = {
+            platform: {
+                "status": "unsupported" if platform == "windows" and contour["id"] in posix_only else contour["status"],
+                "evidenceClass": evidence_class,
+                "evidence": None,
+            }
+            for platform in ("linux", "windows")
+        }
+    return payload
 
 
-def _runtime_support_matrix_md() -> str:
-    return "# Runtime Support Matrix\n\n| Contour | Status | Profile provenance | Canonical entrypoint | Runbook |\n| --- | --- | --- | --- | --- |\n| `codex-onboard` | `supported` | `none` | `make codex-onboard` / `./make.ps1 codex-onboard` | `docs/agent/generated-project-index.md` |\n| `agent-verify` | `supported` | `none` | `make agent-verify` / `./make.ps1 agent-verify` | `docs/agent/generated-project-verification.md` |\n| `export-context-check` | `supported` | `none` | `make export-context-check` | `docs/agent/generated-project-verification.md` |\n| `doctor` | `operator-local` | `env/windows-local.json` | `./scripts/diag/doctor.ps1 --profile env/windows-local.json --run-root ./.artifacts/doctor-run` | `docs/agent/operator-local-runbook.md` |\n| `check-x11-contour` | `operator-local` | `env/local.json` | `make check-x11-contour` | `docs/agent/operator-local-runbook.md` |\n| `load-cfe` | `operator-local` | `env/local.json` | `make load-cfe` | `docs/agent/operator-local-runbook.md` |\n| `configure-cfe-runtime-flags` | `operator-local` | `env/local.json` | `make configure-cfe-runtime-flags` | `docs/agent/operator-local-runbook.md` |\n| `check-cfe-applicability` | `operator-local` | `env/local.json` | `make check-cfe-applicability` | `docs/agent/operator-local-runbook.md` |\n| `check-cfe-config` | `operator-local` | `env/local.json` | `make check-cfe-config` | `docs/agent/operator-local-runbook.md` |\n| `load-diff-src` | `operator-local` | `env/local.json` | `make load-diff-src` | `docs/agent/operator-local-runbook.md` |\n| `load-task-src` | `operator-local` | `env/local.json` | `make load-task-src` | `docs/agent/operator-local-runbook.md` |\n| `yaxunit` | `operator-local` | `env/local.json` | `make test-yaxunit` | `docs/agent/operator-local-runbook.md` |\n| `yaxunit-warm-rpc` | `operator-local` | `env/local.json` | `make yaxunit-warm-service` | `docs/agent/operator-local-runbook.md` |\n| `web-client-diagnostic` | `operator-local` | `env/local.json` | `make web-client-diagnostic` | `docs/agent/operator-local-runbook.md` |\n| `golden-baseline` | `operator-local` | `tests/golden/run.sh` or `GOLDEN_BASELINE_COMMAND` | `make golden-baseline` | `tests/golden/README.md` |\n| `bdd` | `operator-local` | `env/local.json` | `make test-bdd` | `docs/agent/operator-local-runbook.md` |\n| `bdd-warm-service` | `operator-local` | `env/local.json` + `automation/context/operator-local-targets.json` | `make bdd-warm-service` | `docs/agent/operator-local-runbook.md` |\n| `smoke` | `operator-local` | `env/local.json` | `make smoke` | `docs/agent/operator-local-runbook.md` |\n| `publish-http` | `operator-local` | `env/local.json` | `./scripts/platform/publish-http.sh --profile env/local.json` | `docs/agent/operator-local-runbook.md` |\n\nMissing test sources route to `init-test-tooling`; installed YAxUnit sources route to `sync-yaxunit-runtime`; Vanessa BDD additionally routes missing Vanessa Automation Single to `install-test-tooling`.\n"
+def _runtime_support_matrix_md(payload: dict[str, object]) -> str:
+    lines = [
+        "# Runtime Support Matrix",
+        "",
+        "| Contour | Platform | Status | Evidence | Profile provenance | Canonical entrypoint | Runbook |",
+        "| --- | --- | --- | --- | --- | --- | --- |",
+    ]
+    for contour in payload["contours"]:
+        for platform, support in contour["platforms"].items():
+            lines.append(
+                f"| `{contour['id']}` | `{platform}` | `{support['status']}` | `{support['evidenceClass']}` | "
+                f"`{contour['profileProvenance']}` | `{contour['entrypoint']}` | `{contour['runbookPath']}` |"
+            )
+    lines.extend(["", "Live evidence records a platform/runtime fingerprint, timestamp, and expiry. Operator-local status is not shared baseline readiness.", ""])
+    return "\n".join(lines)
 
 
 def _operator_local_targets_json() -> dict[str, object]:
@@ -463,8 +489,9 @@ def seed_generated_project_surface(root: Path, project_name: str, project_slug: 
     write_text(root / "docs" / "agent" / "runtime-quickstart.md", _runtime_quickstart())
     write_json(root / "automation" / "context" / "runtime-profile-policy.json", _runtime_profile_policy())
     write_json(root / "automation" / "context" / "operator-local-targets.json", _operator_local_targets_json())
-    write_json(root / "automation" / "context" / "runtime-support-matrix.json", _runtime_support_matrix_json())
-    write_text(root / "automation" / "context" / "runtime-support-matrix.md", _runtime_support_matrix_md())
+    matrix = _runtime_support_matrix_json()
+    write_json(root / "automation" / "context" / "runtime-support-matrix.json", matrix)
+    write_text(root / "automation" / "context" / "runtime-support-matrix.md", _runtime_support_matrix_md(matrix))
 
 
 def append_agents_overlay(agents_file: Path) -> None:
@@ -694,6 +721,60 @@ def migrate_runtime_profile_v2(legacy_profile: Path) -> str:
         },
     }
     return json.dumps(result, ensure_ascii=False, indent=2) + "\n"
+
+
+def migrate_runtime_profile_v3(schema_v2_profile: Path, *, profile_only: bool = False) -> str:
+    payload = json.loads(schema_v2_profile.read_text(encoding="utf-8"))
+    if payload.get("schemaVersion") != 2:
+        die(f"migration helper expects schemaVersion=2 profile: {schema_v2_profile}")
+    result = copy.deepcopy(payload)
+    result["schemaVersion"] = 3
+    adapter = result.pop("runnerAdapter", None)
+    if adapter == "direct-platform":
+        result.pop("transport", None)
+    elif adapter == "remote-windows":
+        result["transport"] = {"kind": "remote-windows"}
+    else:
+        die(
+            "schemaVersion=2 profile has unsupported runnerAdapter for automatic migration: "
+            f"{adapter!r}"
+        )
+
+    unsupported_commands: list[str] = []
+    capabilities = result.get("capabilities", {})
+    if not isinstance(capabilities, dict):
+        die("schemaVersion=2 profile capabilities must be an object")
+    for capability_name, capability in capabilities.items():
+        if not isinstance(capability, dict) or "command" not in capability:
+            continue
+        command = capability.get("command")
+        if capability_name == "diffSrc" and command == ["git", "diff", "--", "./src"]:
+            capability.pop("command", None)
+            continue
+        unsupported_commands.append(str(capability_name))
+    if unsupported_commands:
+        die(
+            "schemaVersion=2 profile contains command orchestration without a supported "
+            "schemaVersion=3 backend: "
+            + ", ".join(sorted(unsupported_commands))
+        )
+
+    notes = result.setdefault("notes", [])
+    if not isinstance(notes, list):
+        die("schemaVersion=2 profile notes must be an array")
+    notes.append(
+        "Migrated by migrate-runtime-profile-v3 in dry-run mode; review the generated profile before replacing local-private configuration."
+    )
+    if profile_only:
+        return json.dumps(result, ensure_ascii=False, indent=2) + "\n"
+    report = {
+        "status": "dry-run",
+        "sourceSchemaVersion": 2,
+        "targetSchemaVersion": 3,
+        "sourceProfile": str(schema_v2_profile.resolve(strict=False)),
+        "profile": result,
+    }
+    return json.dumps(report, ensure_ascii=False, indent=2) + "\n"
 
 
 def new_project(destination: str, template: str, copier_args: list[str], *, cwd: Path | None = None) -> int:

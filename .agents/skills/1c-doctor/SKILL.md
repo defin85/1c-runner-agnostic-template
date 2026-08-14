@@ -8,6 +8,7 @@ metadata:
 # Agent Skill: 1c-doctor
 
 Repo script: `./scripts/diag/doctor.sh`
+Windows launcher: `./scripts/diag/doctor.ps1`
 
 ## Use When
 

@@ -5,6 +5,10 @@ if [ "$#" -lt 1 ]; then
   printf 'usage: %s <command> [args...]\n' "$0" >&2
   exit 1
 fi
+if [ "$1" = "-m" ]; then
+  printf 'error: %s dispatches project commands; invoke Python directly for python -m ...\n' "$0" >&2
+  exit 2
+fi
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd -- "$SCRIPT_DIR/../.." && pwd)"

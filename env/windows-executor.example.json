@@ -1,10 +1,12 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "profileName": "windows-executor",
   "projectName": "[[[ project_name ]]]",
   "projectSlug": "[[[ project_slug ]]]",
   "description": "Remote Windows execution profile for UI-heavy or TestClient flows",
-  "runnerAdapter": "remote-windows",
+  "transport": {
+    "kind": "remote-windows"
+  },
   "notes": [
     "Используйте этот профиль, если UI/TestClient лучше работают на Windows-хосте или в Windows VM.",
     "Стандартные операции create/load/dump/update будут собирать argv из structured profile и передавать их в scripts/adapters/remote-windows.sh.",
@@ -38,9 +40,6 @@
     },
     "updateDb": {
       "driver": "designer"
-    },
-    "diffSrc": {
-      "command": ["git", "diff", "--", "./src"]
     },
     "bdd": {
       "unsupportedReason": "Windows BDD contour is project-specific; wire a real command before treating this profile as green."

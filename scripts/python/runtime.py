@@ -27,6 +27,18 @@ from .common import (
     unique_preserve_order,
     write_json,
 )
+from .runtime_paths import resolve_project_tree_path
+from .runtime_process import run_process as run_transport_process
+from .runtime_lock import project_runtime_lock
+from .runtime_profiles import (
+    RuntimeProfile,
+    load_runtime_profile,
+    require_runtime_profile,
+    resolve_runtime_profile_path,
+)
+from .runtime_result import RunArtifacts, prepare_run_artifacts, publish_interrupted_summary, publish_summary, sanitize_artifact_logs
+from .runtime_secrets import build_redacted_context, resolve_secret_value
+from .runtime_selection import select_source_path
 
 
 LOCAL_SANDBOX_DIR = "env/.local/"
@@ -55,98 +67,11 @@ def capability_key(capability_id: str) -> str:
         die(f"unsupported capability id: {capability_id}")
 
 
-def _require_type(value: Any, type_name: type | tuple[type, ...], field_name: str) -> Any:
-    if not isinstance(value, type_name):
-        die(f"runtime profile field has invalid type: {field_name}")
-    return value
-
-
-def _json_type_name(value: Any) -> str:
-    if value is None:
-        return "null"
-    if isinstance(value, bool):
-        return "boolean"
-    if isinstance(value, str):
-        return "string"
-    if isinstance(value, list):
-        return "array"
-    if isinstance(value, dict):
-        return "object"
-    if isinstance(value, (int, float)):
-        return "number"
-    return type(value).__name__
-
-
 def _relative_to_repo(path: Path) -> str:
     try:
         return path.relative_to(project_root()).as_posix()
     except ValueError:
         return path.as_posix()
-
-
-@dataclass(slots=True)
-class RuntimeProfile:
-    path: Path
-    payload: dict[str, Any]
-    name: str
-    runner_adapter: str
-
-    def get(self, *keys: str, default: Any = None) -> Any:
-        cursor: Any = self.payload
-        for key in keys:
-            if not isinstance(cursor, dict):
-                return default
-            cursor = cursor.get(key, default)
-        return cursor
-
-    def has(self, *keys: str) -> bool:
-        cursor: Any = self.payload
-        for key in keys:
-            if not isinstance(cursor, dict) or key not in cursor:
-                return False
-            cursor = cursor[key]
-        return cursor is not None
-
-    def string(self, *keys: str, default: str = "") -> str:
-        value = self.get(*keys, default=default)
-        if value is None:
-            return default
-        if not isinstance(value, str):
-            die(
-                "runtime profile field has invalid type: "
-                + ".".join(keys)
-                + f" ({_json_type_name(value)})"
-            )
-        return value
-
-    def bool(self, *keys: str, default: bool | None = None) -> bool | None:
-        value = self.get(*keys, default=default)
-        if value is None:
-            return default
-        if not isinstance(value, bool):
-            die(
-                "runtime profile field has invalid type: "
-                + ".".join(keys)
-                + f" ({_json_type_name(value)})"
-            )
-        return value
-
-    def array_strings(self, *keys: str) -> list[str]:
-        value = self.get(*keys, default=[])
-        if value is None:
-            return []
-        _require_type(value, list, ".".join(keys))
-        result: list[str] = []
-        for item in value:
-            result.append(str(item))
-        return result
-
-    def require_string(self, *keys: str) -> str:
-        label = ".".join(keys)
-        value = self.string(*keys)
-        if not value:
-            die(f"runtime profile is missing {label} in {self.path}")
-        return value
 
 
 @dataclass(slots=True)
@@ -196,61 +121,6 @@ def canonical_root_runtime_profile_filename(filename: str) -> bool:
 
 def runtime_policy_file_path(root: Path | None = None) -> Path:
     return (root or project_root()) / RUNTIME_POLICY_PATH
-
-
-def resolve_runtime_profile_path(requested_path: str = "", root: Path | None = None) -> Path | None:
-    repo_root = root or project_root()
-    resolved = requested_path or os.environ.get("ONEC_PROFILE", "")
-    if not resolved:
-        default_profile = repo_root / "env" / "local.json"
-        if default_profile.is_file():
-            return canonical_path(default_profile)
-        return None
-    return canonical_path(resolved)
-
-
-def runtime_profile_migration_error(profile_path: Path) -> None:
-    die(
-        "runtime profile schemaVersion=1 is no longer supported: "
-        f"{profile_path}. Migrate it with ./scripts/template/migrate-runtime-profile-v2.sh "
-        "<legacy-profile> and see docs/migrations/runtime-profile-v2.md"
-    )
-
-
-def load_runtime_profile(profile_path: Path | None) -> RuntimeProfile | None:
-    if profile_path is None:
-        return None
-    if not profile_path.is_file():
-        die(f"runtime profile not found: {profile_path}")
-    payload = read_json(profile_path)
-    if not isinstance(payload, dict):
-        die(f"runtime profile root must be an object: {profile_path}")
-    schema_version = payload.get("schemaVersion")
-    shell_env = payload.get("shellEnv")
-    if schema_version == 1 or (schema_version is None and isinstance(shell_env, dict)):
-        runtime_profile_migration_error(profile_path)
-    if schema_version != 2:
-        die(f"unsupported runtime profile schemaVersion={schema_version} in {profile_path}")
-    runner_adapter = payload.get("runnerAdapter")
-    if not isinstance(runner_adapter, str) or not runner_adapter:
-        die(f"runtime profile is missing runnerAdapter in {profile_path}")
-    name = payload.get("profileName")
-    if name is None:
-        name = ""
-    elif not isinstance(name, str):
-        die(f"runtime profile field has invalid type: profileName ({_json_type_name(name)})")
-    return RuntimeProfile(
-        path=canonical_path(profile_path),
-        payload=payload,
-        name=name,
-        runner_adapter=runner_adapter,
-    )
-
-
-def require_runtime_profile(profile: RuntimeProfile | None) -> RuntimeProfile:
-    if profile is None:
-        die("runtime profile is required; pass --profile <file> or create env/local.json")
-    return profile
 
 
 def profile_answer_value(root: Path, key: str, default: str | None = None) -> str:
@@ -404,22 +274,6 @@ def load_capability_selected_files(csv_value: str) -> list[str]:
     return [normalize_capability_selected_file(item) for item in csv_value.split(",")]
 
 
-def resolve_project_tree_path(candidate: str) -> Path:
-    if os.path.isabs(candidate):
-        return canonical_path(candidate)
-    return canonical_path(project_root() / candidate)
-
-
-def resolve_secret_value(env_name: str, dry_run: bool = False) -> str:
-    if not env_name:
-        return ""
-    if env_name in os.environ:
-        return os.environ[env_name]
-    if dry_run:
-        return "__REDACTED_SECRET__"
-    die(f"required secret env var is not set: {env_name}")
-
-
 def normalize_repo_command_tokens(command: list[str]) -> list[str]:
     normalized: list[str] = []
     for token in command:
@@ -428,23 +282,6 @@ def normalize_repo_command_tokens(command: list[str]) -> list[str]:
         else:
             normalized.append(token)
     return normalized
-
-
-def build_redacted_context(profile: RuntimeProfile | None) -> dict[str, Any]:
-    if profile is None:
-        return {}
-    return {
-        "runtime_profile": {
-            "name": profile.name or None,
-        },
-        "infobase": {
-            "mode": profile.string("infobase", "mode") or None,
-            "server": profile.string("infobase", "server") or None,
-            "ref": profile.string("infobase", "ref") or None,
-            "file_path": profile.string("infobase", "filePath") or None,
-            "auth_mode": profile.string("infobase", "auth", "mode", default="os") or None,
-        },
-    }
 
 
 def direct_platform_xvfb_enabled(profile: RuntimeProfile) -> bool:
@@ -600,7 +437,7 @@ def resolve_capability_driver(profile: RuntimeProfile, capability_id: str) -> st
         return ""
     driver = profile.string("capabilities", capability_key(capability_id), "driver")
     if not driver:
-        return "ibcmd" if profile.string("runnerAdapter") == "direct-platform" else "designer"
+        return "designer"
     if driver not in {"designer", "ibcmd"}:
         die(f"unsupported driver={driver} for capability {capability_id} in {profile.path}")
     return driver
@@ -740,7 +577,7 @@ def append_ibcmd_infobase_auth_args(profile: RuntimeProfile, args: list[str], *,
 
 def ibcmd_capability_failure_reason(profile: RuntimeProfile, capability_id: str, adapter: str) -> str:
     if adapter != "direct-platform":
-        return "ibcmd driver is supported only with runnerAdapter=direct-platform"
+        return "ibcmd driver is supported only for local execution"
     if not profile.has("platform", "ibcmdPath"):
         return "missing platform.ibcmdPath"
     runtime_mode = profile.string("ibcmd", "runtimeMode")
@@ -872,7 +709,7 @@ def collect_required_env_refs(profile: RuntimeProfile) -> list[str]:
 
 
 def collect_required_profile_fields(profile: RuntimeProfile, adapter: str) -> list[str]:
-    fields = ["runnerAdapter"]
+    fields: list[str] = []
     if adapter not in {"direct-platform", "remote-windows", "vrunner"}:
         return fields
     for capability_id in DRIVER_CAPABILITIES:
@@ -938,7 +775,7 @@ def doctor_capability_failure_reason(profile: RuntimeProfile, capability_id: str
         driver = resolve_capability_driver(profile, capability_id)
         if driver == "designer":
             if adapter not in {"direct-platform", "remote-windows"}:
-                return f"driver=designer is unsupported with runnerAdapter={adapter}"
+                return f"driver=designer is unsupported with transport={adapter}"
             if not profile.string("platform", "binaryPath"):
                 return "missing platform.binaryPath"
             mode = profile.string("infobase", "mode")
@@ -1163,6 +1000,7 @@ def write_capability_summary(
     finished_at: str,
     dry_run: bool,
     summary_path: Path,
+    secrets: list[str] | None = None,
 ) -> None:
     payload = {
         "status": status,
@@ -1189,7 +1027,11 @@ def write_capability_summary(
         },
     }
     payload.update(prepared.context)
-    write_json(summary_path, payload)
+    publish_summary(
+        RunArtifacts(run_root, summary_path, stdout_log, stderr_log),
+        payload,
+        secrets or [],
+    )
 
 
 def execute_prepared_capability_command(
@@ -1215,12 +1057,49 @@ def execute_prepared_capability_command(
         "ONEC_CAPABILITY_RUN_ROOT": str(run_root),
     }
     command = list(prepared.command)
+    if prepared.adapter == "remote-windows":
+        suffix = ".ps1" if WINDOWS else ".sh"
+        adapter_path = project_root() / "scripts" / "adapters" / f"remote-windows{suffix}"
+        adapter_command = (["powershell", "-NoLogo", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(adapter_path), "--stdio-json"] if WINDOWS else [str(adapter_path), "--stdio-json"])
+        request = json.dumps({"schemaVersion": 1, "capability": prepared.capability_id, "argv": command}, ensure_ascii=False)
+        transport = run_transport_process(adapter_command, cwd=project_root(), env=env, input_text=request, timeout=300)
+        if transport.returncode != 0:
+            stderr_log.write_text("transport failure: " + (transport.stderr.strip() or f"exit code {transport.returncode}") + "\n", encoding="utf-8")
+            stdout_log.write_text("", encoding="utf-8")
+            return 70
+        try:
+            response = json.loads(transport.stdout)
+            exit_code = int(response["exitCode"])
+        except (ValueError, TypeError, KeyError, json.JSONDecodeError):
+            stderr_log.write_text("transport failure: invalid structured response\n", encoding="utf-8")
+            stdout_log.write_text("", encoding="utf-8")
+            return 70
+        stdout_log.write_text(str(response.get("stdout", "")), encoding="utf-8")
+        stderr_log.write_text(str(response.get("stderr", "")), encoding="utf-8")
+        return exit_code
     if prepared.executor == "adapter-wrapper":
         adapter_name = "direct-platform" if prepared.adapter == "direct-platform" else prepared.adapter
         suffix = ".ps1" if WINDOWS else ".sh"
         adapter_path = project_root() / "scripts" / "adapters" / f"{adapter_name}{suffix}"
         if not adapter_path.is_file():
             die(f"adapter launcher not found: {adapter_path}")
+        if prepared.adapter == "direct-platform" and not WINDOWS:
+            if direct_platform_xpra_enabled(profile):
+                env["ONEC_DIRECT_PLATFORM_XPRA_ENABLED"] = "1"
+                env["ONEC_DIRECT_PLATFORM_XPRA_XVFB_ARGS"] = " ".join(
+                    load_direct_platform_xpra_xvfb_args(profile)
+                )
+                env["ONEC_DIRECT_PLATFORM_XPRA_START_CHILD"] = load_direct_platform_xpra_start_child(profile)
+            elif direct_platform_xvfb_enabled(profile):
+                env["ONEC_DIRECT_PLATFORM_XVFB_ENABLED"] = "1"
+                env["ONEC_DIRECT_PLATFORM_XVFB_SERVER_ARGS"] = " ".join(
+                    load_direct_platform_xvfb_server_args(profile)
+                )
+            if direct_platform_ld_preload_enabled(profile):
+                env["ONEC_DIRECT_PLATFORM_LD_PRELOAD_ENABLED"] = "1"
+                env["ONEC_DIRECT_PLATFORM_LD_PRELOAD"] = os.pathsep.join(
+                    load_direct_platform_ld_preload_libraries(profile)
+                )
         if WINDOWS:
             command = [
                 "pwsh",
@@ -1260,11 +1139,10 @@ def run_profile_capability(
         dry_run=args.dry_run,
     )
     run_root = prepare_capability_run_root(capability_id, args.run_root_input)
-    summary_path = capability_summary_path(run_root)
-    stdout_log = run_root / "stdout.log"
-    stderr_log = run_root / "stderr.log"
-    stdout_log.write_text("", encoding="utf-8", newline="\n")
-    stderr_log.write_text("", encoding="utf-8", newline="\n")
+    artifacts = prepare_run_artifacts(run_root)
+    summary_path = artifacts.summary_path
+    stdout_log = artifacts.stdout_path
+    stderr_log = artifacts.stderr_path
     log(label)
     log(f"adapter={adapter}")
     if prepared.driver:
@@ -1276,10 +1154,44 @@ def run_profile_capability(
     started_at = timestamp_utc()
     status = "dry-run" if args.dry_run else "success"
     exit_code = 0
+    resolved_secrets = [
+        os.environ[name]
+        for name in collect_required_env_refs(profile)
+        if os.environ.get(name)
+    ]
     if not args.dry_run:
-        exit_code = execute_prepared_capability_command(prepared, profile, run_root, stdout_log, stderr_log)
+        try:
+            with project_runtime_lock(project_root(), capability_id):
+                exit_code = execute_prepared_capability_command(prepared, profile, run_root, stdout_log, stderr_log)
+        except KeyboardInterrupt:
+            interrupted = {
+                "capability": {"id": capability_id, "label": label},
+                "adapter": adapter,
+                "driver": prepared.driver or None,
+                "profile_path": str(profile.path),
+                "run_root": str(run_root),
+                "started_at": started_at,
+                "finished_at": timestamp_utc(),
+                "dry_run": False,
+                "execution": {"source": prepared.command_source, "executor": prepared.executor},
+                "artifacts": {
+                    "summary_json": str(summary_path),
+                    "stdout_log": str(stdout_log),
+                    "stderr_log": str(stderr_log),
+                },
+            }
+            interrupted.update(prepared.context)
+            publish_interrupted_summary(
+                artifacts,
+                interrupted,
+                reason="operator cancellation",
+                cleanup=lambda: None,
+                secrets=resolved_secrets,
+            )
+            return CapabilityResult("interrupted", 130, summary_path, stdout_log, stderr_log)
         if exit_code != 0:
             status = "failed"
+    sanitize_artifact_logs(artifacts, resolved_secrets)
     finished_at = timestamp_utc()
     write_capability_summary(
         prepared,
@@ -1293,6 +1205,7 @@ def run_profile_capability(
         finished_at,
         args.dry_run,
         summary_path,
+        resolved_secrets,
     )
     log(f"summary_json={summary_path}")
     return CapabilityResult(
@@ -1406,7 +1319,7 @@ def run_doctor(argv: list[str]) -> int:
     summary_path = capability_summary_path(run_root)
     stdout_log = run_root / "stdout.log"
     stderr_log = run_root / "stderr.log"
-    stdout_log.write_text("", encoding="utf-8", newline="\n")
+    stdout_log.write_text("Run 1C runtime doctor\n", encoding="utf-8", newline="\n")
     stderr_log.write_text("", encoding="utf-8", newline="\n")
     required_tools = ["git", "rg"]
     optional_tools = ["openspec"]
@@ -1474,8 +1387,9 @@ def run_doctor(argv: list[str]) -> int:
             status = "failed"
     for capability_id in optional_capabilities:
         reason = doctor_capability_failure_reason(profile, capability_id, adapter)
+        item_status = "unsupported" if profile_unsupported_reason(profile, capability_id) else ("present" if not reason else "missing")
         checks["optional_capabilities"].append(
-            {"name": capability_id, "status": "present" if not reason else "missing", "required": False, "reason": reason or None}
+            {"name": capability_id, "status": item_status, "required": False, "reason": reason or None}
         )
     derived = []
     load_src_driver = resolve_capability_driver(profile, "load-src") if not profile_command(profile, "load-src") else ""
@@ -1500,6 +1414,10 @@ def run_doctor(argv: list[str]) -> int:
             }
         )
     checks["derived_contours"] = derived
+    warnings = build_runtime_profile_layout_warning_json()
+    if warnings["runtime_profile_layout"]["status"] == "warning":
+        with stdout_log.open("a", encoding="utf-8", newline="\n") as stream:
+            stream.write(f"Use {warnings['runtime_profile_layout']['recommended_sandbox']} for local profiles\n")
     payload = {
         "status": "dry-run" if args.dry_run else status,
         "capability": {"id": "doctor", "label": "1C runtime doctor"},
@@ -1513,7 +1431,7 @@ def run_doctor(argv: list[str]) -> int:
         },
         "capability_drivers": build_doctor_capability_drivers_json(profile, adapter),
         "checks": checks,
-        "warnings": build_runtime_profile_layout_warning_json(),
+        "warnings": warnings,
     }
     payload.update(build_redacted_context(profile))
     payload.update(direct_platform_adapter_context(profile) if adapter == "direct-platform" else {})
@@ -1619,20 +1537,12 @@ def run_load_diff_src(argv: list[str]) -> int:
     selected_files: list[str] = []
     ignored_files: list[dict[str, str]] = []
     for repo_path in raw_paths:
-        normalized = normalize_capability_selected_file(repo_path)
-        if normalized != source_dir_rel and not normalized.startswith(f"{source_dir_rel}/"):
-            ignored_files.append({"path": normalized, "reason": "outside-source-tree"})
+        selection = select_source_path(root, source_dir_rel, repo_path)
+        if selection.reason:
+            ignored_files.append({"path": selection.repo_path, "reason": selection.reason})
             continue
-        absolute_path = root / normalized
-        if not absolute_path.is_file():
-            ignored_files.append({"path": normalized, "reason": "missing-or-deleted"})
-            continue
-        relative_path = normalized[len(source_dir_rel) + 1 :]
-        if not relative_path:
-            ignored_files.append({"path": normalized, "reason": "not-a-source-file"})
-            continue
-        if relative_path not in selected_files:
-            selected_files.append(relative_path)
+        if selection.relative_path not in selected_files:
+            selected_files.append(selection.relative_path or "")
     exit_code = 0
     driver: str | None = None
     delegated = None
@@ -1739,17 +1649,15 @@ def run_load_task_src(argv: list[str]) -> int:
             primary = parts[1] if len(parts) > 1 else ""
             secondary = parts[2] if len(parts) > 2 else ""
             repo_path = secondary if status[:1] in {"R", "C"} else primary
-            normalized = normalize_capability_selected_file(repo_path)
-            if normalized != source_dir_rel and not normalized.startswith(f"{source_dir_rel}/"):
-                ignored_files.append({"path": normalized, "reason": "outside-source-tree", "commit": commit})
+            selection = select_source_path(root, source_dir_rel, repo_path, deleted=status.startswith("D"))
+            if selection.reason == "outside-source-tree":
+                ignored_files.append({"path": selection.repo_path, "reason": selection.reason, "commit": commit})
                 continue
-            absolute_path = root / normalized
-            if status.startswith("D") or not absolute_path.is_file():
-                deleted_paths.append({"path": normalized, "commit": commit})
+            if selection.reason:
+                deleted_paths.append({"path": selection.repo_path, "commit": commit})
                 continue
-            relative_path = normalized[len(source_dir_rel) + 1 :]
-            if relative_path and relative_path not in selected_files:
-                selected_files.append(relative_path)
+            if selection.relative_path and selection.relative_path not in selected_files:
+                selected_files.append(selection.relative_path)
     exit_code = 0
     delegated = None
     driver = None

@@ -12,13 +12,12 @@ path_success="$tmpdir/path-success"
 path_missing_xpra="$tmpdir/path-missing-xpra"
 profile_path="$tmpdir/profile.json"
 doctor_run_root="$tmpdir/doctor-run"
-bdd_run_root="$tmpdir/bdd-run"
+create_run_root="$tmpdir/create-run"
 runtime_missing_xpra_run_root="$tmpdir/runtime-missing-xpra-run"
 doctor_missing_xpra_run_root="$tmpdir/doctor-missing-xpra-run"
 fake_ready_file="$tmpdir/xpra-ready-display"
 invocation_log="$tmpdir/invocations.log"
 fake_binary="$bindir/1cv8"
-fake_client="$bindir/1cv8c"
 fake_ibcmd="$bindir/ibcmd"
 fake_xpra="$bindir/xpra"
 fake_xvfb="$bindir/Xvfb"
@@ -43,8 +42,6 @@ for arg in "$@"; do
   printf '%s\n' "$arg"
 done
 EOF
-
-cp "$fake_binary" "$fake_client"
 
 cat >"$fake_ibcmd" <<'EOF'
 #!/usr/bin/env bash
@@ -109,14 +106,14 @@ set -euo pipefail
 exit 0
 EOF
 
-chmod +x "$fake_binary" "$fake_client" "$fake_ibcmd" "$fake_xpra" "$fake_xvfb" "$fake_xdpyinfo" "$fake_openbox"
+chmod +x "$fake_binary" "$fake_ibcmd" "$fake_xpra" "$fake_xvfb" "$fake_xdpyinfo" "$fake_openbox"
 
 mirror_commands() {
   local target_dir="$1"
   local command_name=""
 
   mkdir -p "$target_dir"
-  for command_name in awk bash basename cat date dirname env flock git grep jq kill locale mkdir mktemp ps realpath rg sed seq sleep tee tail tr; do
+  for command_name in awk bash basename cat date dirname env flock git grep jq kill locale mkdir mktemp ps python3 realpath rg sed seq sleep tee tail tr; do
     ln -sf "$(command -v "$command_name")" "$target_dir/$command_name"
   done
 }
@@ -133,9 +130,8 @@ ln -sf "$fake_openbox" "$path_missing_xpra/openbox"
 
 cat >"$profile_path" <<EOF
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "profileName": "xpra-fixture",
-  "runnerAdapter": "direct-platform",
   "platform": {
     "binaryPath": "$fake_binary",
     "ibcmdPath": "$fake_ibcmd",
@@ -173,11 +169,25 @@ cat >"$profile_path" <<EOF
     }
   },
   "capabilities": {
+    "createIb": {
+      "driver": "designer"
+    },
+    "dumpSrc": {
+      "driver": "ibcmd",
+      "outputDir": "/tmp/xpra-fixture-src"
+    },
+    "loadSrc": {
+      "driver": "ibcmd",
+      "sourceDir": "/tmp/xpra-fixture-src"
+    },
+    "updateDb": {
+      "driver": "ibcmd"
+    },
     "bdd": {
-      "command": ["$fake_client", "ENTERPRISE", "/F", "/tmp/xpra-fixture"]
+      "unsupportedReason": "BDD contour is not part of this fixture"
     },
     "smoke": {
-      "command": ["bash", "-lc", "printf 'smoke-ok\\\\n'"]
+      "unsupportedReason": "Smoke contour is not part of this fixture"
     }
   }
 }
@@ -238,34 +248,34 @@ assert_jq "$doctor_run_root/summary.json" '[.checks.required_tools[] | select(.n
 
 (
   cd "$SOURCE_ROOT"
-  PATH="$path_success" XAUTHORITY="$tmpdir/stale.Xauthority" ONEC_FAKE_XPRA_READY_FILE="$fake_ready_file" ONEC_INVOCATION_LOG="$invocation_log" ./scripts/test/run-bdd.sh --profile "$profile_path" --run-root "$bdd_run_root" >/dev/null
+  PATH="$path_success" XAUTHORITY="$tmpdir/stale.Xauthority" ONEC_FAKE_XPRA_READY_FILE="$fake_ready_file" ONEC_INVOCATION_LOG="$invocation_log" ./scripts/platform/create-ib.sh --profile "$profile_path" --run-root "$create_run_root" >/dev/null
 )
 
-assert_jq "$bdd_run_root/summary.json" '.status == "success"' "bdd-status"
-assert_jq "$bdd_run_root/summary.json" '.execution.executor == "adapter-wrapper"' "bdd-executor"
-assert_jq "$bdd_run_root/summary.json" '.adapter_context.wrapper == "xpra"' "bdd-wrapper"
-assert_contains "$bdd_run_root/stderr.log" "fake-xpra"
-assert_contains "$bdd_run_root/stderr.log" "xpra-arg=start-desktop"
+assert_jq "$create_run_root/summary.json" '.status == "success"' "create-status"
+assert_jq "$create_run_root/summary.json" '.execution.executor == "adapter-wrapper"' "create-executor"
+assert_jq "$create_run_root/summary.json" '.adapter_context.wrapper == "xpra"' "create-wrapper"
+assert_contains "$create_run_root/stderr.log" "fake-xpra"
+assert_contains "$create_run_root/stderr.log" "xpra-arg=start-desktop"
 assert_contains "$SOURCE_ROOT/scripts/adapters/direct-platform.sh" "flock -x 9"
 assert_contains "$SOURCE_ROOT/scripts/adapters/direct-platform.sh" "ONEC_DIRECT_PLATFORM_XPRA_SESSION_TOKEN"
 assert_contains "$SOURCE_ROOT/scripts/adapters/direct-platform.sh" "process-cleanup-baseline.txt"
-assert_contains "$bdd_run_root/stderr.log" "xpra-xauthority=$bdd_run_root/home/.Xauthority"
-assert_contains "$bdd_run_root/stderr.log" "xpra-arg=--xvfb=Xvfb -screen 0 1440x900x24 -nolisten tcp -noreset -auth $bdd_run_root/home/.Xauthority"
-assert_contains "$bdd_run_root/stdout.log" "fake-1cv8c"
-assert_matches "$bdd_run_root/stdout.log" '^display=:[0-9]+$'
-assert_contains "$bdd_run_root/stdout.log" "xauthority=$bdd_run_root/home/.Xauthority"
-assert_contains "$invocation_log" "1cv8c"
+assert_contains "$create_run_root/stderr.log" "xpra-xauthority=$create_run_root/home/.Xauthority"
+assert_contains "$create_run_root/stderr.log" "xpra-arg=--xvfb=Xvfb -screen 0 1440x900x24 -nolisten tcp -noreset -auth $create_run_root/home/.Xauthority"
+assert_contains "$create_run_root/stdout.log" "fake-1cv8"
+assert_matches "$create_run_root/stdout.log" '^display=:[0-9]+$'
+assert_contains "$create_run_root/stdout.log" "xauthority=$create_run_root/home/.Xauthority"
+assert_contains "$invocation_log" "1cv8"
 
 set +e
 (
   cd "$SOURCE_ROOT"
-  PATH="$path_missing_xpra" ONEC_FAKE_XPRA_READY_FILE="$fake_ready_file" ./scripts/test/run-bdd.sh --profile "$profile_path" --run-root "$runtime_missing_xpra_run_root" >/dev/null
+  PATH="$path_missing_xpra" ONEC_FAKE_XPRA_READY_FILE="$fake_ready_file" ./scripts/platform/create-ib.sh --profile "$profile_path" --run-root "$runtime_missing_xpra_run_root" >/dev/null
 )
 status_missing_xpra=$?
 set -e
 
 if [ "$status_missing_xpra" -eq 0 ]; then
-  printf 'expected run-bdd to fail when xpra is missing\n' >&2
+  printf 'expected create-ib to fail when xpra is missing\n' >&2
   exit 1
 fi
 
@@ -287,4 +297,4 @@ fi
 
 assert_jq "$doctor_missing_xpra_run_root/summary.json" '.status == "failed"' "doctor-missing-xpra-status"
 assert_jq "$doctor_missing_xpra_run_root/summary.json" '[.checks.required_tools[] | select(.name == "xpra" and .status == "missing")] | length == 1' "doctor-missing-xpra-tool"
-assert_jq "$doctor_missing_xpra_run_root/summary.json" '[.checks.required_capabilities[] | select(.name == "run-bdd" and .reason == "missing xpra for direct-platform xpra wrapper")] | length == 1' "doctor-missing-xpra-bdd"
+assert_jq "$doctor_missing_xpra_run_root/summary.json" '[.checks.required_capabilities[] | select(.name == "create-ib" and .reason == "missing xpra for direct-platform xpra wrapper")] | length == 1' "doctor-missing-xpra-create"

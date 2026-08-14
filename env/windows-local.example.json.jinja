@@ -1,10 +1,9 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "profileName": "windows-local",
   "projectName": "[[[ project_name ]]]",
   "projectSlug": "[[[ project_slug ]]]",
   "description": "Native Windows direct-platform profile without WSL/Git Bash requirements",
-  "runnerAdapter": "direct-platform",
   "notes": [
     "Этот preset предназначен для нативного PowerShell запуска на Windows.",
     "platform.xvfb и platform.ldPreload оставлены только для POSIX direct-platform contour-ов и не должны включаться здесь."
@@ -51,9 +50,6 @@
     },
     "updateDb": {
       "driver": "designer"
-    },
-    "diffSrc": {
-      "command": ["git", "diff", "--", "./src"]
     },
     "bdd": {
       "unsupportedReason": "Windows BDD contour is project-specific; wire a real command before treating this profile as green."

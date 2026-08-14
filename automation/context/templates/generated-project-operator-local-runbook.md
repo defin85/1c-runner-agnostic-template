@@ -17,4 +17,5 @@
 - для Vanessa BDD warm-service фиксирует, что менеджер и клиент тестирования стартуют отдельными 1С-сеансами, готовность требует `READY` от менеджера и слушающий `TestClient` порт, параллельные запуски должны иметь разные `--run-root`, warmup feature подключается к уже поднятому клиенту по порту вместо запуска нового клиента через сохранённый профиль Vanessa Automation, а warmed BDD runner может fail-closed проверять журнал регистрации;
 - для `direct-platform` `xpra` фиксирует ожидание очистки wrapper-owned `dbus/gvfs` процессов при остановке runtime contour-а;
 - фиксирует preflight checks, canonical entrypoint-ы, env/profile provenance и expected fail-closed states;
+- для нативного Windows фиксирует `./make.ps1 <target> --profile env/windows-local.json` как PowerShell-first путь без обязательных WSL/Git Bash и перечисляет только цели, присутствующие в `./make.ps1 help`;
 - не делает ignored local-private profile shared baseline truth.

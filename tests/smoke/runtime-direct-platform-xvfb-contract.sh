@@ -15,7 +15,6 @@ profile_path="$tmpdir/profile.json"
 profile_disabled_path="$tmpdir/profile-disabled.json"
 doctor_run_root="$tmpdir/doctor-run"
 create_run_root="$tmpdir/create-run"
-bdd_run_root="$tmpdir/bdd-run"
 default_run_root="$tmpdir/default-run"
 runtime_missing_xauth_run_root="$tmpdir/runtime-missing-xauth-run"
 runtime_missing_xvfb_run_root="$tmpdir/runtime-missing-xvfb-run"
@@ -23,7 +22,6 @@ doctor_missing_xauth_run_root="$tmpdir/doctor-missing-xauth-run"
 doctor_missing_xvfb_run_root="$tmpdir/doctor-missing-xvfb-run"
 invocation_log="$tmpdir/invocations.log"
 fake_binary="$bindir/1cv8"
-fake_client="$bindir/1cv8c"
 fake_xvfb_run="$bindir/xvfb-run"
 fake_xauth="$bindir/xauth"
 
@@ -43,8 +41,6 @@ for arg in "$@"; do
   printf '%s\n' "$arg"
 done
 EOF
-
-cp "$fake_binary" "$fake_client"
 
 cat >"$fake_xvfb_run" <<'EOF'
 #!/usr/bin/env bash
@@ -88,14 +84,14 @@ set -euo pipefail
 exit 0
 EOF
 
-chmod +x "$fake_binary" "$fake_client" "$fake_xvfb_run" "$fake_xauth"
+chmod +x "$fake_binary" "$fake_xvfb_run" "$fake_xauth"
 
 mirror_commands() {
   local target_dir="$1"
   local command_name=""
 
   mkdir -p "$target_dir"
-  for command_name in bash basename cat date dirname env git jq mkdir mktemp realpath rg tee; do
+  for command_name in bash basename cat date dirname env git jq mkdir mktemp python3 realpath rg tee; do
     ln -sf "$(command -v "$command_name")" "$target_dir/$command_name"
   done
 }
@@ -110,9 +106,8 @@ ln -sf "$fake_xauth" "$path_missing_xvfb/xauth"
 
 cat >"$profile_path" <<EOF
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "profileName": "xvfb-fixture",
-  "runnerAdapter": "direct-platform",
   "platform": {
     "binaryPath": "$fake_binary",
     "xvfb": {
@@ -130,11 +125,25 @@ cat >"$profile_path" <<EOF
     }
   },
   "capabilities": {
+    "createIb": {
+      "driver": "designer"
+    },
+    "dumpSrc": {
+      "driver": "designer",
+      "outputDir": "/tmp/xvfb-fixture-src"
+    },
+    "loadSrc": {
+      "driver": "designer",
+      "sourceDir": "/tmp/xvfb-fixture-src"
+    },
+    "updateDb": {
+      "driver": "designer"
+    },
     "bdd": {
-      "command": ["$fake_client", "ENTERPRISE", "/F", "/tmp/xvfb-fixture"]
+      "unsupportedReason": "BDD contour is not part of this fixture"
     },
     "smoke": {
-      "command": ["bash", "-lc", "printf 'smoke-ok\\\\n'"]
+      "unsupportedReason": "Smoke contour is not part of this fixture"
     }
   }
 }
@@ -190,7 +199,7 @@ assert_jq "$doctor_run_root/summary.json" '.adapter_context.xvfb.enabled == true
 assert_jq "$doctor_run_root/summary.json" '.adapter_context.xvfb.server_args == ["-screen","0","1440x900x24","-noreset"]' "doctor-server-args"
 assert_jq "$doctor_run_root/summary.json" '[.checks.required_tools[] | select(.name == "xvfb-run" and .status == "present")] | length == 1' "doctor-required-xvfb-run"
 assert_jq "$doctor_run_root/summary.json" '[.checks.required_tools[] | select(.name == "xauth" and .status == "present")] | length == 1' "doctor-required-xauth"
-assert_jq "$doctor_run_root/summary.json" '[.checks.required_capabilities[] | select(.name == "run-bdd" and .status == "present")] | length == 1' "doctor-bdd-capability"
+assert_jq "$doctor_run_root/summary.json" '[.checks.required_capabilities[] | select(.name == "run-bdd" and .status == "unsupported")] | length == 1' "doctor-bdd-capability"
 
 (
   cd "$SOURCE_ROOT"
@@ -209,26 +218,13 @@ assert_contains "$invocation_log" "1cv8"
 
 (
   cd "$SOURCE_ROOT"
-  PATH="$path_success" ONEC_INVOCATION_LOG="$invocation_log" ./scripts/test/run-bdd.sh --profile "$profile_path" --run-root "$bdd_run_root" >/dev/null
-)
-
-assert_jq "$bdd_run_root/summary.json" '.status == "success"' "bdd-status"
-assert_jq "$bdd_run_root/summary.json" '.execution.source == "profile-command"' "bdd-source"
-assert_jq "$bdd_run_root/summary.json" '.execution.executor == "adapter-wrapper"' "bdd-executor"
-assert_jq "$bdd_run_root/summary.json" '.adapter_context.wrapper == "xvfb-run"' "bdd-wrapper"
-assert_contains "$bdd_run_root/stdout.log" "fake-xvfb-run"
-assert_contains "$bdd_run_root/stdout.log" "fake-1cv8c"
-assert_contains "$invocation_log" "1cv8c"
-
-(
-  cd "$SOURCE_ROOT"
-  PATH="$path_missing_xvfb" ONEC_INVOCATION_LOG="$invocation_log" ./scripts/test/run-bdd.sh --profile "$profile_disabled_path" --run-root "$default_run_root" >/dev/null
+  PATH="$path_missing_xvfb" ONEC_INVOCATION_LOG="$invocation_log" ./scripts/platform/create-ib.sh --profile "$profile_disabled_path" --run-root "$default_run_root" >/dev/null
 )
 
 assert_jq "$default_run_root/summary.json" '.status == "success"' "default-status"
 assert_jq "$default_run_root/summary.json" 'has("adapter_context") | not' "default-no-adapter-context"
 assert_not_contains "$default_run_root/stdout.log" "fake-xvfb-run"
-assert_contains "$default_run_root/stdout.log" "fake-1cv8c"
+assert_contains "$default_run_root/stdout.log" "fake-1cv8"
 
 set +e
 (
@@ -249,13 +245,13 @@ assert_contains "$runtime_missing_xauth_run_root/stderr.log" "command not found:
 set +e
 (
   cd "$SOURCE_ROOT"
-  PATH="$path_missing_xvfb" ONEC_INVOCATION_LOG="$invocation_log" ./scripts/test/run-bdd.sh --profile "$profile_path" --run-root "$runtime_missing_xvfb_run_root" >/dev/null
+  PATH="$path_missing_xvfb" ONEC_INVOCATION_LOG="$invocation_log" ./scripts/platform/create-ib.sh --profile "$profile_path" --run-root "$runtime_missing_xvfb_run_root" >/dev/null
 )
 status_missing_xvfb=$?
 set -e
 
 if [ "$status_missing_xvfb" -eq 0 ]; then
-  printf 'expected run-bdd to fail when xvfb-run is missing\n' >&2
+  printf 'expected create-ib to fail when xvfb-run is missing\n' >&2
   exit 1
 fi
 
@@ -278,7 +274,6 @@ fi
 assert_jq "$doctor_missing_xauth_run_root/summary.json" '.status == "failed"' "doctor-missing-xauth-status"
 assert_jq "$doctor_missing_xauth_run_root/summary.json" '[.checks.required_tools[] | select(.name == "xauth" and .status == "missing")] | length == 1' "doctor-missing-xauth-tool"
 assert_jq "$doctor_missing_xauth_run_root/summary.json" '[.checks.required_capabilities[] | select(.name == "create-ib" and .reason == "missing xauth for direct-platform xvfb wrapper")] | length == 1' "doctor-missing-xauth-create"
-assert_jq "$doctor_missing_xauth_run_root/summary.json" '[.checks.required_capabilities[] | select(.name == "run-bdd" and .reason == "missing xauth for direct-platform xvfb wrapper")] | length == 1' "doctor-missing-xauth-bdd"
 
 set +e
 (
@@ -296,4 +291,3 @@ fi
 assert_jq "$doctor_missing_xvfb_run_root/summary.json" '.status == "failed"' "doctor-missing-xvfb-status"
 assert_jq "$doctor_missing_xvfb_run_root/summary.json" '[.checks.required_tools[] | select(.name == "xvfb-run" and .status == "missing")] | length == 1' "doctor-missing-xvfb-tool"
 assert_jq "$doctor_missing_xvfb_run_root/summary.json" '[.checks.required_capabilities[] | select(.name == "create-ib" and .reason == "missing xvfb-run for direct-platform xvfb wrapper")] | length == 1' "doctor-missing-xvfb-create"
-assert_jq "$doctor_missing_xvfb_run_root/summary.json" '[.checks.required_capabilities[] | select(.name == "run-bdd" and .reason == "missing xvfb-run for direct-platform xvfb wrapper")] | length == 1' "doctor-missing-xvfb-bdd"

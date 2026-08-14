@@ -8,6 +8,7 @@ metadata:
 # Agent Skill: 1c-diff-src
 
 Repo script: `./scripts/platform/diff-src.sh`
+Windows launcher: `./scripts/platform/diff-src.ps1`
 
 ## Use When
 

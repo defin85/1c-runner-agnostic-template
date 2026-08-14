@@ -8,6 +8,7 @@ metadata:
 # Agent Skill: 1c-load-diff-src
 
 Repo script: `./scripts/platform/load-diff-src.sh`
+Windows launcher: `./scripts/platform/load-diff-src.ps1`
 
 ## Use When
 

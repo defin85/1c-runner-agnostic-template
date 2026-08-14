@@ -8,6 +8,7 @@ metadata:
 # Agent Skill: 1c-run-bdd
 
 Repo script: `./scripts/test/run-bdd.sh`
+Windows launcher: `./scripts/test/run-bdd.ps1`
 
 ## Use When
 

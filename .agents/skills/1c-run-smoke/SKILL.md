@@ -8,6 +8,7 @@ metadata:
 # Agent Skill: 1c-run-smoke
 
 Repo script: `./scripts/test/run-smoke.sh`
+Windows launcher: `./scripts/test/run-smoke.ps1`
 
 ## Use When
 

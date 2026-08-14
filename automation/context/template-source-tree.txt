@@ -211,6 +211,7 @@
 ./features/examples
 ./openspec
 ./openspec/changes
+./openspec/changes/add-native-windows-python-runtime
 ./openspec/changes/add-reusable-testing-campaign
 ./openspec/changes/archive
 ./openspec/specs

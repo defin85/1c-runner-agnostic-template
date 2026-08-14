@@ -30,6 +30,7 @@ make imported-skills-readiness
 ```
 
 Windows path использует те же contour ids через `./make.ps1 codex-onboard`, `./make.ps1 agent-verify` и `./make.ps1 export-context-check`.
+Для runtime-команд используется тот же формат аргументов: `./make.ps1 doctor --profile env/windows-local.json`, `./make.ps1 load-src --profile env/windows-local.json --run-root .artifacts/load-src` и `./make.ps1 publish-http --profile env/windows-local.json`. WSL и Git Bash для этого пути не требуются.
 
 Optional project-specific baseline extension:
 

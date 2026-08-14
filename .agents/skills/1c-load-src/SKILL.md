@@ -8,6 +8,7 @@ metadata:
 # Agent Skill: 1c-load-src
 
 Repo script: `./scripts/platform/load-src.sh`
+Windows launcher: `./scripts/platform/load-src.ps1`
 
 ## Use When
 

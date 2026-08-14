@@ -6,6 +6,9 @@
 
 - project-owned checked-in runtime truth для generated repo;
 - различает минимум `supported`, `unsupported`, `operator-local`, `provisioned`;
+- содержит отдельные записи `linux` и `windows` для каждой возможности и класс доказательства `contract-only` либо `contract-plus-live`;
+- требует для `supported` + `contract-plus-live` отпечаток платформы/runtime, время замера и непросроченный срок действия;
+- проверяет согласованность Markdown с JSON по точной паре «возможность/платформа»;
 - для multi-target extension workspace ссылается на checked-in `automation/context/target-matrix.json`, а не на ignored local profile как единственный источник target truth;
 - target-aware entries для `load-cfe`, `check-cfe-applicability`, `check-cfe-config`, `load-diff-src`, `load-task-src`, `smoke` и `update-db` перечисляют target ids или явно ссылаются на extension set из `target-matrix.json`;
 - покрывает как минимум `codex-onboard`, `agent-verify`, `export-context-check`, `doctor`, `check-x11-contour`, `load-cfe`, `configure-cfe-runtime-flags`, `check-cfe-applicability`, `check-cfe-config`, `load-diff-src`, `load-task-src`, `yaxunit`, `yaxunit-warm-rpc`, `web-client-diagnostic`, `golden-baseline`, `bdd`, `bdd-warm-service`, `smoke`, `publish-http`;

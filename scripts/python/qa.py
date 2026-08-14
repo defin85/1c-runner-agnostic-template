@@ -4,6 +4,7 @@ import json
 import os
 import re
 import shutil
+from datetime import datetime, timezone
 from pathlib import Path
 
 from .common import die, project_root, run_process
@@ -155,6 +156,8 @@ def check_agent_docs(root: Path | None = None) -> int:
     if export_context("--check", repo_root) != 0:
         status = 1
     if not is_source_repo(repo_root):
+        if validate_runtime_support_matrix(repo_root) != 0:
+            status = 1
         tree_file = repo_root / "automation" / "context" / "source-tree.generated.txt"
         metadata_file = repo_root / "automation" / "context" / "metadata-index.generated.json"
         for line in tree_file.read_text(encoding="utf-8").splitlines():
@@ -180,6 +183,58 @@ def check_agent_docs(root: Path | None = None) -> int:
             print("generated metadata leaked local-private runtime profile paths", file=os.sys.stderr)
             status = 1
     return status
+
+
+def validate_runtime_support_matrix(root: Path) -> int:
+    json_path = root / "automation" / "context" / "runtime-support-matrix.json"
+    markdown_path = root / "automation" / "context" / "runtime-support-matrix.md"
+    if not json_path.is_file() or not markdown_path.is_file():
+        return 1
+    payload = json.loads(json_path.read_text(encoding="utf-8"))
+    allowed_statuses = set(payload.get("statuses") or [])
+    now = datetime.now(timezone.utc)
+    for contour in payload.get("contours") or []:
+        contour_id = str(contour.get("id") or "<missing>")
+        platforms = contour.get("platforms") or {}
+        for platform in ("linux", "windows"):
+            support = platforms.get(platform)
+            pair = f"{contour_id}/{platform}"
+            if not isinstance(support, dict):
+                print(f"runtime support matrix is missing capability/platform entry: {pair}", file=os.sys.stderr)
+                return 1
+            status = support.get("status")
+            evidence_class = support.get("evidenceClass")
+            if status not in allowed_statuses or evidence_class not in {"contract-only", "contract-plus-live"}:
+                print(f"runtime support matrix has invalid status/evidence class: {pair}", file=os.sys.stderr)
+                return 1
+            if status == "supported" and evidence_class == "contract-plus-live":
+                evidence = support.get("evidence")
+                if not isinstance(evidence, dict) or not all(evidence.get(key) for key in ("fingerprint", "timestamp", "expiresAt")):
+                    print(f"runtime support matrix lacks current live evidence: {pair}", file=os.sys.stderr)
+                    return 1
+                try:
+                    expires_at = datetime.fromisoformat(str(evidence["expiresAt"]).replace("Z", "+00:00"))
+                except ValueError:
+                    print(f"runtime support matrix has invalid evidence expiry: {pair}", file=os.sys.stderr)
+                    return 1
+                if expires_at <= now:
+                    print(f"runtime support matrix live evidence expired: {pair}", file=os.sys.stderr)
+                    return 1
+    from .template_tools import _runtime_support_matrix_md
+
+    actual_markdown = markdown_path.read_text(encoding="utf-8")
+    expected_markdown = _runtime_support_matrix_md(payload)
+    if actual_markdown != expected_markdown:
+        for contour in payload.get("contours") or []:
+            for platform in ("linux", "windows"):
+                prefix = f"| `{contour['id']}` | `{platform}` |"
+                expected_row = next(line for line in expected_markdown.splitlines() if line.startswith(prefix))
+                if expected_row not in actual_markdown.splitlines():
+                    print(f"runtime support matrix Markdown is stale: {contour['id']}/{platform}", file=os.sys.stderr)
+                    return 1
+        print("runtime support matrix Markdown has unexpected stale content", file=os.sys.stderr)
+        return 1
+    return 0
 
 
 def check_imported_skill_readiness_contract(root: Path | None = None) -> int:

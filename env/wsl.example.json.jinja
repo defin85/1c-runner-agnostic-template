@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "profileName": "wsl",
   "projectName": "[[[ project_name ]]]",
   "projectSlug": "[[[ project_slug ]]]",
@@ -9,7 +9,6 @@
     "Если проекту нужен ibcmd на WSL/Linux, переключайте driver на нужной capability явно.",
     "Для Arch/WSL этот preset также показывает repo-owned LD_PRELOAD contour для локального запуска 1С через direct-platform."
   ],
-  "runnerAdapter": "direct-platform",
   "platform": {
     "binaryPath": "/opt/1cv8/x86_64/8.3.27.1859/1cv8",
     "ibcmdPath": "/opt/1cv8/x86_64/8.3.27.1859/ibcmd",
@@ -61,9 +60,6 @@
     },
     "updateDb": {
       "driver": "designer"
-    },
-    "diffSrc": {
-      "command": ["git", "diff", "--", "./src"]
     },
     "bdd": {
       "unsupportedReason": "WSL/Linux BDD contour is project-specific; wire a real command before treating this profile as green."

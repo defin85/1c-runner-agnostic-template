@@ -37,9 +37,8 @@ chmod +x "$fake_binary"
 
 cat >"$profile_path" <<EOF
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "profileName": "fixture",
-  "runnerAdapter": "direct-platform",
   "platform": {
     "binaryPath": "$fake_binary"
   },
@@ -59,12 +58,6 @@ cat >"$profile_path" <<EOF
     },
     "loadSrc": {
       "sourceDir": "./src/cf"
-    },
-    "bdd": {
-      "command": ["bash", "-lc", "printf 'bdd-ok\\\\n'"]
-    },
-    "smoke": {
-      "command": ["bash", "-lc", "printf 'smoke-ok\\\\n'"]
     }
   }
 }

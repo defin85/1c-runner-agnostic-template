@@ -8,6 +8,7 @@ metadata:
 # Agent Skill: 1c-publish-http
 
 Repo script: `./scripts/platform/publish-http.sh`
+Windows launcher: `./scripts/platform/publish-http.ps1`
 
 ## Use When
 
