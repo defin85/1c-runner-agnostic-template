@@ -31,4 +31,4 @@
 - [x] 5.1 Add Python unit tests and Windows/Linux contract fixtures for Unicode paths, CRLF, executable resolution, redaction, atomic writes, locks, cancellation, and postconditions.
 - [x] 5.2 Run runtime smoke, generated fixture, copier/update, source release, and strict OpenSpec checks.
 - [x] 5.3 Produce Requirement → Code → Test traceability and verify rollback to the previous overlay/profile pair.
-- [ ] 5.4 Merge through the source-repo review path and publish the next overlay tag using the repo-owned release command.
+- [x] 5.4 Merge through the source-repo review path and publish the next overlay tag using the repo-owned release command.
