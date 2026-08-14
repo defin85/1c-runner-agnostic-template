@@ -35,8 +35,8 @@ class RuntimeOsTests(unittest.TestCase):
     def test_resource_lock_times_out_and_preserves_owner(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             path = Path(temp_dir) / "resource.lock"
-            first = ResourceLock(path, {"pid": 1, "operation": "first"}, timeout=0.1)
-            second = ResourceLock(path, {"pid": 2, "operation": "second"}, timeout=0.05, poll_interval=0.01)
+            first = ResourceLock(path, {"pid": os.getpid(), "operation": "first"}, timeout=0.1)
+            second = ResourceLock(path, {"pid": os.getpid(), "operation": "second"}, timeout=0.05, poll_interval=0.01)
             with first:
                 with self.assertRaisesRegex(CommandError, "timeout"):
                     second.acquire()
@@ -48,7 +48,7 @@ class RuntimeOsTests(unittest.TestCase):
             path = Path(temp_dir) / "resource.lock"
             path.write_text('{"pid": 424242, "operation": "stale"}', encoding="utf-8")
             lock = ResourceLock(path, {"pid": os.getpid(), "operation": "current"}, timeout=0.1)
-            with patch("scripts.python.runtime_lock.os.kill", side_effect=ProcessLookupError):
+            with patch("scripts.python.runtime_lock.process_is_alive", return_value=False):
                 with lock:
                     self.assertIn('"operation": "current"', path.read_text(encoding="utf-8"))
             self.assertFalse(path.exists())

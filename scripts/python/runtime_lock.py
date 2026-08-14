@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import errno
 import json
 import os
 import time
@@ -9,21 +8,14 @@ from pathlib import Path
 from typing import Any
 
 from .runtime_errors import CommandError
+from .runtime_os import process_is_alive
 
 
 def _owner_process_is_alive(owner: dict[str, Any]) -> bool:
     pid = owner.get("pid")
     if not isinstance(pid, int) or pid <= 0:
         return True
-    try:
-        os.kill(pid, 0)
-    except ProcessLookupError:
-        return False
-    except PermissionError:
-        return True
-    except OSError as error:
-        return error.errno != errno.ESRCH
-    return True
+    return process_is_alive(pid)
 
 
 @dataclass(slots=True)

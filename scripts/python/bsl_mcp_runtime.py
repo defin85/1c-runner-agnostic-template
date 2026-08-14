@@ -40,12 +40,13 @@ def load_available_connections(path: Path) -> dict[str, Any]:
 
 def select_source_dir(root: Path, candidates: list[str]) -> Path:
     for candidate in candidates:
-        path = (root / candidate).resolve(strict=False)
+        path = root / candidate
+        resolved = path.resolve(strict=False)
         try:
-            path.relative_to(root.resolve(strict=False))
+            resolved.relative_to(root.resolve(strict=False))
         except ValueError:
             raise CommandError(f"BSL Analyzer source path escapes repository: {candidate}")
-        if (path / "Configuration.xml").is_file():
+        if (resolved / "Configuration.xml").is_file():
             return path
     if (root / "bsl-analyzer.toml").is_file():
         return root
