@@ -14,15 +14,14 @@ profile_missing_lib_path="$tmpdir/profile-missing-lib.json"
 profile_relative_lib_path="$tmpdir/profile-relative-lib.json"
 doctor_run_root="$tmpdir/doctor-run"
 create_run_root="$tmpdir/create-run"
-bdd_run_root="$tmpdir/bdd-run"
 default_run_root="$tmpdir/default-run"
 runtime_missing_lib_run_root="$tmpdir/runtime-missing-lib-run"
 runtime_relative_lib_run_root="$tmpdir/runtime-relative-lib-run"
 doctor_missing_lib_run_root="$tmpdir/doctor-missing-lib-run"
 doctor_relative_lib_run_root="$tmpdir/doctor-relative-lib-run"
 invocation_log="$tmpdir/invocations.log"
+python_dispatch_error="$tmpdir/python-dispatch-error.log"
 fake_binary="$bindir/1cv8"
-fake_client="$bindir/1cv8c"
 fake_libstdcpp="$tmpdir/libstdc++.so.6"
 fake_libgcc="$tmpdir/libgcc_s.so.1"
 missing_library="$tmpdir/missing-libstdc++.so.6"
@@ -47,14 +46,12 @@ for arg in "$@"; do
 done
 EOF
 
-cp "$fake_binary" "$fake_client"
-chmod +x "$fake_binary" "$fake_client"
+chmod +x "$fake_binary"
 
 cat >"$profile_path" <<EOF
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "profileName": "ld-preload-fixture",
-  "runnerAdapter": "direct-platform",
   "platform": {
     "binaryPath": "$fake_binary",
     "ldPreload": {
@@ -73,22 +70,24 @@ cat >"$profile_path" <<EOF
   },
   "capabilities": {
     "createIb": {
-      "command": ["$fake_binary", "CREATEINFOBASE", "File=/tmp/ld-preload-fixture;"]
+      "driver": "designer"
     },
     "dumpSrc": {
-      "command": ["$fake_binary", "DESIGNER", "/DumpConfigToFiles", "/tmp/ld-preload-fixture-src"]
+      "driver": "designer",
+      "outputDir": "/tmp/ld-preload-fixture-src"
     },
     "loadSrc": {
-      "command": ["$fake_binary", "DESIGNER", "/LoadConfigFromFiles", "/tmp/ld-preload-fixture-src"]
+      "driver": "designer",
+      "sourceDir": "/tmp/ld-preload-fixture-src"
     },
     "updateDb": {
-      "command": ["$fake_binary", "DESIGNER", "/UpdateDBCfg"]
+      "driver": "designer"
     },
     "bdd": {
-      "command": ["$fake_client", "ENTERPRISE", "/F", "/tmp/ld-preload-fixture"]
+      "unsupportedReason": "BDD contour is not part of this fixture"
     },
     "smoke": {
-      "command": ["bash", "-lc", "printf 'smoke-ok\\\\n'"]
+      "unsupportedReason": "Smoke contour is not part of this fixture"
     }
   }
 }
@@ -137,6 +136,20 @@ assert_jq() {
   fi
 }
 
+set +e
+(
+  cd "$SOURCE_ROOT"
+  ./scripts/python/run-python.sh -m unittest
+) 2>"$python_dispatch_error"
+python_dispatch_status=$?
+set -e
+
+if [ "$python_dispatch_status" -ne 2 ]; then
+  printf 'expected run-python.sh to reject interpreter arguments with exit 2\n' >&2
+  exit 1
+fi
+assert_contains "$python_dispatch_error" "dispatches project commands; invoke Python directly"
+
 (
   cd "$SOURCE_ROOT"
   ONEC_INVOCATION_LOG="$invocation_log" ./scripts/diag/doctor.sh --profile "$profile_path" --run-root "$doctor_run_root" >/dev/null
@@ -149,7 +162,7 @@ assert_jq "$doctor_run_root/summary.json" '.adapter_context.ld_preload.libraries
 assert_jq "$doctor_run_root/summary.json" '[.checks.required_profile_fields[] | select(.name == "platform.ldPreload.enabled" and .status == "present")] | length == 1' "doctor-required-enabled"
 assert_jq "$doctor_run_root/summary.json" '[.checks.required_profile_fields[] | select(.name == "platform.ldPreload.libraries" and .status == "present")] | length == 1' "doctor-required-libraries"
 assert_jq "$doctor_run_root/summary.json" '[.checks.required_capabilities[] | select(.name == "create-ib" and .status == "present")] | length == 1' "doctor-create-capability"
-assert_jq "$doctor_run_root/summary.json" '[.checks.required_capabilities[] | select(.name == "run-bdd" and .status == "present")] | length == 1' "doctor-bdd-capability"
+assert_jq "$doctor_run_root/summary.json" '[.checks.required_capabilities[] | select(.name == "run-bdd" and .status == "unsupported")] | length == 1' "doctor-bdd-capability"
 
 (
   cd "$SOURCE_ROOT"
@@ -167,25 +180,12 @@ assert_contains "$invocation_log" "1cv8"
 
 (
   cd "$SOURCE_ROOT"
-  ONEC_INVOCATION_LOG="$invocation_log" ./scripts/test/run-bdd.sh --profile "$profile_path" --run-root "$bdd_run_root" >/dev/null
-)
-
-assert_jq "$bdd_run_root/summary.json" '.status == "success"' "bdd-status"
-assert_jq "$bdd_run_root/summary.json" '.execution.source == "profile-command"' "bdd-source"
-assert_jq "$bdd_run_root/summary.json" '.execution.executor == "adapter-wrapper"' "bdd-executor"
-assert_jq "$bdd_run_root/summary.json" '.adapter_context.ld_preload.enabled == true' "bdd-ldpreload-enabled"
-assert_contains "$bdd_run_root/stdout.log" "fake-1cv8c"
-assert_contains "$bdd_run_root/stdout.log" "ld-preload=$fake_libstdcpp:$fake_libgcc"
-assert_contains "$invocation_log" "1cv8c"
-
-(
-  cd "$SOURCE_ROOT"
-  ONEC_INVOCATION_LOG="$invocation_log" ./scripts/test/run-bdd.sh --profile "$profile_disabled_path" --run-root "$default_run_root" >/dev/null
+  ONEC_INVOCATION_LOG="$invocation_log" ./scripts/platform/create-ib.sh --profile "$profile_disabled_path" --run-root "$default_run_root" >/dev/null
 )
 
 assert_jq "$default_run_root/summary.json" '.status == "success"' "default-status"
 assert_jq "$default_run_root/summary.json" 'has("adapter_context") | not' "default-no-adapter-context"
-assert_contains "$default_run_root/stdout.log" "fake-1cv8c"
+assert_contains "$default_run_root/stdout.log" "fake-1cv8"
 assert_contains "$default_run_root/stdout.log" "ld-preload="
 assert_not_contains "$default_run_root/stdout.log" "ld-preload=$fake_libstdcpp:$fake_libgcc"
 
@@ -208,7 +208,7 @@ assert_contains "$runtime_missing_lib_run_root/stderr.log" "missing direct-platf
 set +e
 (
   cd "$SOURCE_ROOT"
-  ONEC_INVOCATION_LOG="$invocation_log" ./scripts/test/run-bdd.sh --profile "$profile_relative_lib_path" --run-root "$runtime_relative_lib_run_root" >/dev/null
+  ONEC_INVOCATION_LOG="$invocation_log" ./scripts/platform/create-ib.sh --profile "$profile_relative_lib_path" --run-root "$runtime_relative_lib_run_root" >/dev/null
 )
 status_relative_lib=$?
 set -e
@@ -237,8 +237,6 @@ fi
 assert_jq "$doctor_missing_lib_run_root/summary.json" '.status == "failed"' "doctor-missing-lib-status"
 assert_jq "$doctor_missing_lib_run_root/summary.json" '[.checks.required_capabilities[] | select(.name == "create-ib" and .reason == $ARGS.positional[0])] | length == 1' "doctor-missing-lib-create" \
   --args "missing direct-platform ld-preload library: $missing_library"
-assert_jq "$doctor_missing_lib_run_root/summary.json" '[.checks.required_capabilities[] | select(.name == "run-bdd" and .reason == $ARGS.positional[0])] | length == 1' "doctor-missing-lib-bdd" \
-  --args "missing direct-platform ld-preload library: $missing_library"
 
 set +e
 (
@@ -255,4 +253,3 @@ fi
 
 assert_jq "$doctor_relative_lib_run_root/summary.json" '.status == "failed"' "doctor-relative-lib-status"
 assert_jq "$doctor_relative_lib_run_root/summary.json" '[.checks.required_capabilities[] | select(.name == "create-ib" and .reason == "direct-platform ld-preload library path must be absolute: relative/libstdc++.so.6")] | length == 1' "doctor-relative-lib-create"
-assert_jq "$doctor_relative_lib_run_root/summary.json" '[.checks.required_capabilities[] | select(.name == "run-bdd" and .reason == "direct-platform ld-preload library path must be absolute: relative/libstdc++.so.6")] | length == 1' "doctor-relative-lib-bdd"

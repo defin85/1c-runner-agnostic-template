@@ -1083,6 +1083,23 @@ def execute_prepared_capability_command(
         adapter_path = project_root() / "scripts" / "adapters" / f"{adapter_name}{suffix}"
         if not adapter_path.is_file():
             die(f"adapter launcher not found: {adapter_path}")
+        if prepared.adapter == "direct-platform" and not WINDOWS:
+            if direct_platform_xpra_enabled(profile):
+                env["ONEC_DIRECT_PLATFORM_XPRA_ENABLED"] = "1"
+                env["ONEC_DIRECT_PLATFORM_XPRA_XVFB_ARGS"] = " ".join(
+                    load_direct_platform_xpra_xvfb_args(profile)
+                )
+                env["ONEC_DIRECT_PLATFORM_XPRA_START_CHILD"] = load_direct_platform_xpra_start_child(profile)
+            elif direct_platform_xvfb_enabled(profile):
+                env["ONEC_DIRECT_PLATFORM_XVFB_ENABLED"] = "1"
+                env["ONEC_DIRECT_PLATFORM_XVFB_SERVER_ARGS"] = " ".join(
+                    load_direct_platform_xvfb_server_args(profile)
+                )
+            if direct_platform_ld_preload_enabled(profile):
+                env["ONEC_DIRECT_PLATFORM_LD_PRELOAD_ENABLED"] = "1"
+                env["ONEC_DIRECT_PLATFORM_LD_PRELOAD"] = os.pathsep.join(
+                    load_direct_platform_ld_preload_libraries(profile)
+                )
         if WINDOWS:
             command = [
                 "pwsh",
