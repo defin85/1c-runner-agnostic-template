@@ -13,6 +13,7 @@ allowed-tools:
 # /subsystem-info
 
 Repo script: `./scripts/skills/run-imported-skill.sh subsystem-info`
+Windows launcher: `./scripts/skills/run-imported-skill.ps1 subsystem-info`
 
 ## Use When
 
@@ -26,12 +27,18 @@ Repo script: `./scripts/skills/run-imported-skill.sh subsystem-info`
 ./scripts/skills/run-imported-skill.sh subsystem-info ...
 ```
 
+```powershell
+./scripts/skills/run-imported-skill.ps1 subsystem-info --help
+./scripts/skills/run-imported-skill.ps1 subsystem-info ...
+```
+
 ## Adaptation
 
 - Vendored upstream source: `automation/vendor/cc-1c-skills/skills/subsystem-info/SKILL.md`
 - Runtime kind: `python`
 - Readiness target: `make imported-skills-readiness`
 - Direct readiness command: `./scripts/skills/run-imported-skill.sh --readiness`
+- Windows readiness command: `./scripts/skills/run-imported-skill.ps1 --readiness`
 - Исполнение идёт через repo-owned dispatcher, который вызывает vendored Python helper.
 
 ## Rules

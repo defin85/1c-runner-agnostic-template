@@ -13,6 +13,7 @@ allowed-tools:
 # /web-publish
 
 Repo script: `./scripts/skills/run-imported-skill.sh web-publish`
+Windows launcher: `./scripts/skills/run-imported-skill.ps1 web-publish`
 
 ## Use When
 
@@ -26,12 +27,18 @@ Repo script: `./scripts/skills/run-imported-skill.sh web-publish`
 ./scripts/skills/run-imported-skill.sh web-publish ...
 ```
 
+```powershell
+./scripts/skills/run-imported-skill.ps1 web-publish --help
+./scripts/skills/run-imported-skill.ps1 web-publish ...
+```
+
 ## Adaptation
 
 - Vendored upstream source: `automation/vendor/cc-1c-skills/skills/web-publish/SKILL.md`
 - Runtime kind: `native-alias`
 - Readiness target: `make imported-skills-readiness`
 - Direct readiness command: `./scripts/skills/run-imported-skill.sh --readiness`
+- Windows readiness command: `./scripts/skills/run-imported-skill.ps1 --readiness`
 - Это compatibility alias: dispatcher проксирует вызов в native runner-agnostic capability шаблона.
 - Для native runner-agnostic workflow предпочитайте: `1c-publish-http`.
 

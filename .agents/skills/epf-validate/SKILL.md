@@ -1,6 +1,6 @@
 ---
 name: epf-validate
-description: "Импортированный compatibility skill из `cc-1c-skills`: Валидация внешней обработки 1С (EPF). Используй после создания или модификации обработки для проверки корректности"
+description: "Валидация внешней обработки 1С (EPF). Используй после создания или моди…"
 metadata:
   short-description: "Валидация внешней обработки 1С (EPF). Используй после создания или моди…"
 ---
@@ -10,6 +10,7 @@ metadata:
 # Agent Skill: epf-validate
 
 Repo script: `./scripts/skills/run-imported-skill.sh epf-validate`
+Windows launcher: `./scripts/skills/run-imported-skill.ps1 epf-validate`
 
 ## Use When
 
@@ -23,12 +24,18 @@ Repo script: `./scripts/skills/run-imported-skill.sh epf-validate`
 ./scripts/skills/run-imported-skill.sh epf-validate ...
 ```
 
+```powershell
+./scripts/skills/run-imported-skill.ps1 epf-validate --help
+./scripts/skills/run-imported-skill.ps1 epf-validate ...
+```
+
 ## Adaptation
 
 - Vendored upstream source: `automation/vendor/cc-1c-skills/skills/epf-validate/SKILL.md`
 - Runtime kind: `python`
 - Readiness target: `make imported-skills-readiness`
 - Direct readiness command: `./scripts/skills/run-imported-skill.sh --readiness`
+- Windows readiness command: `./scripts/skills/run-imported-skill.ps1 --readiness`
 - Исполнение идёт через repo-owned dispatcher, который вызывает vendored Python helper.
 
 ## Rules

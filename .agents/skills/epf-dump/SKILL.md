@@ -1,6 +1,6 @@
 ---
 name: epf-dump
-description: "Импортированный compatibility skill из `cc-1c-skills`: Разобрать EPF-файл обработки 1С (EPF/ERF) в XML-исходники. Используй когда пользователь просит разобрать, декомпилировать обработку, получить исходники из EPF/ERF файла"
+description: "Разобрать EPF-файл обработки 1С (EPF/ERF) в XML-исходники. Используй ко…"
 metadata:
   short-description: "Разобрать EPF-файл обработки 1С (EPF/ERF) в XML-исходники. Используй ко…"
 ---
@@ -10,6 +10,7 @@ metadata:
 # Agent Skill: epf-dump
 
 Repo script: `./scripts/skills/run-imported-skill.sh epf-dump`
+Windows launcher: `./scripts/skills/run-imported-skill.ps1 epf-dump`
 
 ## Use When
 
@@ -23,12 +24,18 @@ Repo script: `./scripts/skills/run-imported-skill.sh epf-dump`
 ./scripts/skills/run-imported-skill.sh epf-dump ...
 ```
 
+```powershell
+./scripts/skills/run-imported-skill.ps1 epf-dump --help
+./scripts/skills/run-imported-skill.ps1 epf-dump ...
+```
+
 ## Adaptation
 
 - Vendored upstream source: `automation/vendor/cc-1c-skills/skills/epf-dump/SKILL.md`
 - Runtime kind: `python`
 - Readiness target: `make imported-skills-readiness`
 - Direct readiness command: `./scripts/skills/run-imported-skill.sh --readiness`
+- Windows readiness command: `./scripts/skills/run-imported-skill.ps1 --readiness`
 - Исполнение идёт через repo-owned dispatcher, который вызывает vendored Python helper.
 
 ## Rules

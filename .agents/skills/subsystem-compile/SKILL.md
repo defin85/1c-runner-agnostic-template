@@ -1,6 +1,6 @@
 ---
 name: subsystem-compile
-description: "Импортированный compatibility skill из `cc-1c-skills`: Создать подсистему 1С — XML-исходники из JSON-определения. Используй когда пользователь просит добавить подсистему (раздел) в конфигурацию"
+description: "Создать подсистему 1С — XML-исходники из JSON-определения. Используй ко…"
 metadata:
   short-description: "Создать подсистему 1С — XML-исходники из JSON-определения. Используй ко…"
 ---
@@ -10,6 +10,7 @@ metadata:
 # Agent Skill: subsystem-compile
 
 Repo script: `./scripts/skills/run-imported-skill.sh subsystem-compile`
+Windows launcher: `./scripts/skills/run-imported-skill.ps1 subsystem-compile`
 
 ## Use When
 
@@ -23,12 +24,18 @@ Repo script: `./scripts/skills/run-imported-skill.sh subsystem-compile`
 ./scripts/skills/run-imported-skill.sh subsystem-compile ...
 ```
 
+```powershell
+./scripts/skills/run-imported-skill.ps1 subsystem-compile --help
+./scripts/skills/run-imported-skill.ps1 subsystem-compile ...
+```
+
 ## Adaptation
 
 - Vendored upstream source: `automation/vendor/cc-1c-skills/skills/subsystem-compile/SKILL.md`
 - Runtime kind: `python`
 - Readiness target: `make imported-skills-readiness`
 - Direct readiness command: `./scripts/skills/run-imported-skill.sh --readiness`
+- Windows readiness command: `./scripts/skills/run-imported-skill.ps1 --readiness`
 - Исполнение идёт через repo-owned dispatcher, который вызывает vendored Python helper.
 
 ## Rules

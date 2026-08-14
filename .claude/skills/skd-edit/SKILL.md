@@ -13,6 +13,7 @@ allowed-tools:
 # /skd-edit
 
 Repo script: `./scripts/skills/run-imported-skill.sh skd-edit`
+Windows launcher: `./scripts/skills/run-imported-skill.ps1 skd-edit`
 
 ## Use When
 
@@ -26,12 +27,18 @@ Repo script: `./scripts/skills/run-imported-skill.sh skd-edit`
 ./scripts/skills/run-imported-skill.sh skd-edit ...
 ```
 
+```powershell
+./scripts/skills/run-imported-skill.ps1 skd-edit --help
+./scripts/skills/run-imported-skill.ps1 skd-edit ...
+```
+
 ## Adaptation
 
 - Vendored upstream source: `automation/vendor/cc-1c-skills/skills/skd-edit/SKILL.md`
 - Runtime kind: `python`
 - Readiness target: `make imported-skills-readiness`
 - Direct readiness command: `./scripts/skills/run-imported-skill.sh --readiness`
+- Windows readiness command: `./scripts/skills/run-imported-skill.ps1 --readiness`
 - Исполнение идёт через repo-owned dispatcher, который вызывает vendored Python helper.
 
 ## Rules

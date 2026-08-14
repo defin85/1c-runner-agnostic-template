@@ -13,6 +13,7 @@ allowed-tools:
 # /template-add
 
 Repo script: `./scripts/skills/run-imported-skill.sh template-add`
+Windows launcher: `./scripts/skills/run-imported-skill.ps1 template-add`
 
 ## Use When
 
@@ -26,12 +27,18 @@ Repo script: `./scripts/skills/run-imported-skill.sh template-add`
 ./scripts/skills/run-imported-skill.sh template-add ...
 ```
 
+```powershell
+./scripts/skills/run-imported-skill.ps1 template-add --help
+./scripts/skills/run-imported-skill.ps1 template-add ...
+```
+
 ## Adaptation
 
 - Vendored upstream source: `automation/vendor/cc-1c-skills/skills/template-add/SKILL.md`
 - Runtime kind: `python`
 - Readiness target: `make imported-skills-readiness`
 - Direct readiness command: `./scripts/skills/run-imported-skill.sh --readiness`
+- Windows readiness command: `./scripts/skills/run-imported-skill.ps1 --readiness`
 - Исполнение идёт через repo-owned dispatcher, который вызывает vendored Python helper.
 
 ## Rules

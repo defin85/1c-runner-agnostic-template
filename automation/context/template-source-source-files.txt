@@ -1356,6 +1356,7 @@
 ./tests/python/test_epf_init_from_template_command.py
 ./tests/python/test_epf_templates_form_title_version.py
 ./tests/python/test_http_runtime.py
+./tests/python/test_imported_skills.py
 ./tests/python/test_remote_transport.py
 ./tests/python/test_runtime_atomic.py
 ./tests/python/test_runtime_os.py

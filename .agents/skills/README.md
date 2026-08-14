@@ -27,6 +27,7 @@ Claude-facing equivalents лежат в [.claude/skills/README.md](../../.claude
 - Vendor root: [`automation/vendor/cc-1c-skills/README.md`](../../automation/vendor/cc-1c-skills/README.md)
 - Canonical readiness target: `make imported-skills-readiness`
 - Direct readiness command: `./scripts/skills/run-imported-skill.sh --readiness`
+- Windows readiness command: `./scripts/skills/run-imported-skill.ps1 --readiness`
 
 | User intent | Codex skill | Claude skill | Repo entrypoint | Notes |
 | --- | --- | --- | --- | --- |

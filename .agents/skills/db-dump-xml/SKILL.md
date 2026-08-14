@@ -1,6 +1,6 @@
 ---
 name: db-dump-xml
-description: "Импортированный compatibility skill из `cc-1c-skills`: Выгрузка конфигурации 1С в XML-файлы. Используй когда пользователь просит выгрузить конфигурацию в файлы, XML, исходники, DumpConfigToFiles"
+description: "Выгрузка конфигурации 1С в XML-файлы. Используй когда пользователь прос…"
 metadata:
   short-description: "Выгрузка конфигурации 1С в XML-файлы. Используй когда пользователь прос…"
 ---
@@ -10,6 +10,7 @@ metadata:
 # Agent Skill: db-dump-xml
 
 Repo script: `./scripts/skills/run-imported-skill.sh db-dump-xml`
+Windows launcher: `./scripts/skills/run-imported-skill.ps1 db-dump-xml`
 
 ## Use When
 
@@ -23,12 +24,18 @@ Repo script: `./scripts/skills/run-imported-skill.sh db-dump-xml`
 ./scripts/skills/run-imported-skill.sh db-dump-xml ...
 ```
 
+```powershell
+./scripts/skills/run-imported-skill.ps1 db-dump-xml --help
+./scripts/skills/run-imported-skill.ps1 db-dump-xml ...
+```
+
 ## Adaptation
 
 - Vendored upstream source: `automation/vendor/cc-1c-skills/skills/db-dump-xml/SKILL.md`
 - Runtime kind: `python`
 - Readiness target: `make imported-skills-readiness`
 - Direct readiness command: `./scripts/skills/run-imported-skill.sh --readiness`
+- Windows readiness command: `./scripts/skills/run-imported-skill.ps1 --readiness`
 - Исполнение идёт через repo-owned dispatcher, который вызывает vendored Python helper.
 
 ## Rules

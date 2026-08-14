@@ -1,6 +1,6 @@
 ---
 name: form-compile
-description: "Импортированный compatibility skill из `cc-1c-skills`: Компиляция управляемой формы 1С из компактного JSON-определения. Используй когда нужно создать форму с нуля по описанию элементов"
+description: "Компиляция управляемой формы 1С из компактного JSON-определения. Исполь…"
 metadata:
   short-description: "Компиляция управляемой формы 1С из компактного JSON-определения. Исполь…"
 ---
@@ -10,6 +10,7 @@ metadata:
 # Agent Skill: form-compile
 
 Repo script: `./scripts/skills/run-imported-skill.sh form-compile`
+Windows launcher: `./scripts/skills/run-imported-skill.ps1 form-compile`
 
 ## Use When
 
@@ -23,12 +24,18 @@ Repo script: `./scripts/skills/run-imported-skill.sh form-compile`
 ./scripts/skills/run-imported-skill.sh form-compile ...
 ```
 
+```powershell
+./scripts/skills/run-imported-skill.ps1 form-compile --help
+./scripts/skills/run-imported-skill.ps1 form-compile ...
+```
+
 ## Adaptation
 
 - Vendored upstream source: `automation/vendor/cc-1c-skills/skills/form-compile/SKILL.md`
 - Runtime kind: `python`
 - Readiness target: `make imported-skills-readiness`
 - Direct readiness command: `./scripts/skills/run-imported-skill.sh --readiness`
+- Windows readiness command: `./scripts/skills/run-imported-skill.ps1 --readiness`
 - Исполнение идёт через repo-owned dispatcher, который вызывает vendored Python helper.
 
 ## Rules

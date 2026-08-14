@@ -13,6 +13,7 @@ allowed-tools:
 # /role-info
 
 Repo script: `./scripts/skills/run-imported-skill.sh role-info`
+Windows launcher: `./scripts/skills/run-imported-skill.ps1 role-info`
 
 ## Use When
 
@@ -26,12 +27,18 @@ Repo script: `./scripts/skills/run-imported-skill.sh role-info`
 ./scripts/skills/run-imported-skill.sh role-info ...
 ```
 
+```powershell
+./scripts/skills/run-imported-skill.ps1 role-info --help
+./scripts/skills/run-imported-skill.ps1 role-info ...
+```
+
 ## Adaptation
 
 - Vendored upstream source: `automation/vendor/cc-1c-skills/skills/role-info/SKILL.md`
 - Runtime kind: `python`
 - Readiness target: `make imported-skills-readiness`
 - Direct readiness command: `./scripts/skills/run-imported-skill.sh --readiness`
+- Windows readiness command: `./scripts/skills/run-imported-skill.ps1 --readiness`
 - Исполнение идёт через repo-owned dispatcher, который вызывает vendored Python helper.
 
 ## Rules

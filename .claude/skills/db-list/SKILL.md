@@ -13,6 +13,7 @@ allowed-tools:
 # /db-list
 
 Repo script: `./scripts/skills/run-imported-skill.sh db-list`
+Windows launcher: `./scripts/skills/run-imported-skill.ps1 db-list`
 
 ## Use When
 
@@ -26,12 +27,18 @@ Repo script: `./scripts/skills/run-imported-skill.sh db-list`
 ./scripts/skills/run-imported-skill.sh db-list ...
 ```
 
+```powershell
+./scripts/skills/run-imported-skill.ps1 db-list --help
+./scripts/skills/run-imported-skill.ps1 db-list ...
+```
+
 ## Adaptation
 
 - Vendored upstream source: `automation/vendor/cc-1c-skills/skills/db-list/SKILL.md`
 - Runtime kind: `reference`
 - Readiness target: `make imported-skills-readiness`
 - Direct readiness command: `./scripts/skills/run-imported-skill.sh --readiness`
+- Windows readiness command: `./scripts/skills/run-imported-skill.ps1 --readiness`
 - Это reference-only импорт: repo script печатает адаптированную сводку и указывает на vendored upstream материалы.
 
 ## Rules

@@ -13,6 +13,7 @@ allowed-tools:
 # /db-load-git
 
 Repo script: `./scripts/skills/run-imported-skill.sh db-load-git`
+Windows launcher: `./scripts/skills/run-imported-skill.ps1 db-load-git`
 
 ## Use When
 
@@ -26,12 +27,18 @@ Repo script: `./scripts/skills/run-imported-skill.sh db-load-git`
 ./scripts/skills/run-imported-skill.sh db-load-git ...
 ```
 
+```powershell
+./scripts/skills/run-imported-skill.ps1 db-load-git --help
+./scripts/skills/run-imported-skill.ps1 db-load-git ...
+```
+
 ## Adaptation
 
 - Vendored upstream source: `automation/vendor/cc-1c-skills/skills/db-load-git/SKILL.md`
 - Runtime kind: `python`
 - Readiness target: `make imported-skills-readiness`
 - Direct readiness command: `./scripts/skills/run-imported-skill.sh --readiness`
+- Windows readiness command: `./scripts/skills/run-imported-skill.ps1 --readiness`
 - Исполнение идёт через repo-owned dispatcher, который вызывает vendored Python helper.
 - Для native runner-agnostic workflow предпочитайте: `1c-load-diff-src`, `1c-load-task-src`.
 

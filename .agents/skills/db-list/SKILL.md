@@ -1,6 +1,6 @@
 ---
 name: db-list
-description: "Импортированный compatibility skill из `cc-1c-skills`: Управление реестром баз данных 1С (.v8-project.json). Используй когда пользователь говорит про базы данных, список баз, \"добавь базу\", \"какие базы есть\""
+description: "Управление реестром баз данных 1С (.v8-project.json). Используй когда п…"
 metadata:
   short-description: "Управление реестром баз данных 1С (.v8-project.json). Используй когда п…"
 ---
@@ -10,6 +10,7 @@ metadata:
 # Agent Skill: db-list
 
 Repo script: `./scripts/skills/run-imported-skill.sh db-list`
+Windows launcher: `./scripts/skills/run-imported-skill.ps1 db-list`
 
 ## Use When
 
@@ -23,12 +24,18 @@ Repo script: `./scripts/skills/run-imported-skill.sh db-list`
 ./scripts/skills/run-imported-skill.sh db-list ...
 ```
 
+```powershell
+./scripts/skills/run-imported-skill.ps1 db-list --help
+./scripts/skills/run-imported-skill.ps1 db-list ...
+```
+
 ## Adaptation
 
 - Vendored upstream source: `automation/vendor/cc-1c-skills/skills/db-list/SKILL.md`
 - Runtime kind: `reference`
 - Readiness target: `make imported-skills-readiness`
 - Direct readiness command: `./scripts/skills/run-imported-skill.sh --readiness`
+- Windows readiness command: `./scripts/skills/run-imported-skill.ps1 --readiness`
 - Это reference-only импорт: repo script печатает адаптированную сводку и указывает на vendored upstream материалы.
 
 ## Rules

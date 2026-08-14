@@ -1,6 +1,6 @@
 ---
 name: skd-validate
-description: "Импортированный compatibility skill из `cc-1c-skills`: Валидация схемы компоновки данных 1С (СКД). Используй после создания или модификации СКД для проверки корректности"
+description: "Валидация схемы компоновки данных 1С (СКД). Используй после создания ил…"
 metadata:
   short-description: "Валидация схемы компоновки данных 1С (СКД). Используй после создания ил…"
 ---
@@ -10,6 +10,7 @@ metadata:
 # Agent Skill: skd-validate
 
 Repo script: `./scripts/skills/run-imported-skill.sh skd-validate`
+Windows launcher: `./scripts/skills/run-imported-skill.ps1 skd-validate`
 
 ## Use When
 
@@ -23,12 +24,18 @@ Repo script: `./scripts/skills/run-imported-skill.sh skd-validate`
 ./scripts/skills/run-imported-skill.sh skd-validate ...
 ```
 
+```powershell
+./scripts/skills/run-imported-skill.ps1 skd-validate --help
+./scripts/skills/run-imported-skill.ps1 skd-validate ...
+```
+
 ## Adaptation
 
 - Vendored upstream source: `automation/vendor/cc-1c-skills/skills/skd-validate/SKILL.md`
 - Runtime kind: `python`
 - Readiness target: `make imported-skills-readiness`
 - Direct readiness command: `./scripts/skills/run-imported-skill.sh --readiness`
+- Windows readiness command: `./scripts/skills/run-imported-skill.ps1 --readiness`
 - Исполнение идёт через repo-owned dispatcher, который вызывает vendored Python helper.
 
 ## Rules

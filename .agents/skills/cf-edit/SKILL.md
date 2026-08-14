@@ -1,6 +1,6 @@
 ---
 name: cf-edit
-description: "Импортированный compatibility skill из `cc-1c-skills`: Точечное редактирование конфигурации 1С. Используй когда нужно изменить свойства конфигурации, добавить или удалить объект из состава, настроить роли по умолчанию"
+description: "Точечное редактирование конфигурации 1С. Используй когда нужно изменить…"
 metadata:
   short-description: "Точечное редактирование конфигурации 1С. Используй когда нужно изменить…"
 ---
@@ -10,6 +10,7 @@ metadata:
 # Agent Skill: cf-edit
 
 Repo script: `./scripts/skills/run-imported-skill.sh cf-edit`
+Windows launcher: `./scripts/skills/run-imported-skill.ps1 cf-edit`
 
 ## Use When
 
@@ -23,12 +24,18 @@ Repo script: `./scripts/skills/run-imported-skill.sh cf-edit`
 ./scripts/skills/run-imported-skill.sh cf-edit ...
 ```
 
+```powershell
+./scripts/skills/run-imported-skill.ps1 cf-edit --help
+./scripts/skills/run-imported-skill.ps1 cf-edit ...
+```
+
 ## Adaptation
 
 - Vendored upstream source: `automation/vendor/cc-1c-skills/skills/cf-edit/SKILL.md`
 - Runtime kind: `python`
 - Readiness target: `make imported-skills-readiness`
 - Direct readiness command: `./scripts/skills/run-imported-skill.sh --readiness`
+- Windows readiness command: `./scripts/skills/run-imported-skill.ps1 --readiness`
 - Исполнение идёт через repo-owned dispatcher, который вызывает vendored Python helper.
 
 ## Rules

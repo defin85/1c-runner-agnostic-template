@@ -1,6 +1,6 @@
 ---
 name: web-unpublish
-description: "Импортированный compatibility skill из `cc-1c-skills`: Удаление веб-публикации 1С из Apache. Используй когда пользователь просит убрать публикацию, удалить веб-доступ к базе"
+description: "Удаление веб-публикации 1С из Apache. Используй когда пользователь прос…"
 metadata:
   short-description: "Удаление веб-публикации 1С из Apache. Используй когда пользователь прос…"
 ---
@@ -10,6 +10,7 @@ metadata:
 # Agent Skill: web-unpublish
 
 Repo script: `./scripts/skills/run-imported-skill.sh web-unpublish`
+Windows launcher: `./scripts/skills/run-imported-skill.ps1 web-unpublish`
 
 ## Use When
 
@@ -23,12 +24,18 @@ Repo script: `./scripts/skills/run-imported-skill.sh web-unpublish`
 ./scripts/skills/run-imported-skill.sh web-unpublish ...
 ```
 
+```powershell
+./scripts/skills/run-imported-skill.ps1 web-unpublish --help
+./scripts/skills/run-imported-skill.ps1 web-unpublish ...
+```
+
 ## Adaptation
 
 - Vendored upstream source: `automation/vendor/cc-1c-skills/skills/web-unpublish/SKILL.md`
 - Runtime kind: `python`
 - Readiness target: `make imported-skills-readiness`
 - Direct readiness command: `./scripts/skills/run-imported-skill.sh --readiness`
+- Windows readiness command: `./scripts/skills/run-imported-skill.ps1 --readiness`
 - Исполнение идёт через repo-owned dispatcher, который вызывает vendored Python helper.
 
 ## Rules

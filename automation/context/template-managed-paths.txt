@@ -1099,12 +1099,13 @@ tests/python/test_cross_platform.py
 tests/python/test_epf_init_from_template_command.py
 tests/python/test_epf_templates_form_title_version.py
 tests/python/test_http_runtime.py
+tests/python/test_imported_skills.py
+tests/python/test_remote_transport.py
 tests/python/test_runtime_atomic.py
 tests/python/test_runtime_os.py
 tests/python/test_runtime_primitives.py
 tests/python/test_runtime_process.py
 tests/python/test_runtime_profile_v3.py
-tests/python/test_remote_transport.py
 tests/python/test_runtime_result.py
 tests/python/test_runtime_selection.py
 tests/python/test_runtime_support_matrix.py

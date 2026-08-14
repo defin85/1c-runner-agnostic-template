@@ -1,6 +1,6 @@
 ---
 name: epf-init
-description: "Импортированный compatibility skill из `cc-1c-skills`: Создать пустую внешнюю обработку 1С (scaffold XML-исходников)"
+description: "Создать пустую внешнюю обработку 1С (scaffold XML-исходников)"
 metadata:
   short-description: "Создать пустую внешнюю обработку 1С (scaffold XML-исходников)"
 ---
@@ -10,6 +10,7 @@ metadata:
 # Agent Skill: epf-init
 
 Repo script: `./scripts/skills/run-imported-skill.sh epf-init`
+Windows launcher: `./scripts/skills/run-imported-skill.ps1 epf-init`
 
 ## Use When
 
@@ -23,12 +24,18 @@ Repo script: `./scripts/skills/run-imported-skill.sh epf-init`
 ./scripts/skills/run-imported-skill.sh epf-init ...
 ```
 
+```powershell
+./scripts/skills/run-imported-skill.ps1 epf-init --help
+./scripts/skills/run-imported-skill.ps1 epf-init ...
+```
+
 ## Adaptation
 
 - Vendored upstream source: `automation/vendor/cc-1c-skills/skills/epf-init/SKILL.md`
 - Runtime kind: `python`
 - Readiness target: `make imported-skills-readiness`
 - Direct readiness command: `./scripts/skills/run-imported-skill.sh --readiness`
+- Windows readiness command: `./scripts/skills/run-imported-skill.ps1 --readiness`
 - Исполнение идёт через repo-owned dispatcher, который вызывает vendored Python helper.
 
 ## Rules

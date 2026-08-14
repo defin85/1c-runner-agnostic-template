@@ -1,6 +1,6 @@
 ---
 name: meta-edit
-description: "Импортированный compatibility skill из `cc-1c-skills`: Точечное редактирование объекта метаданных 1С. Используй когда нужно добавить, удалить или изменить реквизиты, табличные части, измерения, ресурсы или свойства существующего объекта конфигурации"
+description: "Точечное редактирование объекта метаданных 1С. Используй когда нужно до…"
 metadata:
   short-description: "Точечное редактирование объекта метаданных 1С. Используй когда нужно до…"
 ---
@@ -10,6 +10,7 @@ metadata:
 # Agent Skill: meta-edit
 
 Repo script: `./scripts/skills/run-imported-skill.sh meta-edit`
+Windows launcher: `./scripts/skills/run-imported-skill.ps1 meta-edit`
 
 ## Use When
 
@@ -23,12 +24,18 @@ Repo script: `./scripts/skills/run-imported-skill.sh meta-edit`
 ./scripts/skills/run-imported-skill.sh meta-edit ...
 ```
 
+```powershell
+./scripts/skills/run-imported-skill.ps1 meta-edit --help
+./scripts/skills/run-imported-skill.ps1 meta-edit ...
+```
+
 ## Adaptation
 
 - Vendored upstream source: `automation/vendor/cc-1c-skills/skills/meta-edit/SKILL.md`
 - Runtime kind: `python`
 - Readiness target: `make imported-skills-readiness`
 - Direct readiness command: `./scripts/skills/run-imported-skill.sh --readiness`
+- Windows readiness command: `./scripts/skills/run-imported-skill.ps1 --readiness`
 - Исполнение идёт через repo-owned dispatcher, который вызывает vendored Python helper.
 
 ## Rules

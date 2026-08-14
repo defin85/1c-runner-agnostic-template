@@ -1,6 +1,6 @@
 ---
 name: epf-add-form
-description: "Импортированный compatibility skill из `cc-1c-skills`: Добавить управляемую форму к внешней обработке 1С"
+description: "Добавить управляемую форму к внешней обработке 1С"
 metadata:
   short-description: "Добавить управляемую форму к внешней обработке 1С"
 ---
@@ -10,6 +10,7 @@ metadata:
 # Agent Skill: epf-add-form
 
 Repo script: `./scripts/skills/run-imported-skill.sh epf-add-form`
+Windows launcher: `./scripts/skills/run-imported-skill.ps1 epf-add-form`
 
 ## Use When
 
@@ -23,12 +24,18 @@ Repo script: `./scripts/skills/run-imported-skill.sh epf-add-form`
 ./scripts/skills/run-imported-skill.sh epf-add-form ...
 ```
 
+```powershell
+./scripts/skills/run-imported-skill.ps1 epf-add-form --help
+./scripts/skills/run-imported-skill.ps1 epf-add-form ...
+```
+
 ## Adaptation
 
 - Vendored upstream source: `automation/vendor/cc-1c-skills/skills/epf-add-form/SKILL.md`
 - Runtime kind: `python`
 - Readiness target: `make imported-skills-readiness`
 - Direct readiness command: `./scripts/skills/run-imported-skill.sh --readiness`
+- Windows readiness command: `./scripts/skills/run-imported-skill.ps1 --readiness`
 - Исполнение идёт через repo-owned dispatcher, который вызывает vendored Python helper.
 
 ## Rules

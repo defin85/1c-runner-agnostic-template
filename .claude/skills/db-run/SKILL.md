@@ -13,6 +13,7 @@ allowed-tools:
 # /db-run
 
 Repo script: `./scripts/skills/run-imported-skill.sh db-run`
+Windows launcher: `./scripts/skills/run-imported-skill.ps1 db-run`
 
 ## Use When
 
@@ -26,12 +27,18 @@ Repo script: `./scripts/skills/run-imported-skill.sh db-run`
 ./scripts/skills/run-imported-skill.sh db-run ...
 ```
 
+```powershell
+./scripts/skills/run-imported-skill.ps1 db-run --help
+./scripts/skills/run-imported-skill.ps1 db-run ...
+```
+
 ## Adaptation
 
 - Vendored upstream source: `automation/vendor/cc-1c-skills/skills/db-run/SKILL.md`
 - Runtime kind: `python`
 - Readiness target: `make imported-skills-readiness`
 - Direct readiness command: `./scripts/skills/run-imported-skill.sh --readiness`
+- Windows readiness command: `./scripts/skills/run-imported-skill.ps1 --readiness`
 - Исполнение идёт через repo-owned dispatcher, который вызывает vendored Python helper.
 
 ## Rules

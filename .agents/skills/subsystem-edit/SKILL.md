@@ -1,6 +1,6 @@
 ---
 name: subsystem-edit
-description: "Импортированный compatibility skill из `cc-1c-skills`: Точечное редактирование подсистемы 1С. Используй когда нужно добавить или удалить объекты из подсистемы, управлять дочерними подсистемами или изменить свойства"
+description: "Точечное редактирование подсистемы 1С. Используй когда нужно добавить и…"
 metadata:
   short-description: "Точечное редактирование подсистемы 1С. Используй когда нужно добавить и…"
 ---
@@ -10,6 +10,7 @@ metadata:
 # Agent Skill: subsystem-edit
 
 Repo script: `./scripts/skills/run-imported-skill.sh subsystem-edit`
+Windows launcher: `./scripts/skills/run-imported-skill.ps1 subsystem-edit`
 
 ## Use When
 
@@ -23,12 +24,18 @@ Repo script: `./scripts/skills/run-imported-skill.sh subsystem-edit`
 ./scripts/skills/run-imported-skill.sh subsystem-edit ...
 ```
 
+```powershell
+./scripts/skills/run-imported-skill.ps1 subsystem-edit --help
+./scripts/skills/run-imported-skill.ps1 subsystem-edit ...
+```
+
 ## Adaptation
 
 - Vendored upstream source: `automation/vendor/cc-1c-skills/skills/subsystem-edit/SKILL.md`
 - Runtime kind: `python`
 - Readiness target: `make imported-skills-readiness`
 - Direct readiness command: `./scripts/skills/run-imported-skill.sh --readiness`
+- Windows readiness command: `./scripts/skills/run-imported-skill.ps1 --readiness`
 - Исполнение идёт через repo-owned dispatcher, который вызывает vendored Python helper.
 
 ## Rules
