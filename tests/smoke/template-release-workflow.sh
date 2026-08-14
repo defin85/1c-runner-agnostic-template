@@ -112,10 +112,13 @@ if git --git-dir="$remote_root" rev-parse "refs/tags/$release_tag" >/dev/null 2>
 fi
 
 git -C "$repo_root" tag -d "$release_tag" >/dev/null
+git -C "$repo_root" config --unset user.name
+git -C "$repo_root" config --unset user.email
 
 (
   cd "$repo_root"
-  ./scripts/release/publish-overlay-release.sh --tag "$release_tag" >"$release_stdout"
+  GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1 \
+    ./scripts/release/publish-overlay-release.sh --tag "$release_tag" >"$release_stdout"
 )
 
 assert_contains "$release_stdout" "Template overlay release published"
