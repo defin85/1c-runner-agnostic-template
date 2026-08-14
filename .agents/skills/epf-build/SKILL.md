@@ -1,6 +1,6 @@
 ---
 name: epf-build
-description: "Импортированный compatibility skill из `cc-1c-skills`: Собрать внешнюю обработку 1С (EPF/ERF) из XML-исходников. Используй когда пользователь просит собрать, скомпилировать обработку или получить EPF/ERF файл из исходников"
+description: "Собрать внешнюю обработку 1С (EPF/ERF) из XML-исходников. Используй ког…"
 metadata:
   short-description: "Собрать внешнюю обработку 1С (EPF/ERF) из XML-исходников. Используй ког…"
 ---
@@ -10,6 +10,7 @@ metadata:
 # Agent Skill: epf-build
 
 Repo script: `./scripts/skills/run-imported-skill.sh epf-build`
+Windows launcher: `./scripts/skills/run-imported-skill.ps1 epf-build`
 
 ## Use When
 
@@ -23,12 +24,18 @@ Repo script: `./scripts/skills/run-imported-skill.sh epf-build`
 ./scripts/skills/run-imported-skill.sh epf-build ...
 ```
 
+```powershell
+./scripts/skills/run-imported-skill.ps1 epf-build --help
+./scripts/skills/run-imported-skill.ps1 epf-build ...
+```
+
 ## Adaptation
 
 - Vendored upstream source: `automation/vendor/cc-1c-skills/skills/epf-build/SKILL.md`
 - Runtime kind: `python`
 - Readiness target: `make imported-skills-readiness`
 - Direct readiness command: `./scripts/skills/run-imported-skill.sh --readiness`
+- Windows readiness command: `./scripts/skills/run-imported-skill.ps1 --readiness`
 - Исполнение идёт через repo-owned dispatcher, который вызывает vendored Python helper.
 
 ## Rules

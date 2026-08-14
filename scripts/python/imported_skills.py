@@ -19,6 +19,7 @@ DISPATCHER_SHELL = "./scripts/skills/run-imported-skill.sh"
 DISPATCHER_POWERSHELL = "./scripts/skills/run-imported-skill.ps1"
 CANONICAL_READINESS_TARGET = "make imported-skills-readiness"
 CANONICAL_READINESS_COMMAND = "./scripts/skills/run-imported-skill.sh --readiness"
+WINDOWS_READINESS_COMMAND = "./scripts/skills/run-imported-skill.ps1 --readiness"
 CANONICAL_READINESS_DOC = "docs/agent/generated-project-verification.md"
 CANONICAL_ENV_DOC = "env/README.md"
 FULL_SKILLS_CATALOG = ".agents/skills/README.md"
@@ -165,6 +166,10 @@ def _yaml_scalar(value: str) -> str:
 
 def _skill_shell_command(skill_name: str) -> str:
     return REPO_SCRIPT_FORMAT.format(skill=skill_name)
+
+
+def _skill_powershell_command(skill_name: str) -> str:
+    return f"{DISPATCHER_POWERSHELL} {skill_name}"
 
 
 def _preferred_native_hint(entry: dict[str, object]) -> str:
@@ -484,6 +489,7 @@ def _print_runtime_not_ready(entry: dict[str, object], readiness: dict[str, obje
         print("Missing dependency class: " + ", ".join(missing), file=sys.stderr)
     print(f"Canonical readiness target: {CANONICAL_READINESS_TARGET}", file=sys.stderr)
     print(f"Direct readiness command: {CANONICAL_READINESS_COMMAND}", file=sys.stderr)
+    print(f"Windows readiness command: {WINDOWS_READINESS_COMMAND}", file=sys.stderr)
     print(f"Guidance docs: {CANONICAL_READINESS_DOC}, {CANONICAL_ENV_DOC}", file=sys.stderr)
     bootstrap = [str(command) for command in readiness.get("bootstrap_commands") or []]
     if bootstrap:
@@ -506,7 +512,7 @@ def _render_agents_skill(entry: dict[str, object]) -> str:
     lines = [
         "---",
         f"name: {skill_name}",
-        f"description: {_yaml_scalar(f'Импортированный compatibility skill из `cc-1c-skills`: {discovery_description}')}",
+        f"description: {_yaml_scalar(short_description)}",
         "metadata:",
         f"  short-description: {_yaml_scalar(short_description)}",
         "---",
@@ -516,6 +522,7 @@ def _render_agents_skill(entry: dict[str, object]) -> str:
         f"# Agent Skill: {skill_name}",
         "",
         f"Repo script: `{_imported_repo_script(skill_name)}`",
+        f"Windows launcher: `{_skill_powershell_command(skill_name)}`",
         "",
         "## Use When",
         f"",
@@ -529,12 +536,18 @@ def _render_agents_skill(entry: dict[str, object]) -> str:
         f"{_imported_repo_script(skill_name)} ...",
         "```",
         "",
+        "```powershell",
+        f"{_skill_powershell_command(skill_name)} --help",
+        f"{_skill_powershell_command(skill_name)} ...",
+        "```",
+        "",
         "## Adaptation",
         "",
         f"- Vendored upstream source: `{_vendor_reference(entry)}`",
         f"- Runtime kind: `{entry['runtime_kind']}`",
         f"- Readiness target: `{CANONICAL_READINESS_TARGET}`",
         f"- Direct readiness command: `{CANONICAL_READINESS_COMMAND}`",
+        f"- Windows readiness command: `{WINDOWS_READINESS_COMMAND}`",
     ]
     for note in notes:
         lines.append(f"- {note}")
@@ -575,6 +588,7 @@ def _render_claude_skill(entry: dict[str, object]) -> str:
         f"# /{skill_name}",
         "",
         f"Repo script: `{_imported_repo_script(skill_name)}`",
+        f"Windows launcher: `{_skill_powershell_command(skill_name)}`",
         "",
         "## Use When",
         "",
@@ -588,12 +602,18 @@ def _render_claude_skill(entry: dict[str, object]) -> str:
         f"{_imported_repo_script(skill_name)} ...",
         "```",
         "",
+        "```powershell",
+        f"{_skill_powershell_command(skill_name)} --help",
+        f"{_skill_powershell_command(skill_name)} ...",
+        "```",
+        "",
         "## Adaptation",
         "",
         f"- Vendored upstream source: `{_vendor_reference(entry)}`",
         f"- Runtime kind: `{entry['runtime_kind']}`",
         f"- Readiness target: `{CANONICAL_READINESS_TARGET}`",
         f"- Direct readiness command: `{CANONICAL_READINESS_COMMAND}`",
+        f"- Windows readiness command: `{WINDOWS_READINESS_COMMAND}`",
     ]
     for note in notes:
         lines.append(f"- {note}")
@@ -649,6 +669,7 @@ def _render_agents_readme(native_codex: list[dict[str, str]], native_claude: lis
             "- Vendor root: [`automation/vendor/cc-1c-skills/README.md`](../../automation/vendor/cc-1c-skills/README.md)",
             f"- Canonical readiness target: `{CANONICAL_READINESS_TARGET}`",
             f"- Direct readiness command: `{CANONICAL_READINESS_COMMAND}`",
+            f"- Windows readiness command: `{WINDOWS_READINESS_COMMAND}`",
             "",
             "| User intent | Codex skill | Claude skill | Repo entrypoint | Notes |",
             "| --- | --- | --- | --- | --- |",
@@ -717,6 +738,7 @@ def _render_claude_readme(native_codex: list[dict[str, str]], native_claude: lis
             "- Vendor root: [`automation/vendor/cc-1c-skills/README.md`](../../automation/vendor/cc-1c-skills/README.md)",
             f"- Canonical readiness target: `{CANONICAL_READINESS_TARGET}`",
             f"- Direct readiness command: `{CANONICAL_READINESS_COMMAND}`",
+            f"- Windows readiness command: `{WINDOWS_READINESS_COMMAND}`",
             "",
             "| User intent | Codex skill | Claude skill | Repo entrypoint | Notes |",
             "| --- | --- | --- | --- | --- |",

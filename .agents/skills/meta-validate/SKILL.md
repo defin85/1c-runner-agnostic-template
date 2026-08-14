@@ -1,6 +1,6 @@
 ---
 name: meta-validate
-description: "Импортированный compatibility skill из `cc-1c-skills`: Валидация объекта метаданных 1С. Используй после создания или модификации объекта конфигурации для проверки корректности"
+description: "Валидация объекта метаданных 1С. Используй после создания или модификац…"
 metadata:
   short-description: "Валидация объекта метаданных 1С. Используй после создания или модификац…"
 ---
@@ -10,6 +10,7 @@ metadata:
 # Agent Skill: meta-validate
 
 Repo script: `./scripts/skills/run-imported-skill.sh meta-validate`
+Windows launcher: `./scripts/skills/run-imported-skill.ps1 meta-validate`
 
 ## Use When
 
@@ -23,12 +24,18 @@ Repo script: `./scripts/skills/run-imported-skill.sh meta-validate`
 ./scripts/skills/run-imported-skill.sh meta-validate ...
 ```
 
+```powershell
+./scripts/skills/run-imported-skill.ps1 meta-validate --help
+./scripts/skills/run-imported-skill.ps1 meta-validate ...
+```
+
 ## Adaptation
 
 - Vendored upstream source: `automation/vendor/cc-1c-skills/skills/meta-validate/SKILL.md`
 - Runtime kind: `python`
 - Readiness target: `make imported-skills-readiness`
 - Direct readiness command: `./scripts/skills/run-imported-skill.sh --readiness`
+- Windows readiness command: `./scripts/skills/run-imported-skill.ps1 --readiness`
 - Исполнение идёт через repo-owned dispatcher, который вызывает vendored Python helper.
 
 ## Rules

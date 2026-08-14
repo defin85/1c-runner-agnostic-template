@@ -1,6 +1,6 @@
 ---
 name: meta-info
-description: "Импортированный compatibility skill из `cc-1c-skills`: Анализ структуры объекта метаданных 1С из XML-выгрузки — реквизиты, табличные части, формы, движения, типы. Используй для изучения структуры объектов (вместо чтения XML-файлов напрямую) и как подготовительный шаг при написании запросов и кода, работающего с объектами"
+description: "Анализ структуры объекта метаданных 1С из XML-выгрузки — реквизиты, таб…"
 metadata:
   short-description: "Анализ структуры объекта метаданных 1С из XML-выгрузки — реквизиты, таб…"
 ---
@@ -10,6 +10,7 @@ metadata:
 # Agent Skill: meta-info
 
 Repo script: `./scripts/skills/run-imported-skill.sh meta-info`
+Windows launcher: `./scripts/skills/run-imported-skill.ps1 meta-info`
 
 ## Use When
 
@@ -23,12 +24,18 @@ Repo script: `./scripts/skills/run-imported-skill.sh meta-info`
 ./scripts/skills/run-imported-skill.sh meta-info ...
 ```
 
+```powershell
+./scripts/skills/run-imported-skill.ps1 meta-info --help
+./scripts/skills/run-imported-skill.ps1 meta-info ...
+```
+
 ## Adaptation
 
 - Vendored upstream source: `automation/vendor/cc-1c-skills/skills/meta-info/SKILL.md`
 - Runtime kind: `python`
 - Readiness target: `make imported-skills-readiness`
 - Direct readiness command: `./scripts/skills/run-imported-skill.sh --readiness`
+- Windows readiness command: `./scripts/skills/run-imported-skill.ps1 --readiness`
 - Исполнение идёт через repo-owned dispatcher, который вызывает vendored Python helper.
 
 ## Rules

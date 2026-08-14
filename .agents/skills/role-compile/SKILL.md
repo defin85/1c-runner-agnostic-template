@@ -1,6 +1,6 @@
 ---
 name: role-compile
-description: "Импортированный compatibility skill из `cc-1c-skills`: Создание роли 1С из описания прав. Используй когда нужно создать новую роль с набором прав на объекты"
+description: "Создание роли 1С из описания прав. Используй когда нужно создать новую…"
 metadata:
   short-description: "Создание роли 1С из описания прав. Используй когда нужно создать новую…"
 ---
@@ -10,6 +10,7 @@ metadata:
 # Agent Skill: role-compile
 
 Repo script: `./scripts/skills/run-imported-skill.sh role-compile`
+Windows launcher: `./scripts/skills/run-imported-skill.ps1 role-compile`
 
 ## Use When
 
@@ -23,12 +24,18 @@ Repo script: `./scripts/skills/run-imported-skill.sh role-compile`
 ./scripts/skills/run-imported-skill.sh role-compile ...
 ```
 
+```powershell
+./scripts/skills/run-imported-skill.ps1 role-compile --help
+./scripts/skills/run-imported-skill.ps1 role-compile ...
+```
+
 ## Adaptation
 
 - Vendored upstream source: `automation/vendor/cc-1c-skills/skills/role-compile/SKILL.md`
 - Runtime kind: `python`
 - Readiness target: `make imported-skills-readiness`
 - Direct readiness command: `./scripts/skills/run-imported-skill.sh --readiness`
+- Windows readiness command: `./scripts/skills/run-imported-skill.ps1 --readiness`
 - Исполнение идёт через repo-owned dispatcher, который вызывает vendored Python helper.
 
 ## Rules

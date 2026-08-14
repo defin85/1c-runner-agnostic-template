@@ -13,6 +13,7 @@ allowed-tools:
 # /help-add
 
 Repo script: `./scripts/skills/run-imported-skill.sh help-add`
+Windows launcher: `./scripts/skills/run-imported-skill.ps1 help-add`
 
 ## Use When
 
@@ -26,12 +27,18 @@ Repo script: `./scripts/skills/run-imported-skill.sh help-add`
 ./scripts/skills/run-imported-skill.sh help-add ...
 ```
 
+```powershell
+./scripts/skills/run-imported-skill.ps1 help-add --help
+./scripts/skills/run-imported-skill.ps1 help-add ...
+```
+
 ## Adaptation
 
 - Vendored upstream source: `automation/vendor/cc-1c-skills/skills/help-add/SKILL.md`
 - Runtime kind: `python`
 - Readiness target: `make imported-skills-readiness`
 - Direct readiness command: `./scripts/skills/run-imported-skill.sh --readiness`
+- Windows readiness command: `./scripts/skills/run-imported-skill.ps1 --readiness`
 - Исполнение идёт через repo-owned dispatcher, который вызывает vendored Python helper.
 
 ## Rules

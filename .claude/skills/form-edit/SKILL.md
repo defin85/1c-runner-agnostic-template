@@ -13,6 +13,7 @@ allowed-tools:
 # /form-edit
 
 Repo script: `./scripts/skills/run-imported-skill.sh form-edit`
+Windows launcher: `./scripts/skills/run-imported-skill.ps1 form-edit`
 
 ## Use When
 
@@ -26,12 +27,18 @@ Repo script: `./scripts/skills/run-imported-skill.sh form-edit`
 ./scripts/skills/run-imported-skill.sh form-edit ...
 ```
 
+```powershell
+./scripts/skills/run-imported-skill.ps1 form-edit --help
+./scripts/skills/run-imported-skill.ps1 form-edit ...
+```
+
 ## Adaptation
 
 - Vendored upstream source: `automation/vendor/cc-1c-skills/skills/form-edit/SKILL.md`
 - Runtime kind: `python`
 - Readiness target: `make imported-skills-readiness`
 - Direct readiness command: `./scripts/skills/run-imported-skill.sh --readiness`
+- Windows readiness command: `./scripts/skills/run-imported-skill.ps1 --readiness`
 - Исполнение идёт через repo-owned dispatcher, который вызывает vendored Python helper.
 
 ## Rules

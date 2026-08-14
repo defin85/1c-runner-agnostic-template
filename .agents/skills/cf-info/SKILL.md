@@ -1,6 +1,6 @@
 ---
 name: cf-info
-description: "Импортированный compatibility skill из `cc-1c-skills`: Анализ структуры конфигурации 1С — свойства, состав, счётчики объектов. Используй для обзора конфигурации — какие объекты есть, сколько их, какие настройки"
+description: "Анализ структуры конфигурации 1С — свойства, состав, счётчики объектов.…"
 metadata:
   short-description: "Анализ структуры конфигурации 1С — свойства, состав, счётчики объектов.…"
 ---
@@ -10,6 +10,7 @@ metadata:
 # Agent Skill: cf-info
 
 Repo script: `./scripts/skills/run-imported-skill.sh cf-info`
+Windows launcher: `./scripts/skills/run-imported-skill.ps1 cf-info`
 
 ## Use When
 
@@ -23,12 +24,18 @@ Repo script: `./scripts/skills/run-imported-skill.sh cf-info`
 ./scripts/skills/run-imported-skill.sh cf-info ...
 ```
 
+```powershell
+./scripts/skills/run-imported-skill.ps1 cf-info --help
+./scripts/skills/run-imported-skill.ps1 cf-info ...
+```
+
 ## Adaptation
 
 - Vendored upstream source: `automation/vendor/cc-1c-skills/skills/cf-info/SKILL.md`
 - Runtime kind: `python`
 - Readiness target: `make imported-skills-readiness`
 - Direct readiness command: `./scripts/skills/run-imported-skill.sh --readiness`
+- Windows readiness command: `./scripts/skills/run-imported-skill.ps1 --readiness`
 - Исполнение идёт через repo-owned dispatcher, который вызывает vendored Python helper.
 
 ## Rules

@@ -13,6 +13,7 @@ allowed-tools:
 # /web-test
 
 Repo script: `./scripts/skills/run-imported-skill.sh web-test`
+Windows launcher: `./scripts/skills/run-imported-skill.ps1 web-test`
 
 ## Use When
 
@@ -26,12 +27,18 @@ Repo script: `./scripts/skills/run-imported-skill.sh web-test`
 ./scripts/skills/run-imported-skill.sh web-test ...
 ```
 
+```powershell
+./scripts/skills/run-imported-skill.ps1 web-test --help
+./scripts/skills/run-imported-skill.ps1 web-test ...
+```
+
 ## Adaptation
 
 - Vendored upstream source: `automation/vendor/cc-1c-skills/skills/web-test/SKILL.md`
 - Runtime kind: `node`
 - Readiness target: `make imported-skills-readiness`
 - Direct readiness command: `./scripts/skills/run-imported-skill.sh --readiness`
+- Windows readiness command: `./scripts/skills/run-imported-skill.ps1 --readiness`
 - Исполнение идёт через repo-owned dispatcher, который вызывает vendored Node/Playwright helper.
 
 ## Rules

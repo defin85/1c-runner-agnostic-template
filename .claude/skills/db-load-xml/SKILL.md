@@ -13,6 +13,7 @@ allowed-tools:
 # /db-load-xml
 
 Repo script: `./scripts/skills/run-imported-skill.sh db-load-xml`
+Windows launcher: `./scripts/skills/run-imported-skill.ps1 db-load-xml`
 
 ## Use When
 
@@ -26,12 +27,18 @@ Repo script: `./scripts/skills/run-imported-skill.sh db-load-xml`
 ./scripts/skills/run-imported-skill.sh db-load-xml ...
 ```
 
+```powershell
+./scripts/skills/run-imported-skill.ps1 db-load-xml --help
+./scripts/skills/run-imported-skill.ps1 db-load-xml ...
+```
+
 ## Adaptation
 
 - Vendored upstream source: `automation/vendor/cc-1c-skills/skills/db-load-xml/SKILL.md`
 - Runtime kind: `python`
 - Readiness target: `make imported-skills-readiness`
 - Direct readiness command: `./scripts/skills/run-imported-skill.sh --readiness`
+- Windows readiness command: `./scripts/skills/run-imported-skill.ps1 --readiness`
 - Исполнение идёт через repo-owned dispatcher, который вызывает vendored Python helper.
 
 ## Rules

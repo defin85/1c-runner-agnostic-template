@@ -1,6 +1,6 @@
 ---
 name: cf-validate
-description: "Импортированный compatibility skill из `cc-1c-skills`: Валидация конфигурации 1С. Используй после создания или модификации конфигурации для проверки корректности"
+description: "Валидация конфигурации 1С. Используй после создания или модификации кон…"
 metadata:
   short-description: "Валидация конфигурации 1С. Используй после создания или модификации кон…"
 ---
@@ -10,6 +10,7 @@ metadata:
 # Agent Skill: cf-validate
 
 Repo script: `./scripts/skills/run-imported-skill.sh cf-validate`
+Windows launcher: `./scripts/skills/run-imported-skill.ps1 cf-validate`
 
 ## Use When
 
@@ -23,12 +24,18 @@ Repo script: `./scripts/skills/run-imported-skill.sh cf-validate`
 ./scripts/skills/run-imported-skill.sh cf-validate ...
 ```
 
+```powershell
+./scripts/skills/run-imported-skill.ps1 cf-validate --help
+./scripts/skills/run-imported-skill.ps1 cf-validate ...
+```
+
 ## Adaptation
 
 - Vendored upstream source: `automation/vendor/cc-1c-skills/skills/cf-validate/SKILL.md`
 - Runtime kind: `python`
 - Readiness target: `make imported-skills-readiness`
 - Direct readiness command: `./scripts/skills/run-imported-skill.sh --readiness`
+- Windows readiness command: `./scripts/skills/run-imported-skill.ps1 --readiness`
 - Исполнение идёт через repo-owned dispatcher, который вызывает vendored Python helper.
 
 ## Rules

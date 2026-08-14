@@ -1,6 +1,6 @@
 ---
 name: subsystem-validate
-description: "Импортированный compatibility skill из `cc-1c-skills`: Валидация подсистемы 1С. Используй после создания или модификации подсистемы для проверки корректности"
+description: "Валидация подсистемы 1С. Используй после создания или модификации подси…"
 metadata:
   short-description: "Валидация подсистемы 1С. Используй после создания или модификации подси…"
 ---
@@ -10,6 +10,7 @@ metadata:
 # Agent Skill: subsystem-validate
 
 Repo script: `./scripts/skills/run-imported-skill.sh subsystem-validate`
+Windows launcher: `./scripts/skills/run-imported-skill.ps1 subsystem-validate`
 
 ## Use When
 
@@ -23,12 +24,18 @@ Repo script: `./scripts/skills/run-imported-skill.sh subsystem-validate`
 ./scripts/skills/run-imported-skill.sh subsystem-validate ...
 ```
 
+```powershell
+./scripts/skills/run-imported-skill.ps1 subsystem-validate --help
+./scripts/skills/run-imported-skill.ps1 subsystem-validate ...
+```
+
 ## Adaptation
 
 - Vendored upstream source: `automation/vendor/cc-1c-skills/skills/subsystem-validate/SKILL.md`
 - Runtime kind: `python`
 - Readiness target: `make imported-skills-readiness`
 - Direct readiness command: `./scripts/skills/run-imported-skill.sh --readiness`
+- Windows readiness command: `./scripts/skills/run-imported-skill.ps1 --readiness`
 - Исполнение идёт через repo-owned dispatcher, который вызывает vendored Python helper.
 
 ## Rules

@@ -1,6 +1,6 @@
 ---
 name: template-remove
-description: "Импортированный compatibility skill из `cc-1c-skills`: Удалить макет из объекта 1С (обработка, отчёт, справочник, документ и др.)"
+description: "Удалить макет из объекта 1С (обработка, отчёт, справочник, документ и д…"
 metadata:
   short-description: "Удалить макет из объекта 1С (обработка, отчёт, справочник, документ и д…"
 ---
@@ -10,6 +10,7 @@ metadata:
 # Agent Skill: template-remove
 
 Repo script: `./scripts/skills/run-imported-skill.sh template-remove`
+Windows launcher: `./scripts/skills/run-imported-skill.ps1 template-remove`
 
 ## Use When
 
@@ -23,12 +24,18 @@ Repo script: `./scripts/skills/run-imported-skill.sh template-remove`
 ./scripts/skills/run-imported-skill.sh template-remove ...
 ```
 
+```powershell
+./scripts/skills/run-imported-skill.ps1 template-remove --help
+./scripts/skills/run-imported-skill.ps1 template-remove ...
+```
+
 ## Adaptation
 
 - Vendored upstream source: `automation/vendor/cc-1c-skills/skills/template-remove/SKILL.md`
 - Runtime kind: `python`
 - Readiness target: `make imported-skills-readiness`
 - Direct readiness command: `./scripts/skills/run-imported-skill.sh --readiness`
+- Windows readiness command: `./scripts/skills/run-imported-skill.ps1 --readiness`
 - Исполнение идёт через repo-owned dispatcher, который вызывает vendored Python helper.
 
 ## Rules

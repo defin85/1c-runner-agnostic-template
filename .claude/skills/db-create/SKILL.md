@@ -13,6 +13,7 @@ allowed-tools:
 # /db-create
 
 Repo script: `./scripts/skills/run-imported-skill.sh db-create`
+Windows launcher: `./scripts/skills/run-imported-skill.ps1 db-create`
 
 ## Use When
 
@@ -26,12 +27,18 @@ Repo script: `./scripts/skills/run-imported-skill.sh db-create`
 ./scripts/skills/run-imported-skill.sh db-create ...
 ```
 
+```powershell
+./scripts/skills/run-imported-skill.ps1 db-create --help
+./scripts/skills/run-imported-skill.ps1 db-create ...
+```
+
 ## Adaptation
 
 - Vendored upstream source: `automation/vendor/cc-1c-skills/skills/db-create/SKILL.md`
 - Runtime kind: `native-alias`
 - Readiness target: `make imported-skills-readiness`
 - Direct readiness command: `./scripts/skills/run-imported-skill.sh --readiness`
+- Windows readiness command: `./scripts/skills/run-imported-skill.ps1 --readiness`
 - Это compatibility alias: dispatcher проксирует вызов в native runner-agnostic capability шаблона.
 - Для native runner-agnostic workflow предпочитайте: `1c-create-ib`.
 

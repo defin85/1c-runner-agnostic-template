@@ -1,6 +1,6 @@
 ---
 name: interface-validate
-description: "Импортированный compatibility skill из `cc-1c-skills`: Валидация командного интерфейса 1С. Используй после настройки командного интерфейса подсистемы для проверки корректности"
+description: "Валидация командного интерфейса 1С. Используй после настройки командног…"
 metadata:
   short-description: "Валидация командного интерфейса 1С. Используй после настройки командног…"
 ---
@@ -10,6 +10,7 @@ metadata:
 # Agent Skill: interface-validate
 
 Repo script: `./scripts/skills/run-imported-skill.sh interface-validate`
+Windows launcher: `./scripts/skills/run-imported-skill.ps1 interface-validate`
 
 ## Use When
 
@@ -23,12 +24,18 @@ Repo script: `./scripts/skills/run-imported-skill.sh interface-validate`
 ./scripts/skills/run-imported-skill.sh interface-validate ...
 ```
 
+```powershell
+./scripts/skills/run-imported-skill.ps1 interface-validate --help
+./scripts/skills/run-imported-skill.ps1 interface-validate ...
+```
+
 ## Adaptation
 
 - Vendored upstream source: `automation/vendor/cc-1c-skills/skills/interface-validate/SKILL.md`
 - Runtime kind: `python`
 - Readiness target: `make imported-skills-readiness`
 - Direct readiness command: `./scripts/skills/run-imported-skill.sh --readiness`
+- Windows readiness command: `./scripts/skills/run-imported-skill.ps1 --readiness`
 - Исполнение идёт через repo-owned dispatcher, который вызывает vendored Python helper.
 
 ## Rules

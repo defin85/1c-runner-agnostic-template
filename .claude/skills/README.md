@@ -18,7 +18,6 @@ Codex-facing equivalents лежат в [.agents/skills/README.md](../../.agents/
 | Этот скилл MUST быть вызван, когда пользователь просит запустить BDD / acceptance-контур через канонический test entrypoint проекта. | `1c-run-bdd` | `1c-run-bdd` | `./scripts/test/run-bdd.sh` | native template capability |
 | Этот скилл MUST быть вызван, когда пользователь просит запустить smoke-контур через канонический test entrypoint проекта. | `1c-run-smoke` | `1c-run-smoke` | `./scripts/test/run-smoke.sh` | native template capability |
 | Этот скилл MUST быть вызван, когда пользователь просит применить изменения основной конфигурации к конфигурации базы данных. | `1c-update-db` | `1c-update-db` | `./scripts/platform/update-db.sh` | native template capability |
-
 ## Imported Compatibility Pack (`cc-1c-skills`)
 
 - Upstream source: `git@github.com:Nikolay-Shirokov/cc-1c-skills.git`
@@ -26,6 +25,7 @@ Codex-facing equivalents лежат в [.agents/skills/README.md](../../.agents/
 - Vendor root: [`automation/vendor/cc-1c-skills/README.md`](../../automation/vendor/cc-1c-skills/README.md)
 - Canonical readiness target: `make imported-skills-readiness`
 - Direct readiness command: `./scripts/skills/run-imported-skill.sh --readiness`
+- Windows readiness command: `./scripts/skills/run-imported-skill.ps1 --readiness`
 
 | User intent | Codex skill | Claude skill | Repo entrypoint | Notes |
 | --- | --- | --- | --- | --- |

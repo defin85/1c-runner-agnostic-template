@@ -1,6 +1,6 @@
 ---
 name: meta-compile
-description: "Импортированный compatibility skill из `cc-1c-skills`: Создать объект метаданных 1С. Используй когда пользователь просит создать или добавить справочник, документ, регистр, перечисление, константу, общий модуль, обработку, отчёт и др."
+description: "Создать объект метаданных 1С. Используй когда пользователь просит созда…"
 metadata:
   short-description: "Создать объект метаданных 1С. Используй когда пользователь просит созда…"
 ---
@@ -10,6 +10,7 @@ metadata:
 # Agent Skill: meta-compile
 
 Repo script: `./scripts/skills/run-imported-skill.sh meta-compile`
+Windows launcher: `./scripts/skills/run-imported-skill.ps1 meta-compile`
 
 ## Use When
 
@@ -23,12 +24,18 @@ Repo script: `./scripts/skills/run-imported-skill.sh meta-compile`
 ./scripts/skills/run-imported-skill.sh meta-compile ...
 ```
 
+```powershell
+./scripts/skills/run-imported-skill.ps1 meta-compile --help
+./scripts/skills/run-imported-skill.ps1 meta-compile ...
+```
+
 ## Adaptation
 
 - Vendored upstream source: `automation/vendor/cc-1c-skills/skills/meta-compile/SKILL.md`
 - Runtime kind: `python`
 - Readiness target: `make imported-skills-readiness`
 - Direct readiness command: `./scripts/skills/run-imported-skill.sh --readiness`
+- Windows readiness command: `./scripts/skills/run-imported-skill.ps1 --readiness`
 - Исполнение идёт через repo-owned dispatcher, который вызывает vendored Python helper.
 
 ## Rules

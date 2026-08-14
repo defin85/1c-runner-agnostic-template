@@ -1,6 +1,6 @@
 ---
 name: db-update
-description: "Импортированный compatibility skill из `cc-1c-skills`: Prefer native 1c-update-db. Обновление конфигурации базы данных 1С. Используй когда пользователь просит обновить БД, применить конфигурацию, UpdateDBCfg"
+description: "Prefer native 1c-update-db. Обновление конфигурации базы данных 1С. Исп…"
 metadata:
   short-description: "Prefer native 1c-update-db. Обновление конфигурации базы данных 1С. Исп…"
 ---
@@ -10,6 +10,7 @@ metadata:
 # Agent Skill: db-update
 
 Repo script: `./scripts/skills/run-imported-skill.sh db-update`
+Windows launcher: `./scripts/skills/run-imported-skill.ps1 db-update`
 
 ## Use When
 
@@ -23,12 +24,18 @@ Repo script: `./scripts/skills/run-imported-skill.sh db-update`
 ./scripts/skills/run-imported-skill.sh db-update ...
 ```
 
+```powershell
+./scripts/skills/run-imported-skill.ps1 db-update --help
+./scripts/skills/run-imported-skill.ps1 db-update ...
+```
+
 ## Adaptation
 
 - Vendored upstream source: `automation/vendor/cc-1c-skills/skills/db-update/SKILL.md`
 - Runtime kind: `native-alias`
 - Readiness target: `make imported-skills-readiness`
 - Direct readiness command: `./scripts/skills/run-imported-skill.sh --readiness`
+- Windows readiness command: `./scripts/skills/run-imported-skill.ps1 --readiness`
 - Это compatibility alias: dispatcher проксирует вызов в native runner-agnostic capability шаблона.
 - Для native runner-agnostic workflow предпочитайте: `1c-update-db`.
 

@@ -13,6 +13,7 @@ allowed-tools:
 # /cfe-init
 
 Repo script: `./scripts/skills/run-imported-skill.sh cfe-init`
+Windows launcher: `./scripts/skills/run-imported-skill.ps1 cfe-init`
 
 ## Use When
 
@@ -26,12 +27,18 @@ Repo script: `./scripts/skills/run-imported-skill.sh cfe-init`
 ./scripts/skills/run-imported-skill.sh cfe-init ...
 ```
 
+```powershell
+./scripts/skills/run-imported-skill.ps1 cfe-init --help
+./scripts/skills/run-imported-skill.ps1 cfe-init ...
+```
+
 ## Adaptation
 
 - Vendored upstream source: `automation/vendor/cc-1c-skills/skills/cfe-init/SKILL.md`
 - Runtime kind: `python`
 - Readiness target: `make imported-skills-readiness`
 - Direct readiness command: `./scripts/skills/run-imported-skill.sh --readiness`
+- Windows readiness command: `./scripts/skills/run-imported-skill.ps1 --readiness`
 - Исполнение идёт через repo-owned dispatcher, который вызывает vendored Python helper.
 
 ## Rules

@@ -1,6 +1,6 @@
 ---
 name: cfe-diff
-description: "Импортированный compatibility skill из `cc-1c-skills`: Анализ расширения конфигурации 1С (CFE) — состав, заимствованные объекты, перехватчики, проверка переноса. Используй когда нужно понять что содержит расширение или проверить перенесены ли вставки в конфигурацию"
+description: "Анализ расширения конфигурации 1С (CFE) — состав, заимствованные объект…"
 metadata:
   short-description: "Анализ расширения конфигурации 1С (CFE) — состав, заимствованные объект…"
 ---
@@ -10,6 +10,7 @@ metadata:
 # Agent Skill: cfe-diff
 
 Repo script: `./scripts/skills/run-imported-skill.sh cfe-diff`
+Windows launcher: `./scripts/skills/run-imported-skill.ps1 cfe-diff`
 
 ## Use When
 
@@ -23,12 +24,18 @@ Repo script: `./scripts/skills/run-imported-skill.sh cfe-diff`
 ./scripts/skills/run-imported-skill.sh cfe-diff ...
 ```
 
+```powershell
+./scripts/skills/run-imported-skill.ps1 cfe-diff --help
+./scripts/skills/run-imported-skill.ps1 cfe-diff ...
+```
+
 ## Adaptation
 
 - Vendored upstream source: `automation/vendor/cc-1c-skills/skills/cfe-diff/SKILL.md`
 - Runtime kind: `python`
 - Readiness target: `make imported-skills-readiness`
 - Direct readiness command: `./scripts/skills/run-imported-skill.sh --readiness`
+- Windows readiness command: `./scripts/skills/run-imported-skill.ps1 --readiness`
 - Исполнение идёт через repo-owned dispatcher, который вызывает vendored Python helper.
 
 ## Rules

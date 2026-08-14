@@ -1,6 +1,6 @@
 ---
 name: epf-bsp-add-command
-description: "Импортированный compatibility skill из `cc-1c-skills`: Добавить команду в дополнительную обработку БСП"
+description: "Добавить команду в дополнительную обработку БСП"
 metadata:
   short-description: "Добавить команду в дополнительную обработку БСП"
 ---
@@ -10,6 +10,7 @@ metadata:
 # Agent Skill: epf-bsp-add-command
 
 Repo script: `./scripts/skills/run-imported-skill.sh epf-bsp-add-command`
+Windows launcher: `./scripts/skills/run-imported-skill.ps1 epf-bsp-add-command`
 
 ## Use When
 
@@ -23,12 +24,18 @@ Repo script: `./scripts/skills/run-imported-skill.sh epf-bsp-add-command`
 ./scripts/skills/run-imported-skill.sh epf-bsp-add-command ...
 ```
 
+```powershell
+./scripts/skills/run-imported-skill.ps1 epf-bsp-add-command --help
+./scripts/skills/run-imported-skill.ps1 epf-bsp-add-command ...
+```
+
 ## Adaptation
 
 - Vendored upstream source: `automation/vendor/cc-1c-skills/skills/epf-bsp-add-command/SKILL.md`
 - Runtime kind: `reference`
 - Readiness target: `make imported-skills-readiness`
 - Direct readiness command: `./scripts/skills/run-imported-skill.sh --readiness`
+- Windows readiness command: `./scripts/skills/run-imported-skill.ps1 --readiness`
 - Это reference-only импорт: repo script печатает адаптированную сводку и указывает на vendored upstream материалы.
 
 ## Rules

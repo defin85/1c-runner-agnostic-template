@@ -1,6 +1,6 @@
 ---
 name: skd-edit
-description: "Импортированный compatibility skill из `cc-1c-skills`: Точечное редактирование схемы компоновки данных 1С (СКД). Используй когда нужно модифицировать существующую СКД — добавить поля, итоги, фильтры, параметры, изменить текст запроса"
+description: "Точечное редактирование схемы компоновки данных 1С (СКД). Используй ког…"
 metadata:
   short-description: "Точечное редактирование схемы компоновки данных 1С (СКД). Используй ког…"
 ---
@@ -10,6 +10,7 @@ metadata:
 # Agent Skill: skd-edit
 
 Repo script: `./scripts/skills/run-imported-skill.sh skd-edit`
+Windows launcher: `./scripts/skills/run-imported-skill.ps1 skd-edit`
 
 ## Use When
 
@@ -23,12 +24,18 @@ Repo script: `./scripts/skills/run-imported-skill.sh skd-edit`
 ./scripts/skills/run-imported-skill.sh skd-edit ...
 ```
 
+```powershell
+./scripts/skills/run-imported-skill.ps1 skd-edit --help
+./scripts/skills/run-imported-skill.ps1 skd-edit ...
+```
+
 ## Adaptation
 
 - Vendored upstream source: `automation/vendor/cc-1c-skills/skills/skd-edit/SKILL.md`
 - Runtime kind: `python`
 - Readiness target: `make imported-skills-readiness`
 - Direct readiness command: `./scripts/skills/run-imported-skill.sh --readiness`
+- Windows readiness command: `./scripts/skills/run-imported-skill.ps1 --readiness`
 - Исполнение идёт через repo-owned dispatcher, который вызывает vendored Python helper.
 
 ## Rules
