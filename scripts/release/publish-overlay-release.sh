@@ -64,7 +64,9 @@ ensure_release_tag_absent "$root" "$release_tag"
 log "Run baseline verification before release publish"
 "$root/scripts/qa/agent-verify.sh"
 
-git -C "$root" tag -a "$release_tag" -m "Template overlay release $release_tag" >/dev/null
+GIT_COMMITTER_NAME="$(git -C "$root" show -s --format=%cn HEAD)" \
+GIT_COMMITTER_EMAIL="$(git -C "$root" show -s --format=%ce HEAD)" \
+  git -C "$root" tag -a "$release_tag" -m "Template overlay release $release_tag" >/dev/null
 trap 'git -C "$root" tag -d "$release_tag" >/dev/null 2>&1 || true' ERR
 
 log "Publish overlay release tag"
