@@ -3,6 +3,8 @@ from __future__ import annotations
 import re
 import tempfile
 import unittest
+from contextlib import redirect_stdout
+from io import StringIO
 from pathlib import Path
 
 from scripts.python.common import CommandError
@@ -27,20 +29,21 @@ class InitEpfFromTemplateTests(unittest.TestCase):
     output_root = Path(temporary.name) / "epf"
     name = "МояТестоваяОбработка"
 
-    result = init_epf_from_template(
-        [
-            "--template",
-            "sync-async",
-            "--name",
-            name,
-            "--info",
-            "Моя тестовая обработка",
-            "--version",
-            "2.3",
-            "--output-root",
-            str(output_root),
-        ]
-    )
+    with redirect_stdout(StringIO()):
+        result = init_epf_from_template(
+            [
+                "--template",
+                "sync-async",
+                "--name",
+                name,
+                "--info",
+                "Моя тестовая обработка",
+                "--version",
+                "2.3",
+                "--output-root",
+                str(output_root),
+            ]
+        )
 
     self.assertEqual(result, 0)
     target = output_root / name
@@ -68,4 +71,3 @@ class InitEpfFromTemplateTests(unittest.TestCase):
 
     with self.assertRaisesRegex(CommandError, "already exists"):
         init_epf_from_template(["--template", "sync", "--name", "ExistingProcessor", "--output-root", str(output_root)])
-
