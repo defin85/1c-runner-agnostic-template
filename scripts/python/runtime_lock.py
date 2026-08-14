@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import errno
 import json
 import os
 import time
@@ -8,6 +9,21 @@ from pathlib import Path
 from typing import Any
 
 from .runtime_errors import CommandError
+
+
+def _owner_process_is_alive(owner: dict[str, Any]) -> bool:
+    pid = owner.get("pid")
+    if not isinstance(pid, int) or pid <= 0:
+        return True
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+    except OSError as error:
+        return error.errno != errno.ESRCH
+    return True
 
 
 @dataclass(slots=True)
@@ -33,6 +49,16 @@ class ResourceLock:
                 self._owned = True
                 return self
             except FileExistsError:
+                try:
+                    current = json.loads(self.path.read_text(encoding="utf-8"))
+                except (FileNotFoundError, json.JSONDecodeError, OSError):
+                    current = None
+                if isinstance(current, dict) and not _owner_process_is_alive(current):
+                    try:
+                        self.path.unlink()
+                    except FileNotFoundError:
+                        pass
+                    continue
                 if time.monotonic() >= deadline:
                     raise CommandError(f"resource lock timeout: {self.path}")
                 time.sleep(self.poll_interval)
@@ -56,3 +82,8 @@ class ResourceLock:
 
     def __exit__(self, exc_type: object, exc: object, traceback: object) -> None:
         self.release()
+
+
+def project_runtime_lock(root: Path, operation: str) -> ResourceLock:
+    # ponytail: global lock; split by infobase only if parallel runtime throughput becomes necessary.
+    return ResourceLock(root / ".artifacts" / "runtime.lock", {"pid": os.getpid(), "operation": operation})

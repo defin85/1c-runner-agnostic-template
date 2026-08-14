@@ -106,8 +106,8 @@ jobs:
       - name: Install Copier
         run: python -m pip install --upgrade pip copier
 
-      - name: Cross-platform Python smoke
-        run: python -m unittest tests.python.test_cross_platform
+      - name: Python runtime contracts
+        run: python -m unittest discover -s tests/python -p "test_*.py"
 
       - name: Agent docs contract
         if: runner.os != 'Windows'
@@ -116,6 +116,10 @@ jobs:
       - name: Direct-platform LD_PRELOAD contract
         if: runner.os != 'Windows'
         run: bash tests/smoke/runtime-direct-platform-ld-preload-contract.sh
+
+      - name: Overlay rollback contract
+        if: runner.os != 'Windows'
+        run: bash tests/smoke/runtime-overlay-rollback-contract.sh
 
   runtime-gate:
     name: runtime-gate

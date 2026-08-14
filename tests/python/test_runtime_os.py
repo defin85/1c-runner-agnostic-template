@@ -43,6 +43,16 @@ class RuntimeOsTests(unittest.TestCase):
                 self.assertIn('"operation": "first"', path.read_text(encoding="utf-8"))
             self.assertFalse(path.exists())
 
+    def test_resource_lock_reclaims_dead_owner(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            path = Path(temp_dir) / "resource.lock"
+            path.write_text('{"pid": 424242, "operation": "stale"}', encoding="utf-8")
+            lock = ResourceLock(path, {"pid": os.getpid(), "operation": "current"}, timeout=0.1)
+            with patch("scripts.python.runtime_lock.os.kill", side_effect=ProcessLookupError):
+                with lock:
+                    self.assertIn('"operation": "current"', path.read_text(encoding="utf-8"))
+            self.assertFalse(path.exists())
+
 
 if __name__ == "__main__":
     unittest.main()

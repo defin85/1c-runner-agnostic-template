@@ -1139,6 +1139,7 @@ tests/smoke/runtime-load-diff-src-contract.sh
 tests/smoke/runtime-load-diff-src-validation-contract.sh
 tests/smoke/runtime-load-task-src-contract.sh
 tests/smoke/runtime-load-task-src-validation-contract.sh
+tests/smoke/runtime-overlay-rollback-contract.sh
 tests/smoke/runtime-profile-legacy-rejection.sh
 tests/smoke/runtime-profile-migration-helper.sh
 tests/smoke/update-1c-project-wrapper.sh

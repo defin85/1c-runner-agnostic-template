@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import os
+import stat
+import subprocess
 import unittest
 from pathlib import Path
 
@@ -10,6 +13,25 @@ CFE_COMMANDS = ("load-cfe", "configure-cfe-runtime-flags", "check-cfe-applicabil
 
 
 class ThinLauncherTests(unittest.TestCase):
+    def test_posix_entrypoints_are_executable_in_git(self) -> None:
+        paths = (
+            "scripts/python/run-python.sh",
+            "scripts/platform/bsl-analyzer-mcp.sh",
+            "scripts/template/migrate-runtime-profile-v3.sh",
+        )
+        if os.name != "nt":
+            for path in paths:
+                self.assertTrue((ROOT / path).stat().st_mode & stat.S_IXUSR, path)
+            return
+        modes = subprocess.run(
+            ["git", "ls-files", "--stage", "--", *paths],
+            cwd=ROOT,
+            check=True,
+            text=True,
+            stdout=subprocess.PIPE,
+        ).stdout.splitlines()
+        self.assertEqual([line.split()[0] for line in modes], ["100755"] * len(paths))
+
     def test_make_frontends_share_native_runtime_targets(self) -> None:
         makefile = (ROOT / "Makefile").read_text(encoding="utf-8")
         powershell = (ROOT / "make.ps1").read_text(encoding="utf-8")

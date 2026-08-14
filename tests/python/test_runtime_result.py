@@ -4,7 +4,10 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
+from scripts.python.runtime import PreparedCommand, run_profile_capability
+from scripts.python.runtime_profiles import RuntimeProfile
 from scripts.python.runtime_result import (
     evaluate_postcondition,
     prepare_run_artifacts,
@@ -43,6 +46,25 @@ class RuntimeResultTests(unittest.TestCase):
         self.assertEqual(status, "failed")
         self.assertNotEqual(exit_code, 0)
         self.assertEqual(reason, "expected file was not produced")
+
+    def test_interrupted_capability_publishes_summary(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            profile = RuntimeProfile(root / "profile.json", {}, "test", "direct-platform")
+            prepared = PreparedCommand("create-ib", "Create infobase", "direct-platform", command=["tool"])
+            with (
+                patch("scripts.python.runtime.resolve_runtime_profile_path", return_value=profile.path),
+                patch("scripts.python.runtime.load_runtime_profile", return_value=profile),
+                patch("scripts.python.runtime.prepare_standard_capability_command", return_value=prepared),
+                patch("scripts.python.runtime.prepare_capability_run_root", return_value=root / "run"),
+                patch("scripts.python.runtime.collect_required_env_refs", return_value=[]),
+                patch("scripts.python.runtime.project_root", return_value=root),
+                patch("scripts.python.runtime.execute_prepared_capability_command", side_effect=KeyboardInterrupt),
+            ):
+                result = run_profile_capability("create-ib", "Create infobase", [])
+            summary = json.loads(result.summary_path.read_text(encoding="utf-8"))
+            self.assertEqual(result.exit_code, 130)
+            self.assertEqual(summary["status"], "interrupted")
 
 
 if __name__ == "__main__":

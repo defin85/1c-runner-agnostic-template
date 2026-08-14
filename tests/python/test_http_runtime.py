@@ -80,6 +80,44 @@ class HttpRuntimeTests(unittest.TestCase):
             self.assertNotIn("SENTINEL_SECRET", summary)
             self.assertIn("__REDACTED__", summary)
 
+    def test_logs_redact_connection_string(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            profile_path = self.make_profile(root)
+            payload = json.loads(profile_path.read_text(encoding="utf-8"))
+            connection_string = "Srvr=localhost;Usr=user;Pwd=SENTINEL_SECRET;"
+            payload["capabilities"]["publishHttp"]["connectionString"] = connection_string
+            profile_path.write_text(json.dumps(payload), encoding="utf-8")
+
+            def fake_run(*_args: object, stdout_path: Path, stderr_path: Path, **_kwargs: object) -> int:
+                Path(stdout_path).write_text(connection_string, encoding="utf-8")
+                Path(stderr_path).write_text(connection_string, encoding="utf-8")
+                return 1
+
+            run_publish_http(
+                ["--profile", str(profile_path), "--run-root", str(root / "run")],
+                command_runner=fake_run,
+            )
+            logs = (root / "run" / "stdout.log").read_text(encoding="utf-8") + (root / "run" / "stderr.log").read_text(encoding="utf-8")
+            self.assertNotIn("SENTINEL_SECRET", logs)
+            self.assertIn("__REDACTED_SECRET__", logs)
+
+    def test_interruption_publishes_summary(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            profile_path = self.make_profile(root)
+
+            def interrupting_runner(*_args: object, **_kwargs: object) -> int:
+                raise KeyboardInterrupt
+
+            exit_code = run_publish_http(
+                ["--profile", str(profile_path), "--run-root", str(root / "run")],
+                command_runner=interrupting_runner,
+            )
+            summary = json.loads((root / "run" / "summary.json").read_text(encoding="utf-8"))
+            self.assertEqual(exit_code, 130)
+            self.assertEqual(summary["status"], "interrupted")
+
 
 if __name__ == "__main__":
     unittest.main()

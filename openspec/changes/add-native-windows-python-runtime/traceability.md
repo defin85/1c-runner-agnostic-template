@@ -12,9 +12,10 @@
 | Равная публичная поверхность | `Makefile`, `make.ps1`, `.agents/skills/`, `docs/` | `tests/python/test_thin_launchers.py`, `tests/python/test_cross_platform.py` |
 | Платформенная матрица и срок доказательств | `scripts/python/template_tools.py`, `scripts/python/qa.py` | `tests/python/test_runtime_support_matrix.py` |
 | Доставка управляемого слоя без перезаписи данных проекта | `automation/context/template-managed-paths.txt`, `scripts/template/` | `tests/smoke/copier-update-ready.sh`, `tests/smoke/template-release-workflow.sh` |
+| Откат пары overlay/profile | `scripts/template/update-template.*`, `scripts/template/migrate-runtime-profile-v3.*` | `tests/smoke/runtime-overlay-rollback-contract.sh` |
 
 ## Откат
 
 Откат выполняется штатным `template-update --vcs-ref <previous-tag>` вместе с восстановлением соответствующей schemaVersion 2 копии локального профиля. SchemaVersion 3 не записывается поверх локальных профилей автоматически; миграция сначала создаёт dry-run report. `src/**`, project-owned и local-private пути не входят в перезаписываемый слой.
 
-Фактическая репетиция отката и smoke обновления остаются обязательными до закрытия задач 4.4, 5.2 и 5.3.
+Автоматическая репетиция обновляет проект с `v0.3.37` до текущего runtime, проверяет мигрированный schemaVersion 3 профиль, возвращает overlay на `v0.3.37` и запускает прежний `doctor` с неизменённым schemaVersion 2 профилем.

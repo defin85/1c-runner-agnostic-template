@@ -7,7 +7,7 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
-from .common import CommandError, project_root
+from .common import WINDOWS, CommandError, project_root
 from .runtime_atomic import atomic_write_json
 from .runtime_process import resolve_executable, run_process
 
@@ -64,10 +64,10 @@ def resolve_analyzer_executable() -> str:
     configured = os.environ.get("BSL_ANALYZER_EXECUTABLE")
     if configured:
         resolved = resolve_executable(configured)
-        if os.name == "nt" and Path(resolved).name.lower() == "bsl-analyzer.exe":
+        if WINDOWS and Path(resolved).name.lower() == "bsl-analyzer.exe":
             raise CommandError("bsl-analyzer-app.exe is required on Windows; the auto-update launcher is not a stable broker parent")
         return resolved
-    if os.name == "nt":
+    if WINDOWS:
         cached_app = Path.home() / ".bsl-analyzer" / "bin" / "bsl-analyzer-app.exe"
         if cached_app.is_file():
             return str(cached_app)

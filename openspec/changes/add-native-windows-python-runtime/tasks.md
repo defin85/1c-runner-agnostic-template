@@ -24,11 +24,11 @@
 - [x] 4.1 Update `make`/`make.ps1`, skills, runtime docs, and generated templates to expose equivalent native Windows/Linux targets.
 - [x] 4.2 Extend generated runtime support matrix templates with platform/evidence dimensions and freshness checks.
 - [x] 4.3 Update managed-path manifests and overlay/bootstrap fixtures for the full Python-first runtime surface.
-- [ ] 4.4 Verify overlay update preserves project-owned, local-private, secret, and `src/**` content.
+- [x] 4.4 Verify overlay update preserves project-owned, local-private, secret, and `src/**` content.
 
 ## 5. Verification and release
 
 - [x] 5.1 Add Python unit tests and Windows/Linux contract fixtures for Unicode paths, CRLF, executable resolution, redaction, atomic writes, locks, cancellation, and postconditions.
-- [ ] 5.2 Run runtime smoke, generated fixture, copier/update, source release, and strict OpenSpec checks.
-- [ ] 5.3 Produce Requirement → Code → Test traceability and verify rollback to the previous overlay/profile pair.
+- [x] 5.2 Run runtime smoke, generated fixture, copier/update, source release, and strict OpenSpec checks.
+- [x] 5.3 Produce Requirement → Code → Test traceability and verify rollback to the previous overlay/profile pair.
 - [ ] 5.4 Merge through the source-repo review path and publish the next overlay tag using the repo-owned release command.

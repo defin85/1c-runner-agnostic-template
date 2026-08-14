@@ -71,7 +71,7 @@ class BslMcpRuntimeTests(unittest.TestCase):
 
     def test_windows_rejects_auto_update_launcher_as_broker_parent(self) -> None:
         with (
-            patch("scripts.python.bsl_mcp_runtime.os.name", "nt"),
+            patch("scripts.python.bsl_mcp_runtime.WINDOWS", True),
             patch("scripts.python.bsl_mcp_runtime.Path.home", return_value=Path("C:/missing")),
             patch("scripts.python.bsl_mcp_runtime.resolve_executable", side_effect=CommandError("missing")),
             patch.dict(os.environ, {}, clear=True),
@@ -81,7 +81,7 @@ class BslMcpRuntimeTests(unittest.TestCase):
 
     def test_windows_rejects_explicit_auto_update_launcher(self) -> None:
         with (
-            patch("scripts.python.bsl_mcp_runtime.os.name", "nt"),
+            patch("scripts.python.bsl_mcp_runtime.WINDOWS", True),
             patch("scripts.python.bsl_mcp_runtime.resolve_executable", return_value="C:/tools/bsl-analyzer.exe"),
             patch.dict(os.environ, {"BSL_ANALYZER_EXECUTABLE": "C:/tools/bsl-analyzer.exe"}, clear=True),
         ):

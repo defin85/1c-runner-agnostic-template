@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from .common import canonical_path, die, project_root, read_json
+from .common import WINDOWS, canonical_path, die, project_root, read_json
 
 
 def _json_type_name(value: Any) -> str:
@@ -111,7 +111,7 @@ def load_runtime_profile(profile_path: Path | None) -> RuntimeProfile | None:
         die(f"unsupported runtime profile schemaVersion={schema_version} in {profile_path}")
     if "runnerAdapter" in payload:
         die(f"schemaVersion=3 profile must not define runnerAdapter in {profile_path}")
-    if os.name == "nt":
+    if WINDOWS:
         platform = payload.get("platform", {})
         if isinstance(platform, dict):
             enabled = [name for name in ("xpra", "xvfb", "ldPreload") if isinstance(platform.get(name), dict) and platform[name].get("enabled") is True]

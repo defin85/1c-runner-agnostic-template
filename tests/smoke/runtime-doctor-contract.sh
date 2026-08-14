@@ -29,8 +29,6 @@ profile_path="$tmpdir/doctor-profile.json"
 run_root="$tmpdir/doctor-run"
 unsupported_profile_path="$tmpdir/doctor-unsupported-profile.json"
 unsupported_run_root="$tmpdir/doctor-unsupported-run"
-command_override_profile_path="$tmpdir/doctor-command-profile.json"
-command_override_run_root="$tmpdir/doctor-command-run"
 ld_preload_profile_path="$tmpdir/doctor-ld-preload-profile.json"
 ld_preload_run_root="$tmpdir/doctor-ld-preload-run"
 layout_warning_run_root="$tmpdir/doctor-layout-warning-run"
@@ -51,9 +49,8 @@ chmod +x "$fake_binary"
 
 cat >"$profile_path" <<EOF
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "profileName": "doctor-fixture",
-  "runnerAdapter": "direct-platform",
   "platform": {
     "binaryPath": "$fake_binary"
   },
@@ -68,10 +65,10 @@ cat >"$profile_path" <<EOF
   },
   "capabilities": {
     "bdd": {
-      "command": ["bash", "-lc", "printf 'bdd-ok\\\\n'"]
+      "unsupportedReason": "BDD contour is not wired in this fixture"
     },
     "smoke": {
-      "command": ["bash", "-lc", "printf 'smoke-ok\\\\n'"]
+      "unsupportedReason": "Smoke contour is not wired in this fixture"
     }
   }
 }
@@ -106,7 +103,7 @@ assert_jq "$run_root/summary.json" '.capability_drivers["create-ib"].driver == "
 assert_jq "$run_root/summary.json" '.capability_drivers["load-src"].driver == "designer"' "doctor-load-driver"
 assert_jq "$run_root/summary.json" '[.checks.required_profile_fields[] | select(.status != "present")] | length == 0' "doctor-required-fields"
 assert_jq "$run_root/summary.json" '[.checks.required_env_refs[] | select(.status != "set")] | length == 0' "doctor-required-env-refs"
-assert_jq "$run_root/summary.json" '[.checks.required_capabilities[] | select(.status != "present")] | length == 0' "doctor-required-capabilities"
+assert_jq "$run_root/summary.json" '[.checks.required_capabilities[] | select(.status == "missing")] | length == 0' "doctor-required-capabilities"
 assert_jq "$run_root/summary.json" '[.checks.required_tools[] | select(.status != "present")] | length == 0' "doctor-required-tools"
 assert_jq "$run_root/summary.json" '[.checks.derived_contours[] | select(.name == "load-diff-src" and .status == "missing" and .driver == "designer" and .reason == "partial load-src requires capabilities.loadSrc.driver=ibcmd")] | length == 1' "doctor-load-diff-derived-missing"
 assert_jq "$run_root/summary.json" '[.checks.derived_contours[] | select(.name == "load-task-src" and .status == "missing" and .driver == "designer" and .reason == "partial load-src requires capabilities.loadSrc.driver=ibcmd")] | length == 1' "doctor-load-task-derived-missing"
@@ -130,9 +127,8 @@ fi
 
 cat >"$unsupported_profile_path" <<EOF
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "profileName": "doctor-unsupported-fixture",
-  "runnerAdapter": "direct-platform",
   "platform": {
     "binaryPath": "$fake_binary"
   },
@@ -225,54 +221,10 @@ assert_jq "$layout_clean_run_root/summary.json" '.warnings.runtime_profile_layou
 assert_jq "$layout_clean_run_root/summary.json" '.warnings.runtime_profile_layout.unexpected_root_profiles == []' "doctor-layout-clean-drift-empty"
 assert_jq "$layout_clean_run_root/summary.json" '.warnings.runtime_profile_layout.sanctioned_additional_profiles == ["env/runtime-doctor-drift.fixture.json"]' "doctor-layout-clean-sanctioned"
 
-cat >"$command_override_profile_path" <<EOF
-{
-  "schemaVersion": 2,
-  "profileName": "doctor-command-override-fixture",
-  "runnerAdapter": "direct-platform",
-  "capabilities": {
-    "createIb": {
-      "command": ["bash", "-lc", "printf 'create-command-ok\\\\n'"]
-    },
-    "dumpSrc": {
-      "command": ["bash", "-lc", "printf 'dump-command-ok\\\\n'"]
-    },
-    "loadSrc": {
-      "command": ["bash", "-lc", "printf 'load-command-ok\\\\n'"]
-    },
-    "updateDb": {
-      "command": ["bash", "-lc", "printf 'update-command-ok\\\\n'"]
-    },
-    "bdd": {
-      "command": ["bash", "-lc", "printf 'bdd-ok\\\\n'"]
-    },
-    "smoke": {
-      "command": ["bash", "-lc", "printf 'smoke-ok\\\\n'"]
-    }
-  }
-}
-EOF
-
-(
-  cd "$SOURCE_ROOT"
-  ./scripts/diag/doctor.sh --profile "$command_override_profile_path" --run-root "$command_override_run_root" >/dev/null
-)
-
-assert_jq "$command_override_run_root/summary.json" '.status == "success"' "doctor-command-status"
-assert_jq "$command_override_run_root/summary.json" '.checks.required_profile_fields == [{"name":"runnerAdapter","status":"present","required":true,"reason":null}]' "doctor-command-required-fields"
-assert_jq "$command_override_run_root/summary.json" '.checks.required_env_refs == []' "doctor-command-required-env-refs"
-assert_jq "$command_override_run_root/summary.json" '.capability_drivers["create-ib"].source == "profile-command"' "doctor-command-create-source"
-assert_jq "$command_override_run_root/summary.json" '.capability_drivers["create-ib"].driver == null' "doctor-command-create-driver"
-assert_jq "$command_override_run_root/summary.json" '.capability_drivers["load-src"].source == "profile-command"' "doctor-command-load-source"
-assert_jq "$command_override_run_root/summary.json" '.capability_drivers["load-src"].driver == null' "doctor-command-load-driver"
-assert_jq "$command_override_run_root/summary.json" '[.checks.derived_contours[] | select(.name == "load-diff-src" and .status == "missing" and .source == "profile-command" and .driver == null and .reason == "partial load-src is not supported when capabilities.loadSrc.command override is set")] | length == 1' "doctor-command-load-diff-derived"
-assert_jq "$command_override_run_root/summary.json" '[.checks.derived_contours[] | select(.name == "load-task-src" and .status == "missing" and .source == "profile-command" and .driver == null and .reason == "partial load-src is not supported when capabilities.loadSrc.command override is set")] | length == 1' "doctor-command-load-task-derived"
-
 cat >"$ld_preload_profile_path" <<EOF
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "profileName": "doctor-ld-preload-fixture",
-  "runnerAdapter": "direct-platform",
   "platform": {
     "binaryPath": "$fake_binary",
     "ldPreload": {
@@ -291,10 +243,10 @@ cat >"$ld_preload_profile_path" <<EOF
   },
   "capabilities": {
     "bdd": {
-      "command": ["bash", "-lc", "printf 'bdd-ok\\\\n'"]
+      "unsupportedReason": "BDD contour is not wired in this fixture"
     },
     "smoke": {
-      "command": ["bash", "-lc", "printf 'smoke-ok\\\\n'"]
+      "unsupportedReason": "Smoke contour is not wired in this fixture"
     }
   }
 }

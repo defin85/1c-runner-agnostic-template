@@ -7,10 +7,11 @@ from pathlib import Path
 from typing import Any, Callable
 
 from .common import CommandError, project_root, timestamp_utc
+from .runtime_lock import project_runtime_lock
 from .runtime_os import manage_service
 from .runtime_process import ProcessResult, run_logged, run_process
 from .runtime_profiles import load_runtime_profile, require_runtime_profile, resolve_runtime_profile_path
-from .runtime_result import evaluate_postcondition, prepare_run_artifacts, publish_summary
+from .runtime_result import evaluate_postcondition, prepare_run_artifacts, publish_interrupted_summary, publish_summary, sanitize_artifact_logs
 
 
 @dataclass(frozen=True, slots=True)
@@ -100,21 +101,40 @@ def run_publish_http(
     service_pid_after: int | None = None
     postcondition_reason = None
     if not dry_run:
-        exit_code = command_runner(command, stdout_path=artifacts.stdout_path, stderr_path=artifacts.stderr_path, cwd=project_root())
-        if exit_code == 0:
-            service_pid_before = service_pid(publication.service_name)
-            service_result = service_manager(publication.service_name, "restart")
-            service_exit = service_result.returncode
-            service_pid_after = service_pid(publication.service_name)
-            if service_result.stderr:
-                artifacts.stderr_path.write_text(service_result.stderr, encoding="utf-8")
-        status, exit_code, postcondition_reason = evaluate_postcondition(
-            lambda: service_exit == 0 and service_pid_after is not None and service_pid_after != service_pid_before and http_probe(publication.url),
-            failure_message="Apache restart or HTTP readiness postcondition failed",
-            tool_exit_code=exit_code,
-        )
+        try:
+            with project_runtime_lock(project_root(), "publish-http"):
+                exit_code = command_runner(command, stdout_path=artifacts.stdout_path, stderr_path=artifacts.stderr_path, cwd=project_root())
+                if exit_code == 0:
+                    service_pid_before = service_pid(publication.service_name)
+                    service_result = service_manager(publication.service_name, "restart")
+                    service_exit = service_result.returncode
+                    service_pid_after = service_pid(publication.service_name)
+                    if service_result.stderr:
+                        artifacts.stderr_path.write_text(service_result.stderr, encoding="utf-8")
+                status, exit_code, postcondition_reason = evaluate_postcondition(
+                    lambda: service_exit == 0 and service_pid_after is not None and service_pid_after != service_pid_before and http_probe(publication.url),
+                    failure_message="Apache restart or HTTP readiness postcondition failed",
+                    tool_exit_code=exit_code,
+                )
+        except KeyboardInterrupt:
+            publish_interrupted_summary(
+                artifacts,
+                {
+                    "capability": {"id": "publish-http"},
+                    "backend": "apache-webinst",
+                    "profile_path": str(profile.path),
+                    "started_at": started_at,
+                    "finished_at": timestamp_utc(),
+                    "dry_run": False,
+                },
+                reason="operator cancellation",
+                cleanup=lambda: None,
+                secrets=[publication.connection_string],
+            )
+            return 130
     else:
         status = "dry-run"
+    sanitize_artifact_logs(artifacts, [publication.connection_string])
     publish_summary(artifacts, {
         "status": status,
         "capability": {"id": "publish-http"},

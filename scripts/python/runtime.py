@@ -29,13 +29,14 @@ from .common import (
 )
 from .runtime_paths import resolve_project_tree_path
 from .runtime_process import run_process as run_transport_process
+from .runtime_lock import project_runtime_lock
 from .runtime_profiles import (
     RuntimeProfile,
     load_runtime_profile,
     require_runtime_profile,
     resolve_runtime_profile_path,
 )
-from .runtime_result import RunArtifacts, prepare_run_artifacts, publish_summary, sanitize_artifact_logs
+from .runtime_result import RunArtifacts, prepare_run_artifacts, publish_interrupted_summary, publish_summary, sanitize_artifact_logs
 from .runtime_secrets import build_redacted_context, resolve_secret_value
 from .runtime_selection import select_source_path
 
@@ -436,7 +437,7 @@ def resolve_capability_driver(profile: RuntimeProfile, capability_id: str) -> st
         return ""
     driver = profile.string("capabilities", capability_key(capability_id), "driver")
     if not driver:
-        return "ibcmd" if profile.runner_adapter == "direct-platform" else "designer"
+        return "designer"
     if driver not in {"designer", "ibcmd"}:
         die(f"unsupported driver={driver} for capability {capability_id} in {profile.path}")
     return driver
@@ -1136,15 +1137,43 @@ def run_profile_capability(
     started_at = timestamp_utc()
     status = "dry-run" if args.dry_run else "success"
     exit_code = 0
-    if not args.dry_run:
-        exit_code = execute_prepared_capability_command(prepared, profile, run_root, stdout_log, stderr_log)
-        if exit_code != 0:
-            status = "failed"
     resolved_secrets = [
         os.environ[name]
         for name in collect_required_env_refs(profile)
         if os.environ.get(name)
     ]
+    if not args.dry_run:
+        try:
+            with project_runtime_lock(project_root(), capability_id):
+                exit_code = execute_prepared_capability_command(prepared, profile, run_root, stdout_log, stderr_log)
+        except KeyboardInterrupt:
+            interrupted = {
+                "capability": {"id": capability_id, "label": label},
+                "adapter": adapter,
+                "driver": prepared.driver or None,
+                "profile_path": str(profile.path),
+                "run_root": str(run_root),
+                "started_at": started_at,
+                "finished_at": timestamp_utc(),
+                "dry_run": False,
+                "execution": {"source": prepared.command_source, "executor": prepared.executor},
+                "artifacts": {
+                    "summary_json": str(summary_path),
+                    "stdout_log": str(stdout_log),
+                    "stderr_log": str(stderr_log),
+                },
+            }
+            interrupted.update(prepared.context)
+            publish_interrupted_summary(
+                artifacts,
+                interrupted,
+                reason="operator cancellation",
+                cleanup=lambda: None,
+                secrets=resolved_secrets,
+            )
+            return CapabilityResult("interrupted", 130, summary_path, stdout_log, stderr_log)
+        if exit_code != 0:
+            status = "failed"
     sanitize_artifact_logs(artifacts, resolved_secrets)
     finished_at = timestamp_utc()
     write_capability_summary(
@@ -1273,7 +1302,7 @@ def run_doctor(argv: list[str]) -> int:
     summary_path = capability_summary_path(run_root)
     stdout_log = run_root / "stdout.log"
     stderr_log = run_root / "stderr.log"
-    stdout_log.write_text("", encoding="utf-8", newline="\n")
+    stdout_log.write_text("Run 1C runtime doctor\n", encoding="utf-8", newline="\n")
     stderr_log.write_text("", encoding="utf-8", newline="\n")
     required_tools = ["git", "rg"]
     optional_tools = ["openspec"]
@@ -1341,8 +1370,9 @@ def run_doctor(argv: list[str]) -> int:
             status = "failed"
     for capability_id in optional_capabilities:
         reason = doctor_capability_failure_reason(profile, capability_id, adapter)
+        item_status = "unsupported" if profile_unsupported_reason(profile, capability_id) else ("present" if not reason else "missing")
         checks["optional_capabilities"].append(
-            {"name": capability_id, "status": "present" if not reason else "missing", "required": False, "reason": reason or None}
+            {"name": capability_id, "status": item_status, "required": False, "reason": reason or None}
         )
     derived = []
     load_src_driver = resolve_capability_driver(profile, "load-src") if not profile_command(profile, "load-src") else ""
@@ -1367,6 +1397,10 @@ def run_doctor(argv: list[str]) -> int:
             }
         )
     checks["derived_contours"] = derived
+    warnings = build_runtime_profile_layout_warning_json()
+    if warnings["runtime_profile_layout"]["status"] == "warning":
+        with stdout_log.open("a", encoding="utf-8", newline="\n") as stream:
+            stream.write(f"Use {warnings['runtime_profile_layout']['recommended_sandbox']} for local profiles\n")
     payload = {
         "status": "dry-run" if args.dry_run else status,
         "capability": {"id": "doctor", "label": "1C runtime doctor"},
@@ -1380,7 +1414,7 @@ def run_doctor(argv: list[str]) -> int:
         },
         "capability_drivers": build_doctor_capability_drivers_json(profile, adapter),
         "checks": checks,
-        "warnings": build_runtime_profile_layout_warning_json(),
+        "warnings": warnings,
     }
     payload.update(build_redacted_context(profile))
     payload.update(direct_platform_adapter_context(profile) if adapter == "direct-platform" else {})

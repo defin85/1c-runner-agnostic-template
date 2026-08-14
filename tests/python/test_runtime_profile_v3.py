@@ -7,7 +7,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from scripts.python.common import CommandError
-from scripts.python.runtime import load_runtime_profile
+from scripts.python.runtime import load_runtime_profile, resolve_capability_driver
 from scripts.python.template_tools import migrate_runtime_profile_v3
 
 
@@ -26,6 +26,7 @@ class RuntimeProfileV3Tests(unittest.TestCase):
             profile = load_runtime_profile(path)
         self.assertIsNotNone(profile)
         self.assertEqual(profile.runner_adapter, "direct-platform")
+        self.assertEqual(resolve_capability_driver(profile, "create-ib"), "designer")
 
     def test_remote_windows_is_an_explicit_transport(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -59,7 +60,7 @@ class RuntimeProfileV3Tests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             path = Path(temp_dir) / "profile.json"
             path.write_text(json.dumps({"schemaVersion": 3, "platform": {"xpra": {"enabled": True}}}), encoding="utf-8")
-            with patch("scripts.python.runtime_profiles.os.name", "nt"):
+            with patch("scripts.python.runtime_profiles.WINDOWS", True):
                 with self.assertRaisesRegex(CommandError, "POSIX-only"):
                     load_runtime_profile(path)
 
