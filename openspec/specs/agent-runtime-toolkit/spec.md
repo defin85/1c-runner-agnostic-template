@@ -5,13 +5,18 @@ Define the canonical repo-owned runtime entrypoints that agents and operators us
 ## Requirements
 ### Requirement: Canonical Runtime Entrypoints
 
-The template SHALL provide canonical, versioned entrypoint scripts for the core 1C runtime operations that agents and humans use in generated projects.
+The template SHALL provide canonical, versioned entrypoint scripts for core runtime operations, and each supported capability SHALL have one Python orchestration implementation shared by generated-project Bash and PowerShell launchers.
 
 #### Scenario: Generated project receives stable runtime entrypoints
 
-- **WHEN** a project is created from the template
-- **THEN** it MUST contain documented script entrypoints for creating an infobase, loading and dumping source, updating DB configuration, running tests, publishing HTTP services, and diagnostics
-- **AND** those entrypoints MUST be callable from repository-local paths under `scripts/`
+- **WHEN** a project is created from the template or receives the runtime overlay
+- **THEN** it MUST contain documented repository-local entrypoints for creating an infobase, loading and dumping source, updating DB configuration, running tests, publishing HTTP services, and diagnostics
+- **AND** equivalent `.sh` and `.ps1` entrypoints MUST delegate to the same Python command and return its exit code
+
+#### Scenario: Thin launcher contract
+
+- **WHEN** a generated-project launcher has been migrated to the Python runtime
+- **THEN** the launcher MUST NOT parse runtime profiles, assemble 1C commands, or interpret capability results independently
 
 ### Requirement: Machine-Readable Runtime Artifacts
 
@@ -33,27 +38,31 @@ Each runtime capability script SHALL produce machine-readable execution artifact
 
 ### Requirement: Adapter-Friendly Runtime Model
 
-The runtime toolkit SHALL expose a stable public contract while allowing the underlying 1C execution backend to vary by adapter.
+The runtime toolkit SHALL expose stable capability entrypoints while modeling the selected 1C tool as a driver/backend and remote execution as a transport; local execution SHALL be the default and SHALL NOT require a public `direct-platform` selector.
 
 #### Scenario: Same capability runs through different adapters
 
-- **WHEN** a generated project chooses `direct-platform`, `remote-windows`, or another supported adapter
-- **THEN** the public entrypoint path and intent of the capability MUST remain stable
-- **AND** the adapter-specific logic MUST stay behind the script contract rather than leak into user workflows
+- **WHEN** a profile selects `designer` or `ibcmd` for a supported capability
+- **THEN** the public entrypoint and result contract MUST remain stable
+- **AND** driver-specific command assembly MUST stay behind the Python capability contract
+
+#### Scenario: Capability uses a remote transport
+
+- **WHEN** a profile explicitly selects a supported remote Windows transport
+- **THEN** the runtime MUST send a structured capability request and preserve the same result contract
+- **AND** transport failure MUST remain distinguishable from capability failure
 
 #### Scenario: Direct-platform launch needs GUI isolation
 
-- **WHEN** a generated project runs local `1cv8` or `1cv8c` through `runnerAdapter=direct-platform` on WSL/Linux
-- **THEN** the stable entrypoint path MUST remain unchanged
-- **AND** the adapter MUST be able to apply repo-owned `Xvfb` isolation behind the same script contract when the runtime profile explicitly enables it
-- **AND** the same adapter policy MUST apply both to standard-builder capabilities and to profile-defined command arrays whose executable basename is `1cv8` or `1cv8c`
-- **AND** generated project workflows MUST NOT require ad-hoc `xvfb-run ./scripts/...` wrappers as the canonical path
+- **WHEN** local `1cv8` or `1cv8c` runs on WSL/Linux with structured Xvfb, Xpra, or `LD_PRELOAD` settings enabled
+- **THEN** the stable entrypoint MUST apply the supported POSIX-only isolation internally
+- **AND** the same settings in a Windows profile MUST fail closed before process launch
 
 #### Scenario: Direct-platform xvfb preconditions are missing
 
-- **WHEN** `platform.xvfb.enabled=true` but required local tools such as `xvfb-run` or `xauth` are unavailable
+- **WHEN** a migrated local POSIX profile enables Xvfb but required tools such as `xvfb-run` or `xauth` are unavailable
 - **THEN** doctor and runtime execution MUST fail closed before any 1C process starts
-- **AND** the reported failure MUST identify the missing wrapper precondition
+- **AND** diagnostics MUST identify the missing platform prerequisite without requiring a public `direct-platform` selector
 
 ### Requirement: Repo-Owned Diff-Aware Load Wrapper
 

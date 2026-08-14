@@ -212,8 +212,6 @@
 ./features/examples
 ./openspec
 ./openspec/changes
-./openspec/changes/add-native-windows-python-runtime
-./openspec/changes/add-reusable-testing-campaign
 ./openspec/changes/archive
 ./openspec/changes/unify-agent-skill-sources
 ./openspec/specs
@@ -224,6 +222,8 @@
 ./openspec/specs/ibcmd-capability-drivers
 ./openspec/specs/project-scoped-skills
 ./openspec/specs/repository-agent-guidance
+./openspec/specs/reusable-testing-campaign
+./openspec/specs/reusable-testing-tooling
 ./openspec/specs/runtime-profile-schema
 ./openspec/specs/template-ci-contours
 ./openspec/specs/template-overlay-delivery

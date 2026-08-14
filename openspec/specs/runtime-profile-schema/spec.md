@@ -3,27 +3,53 @@
 ## Purpose
 Define the schemaVersion 2 runtime profile contract: structured, target-aware profiles with secrets supplied through environment variables, mode-specific ibcmd blocks, sanctioned checked-in profile policy, redacted launcher artifacts and migration of existing generated projects.
 ## Requirements
-### Requirement: Structured SchemaVersion 2 Runtime Profiles
-The template SHALL define runtime profiles in `schemaVersion: 2` as structured, machine-validated data rather than as free-form shell command blobs.
+### Requirement: Structured SchemaVersion 3 Runtime Profiles
 
-#### Scenario: Generated project receives canonical runtime profile examples
-- **WHEN** a project is created from the template or receives a template update
-- **THEN** the versioned `env/*.example.json` files MUST declare `schemaVersion: 2`
-- **AND** the profile MUST store infobase topology, authentication model and platform paths in explicit structured fields
-- **AND** the canonical source of truth for infobase connection MUST NOT be an embedded full shell command
+The template SHALL define `schemaVersion: 3` profiles with local execution by default, per-capability structured drivers/backends, and an optional structured remote transport.
 
-#### Scenario: Direct-platform profile enables GUI isolation in WSL or Linux
-- **WHEN** a generated project wants repo-owned GUI isolation for local `1cv8` or `1cv8c` launches through `runnerAdapter=direct-platform`
-- **THEN** the runtime profile MUST support structured `platform.xvfb` and `platform.xpra` blocks rather than require a raw shell wrapper around launcher scripts
-- **AND** `platform.xvfb` MUST include `platform.xvfb.enabled` as a boolean and `platform.xvfb.serverArgs` as an array of strings
-- **AND** `platform.xpra` MUST include `platform.xpra.enabled` as a boolean, `platform.xpra.xvfbArgs` as an array of strings when enabled, and `platform.xpra.startChild` as an optional non-empty command string
-- **AND** the profile MUST allow GUI isolation to stay disabled by default when both blocks are omitted or explicitly turned off
+#### Scenario: Generated project receives canonical schemaVersion 3 examples
 
-#### Scenario: Xpra wrapper is enabled for direct-platform runtime
-- **WHEN** a direct-platform capability runs with `platform.xpra.enabled=true`
-- **THEN** the machine-readable artifacts MUST reflect that an `xpra` wrapper was selected in a structured adapter-context field shared by capability summaries and doctor diagnostics
-- **AND** the artifacts MAY include non-secret `xvfbArgs` and `startChild` values needed for diagnosis
-- **AND** the artifacts MUST NOT store unrelated host-specific secret or session data
+- **WHEN** a project is created from the template or receives the runtime overlay
+- **THEN** versioned `env/*.example.json` files MUST declare `schemaVersion: 3`
+- **AND** local profiles MUST NOT require `runnerAdapter=direct-platform`
+- **AND** platform paths, infobase topology, authentication, capability driver/backend, and optional transport MUST remain explicit structured fields
+
+#### Scenario: Unknown combination
+
+- **WHEN** a schemaVersion 3 profile contains an unknown driver, backend, transport, or incompatible platform-only setting
+- **THEN** doctor and capability execution MUST fail closed before invoking an external runtime
+
+### Requirement: SchemaVersion 3 Migration Gate
+
+The runtime SHALL accept schemaVersion 3 for the new contract and SHALL provide a deterministic dry-run migration report for schemaVersion 2 profiles during the declared transition.
+
+#### Scenario: Direct-platform schemaVersion 2 profile
+
+- **WHEN** the migration tool receives a schemaVersion 2 profile with `runnerAdapter=direct-platform`
+- **THEN** it MUST produce an equivalent local-default schemaVersion 3 profile or a precise fail-closed diagnostic
+- **AND** it MUST NOT rewrite the ignored source profile in dry-run mode
+
+#### Scenario: Arbitrary shell orchestration cannot migrate
+
+- **WHEN** a schemaVersion 2 capability contains shell orchestration that has no supported structured backend
+- **THEN** migration MUST stop with the required repo-owned backend named
+- **AND** it MUST NOT emit a partially working profile
+
+### Requirement: Atomic And Redacted Runtime Artifacts
+
+Runtime-authored JSON artifacts SHALL be atomically published and diagnostics SHALL not reveal resolved secrets.
+
+#### Scenario: Capability publishes summary
+
+- **WHEN** a capability finishes successfully, fails, times out, or is interrupted
+- **THEN** readers MUST observe either the previous complete JSON or the new complete JSON
+- **AND** diagnostic argv, summary, stdout, and stderr MUST not contain resolved secrets
+
+#### Scenario: External tool requires a secret-bearing argument
+
+- **WHEN** an external tool contract requires a resolved secret in its actual argv or environment
+- **THEN** the runtime MUST pass it only to the child process
+- **AND** persisted or displayed argv MUST use a redacted representation
 
 ### Requirement: Secret Indirection Through Environment Variables
 The template SHALL reference secrets through environment-variable indirection rather than literal secret values inside versioned runtime profiles.
@@ -39,16 +65,6 @@ The template SHALL reference secrets through environment-variable indirection ra
 - **THEN** runtime scripts MUST treat the secret reference as configured
 - **AND** command assembly MUST omit password arguments only where the underlying 1C command accepts an empty password by omission
 - **AND** doctor diagnostics MUST report the env var as set without logging the secret value
-
-### Requirement: SchemaVersion 2 Only Runtime Gate
-
-The runtime toolkit SHALL accept only `schemaVersion: 2` profiles and SHALL reject legacy runtime profile formats with an actionable migration error.
-
-#### Scenario: Existing project still uses schemaVersion 1
-
-- **WHEN** a launcher script or runtime doctor loads a profile with `schemaVersion: 1` or an equivalent legacy `shellEnv`-only structure
-- **THEN** the command MUST fail closed before any 1C runtime operation starts
-- **AND** the error message MUST point to the migration guide or helper
 
 ### Requirement: Migration Support For Existing Generated Projects
 

@@ -4,16 +4,19 @@
 Define the project-owned runtime support matrix that records which runtime contours are supported, operator-local or unsupported, drives generated onboarding, and stays fresh and aligned with the runtime quick reference for every target.
 ## Requirements
 ### Requirement: Project-Owned Runtime Support Matrix
-The template SHALL seed a project-owned runtime support matrix for generated repositories.
+The template SHALL seed a project-owned runtime support matrix that records status and evidence requirements for each documented capability/platform pair.
 
 #### Scenario: Generated repository receives initial agent-facing context
-- **WHEN** `copier copy` creates a generated repository or a template update refreshes generated-project scaffolding
-- **THEN** the repository MUST include checked-in runtime support matrix artifacts in machine-readable and human-readable form
-- **AND** the machine-readable artifact MUST live at `automation/context/runtime-support-matrix.json`
-- **AND** the human-readable companion MUST live at `automation/context/runtime-support-matrix.md`
-- **AND** the matrix MUST classify each documented runtime contour at least as `supported`, `unsupported`, `operator-local`, or `provisioned`
-- **AND** reusable CFE, X11, port lease, web-client diagnostic, YAxUnit, Vanessa BDD warm-service, and golden-baseline contours seeded by the template MUST be represented without project-specific target names
-- **AND** the golden-baseline contour MUST be represented as a mandatory project regression baseline that fails closed until the project supplies its comparison hook
+- **WHEN** `copier copy` creates a generated repository or an overlay refreshes generated scaffolding
+- **THEN** checked-in JSON and Markdown matrix artifacts MUST exist
+- **AND** every documented contour MUST use the shared status vocabulary
+- **AND** each platform entry MUST declare whether contract-only or contract-plus-live evidence is required
+- **AND** operator-local contours MUST not be represented as shared baseline-ready checks
+
+#### Scenario: Live-dependent capability is marked supported
+
+- **WHEN** a capability controls an infobase, operating-system service, HTTP publication, or long-running broker
+- **THEN** `supported` MUST require evidence with platform/runtime fingerprint, timestamp, and expiry policy
 
 ### Requirement: Runtime Support Matrix Drives Generated Onboarding
 
@@ -29,13 +32,18 @@ The runtime support matrix SHALL be the canonical checked-in runtime truth for g
 
 ### Requirement: Runtime Support Matrix Freshness
 
-The template SHALL keep runtime support matrix artifacts fresh and consistent with adjacent generated-project truth surfaces.
+The template SHALL keep runtime support matrix artifacts consistent with generated-project runtime entrypoints, profile policy, platform dimensions, and evidence manifests.
 
 #### Scenario: Runtime support truth changes
 
-- **WHEN** sanctioned runtime profiles, project map entrypoints, verification docs, onboarding routes, or operator-local runbook paths change in a generated repository
-- **THEN** the repository checks MUST fail if the runtime support matrix is stale or inconsistent with those surfaces
-- **AND** the failure MUST identify which contour or supporting artifact no longer matches the matrix
+- **WHEN** a profile schema, entrypoint, supported platform, evidence class, or runbook changes
+- **THEN** repository checks MUST fail on stale JSON or Markdown matrix content
+- **AND** the failure MUST identify the mismatching capability/platform entry
+
+#### Scenario: Live evidence is absent or expired
+
+- **WHEN** a live-dependent capability is declared supported without current matching evidence
+- **THEN** semantic checks MUST reject the supported status
 
 ### Requirement: Runtime Quick Reference Stays Aligned With Matrix
 The template SHALL keep a concise runtime quick reference aligned with the project-owned runtime support matrix in generated repositories.
@@ -62,11 +70,24 @@ The runtime support matrix SHALL represent runtime contours that are valid only 
 - **AND** the failure MUST identify the stale target or extension reference
 
 ### Requirement: Vanessa BDD Warm-Service Matrix Entry
-The template SHALL represent the optional Vanessa BDD warm-service contour in generated-project runtime support artifacts.
+The template SHALL represent the optional Vanessa BDD warm-service contour in generated-project runtime support artifacts and SHALL identify explicit test-tooling preparation without embedding project-specific defaults.
 
 #### Scenario: Generated repository advertises scenario-testing warm runs
-- **WHEN** a generated repository receives runtime support matrix artifacts from the template
+- **WHEN** a generated repository receives or refreshes runtime support matrix artifacts from the template
 - **THEN** the matrix MUST include a `bdd-warm-service` contour entry
 - **AND** the entry MUST classify the contour as `operator-local` or `unsupported`, not `supported`
+- **AND** the entry MUST identify `init-test-tooling` and `install-test-tooling` as explicit prerequisites when their outputs are absent
 - **AND** the entry MUST point to a project-owned runbook or entrypoint explaining required local Vanessa inputs: Vanessa Automation Single path, warmup feature path, library paths, step definitions, extension scope, and `operatorLocalTargets.vanessaBdd` target binding
 - **AND** the entry MUST NOT include applied-project infobase names, extension names, file paths, or business scenario names
+- **AND** the entry MUST NOT claim that bootstrap or overlay update automatically materializes source extensions or downloads Vanessa Automation Single
+
+### Requirement: YAxUnit Runtime Preparation Entry
+
+The generated runtime support matrix SHALL describe YAxUnit and YAxUnit warm RPC as operator-local contours backed by explicit initialization of pinned YAxUnit source and a project-owned tests extension.
+
+#### Scenario: Generated project inspects YAxUnit support
+
+- **WHEN** generated-project runtime support artifacts are rendered or refreshed
+- **THEN** the matrix MUST route missing source extensions to `init-test-tooling`
+- **AND** it MUST route installed source extensions to the existing `sync-yaxunit-runtime` and YAxUnit entrypoints
+- **AND** it MUST distinguish source initialization from synchronization into a selected 1C target

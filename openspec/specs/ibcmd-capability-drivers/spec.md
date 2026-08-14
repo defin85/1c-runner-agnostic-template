@@ -5,14 +5,20 @@ Define how stable runtime entrypoints select an internal driver per capability, 
 ## Requirements
 ### Requirement: Stable Runtime Entrypoints With Internal Driver Selection
 
-The template SHALL preserve stable public entrypoints for the core runtime capabilities while allowing the backend 1C toolchain to vary by internal driver selection.
+The template SHALL preserve stable public entrypoints for core runtime capabilities while allowing the backend 1C toolchain to vary by structured driver selection independent of the host operating system.
 
 #### Scenario: Generated project uses default runtime flow
 
-- **WHEN** a generated project calls `scripts/platform/create-ib.sh`, `scripts/platform/dump-src.sh`, `scripts/platform/load-src.sh`, or `scripts/platform/update-db.sh`
+- **WHEN** a generated project calls a core `.sh` or `.ps1` runtime entrypoint
 - **THEN** the public entrypoint path and capability intent MUST remain stable
-- **AND** the runtime toolkit MUST resolve the backend implementation internally rather than through a second public script namespace
+- **AND** the runtime toolkit MUST resolve the backend internally rather than through a second public script namespace
 - **AND** omission of an explicit driver MUST select `designer`
+
+#### Scenario: Ibcmd runs on Windows or Linux
+
+- **WHEN** a supported capability selects `driver=ibcmd`
+- **THEN** the Python runtime MUST assemble structured `ibcmd` argv without requiring `runnerAdapter=direct-platform`
+- **AND** equivalent topology fields MUST have equivalent validation semantics on Windows and Linux
 
 ### Requirement: Per-Capability Driver Selection For Core Runtime Capabilities
 
@@ -20,10 +26,10 @@ The runtime profile SHALL allow `create-ib`, `dump-src`, `load-src`, and `update
 
 #### Scenario: Project opts into ibcmd for selected capabilities
 
-- **WHEN** the runtime profile sets the driver of one or more supported capabilities to `ibcmd`
-- **THEN** the toolkit MUST dispatch only those capabilities to the `ibcmd` driver
-- **AND** other capabilities MUST keep their own configured driver or the default `designer`
-- **AND** driver selection for one capability MUST NOT implicitly change unrelated capabilities
+- **WHEN** the runtime profile sets one or more supported capability drivers to `ibcmd`
+- **THEN** the toolkit MUST dispatch only those capabilities to `ibcmd`
+- **AND** other capabilities MUST retain their configured driver or default `designer`
+- **AND** driver selection MUST NOT imply a local or remote transport
 
 ### Requirement: Structured Ibcmd Runtime Coordinates
 
