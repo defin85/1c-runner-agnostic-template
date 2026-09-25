@@ -198,3 +198,46 @@ if [ "$preflight_remote_after_bypass" != "$preflight_local_head" ]; then
   printf 'branch push with explicit preflight bypass must reach remote\n' >&2
   exit 1
 fi
+
+# A preflight pass recorded for the pushed tree is reused, so the hook does not run act
+# while git holds the remote connection open.
+preflight_stamp_log="$tmpdir/preflight-stamp.log"
+preflight_stamp_stderr="$tmpdir/preflight-stamp.err"
+printf 'preflight stamp\n' >"$preflight_repo/preflight-stamp.txt"
+git -C "$preflight_repo" add preflight-stamp.txt
+git -C "$preflight_repo" commit -qm "preflight stamp"
+
+(
+  cd "$preflight_repo"
+  ACT_SMOKE_LOG="$preflight_stamp_log" PATH="$preflight_bin:$PATH" ./scripts/qa/act-preflight.sh >/dev/null
+)
+rm -f "$preflight_stamp_log"
+
+(
+  cd "$preflight_repo"
+  ACT_SMOKE_LOG="$preflight_stamp_log" ACT_SMOKE_EXIT_CODE=1 PATH="$preflight_bin:$PATH" \
+    git push origin HEAD:refs/heads/main >/dev/null 2>"$preflight_stamp_stderr"
+)
+
+assert_contains "$preflight_stamp_stderr" "preflight already passed for tree"
+if [ -e "$preflight_stamp_log" ]; then
+  printf 'recorded preflight pass should skip act invocation on push\n' >&2
+  exit 1
+fi
+if [ "$(git --git-dir="$preflight_remote" rev-parse refs/heads/main)" != "$(git -C "$preflight_repo" rev-parse HEAD)" ]; then
+  printf 'push with recorded preflight pass must reach remote\n' >&2
+  exit 1
+fi
+
+printf 'preflight stale\n' >"$preflight_repo/preflight-stale.txt"
+git -C "$preflight_repo" add preflight-stale.txt
+git -C "$preflight_repo" commit -qm "preflight stale"
+if (
+  cd "$preflight_repo"
+  ACT_SMOKE_LOG="$preflight_stamp_log" ACT_SMOKE_EXIT_CODE=1 PATH="$preflight_bin:$PATH" \
+    git push origin HEAD:refs/heads/main >/dev/null 2>"$preflight_stamp_stderr"
+); then
+  printf 'a new tree must not reuse an older preflight pass\n' >&2
+  exit 1
+fi
+assert_contains "$preflight_stamp_stderr" "local GitHub Actions preflight failed"

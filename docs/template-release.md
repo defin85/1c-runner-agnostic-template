@@ -42,6 +42,7 @@
 - repo-owned hook живёт в `.githooks/pre-push`;
 - hook блокирует прямой push `refs/tags/v*`, включая случайный `git push --follow-tags`;
 - тот же hook перед обычным branch push запускает `./scripts/qa/act-preflight.sh`, чтобы локально поймать Linux-reproducible GitHub Actions regressions до отправки в remote;
+- git запускает hook уже после подключения к remote, поэтому длительный preflight внутри hook держит открытым простаивающее соединение, и remote может его разорвать. Штатный порядок: закоммитить изменения, выполнить `make act-preflight` на чистом рабочем дереве, затем `git push`. Успешный прогон записывает дерево коммита в `act-preflight-passed` в git dir, и hook не запускает preflight повторно для того же дерева; новый коммит снова требует проверки;
 - bypass для branch preflight допускается только через явный `TEMPLATE_SOURCE_ACT_PRE_PUSH=0`;
 - сообщение об ошибке должно отправлять обратно к `./scripts/release/publish-overlay-release.sh --tag ...` и этому runbook.
 

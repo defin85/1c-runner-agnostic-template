@@ -13,6 +13,9 @@ Usage:
 
 Runs the locally reproducible Linux GitHub Actions contour for this repository via act.
 Default behavior runs the `fixture` job, which also executes `static` through its `needs`.
+A successful default run on a clean worktree records the commit tree in the git dir
+(`act-preflight-passed`); the pre-push hook then skips the rerun for that tree, so the long
+check does not run while git holds the remote connection open.
 
 Environment overrides:
   ACT_PREFLIGHT_IMAGE   Override the act image (default: catthehacker/ubuntu:full-latest)
@@ -123,4 +126,19 @@ if [ "$dryrun" -eq 1 ]; then
   cmd+=(--dryrun)
 fi
 
+# act runs on the working directory, so only a clean worktree proves the committed tree.
+record_pass=0
+if [ "$dryrun" -eq 0 ] && [ "$job_id" = "fixture" ] && [ "$event_name" = "pull_request" ] \
+  && [ -z "$(git status --porcelain 2>/dev/null)" ]; then
+  record_pass=1
+fi
+stamp_file="$(git rev-parse --git-path act-preflight-passed 2>/dev/null || true)"
+[ -z "$stamp_file" ] || rm -f "$stamp_file"
+
 "${cmd[@]}"
+
+if [ "$record_pass" -eq 1 ] && [ -n "$stamp_file" ]; then
+  tree="$(git rev-parse 'HEAD^{tree}')"
+  printf '%s\n' "$tree" >"$stamp_file"
+  printf 'Recorded preflight pass for tree %s\n' "$tree"
+fi

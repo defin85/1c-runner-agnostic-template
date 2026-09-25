@@ -9,6 +9,7 @@ allow_preflight="${TEMPLATE_SOURCE_ACT_PRE_PUSH:-1}"
 dryrun_preflight="${TEMPLATE_SOURCE_ACT_PRE_PUSH_DRYRUN:-0}"
 blocked=0
 needs_preflight=0
+pushed_trees=()
 
 while read -r _local_ref _local_oid remote_ref _remote_oid; do
   [ -n "${remote_ref:-}" ] || continue
@@ -17,6 +18,7 @@ while read -r _local_ref _local_oid remote_ref _remote_oid; do
     refs/heads/*)
       if [ -n "${_local_oid:-}" ] && [ "${_local_oid}" != "0000000000000000000000000000000000000000" ]; then
         needs_preflight=1
+        pushed_trees+=("$(git rev-parse "${_local_oid}^{tree}")")
       fi
       ;;
     refs/tags/v*)
@@ -38,6 +40,24 @@ fi
 if [ "$allow_preflight" != "1" ] || [ "$needs_preflight" -ne 1 ]; then
   exit 0
 fi
+
+# git runs this hook after connecting to the remote; a long preflight here lets the remote
+# drop the idle connection. A pass recorded by act-preflight.sh for the same tree is reused.
+stamp_file="$(git rev-parse --git-path act-preflight-passed)"
+if [ "$dryrun_preflight" != "1" ] && [ -f "$stamp_file" ]; then
+  passed_tree="$(cat "$stamp_file")"
+  all_passed=1
+  for tree in "${pushed_trees[@]}"; do
+    [ "$tree" = "$passed_tree" ] || all_passed=0
+  done
+  if [ "$all_passed" -eq 1 ]; then
+    printf '[pre-push] local GitHub Actions preflight already passed for tree %s\n' "$passed_tree" >&2
+    exit 0
+  fi
+fi
+
+printf '[pre-push] tip: run %s before git push so the check does not hold the remote connection open\n' \
+  "$preflight_command" >&2
 
 preflight_args=()
 if [ "$dryrun_preflight" = "1" ]; then
