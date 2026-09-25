@@ -102,6 +102,8 @@ cmd=(
   --matrix "os:$runner_label"
   -P "$runner_label=$image"
   "--pull=$pull_images"
+  # Remove containers and volumes of a failed run; successful runs are removed by act itself.
+  --rm
 )
 
 if [ "$dryrun" -eq 1 ]; then
