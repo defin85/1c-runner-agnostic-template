@@ -876,9 +876,6 @@ def sync_claude_skills(check: bool = False) -> int:
         for rel in drift:
             print(f"stale Claude skill mirror: {rel}; run make sync-claude-skills", file=sys.stderr)
         return 1 if drift else 0
-    if IMPORT_MANIFEST.is_file():
-        upstream = _load_manifest().get("upstream")
-        _write_skill_readmes(_skill_entries(), {str(k): str(v) for k, v in upstream.items()} if isinstance(upstream, dict) else {})
     print(f"[sync-claude-skills] updated {len(drift)} Claude skill mirror entries")
     return 0
 
