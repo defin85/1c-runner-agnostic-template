@@ -90,6 +90,15 @@ printf 'Job: %s\n' "$job_id"
 printf 'Matrix: os=%s\n' "$runner_label"
 printf 'Image: %s\n' "$image"
 printf 'Pull images: %s\n' "$pull_images"
+
+# In a git worktree .git is a file pointing to the main repository's git dir on the host.
+# Mount that dir at the same path, otherwise git fails inside the container and
+# generated-context checks fall back to a filesystem walk with untracked files.
+git_common_dir=""
+if [ -f .git ]; then
+  git_common_dir="$(git rev-parse --path-format=absolute --git-common-dir)"
+  printf 'Git worktree: mount %s read-only\n' "$git_common_dir"
+fi
 printf '%s\n' \
   'Note: this local preflight intentionally covers only the Linux static/fixture contour.' \
   'Windows matrix jobs and self-hosted runtime jobs stay outside the local act path.'
@@ -105,6 +114,10 @@ cmd=(
   # Remove containers and volumes of a failed run; successful runs are removed by act itself.
   --rm
 )
+
+if [ -n "$git_common_dir" ]; then
+  cmd+=(--container-options "-v $git_common_dir:$git_common_dir:ro")
+fi
 
 if [ "$dryrun" -eq 1 ]; then
   cmd+=(--dryrun)
