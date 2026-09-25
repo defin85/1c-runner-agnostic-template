@@ -1,7 +1,7 @@
 # generated-runtime-support-matrix Specification
 
 ## Purpose
-TBD - created by archiving change unify-generated-project-onboarding-truth. Update Purpose after archive.
+Define the project-owned runtime support matrix that records which runtime contours are supported, operator-local or unsupported, drives generated onboarding, and stays fresh and aligned with the runtime quick reference for every target.
 ## Requirements
 ### Requirement: Project-Owned Runtime Support Matrix
 The template SHALL seed a project-owned runtime support matrix for generated repositories.

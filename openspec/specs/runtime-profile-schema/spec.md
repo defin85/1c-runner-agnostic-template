@@ -1,7 +1,7 @@
 # runtime-profile-schema Specification
 
 ## Purpose
-TBD - created by archiving change migrate-runtime-profiles-to-schema-v2. Update Purpose after archive.
+Define the schemaVersion 2 runtime profile contract: structured, target-aware profiles with secrets supplied through environment variables, mode-specific ibcmd blocks, sanctioned checked-in profile policy, redacted launcher artifacts and migration of existing generated projects.
 ## Requirements
 ### Requirement: Structured SchemaVersion 2 Runtime Profiles
 The template SHALL define runtime profiles in `schemaVersion: 2` as structured, machine-validated data rather than as free-form shell command blobs.

@@ -1,7 +1,7 @@
 # repository-agent-guidance Specification
 
 ## Purpose
-TBD - created by archiving change add-codex-productivity-surface. Update Purpose after archive.
+Define the repository-level agent entry point and system of record: where agents start, which documentation and machine-readable context they can trust, how they verify changes, and where long-running work keeps versioned execution plans.
 ## Requirements
 ### Requirement: Repository-Level Agent Entry Point
 

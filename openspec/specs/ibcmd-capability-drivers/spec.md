@@ -1,7 +1,7 @@
 # ibcmd-capability-drivers Specification
 
 ## Purpose
-TBD - created by archiving change add-ibcmd-capability-drivers. Update Purpose after archive.
+Define how stable runtime entrypoints select an internal driver per capability, including ibcmd with explicit runtime modes and structured coordinates, partial configuration and extension loads from diff or commit scope, and fail-closed validation of unsupported combinations.
 ## Requirements
 ### Requirement: Stable Runtime Entrypoints With Internal Driver Selection
 

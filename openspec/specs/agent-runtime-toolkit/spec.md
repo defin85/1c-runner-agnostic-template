@@ -1,7 +1,7 @@
 # agent-runtime-toolkit Specification
 
 ## Purpose
-TBD - created by archiving change add-agent-toolkit-and-ci-contours. Update Purpose after archive.
+Define the canonical repo-owned runtime entrypoints that agents and operators use to work with a 1C infobase: stable commands, machine-readable run artifacts, an adapter-friendly runtime model, and wrappers that load only the current git diff or a committed task scope.
 ## Requirements
 ### Requirement: Canonical Runtime Entrypoints
 

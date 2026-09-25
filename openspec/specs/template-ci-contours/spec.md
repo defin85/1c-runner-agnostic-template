@@ -1,7 +1,7 @@
 # template-ci-contours Specification
 
 ## Purpose
-TBD - created by archiving change add-agent-toolkit-and-ci-contours. Update Purpose after archive.
+Define the layered CI contours of the template: isolated static, fixture and runtime checks, safe secret handling, freshness and ownership verification of agent-facing artifacts, reusable operator-local smoke contracts and golden-baseline and BDD fixture checks.
 ## Requirements
 ### Requirement: Layered CI Contours
 

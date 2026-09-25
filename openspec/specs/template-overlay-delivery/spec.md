@@ -1,7 +1,7 @@
 # template-overlay-delivery Specification
 
 ## Purpose
-TBD - created by archiving change replace-copier-updates-with-overlay-releases. Update Purpose after archive.
+Define how template changes reach generated repositories: bootstrap through copier copy only, a separately tracked overlay version, overlay apply limited to managed paths that preserves project-owned truth, and an explicit, verified source release process.
 ## Requirements
 ### Requirement: Bootstrap Uses Copier Copy Only
 

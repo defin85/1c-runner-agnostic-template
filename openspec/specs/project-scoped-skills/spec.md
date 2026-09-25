@@ -1,7 +1,7 @@
 # project-scoped-skills Specification
 
 ## Purpose
-TBD - created by archiving change add-agent-toolkit-and-ci-contours. Update Purpose after archive.
+Define the project-scoped skills package: skills that wrap repo-owned scripts, map user intents to runtime capabilities, expose a project-aware recommended subset, and keep imported executable skills ready, traceable to their source and regenerable.
 ## Requirements
 ### Requirement: Project-Scoped Skills Package
 

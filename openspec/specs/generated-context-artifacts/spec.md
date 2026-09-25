@@ -1,7 +1,7 @@
 # generated-context-artifacts Specification
 
 ## Purpose
-TBD - created by archiving change tighten-generated-project-agent-surface. Update Purpose after archive.
+Define the generated context artifacts that give agents a truthful, privacy-safe map of a generated project: metadata identity and entrypoints, project-delta hotspots, skill recommendations and multi-target configuration context, with semantic verification of the agent surface.
 ## Requirements
 ### Requirement: Privacy-Safe Generated Context Artifacts
 

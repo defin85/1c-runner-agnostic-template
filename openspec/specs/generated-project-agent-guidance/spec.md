@@ -1,7 +1,7 @@
 # generated-project-agent-guidance Specification
 
 ## Purpose
-TBD - created by archiving change tighten-generated-project-agent-surface. Update Purpose after archive.
+Define how a generated 1C project routes agents from a short root entry point to project-owned context, runbooks, verification matrix and workflow guides, while keeping template-managed and project-owned agent artifacts update-safe.
 ## Requirements
 ### Requirement: Generated Project Instruction Routing
 
