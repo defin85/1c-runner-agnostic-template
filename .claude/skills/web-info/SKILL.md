@@ -1,16 +1,13 @@
 ---
 name: web-info
-description: "Импортированный compatibility skill из cc-1c-skills. Статус Apache и веб-публикаций 1С — запущен ли сервер, какие базы опубликованы, ошибки. Используй когда пользователь спрашивает про статус веб-сервера, опубликованные базы, работает ли Apache"
-argument-hint: "[args...]"
-allowed-tools:
-  - Bash
-  - Read
-  - Glob
+description: "Статус Apache и веб-публикаций 1С — запущен ли сервер, какие базы опубл…"
+metadata:
+  short-description: "Статус Apache и веб-публикаций 1С — запущен ли сервер, какие базы опубл…"
 ---
 
 <!-- GENERATED: sync-imported-skills -->
 
-# /web-info
+# Agent Skill: web-info
 
 Repo script: `./scripts/skills/run-imported-skill.sh web-info`
 Windows launcher: `./scripts/skills/run-imported-skill.ps1 web-info`
@@ -18,7 +15,7 @@ Windows launcher: `./scripts/skills/run-imported-skill.ps1 web-info`
 ## Use When
 
 - Статус Apache и веб-публикаций 1С — запущен ли сервер, какие базы опубликованы, ошибки. Используй когда пользователь спрашивает про статус веб-сервера, опубликованные базы, работает ли Apache
-- Нужно использовать template-managed импорт, а не копировать upstream PowerShell/CLI команды вручную.
+- Нужно использовать template-managed импортированный workflow без копирования inline логики из upstream `SKILL.md`.
 
 ## Usage
 
@@ -43,6 +40,7 @@ Windows launcher: `./scripts/skills/run-imported-skill.ps1 web-info`
 
 ## Rules
 
-- Repo-owned dispatcher является source of truth для вызова skill в этом шаблоне.
-- Vendored upstream `SKILL.md` остаётся источником intent/examples, но не публичным execution contract.
+- Публичный contract для этого skill находится в repo-owned dispatcher, а не в vendored markdown.
+- Если нужны детали параметров, сначала читайте vendored upstream `SKILL.md`, затем helper-скрипты из `automation/vendor/cc-1c-skills/`.
 - Если dispatcher сообщает о missing dependencies, сначала используйте canonical readiness path, а не helper traceback.
+- Не переносите upstream PowerShell snippets в новый automation contract шаблона.

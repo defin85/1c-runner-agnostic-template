@@ -154,6 +154,7 @@
 ./.claude/skills/openspec-new-change
 ./.claude/skills/openspec-sync-specs
 ./.claude/skills/openspec-verify-change
+./.claude/skills/repo-agent-verify
 ./.claude/skills/role-compile
 ./.claude/skills/role-info
 ./.claude/skills/role-validate
@@ -214,6 +215,7 @@
 ./openspec/changes/add-native-windows-python-runtime
 ./openspec/changes/add-reusable-testing-campaign
 ./openspec/changes/archive
+./openspec/changes/unify-agent-skill-sources
 ./openspec/specs
 ./openspec/specs/agent-runtime-toolkit
 ./openspec/specs/generated-context-artifacts

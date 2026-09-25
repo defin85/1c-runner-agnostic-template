@@ -1,22 +1,19 @@
 ---
 name: 1c-publish-http
-description: >
-  Этот скилл SHOULD быть вызван, когда пользователь просит опубликовать
-  HTTP-сервис или веб-контур через канонический repo entrypoint.
-allowed-tools:
-  - Bash
-  - Read
-  - Glob
+description: Используйте, когда нужно опубликовать HTTP-сервис или web contour через канонический repo entrypoint.
+metadata:
+  short-description: Публикация HTTP-контура.
 ---
 
-# /1c-publish-http
+# Agent Skill: 1c-publish-http
 
 Repo script: `./scripts/platform/publish-http.sh`
+Windows launcher: `./scripts/platform/publish-http.ps1`
 
 ## Use When
 
 - Нужно опубликовать HTTP-сервис через project runtime contract.
-- Нужно получить единый verdict и machine-readable артефакты прогона.
+- Нужен единый verdict и machine-readable артефакты.
 
 ## Usage
 
@@ -29,4 +26,4 @@ Repo script: `./scripts/platform/publish-http.sh`
 ## Rules
 
 - Capability optional и project-specific, но script contract остаётся repo-owned.
-- Не переносить в skill platform/webinst-логику.
+- Не переносите platform/webinst logic в skill.

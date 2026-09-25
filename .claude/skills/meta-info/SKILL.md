@@ -1,16 +1,13 @@
 ---
 name: meta-info
-description: "Импортированный compatibility skill из cc-1c-skills. Анализ структуры объекта метаданных 1С из XML-выгрузки — реквизиты, табличные части, формы, движения, типы. Используй для изучения структуры объектов (вместо чтения XML-файлов напрямую) и как подготовительный шаг при написании запросов и кода, работающего с объектами"
-argument-hint: "<ObjectPath> [-Mode overview|brief|full] [-Name <элемент>]"
-allowed-tools:
-  - Bash
-  - Read
-  - Glob
+description: "Анализ структуры объекта метаданных 1С из XML-выгрузки — реквизиты, таб…"
+metadata:
+  short-description: "Анализ структуры объекта метаданных 1С из XML-выгрузки — реквизиты, таб…"
 ---
 
 <!-- GENERATED: sync-imported-skills -->
 
-# /meta-info
+# Agent Skill: meta-info
 
 Repo script: `./scripts/skills/run-imported-skill.sh meta-info`
 Windows launcher: `./scripts/skills/run-imported-skill.ps1 meta-info`
@@ -18,7 +15,7 @@ Windows launcher: `./scripts/skills/run-imported-skill.ps1 meta-info`
 ## Use When
 
 - Анализ структуры объекта метаданных 1С из XML-выгрузки — реквизиты, табличные части, формы, движения, типы. Используй для изучения структуры объектов (вместо чтения XML-файлов напрямую) и как подготовительный шаг при написании запросов и кода, работающего с объектами
-- Нужно использовать template-managed импорт, а не копировать upstream PowerShell/CLI команды вручную.
+- Нужно использовать template-managed импортированный workflow без копирования inline логики из upstream `SKILL.md`.
 
 ## Usage
 
@@ -43,6 +40,7 @@ Windows launcher: `./scripts/skills/run-imported-skill.ps1 meta-info`
 
 ## Rules
 
-- Repo-owned dispatcher является source of truth для вызова skill в этом шаблоне.
-- Vendored upstream `SKILL.md` остаётся источником intent/examples, но не публичным execution contract.
+- Публичный contract для этого skill находится в repo-owned dispatcher, а не в vendored markdown.
+- Если нужны детали параметров, сначала читайте vendored upstream `SKILL.md`, затем helper-скрипты из `automation/vendor/cc-1c-skills/`.
 - Если dispatcher сообщает о missing dependencies, сначала используйте canonical readiness path, а не helper traceback.
+- Не переносите upstream PowerShell snippets в новый automation contract шаблона.

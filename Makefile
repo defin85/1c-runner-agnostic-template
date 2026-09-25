@@ -1,6 +1,6 @@
 SHELL := bash
 
-.PHONY: help agent-verify act-preflight qa analyze-bsl format-bsl check-agent-docs check-skill-bindings check-overlay-manifest codex-onboard imported-skills-readiness create-ib dump-src load-src load-cfe manage-cfe configure-cfe-runtime-flags check-cfe-applicability check-cfe-config load-diff-src load-task-src update-db diff-src doctor publish-http bsl-analyzer-mcp check-x11-contour test-yaxunit sync-yaxunit-runtime yaxunit-warm-service web-client-diagnostic golden-create golden-restore golden-baseline test-bdd bdd-warm-service smoke export-context export-context-preview export-context-check export-context-write verify-traceability template-check-update template-update
+.PHONY: help agent-verify act-preflight qa analyze-bsl format-bsl check-agent-docs check-skill-bindings sync-claude-skills check-overlay-manifest codex-onboard imported-skills-readiness create-ib dump-src load-src load-cfe manage-cfe configure-cfe-runtime-flags check-cfe-applicability check-cfe-config load-diff-src load-task-src update-db diff-src doctor publish-http bsl-analyzer-mcp check-x11-contour test-yaxunit sync-yaxunit-runtime yaxunit-warm-service web-client-diagnostic golden-create golden-restore golden-baseline test-bdd bdd-warm-service smoke export-context export-context-preview export-context-check export-context-write verify-traceability template-check-update template-update
 
 help:
 	@printf '%s\n' \
@@ -12,6 +12,7 @@ help:
 		'  make format-bsl' \
 		'  make check-agent-docs' \
 		'  make check-skill-bindings' \
+		'  make sync-claude-skills' \
 		'  make check-overlay-manifest' \
 		'  make codex-onboard' \
 		'  make imported-skills-readiness' \
@@ -69,6 +70,9 @@ check-agent-docs:
 
 check-skill-bindings:
 	@./scripts/qa/check-skill-bindings.sh
+
+sync-claude-skills:
+	@./scripts/skills/sync-claude-skills.sh
 
 check-overlay-manifest:
 	@./scripts/qa/check-overlay-manifest.sh

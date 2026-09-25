@@ -566,71 +566,6 @@ def _render_agents_skill(entry: dict[str, object]) -> str:
     return "\n".join(lines)
 
 
-def _render_claude_skill(entry: dict[str, object]) -> str:
-    skill_name = str(entry["name"])
-    description = str(entry["description"]).strip()
-    discovery_description = _discovery_description(entry)
-    argument_hint = str(entry.get("argument_hint") or "[args...]").strip() or "[args...]"
-    notes = _adaptation_notes(entry)
-    lines = [
-        "---",
-        f"name: {skill_name}",
-        f"description: {_yaml_scalar(f'Импортированный compatibility skill из cc-1c-skills. {discovery_description}')}",
-        f"argument-hint: {_yaml_scalar(argument_hint)}",
-        "allowed-tools:",
-        "  - Bash",
-        "  - Read",
-        "  - Glob",
-        "---",
-        "",
-        SYNC_MARKER,
-        "",
-        f"# /{skill_name}",
-        "",
-        f"Repo script: `{_imported_repo_script(skill_name)}`",
-        f"Windows launcher: `{_skill_powershell_command(skill_name)}`",
-        "",
-        "## Use When",
-        "",
-        f"- {description}",
-        "- Нужно использовать template-managed импорт, а не копировать upstream PowerShell/CLI команды вручную.",
-        "",
-        "## Usage",
-        "",
-        "```bash",
-        f"{_imported_repo_script(skill_name)} --help",
-        f"{_imported_repo_script(skill_name)} ...",
-        "```",
-        "",
-        "```powershell",
-        f"{_skill_powershell_command(skill_name)} --help",
-        f"{_skill_powershell_command(skill_name)} ...",
-        "```",
-        "",
-        "## Adaptation",
-        "",
-        f"- Vendored upstream source: `{_vendor_reference(entry)}`",
-        f"- Runtime kind: `{entry['runtime_kind']}`",
-        f"- Readiness target: `{CANONICAL_READINESS_TARGET}`",
-        f"- Direct readiness command: `{CANONICAL_READINESS_COMMAND}`",
-        f"- Windows readiness command: `{WINDOWS_READINESS_COMMAND}`",
-    ]
-    for note in notes:
-        lines.append(f"- {note}")
-    lines.extend(
-        [
-            "",
-            "## Rules",
-            "",
-            "- Repo-owned dispatcher является source of truth для вызова skill в этом шаблоне.",
-            "- Vendored upstream `SKILL.md` остаётся источником intent/examples, но не публичным execution contract.",
-            "- Если dispatcher сообщает о missing dependencies, сначала используйте canonical readiness path, а не helper traceback.",
-            "",
-        ]
-    )
-    return "\n".join(lines)
-
-
 def _mapping_row(intent: str, codex_skill: str, claude_skill: str, repo_entrypoint: str, extra: str | None = None) -> str:
     details = extra or ""
     return f"| {intent} | `{codex_skill}` | `{claude_skill}` | `{repo_entrypoint}` | {details} |"
@@ -643,6 +578,7 @@ def _render_agents_readme(native_codex: list[dict[str, str]], native_claude: lis
         "",
         "Эти skills являются Codex-discoverable фасадом над versioned repo scripts.",
         "Claude-facing equivalents лежат в [.claude/skills/README.md](../../.claude/skills/README.md).",
+        "`.agents/skills/<имя>` — единственный источник навыка; `.claude/skills/<имя>` — его зеркало. Правьте источник и выполняйте `make sync-claude-skills` (`./make.ps1 sync-claude-skills`).",
         "",
         "## Native Runner-Agnostic Skills",
         "",
@@ -712,6 +648,7 @@ def _render_claude_readme(native_codex: list[dict[str, str]], native_claude: lis
         "",
         "Эти skills являются project-scoped фасадом над versioned repo scripts.",
         "Codex-facing equivalents лежат в [.agents/skills/README.md](../../.agents/skills/README.md).",
+        "`.agents/skills/<имя>` — единственный источник навыка; `.claude/skills/<имя>` — его зеркало. Правьте источник и выполняйте `make sync-claude-skills` (`./make.ps1 sync-claude-skills`).",
         "",
         "## Native Runner-Agnostic Skills",
         "",
@@ -874,20 +811,76 @@ def _write_generated_surfaces(imported_entries: list[dict[str, object]], upstrea
     _remove_previous_generated_surfaces(previous_names)
 
     agents_root = repo_path(".agents", "skills")
-    claude_root = repo_path(".claude", "skills")
     ensure_dir(agents_root)
-    ensure_dir(claude_root)
-
-    native_codex = _existing_skill_docs(agents_root, imported_names)
-    native_claude = _existing_skill_docs(claude_root, imported_names)
 
     for entry in imported_entries:
         skill_name = str(entry["name"])
         write_text(agents_root / skill_name / "SKILL.md", _render_agents_skill(entry))
-        write_text(claude_root / skill_name / "SKILL.md", _render_claude_skill(entry))
 
-    write_text(agents_root / "README.md", _render_agents_readme(native_codex, native_claude, imported_entries, upstream))
-    write_text(claude_root / "README.md", _render_claude_readme(native_codex, native_claude, imported_entries, upstream))
+    _mirror_claude_skills(repo_path(), check=False)
+    _write_skill_readmes(imported_entries, upstream)
+
+
+def _write_skill_readmes(imported_entries: list[dict[str, object]], upstream: dict[str, str]) -> None:
+    imported_names = {str(entry["name"]) for entry in imported_entries}
+    native = _existing_skill_docs(repo_path(".agents", "skills"), imported_names)
+    write_text(repo_path(".agents", "skills", "README.md"), _render_agents_readme(native, native, imported_entries, upstream))
+    write_text(repo_path(".claude", "skills", "README.md"), _render_claude_readme(native, native, imported_entries, upstream))
+
+
+def _skill_tree(skill_dir: Path) -> dict[str, bytes]:
+    return {path.relative_to(skill_dir).as_posix(): path.read_bytes() for path in sorted(skill_dir.rglob("*")) if path.is_file()}
+
+
+def _mirror_claude_skills(root: Path, check: bool) -> list[str]:
+    """Keep .claude/skills/<name> byte-identical to .agents/skills/<name>.
+
+    README.md and OpenSpec-managed openspec-* skills are owned elsewhere and are left alone.
+    """
+    agents_root = root / ".agents" / "skills"
+    claude_root = root / ".claude" / "skills"
+    sources = {path.name: path for path in sorted(agents_root.iterdir()) if (path / "SKILL.md").is_file()}
+    drift: list[str] = []
+    for name, source in sources.items():
+        target = claude_root / name
+        if target.is_dir() and not target.is_symlink() and _skill_tree(target) == _skill_tree(source):
+            continue
+        drift.append(f".claude/skills/{name}")
+        if not check:
+            if target.is_symlink() or target.is_file():
+                target.unlink()
+            elif target.is_dir():
+                shutil.rmtree(target)
+            ensure_dir(claude_root)
+            shutil.copytree(source, target)
+    if claude_root.is_dir():
+        for target in sorted(claude_root.iterdir()):
+            if target.name == "README.md" or target.name.startswith("openspec-") or target.name in sources:
+                continue
+            drift.append(f".claude/skills/{target.name}")
+            if not check:
+                if target.is_dir() and not target.is_symlink():
+                    shutil.rmtree(target)
+                else:
+                    target.unlink()
+    return drift
+
+
+def claude_skill_mirror_drift(root: Path) -> list[str]:
+    return _mirror_claude_skills(root, check=True)
+
+
+def sync_claude_skills(check: bool = False) -> int:
+    drift = _mirror_claude_skills(repo_path(), check=check)
+    if check:
+        for rel in drift:
+            print(f"stale Claude skill mirror: {rel}; run make sync-claude-skills", file=sys.stderr)
+        return 1 if drift else 0
+    if IMPORT_MANIFEST.is_file():
+        upstream = _load_manifest().get("upstream")
+        _write_skill_readmes(_skill_entries(), {str(k): str(v) for k, v in upstream.items()} if isinstance(upstream, dict) else {})
+    print(f"[sync-claude-skills] updated {len(drift)} Claude skill mirror entries")
+    return 0
 
 
 def sync_imported_skills(source_root: Path) -> int:

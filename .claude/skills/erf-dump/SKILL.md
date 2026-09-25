@@ -1,16 +1,13 @@
 ---
 name: erf-dump
-description: "Импортированный compatibility skill из cc-1c-skills. Разобрать ERF-файл отчёта 1С в XML-исходники. Используй когда пользователь просит разобрать, декомпилировать отчёт, получить исходники из ERF файла"
-argument-hint: "<ErfFile>"
-allowed-tools:
-  - Bash
-  - Read
-  - Glob
+description: "Разобрать ERF-файл отчёта 1С в XML-исходники. Используй когда пользоват…"
+metadata:
+  short-description: "Разобрать ERF-файл отчёта 1С в XML-исходники. Используй когда пользоват…"
 ---
 
 <!-- GENERATED: sync-imported-skills -->
 
-# /erf-dump
+# Agent Skill: erf-dump
 
 Repo script: `./scripts/skills/run-imported-skill.sh erf-dump`
 Windows launcher: `./scripts/skills/run-imported-skill.ps1 erf-dump`
@@ -18,7 +15,7 @@ Windows launcher: `./scripts/skills/run-imported-skill.ps1 erf-dump`
 ## Use When
 
 - Разобрать ERF-файл отчёта 1С в XML-исходники. Используй когда пользователь просит разобрать, декомпилировать отчёт, получить исходники из ERF файла
-- Нужно использовать template-managed импорт, а не копировать upstream PowerShell/CLI команды вручную.
+- Нужно использовать template-managed импортированный workflow без копирования inline логики из upstream `SKILL.md`.
 
 ## Usage
 
@@ -43,6 +40,7 @@ Windows launcher: `./scripts/skills/run-imported-skill.ps1 erf-dump`
 
 ## Rules
 
-- Repo-owned dispatcher является source of truth для вызова skill в этом шаблоне.
-- Vendored upstream `SKILL.md` остаётся источником intent/examples, но не публичным execution contract.
+- Публичный contract для этого skill находится в repo-owned dispatcher, а не в vendored markdown.
+- Если нужны детали параметров, сначала читайте vendored upstream `SKILL.md`, затем helper-скрипты из `automation/vendor/cc-1c-skills/`.
 - Если dispatcher сообщает о missing dependencies, сначала используйте canonical readiness path, а не helper traceback.
+- Не переносите upstream PowerShell snippets в новый automation contract шаблона.

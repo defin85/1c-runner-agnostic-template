@@ -1,16 +1,13 @@
 ---
 name: db-load-xml
-description: "Импортированный compatibility skill из cc-1c-skills. Загрузка конфигурации 1С из XML-файлов. Используй когда пользователь просит загрузить конфигурацию из файлов, XML, исходников, LoadConfigFromFiles"
-argument-hint: "<configDir> [database]"
-allowed-tools:
-  - Bash
-  - Read
-  - Glob
+description: "Загрузка конфигурации 1С из XML-файлов. Используй когда пользователь пр…"
+metadata:
+  short-description: "Загрузка конфигурации 1С из XML-файлов. Используй когда пользователь пр…"
 ---
 
 <!-- GENERATED: sync-imported-skills -->
 
-# /db-load-xml
+# Agent Skill: db-load-xml
 
 Repo script: `./scripts/skills/run-imported-skill.sh db-load-xml`
 Windows launcher: `./scripts/skills/run-imported-skill.ps1 db-load-xml`
@@ -18,7 +15,7 @@ Windows launcher: `./scripts/skills/run-imported-skill.ps1 db-load-xml`
 ## Use When
 
 - Загрузка конфигурации 1С из XML-файлов. Используй когда пользователь просит загрузить конфигурацию из файлов, XML, исходников, LoadConfigFromFiles
-- Нужно использовать template-managed импорт, а не копировать upstream PowerShell/CLI команды вручную.
+- Нужно использовать template-managed импортированный workflow без копирования inline логики из upstream `SKILL.md`.
 
 ## Usage
 
@@ -43,6 +40,7 @@ Windows launcher: `./scripts/skills/run-imported-skill.ps1 db-load-xml`
 
 ## Rules
 
-- Repo-owned dispatcher является source of truth для вызова skill в этом шаблоне.
-- Vendored upstream `SKILL.md` остаётся источником intent/examples, но не публичным execution contract.
+- Публичный contract для этого skill находится в repo-owned dispatcher, а не в vendored markdown.
+- Если нужны детали параметров, сначала читайте vendored upstream `SKILL.md`, затем helper-скрипты из `automation/vendor/cc-1c-skills/`.
 - Если dispatcher сообщает о missing dependencies, сначала используйте canonical readiness path, а не helper traceback.
+- Не переносите upstream PowerShell snippets в новый automation contract шаблона.

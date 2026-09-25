@@ -199,7 +199,7 @@ assert_contains "$agents_file" 'Use [docs/agent/codex-workflows.md](docs/agent/c
 assert_contains "$agents_file" 'Use [docs/agent/review.md](docs/agent/review.md), [docs/agent/operator-local-runbook.md](docs/agent/operator-local-runbook.md), [env/README.md](env/README.md), [.agents/skills/README.md](.agents/skills/README.md), [docs/exec-plans/README.md](docs/exec-plans/README.md), and [docs/work-items/README.md](docs/work-items/README.md) as the main follow-up routers.'
 assert_contains "$agents_file" 'Final delivery must include explicit `Requirement -> Code -> Test` evidence with concrete file paths.'
 assert_contains "$agents_file" '1. `mcp__claude-context__search_code`, if available in the current environment'
-assert_contains "$agents_file" 'For remote-backed repos with a writable Git remote, a code-change session is not complete until the verified branch state is pushed.'
+assert_contains "$agents_file" 'For remote-backed repos with a writable Git remote, push the verified branch state only when the user or the selected publication process asks for it; otherwise report the unpushed state in the handoff.'
 assert_contains "$agents_file" 'For local-only repos or repos without a writable remote, do not invent a push-only closeout path.'
 assert_count "$agents_file" "<!-- RUNNER_AGNOSTIC_TEMPLATE:START -->" "1"
 

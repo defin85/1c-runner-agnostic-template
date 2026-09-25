@@ -2,22 +2,25 @@
 
 Эти skills являются project-scoped фасадом над versioned repo scripts.
 Codex-facing equivalents лежат в [.agents/skills/README.md](../../.agents/skills/README.md).
+`.agents/skills/<имя>` — единственный источник навыка; `.claude/skills/<имя>` — его зеркало. Правьте источник и выполняйте `make sync-claude-skills` (`./make.ps1 sync-claude-skills`).
 
 ## Native Runner-Agnostic Skills
 
 | User intent | Codex skill | Claude skill | Repo entrypoint | Notes |
 | --- | --- | --- | --- | --- |
-| Этот скилл MUST быть вызван, когда пользователь просит создать информационную базу через канонический runtime contract проекта. | `1c-create-ib` | `1c-create-ib` | `./scripts/platform/create-ib.sh` | native template capability |
-| Этот скилл MUST быть вызван, когда пользователь просит diff исходников или диагностический сравнительный прогон через канонический contract проекта. | `1c-diff-src` | `1c-diff-src` | `./scripts/platform/diff-src.sh` | native template capability |
-| Этот скилл MUST быть вызван, когда пользователь просит диагностировать готовность runtime-профиля, adapter config и базовых зависимостей проекта. | `1c-doctor` | `1c-doctor` | `./scripts/diag/doctor.sh` | native template capability |
-| Этот скилл MUST быть вызван, когда пользователь просит выгрузить конфигурацию или расширение в исходники через канонический runtime contract проекта. | `1c-dump-src` | `1c-dump-src` | `./scripts/platform/dump-src.sh` | native template capability |
-| Этот скилл MUST быть вызван, когда пользователь просит загрузить в ИБ только текущие git-backed изменения исходников через repo-owned bridge. | `1c-load-diff-src` | `1c-load-diff-src` | `./scripts/platform/load-diff-src.sh` | native template capability |
-| Этот скилл MUST быть вызван, когда пользователь просит загрузить исходники в информационную базу через канонический runtime contract проекта. | `1c-load-src` | `1c-load-src` | `./scripts/platform/load-src.sh` | native template capability |
-| Этот скилл MUST быть вызван, когда пользователь просит загрузить в ИБ уже закомиченные изменения задачи через repo-owned task bridge. | `1c-load-task-src` | `1c-load-task-src` | `./scripts/platform/load-task-src.sh` | native template capability |
-| Этот скилл SHOULD быть вызван, когда пользователь просит опубликовать HTTP-сервис или веб-контур через канонический repo entrypoint. | `1c-publish-http` | `1c-publish-http` | `./scripts/platform/publish-http.sh` | native template capability |
-| Этот скилл MUST быть вызван, когда пользователь просит запустить BDD / acceptance-контур через канонический test entrypoint проекта. | `1c-run-bdd` | `1c-run-bdd` | `./scripts/test/run-bdd.sh` | native template capability |
-| Этот скилл MUST быть вызван, когда пользователь просит запустить smoke-контур через канонический test entrypoint проекта. | `1c-run-smoke` | `1c-run-smoke` | `./scripts/test/run-smoke.sh` | native template capability |
-| Этот скилл MUST быть вызван, когда пользователь просит применить изменения основной конфигурации к конфигурации базы данных. | `1c-update-db` | `1c-update-db` | `./scripts/platform/update-db.sh` | native template capability |
+| Используйте, когда нужно создать информационную базу через канонический runtime contract проекта. | `1c-create-ib` | `1c-create-ib` | `./scripts/platform/create-ib.sh` | native template capability |
+| Используйте, когда нужно сравнить source tree или выполнить adapter-aware diff через repo-owned entrypoint. | `1c-diff-src` | `1c-diff-src` | `./scripts/platform/diff-src.sh` | native template capability |
+| Используйте, когда нужно проверить readiness runtime profile, adapter config и базовые зависимости проекта. | `1c-doctor` | `1c-doctor` | `./scripts/diag/doctor.sh` | native template capability |
+| Используйте, когда нужно выгрузить конфигурацию или расширение в исходники через канонический runtime contract проекта. | `1c-dump-src` | `1c-dump-src` | `./scripts/platform/dump-src.sh` | native template capability |
+| Используйте, когда нужно загрузить в ИБ только текущие git-backed изменения исходников через repo-owned diff bridge. | `1c-load-diff-src` | `1c-load-diff-src` | `./scripts/platform/load-diff-src.sh` | native template capability |
+| Используйте, когда нужно загрузить исходники в информационную базу через канонический runtime contract проекта. | `1c-load-src` | `1c-load-src` | `./scripts/platform/load-src.sh` | native template capability |
+| Используйте, когда нужно загрузить в ИБ уже закомиченные изменения задачи через repo-owned task bridge. | `1c-load-task-src` | `1c-load-task-src` | `./scripts/platform/load-task-src.sh` | native template capability |
+| Используйте, когда нужно опубликовать HTTP-сервис или web contour через канонический repo entrypoint. | `1c-publish-http` | `1c-publish-http` | `./scripts/platform/publish-http.sh` | native template capability |
+| Используйте, когда нужно прогнать BDD или acceptance contour через канонический test entrypoint проекта. | `1c-run-bdd` | `1c-run-bdd` | `./scripts/test/run-bdd.sh` | native template capability |
+| Используйте, когда нужно запустить smoke contour через канонический test entrypoint проекта. | `1c-run-smoke` | `1c-run-smoke` | `./scripts/test/run-smoke.sh` | native template capability |
+| Используйте, когда нужно применить изменения основной конфигурации к конфигурации базы данных. | `1c-update-db` | `1c-update-db` | `./scripts/platform/update-db.sh` | native template capability |
+| Запускает lightweight baseline verification для docs, OpenSpec, skills и live context этого репозитория. | `repo-agent-verify` | `repo-agent-verify` | `./scripts/qa/agent-verify.sh` | native template capability |
+
 ## Imported Compatibility Pack (`cc-1c-skills`)
 
 - Upstream source: `git@github.com:Nikolay-Shirokov/cc-1c-skills.git`

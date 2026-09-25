@@ -1,16 +1,13 @@
 ---
 name: form-info
-description: "Импортированный compatibility skill из cc-1c-skills. Анализ структуры управляемой формы 1С (Form.xml) — элементы, реквизиты, команды, события. Используй для понимания формы — при написании модуля формы, анализе обработчиков и элементов"
-argument-hint: "<FormPath>"
-allowed-tools:
-  - Bash
-  - Read
-  - Glob
+description: "Анализ структуры управляемой формы 1С (Form.xml) — элементы, реквизиты,…"
+metadata:
+  short-description: "Анализ структуры управляемой формы 1С (Form.xml) — элементы, реквизиты,…"
 ---
 
 <!-- GENERATED: sync-imported-skills -->
 
-# /form-info
+# Agent Skill: form-info
 
 Repo script: `./scripts/skills/run-imported-skill.sh form-info`
 Windows launcher: `./scripts/skills/run-imported-skill.ps1 form-info`
@@ -18,7 +15,7 @@ Windows launcher: `./scripts/skills/run-imported-skill.ps1 form-info`
 ## Use When
 
 - Анализ структуры управляемой формы 1С (Form.xml) — элементы, реквизиты, команды, события. Используй для понимания формы — при написании модуля формы, анализе обработчиков и элементов
-- Нужно использовать template-managed импорт, а не копировать upstream PowerShell/CLI команды вручную.
+- Нужно использовать template-managed импортированный workflow без копирования inline логики из upstream `SKILL.md`.
 
 ## Usage
 
@@ -43,6 +40,7 @@ Windows launcher: `./scripts/skills/run-imported-skill.ps1 form-info`
 
 ## Rules
 
-- Repo-owned dispatcher является source of truth для вызова skill в этом шаблоне.
-- Vendored upstream `SKILL.md` остаётся источником intent/examples, но не публичным execution contract.
+- Публичный contract для этого skill находится в repo-owned dispatcher, а не в vendored markdown.
+- Если нужны детали параметров, сначала читайте vendored upstream `SKILL.md`, затем helper-скрипты из `automation/vendor/cc-1c-skills/`.
 - Если dispatcher сообщает о missing dependencies, сначала используйте canonical readiness path, а не helper traceback.
+- Не переносите upstream PowerShell snippets в новый automation contract шаблона.

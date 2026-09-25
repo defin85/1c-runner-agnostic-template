@@ -140,6 +140,7 @@
 .claude/skills/mxl-decompile/SKILL.md
 .claude/skills/mxl-info/SKILL.md
 .claude/skills/mxl-validate/SKILL.md
+.claude/skills/repo-agent-verify/SKILL.md
 .claude/skills/role-compile/SKILL.md
 .claude/skills/role-info/SKILL.md
 .claude/skills/role-validate/SKILL.md
@@ -1035,6 +1036,8 @@ scripts/qa/format-bsl.ps1
 scripts/qa/format-bsl.sh
 scripts/skills/run-imported-skill.ps1
 scripts/skills/run-imported-skill.sh
+scripts/skills/sync-claude-skills.ps1
+scripts/skills/sync-claude-skills.sh
 scripts/template/check-update.ps1
 scripts/template/check-update.sh
 scripts/template/lib-overlay.sh

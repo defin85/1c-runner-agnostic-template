@@ -1,16 +1,13 @@
 ---
 name: form-add
-description: "Импортированный compatibility skill из cc-1c-skills. Добавить управляемую форму к объекту конфигурации 1С"
-argument-hint: "<ObjectPath> <FormName> [Purpose] [--set-default]"
-allowed-tools:
-  - Bash
-  - Read
-  - Glob
+description: "Добавить управляемую форму к объекту конфигурации 1С"
+metadata:
+  short-description: "Добавить управляемую форму к объекту конфигурации 1С"
 ---
 
 <!-- GENERATED: sync-imported-skills -->
 
-# /form-add
+# Agent Skill: form-add
 
 Repo script: `./scripts/skills/run-imported-skill.sh form-add`
 Windows launcher: `./scripts/skills/run-imported-skill.ps1 form-add`
@@ -18,7 +15,7 @@ Windows launcher: `./scripts/skills/run-imported-skill.ps1 form-add`
 ## Use When
 
 - Добавить управляемую форму к объекту конфигурации 1С
-- Нужно использовать template-managed импорт, а не копировать upstream PowerShell/CLI команды вручную.
+- Нужно использовать template-managed импортированный workflow без копирования inline логики из upstream `SKILL.md`.
 
 ## Usage
 
@@ -43,6 +40,7 @@ Windows launcher: `./scripts/skills/run-imported-skill.ps1 form-add`
 
 ## Rules
 
-- Repo-owned dispatcher является source of truth для вызова skill в этом шаблоне.
-- Vendored upstream `SKILL.md` остаётся источником intent/examples, но не публичным execution contract.
+- Публичный contract для этого skill находится в repo-owned dispatcher, а не в vendored markdown.
+- Если нужны детали параметров, сначала читайте vendored upstream `SKILL.md`, затем helper-скрипты из `automation/vendor/cc-1c-skills/`.
 - Если dispatcher сообщает о missing dependencies, сначала используйте canonical readiness path, а не helper traceback.
+- Не переносите upstream PowerShell snippets в новый automation contract шаблона.

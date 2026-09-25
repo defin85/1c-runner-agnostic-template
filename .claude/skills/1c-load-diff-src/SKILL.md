@@ -1,21 +1,18 @@
 ---
 name: 1c-load-diff-src
-description: >
-  Этот скилл MUST быть вызван, когда пользователь просит загрузить в ИБ
-  только текущие git-backed изменения исходников через repo-owned bridge.
-allowed-tools:
-  - Bash
-  - Read
-  - Glob
+description: Используйте, когда нужно загрузить в ИБ только текущие git-backed изменения исходников через repo-owned diff bridge.
+metadata:
+  short-description: Загрузка diff исходников в ИБ.
 ---
 
-# /1c-load-diff-src
+# Agent Skill: 1c-load-diff-src
 
 Repo script: `./scripts/platform/load-diff-src.sh`
+Windows launcher: `./scripts/platform/load-diff-src.ps1`
 
 ## Use When
 
-- Нужно загрузить в ИБ только текущий diff исходников внутри `src/cf`.
+- Нужно загрузить в информационную базу только текущий diff исходников внутри `src/cf`.
 - Нужен repo-owned bridge от git-backed selection к `load-src --files`.
 - Нужны machine-readable wrapper artifacts и delegated `load-src` summary.
 
@@ -29,5 +26,5 @@ Repo script: `./scripts/platform/load-diff-src.sh`
 
 ## Rules
 
-- Не переносить `git diff -> --files` shell logic в `SKILL.md`.
-- Сначала читать wrapper `summary.json`, затем delegated `load-src` artifacts.
+- Не копируйте inline shell snippet для `git diff -> --files`; используйте repo script.
+- Сначала читайте wrapper `summary.json`, затем delegated `load-src` artifacts.

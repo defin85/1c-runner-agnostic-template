@@ -1,16 +1,13 @@
 ---
 name: role-info
-description: "Импортированный compatibility skill из cc-1c-skills. Компактная сводка прав роли 1С из Rights.xml — объекты, права, RLS, шаблоны ограничений. Используй для аудита прав — какие объекты и действия доступны, ограничения RLS"
-argument-hint: "<RightsPath>"
-allowed-tools:
-  - Bash
-  - Read
-  - Glob
+description: "Компактная сводка прав роли 1С из Rights.xml — объекты, права, RLS, шаб…"
+metadata:
+  short-description: "Компактная сводка прав роли 1С из Rights.xml — объекты, права, RLS, шаб…"
 ---
 
 <!-- GENERATED: sync-imported-skills -->
 
-# /role-info
+# Agent Skill: role-info
 
 Repo script: `./scripts/skills/run-imported-skill.sh role-info`
 Windows launcher: `./scripts/skills/run-imported-skill.ps1 role-info`
@@ -18,7 +15,7 @@ Windows launcher: `./scripts/skills/run-imported-skill.ps1 role-info`
 ## Use When
 
 - Компактная сводка прав роли 1С из Rights.xml — объекты, права, RLS, шаблоны ограничений. Используй для аудита прав — какие объекты и действия доступны, ограничения RLS
-- Нужно использовать template-managed импорт, а не копировать upstream PowerShell/CLI команды вручную.
+- Нужно использовать template-managed импортированный workflow без копирования inline логики из upstream `SKILL.md`.
 
 ## Usage
 
@@ -43,6 +40,7 @@ Windows launcher: `./scripts/skills/run-imported-skill.ps1 role-info`
 
 ## Rules
 
-- Repo-owned dispatcher является source of truth для вызова skill в этом шаблоне.
-- Vendored upstream `SKILL.md` остаётся источником intent/examples, но не публичным execution contract.
+- Публичный contract для этого skill находится в repo-owned dispatcher, а не в vendored markdown.
+- Если нужны детали параметров, сначала читайте vendored upstream `SKILL.md`, затем helper-скрипты из `automation/vendor/cc-1c-skills/`.
 - Если dispatcher сообщает о missing dependencies, сначала используйте canonical readiness path, а не helper traceback.
+- Не переносите upstream PowerShell snippets в новый automation contract шаблона.

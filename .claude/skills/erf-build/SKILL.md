@@ -1,16 +1,13 @@
 ---
 name: erf-build
-description: "Импортированный compatibility skill из cc-1c-skills. Собрать внешний отчёт 1С (ERF) из XML-исходников. Используй когда пользователь просит собрать, скомпилировать отчёт или получить ERF файл из исходников"
-argument-hint: "<ReportName>"
-allowed-tools:
-  - Bash
-  - Read
-  - Glob
+description: "Собрать внешний отчёт 1С (ERF) из XML-исходников. Используй когда польз…"
+metadata:
+  short-description: "Собрать внешний отчёт 1С (ERF) из XML-исходников. Используй когда польз…"
 ---
 
 <!-- GENERATED: sync-imported-skills -->
 
-# /erf-build
+# Agent Skill: erf-build
 
 Repo script: `./scripts/skills/run-imported-skill.sh erf-build`
 Windows launcher: `./scripts/skills/run-imported-skill.ps1 erf-build`
@@ -18,7 +15,7 @@ Windows launcher: `./scripts/skills/run-imported-skill.ps1 erf-build`
 ## Use When
 
 - Собрать внешний отчёт 1С (ERF) из XML-исходников. Используй когда пользователь просит собрать, скомпилировать отчёт или получить ERF файл из исходников
-- Нужно использовать template-managed импорт, а не копировать upstream PowerShell/CLI команды вручную.
+- Нужно использовать template-managed импортированный workflow без копирования inline логики из upstream `SKILL.md`.
 
 ## Usage
 
@@ -43,6 +40,7 @@ Windows launcher: `./scripts/skills/run-imported-skill.ps1 erf-build`
 
 ## Rules
 
-- Repo-owned dispatcher является source of truth для вызова skill в этом шаблоне.
-- Vendored upstream `SKILL.md` остаётся источником intent/examples, но не публичным execution contract.
+- Публичный contract для этого skill находится в repo-owned dispatcher, а не в vendored markdown.
+- Если нужны детали параметров, сначала читайте vendored upstream `SKILL.md`, затем helper-скрипты из `automation/vendor/cc-1c-skills/`.
 - Если dispatcher сообщает о missing dependencies, сначала используйте canonical readiness path, а не helper traceback.
+- Не переносите upstream PowerShell snippets в новый automation contract шаблона.

@@ -1,16 +1,13 @@
 ---
 name: form-edit
-description: "Импортированный compatibility skill из cc-1c-skills. Добавление элементов, реквизитов и команд в существующую управляемую форму 1С. Используй когда нужно точечно модифицировать готовую форму"
-argument-hint: "<FormPath> <JsonPath>"
-allowed-tools:
-  - Bash
-  - Read
-  - Glob
+description: "Добавление элементов, реквизитов и команд в существующую управляемую фо…"
+metadata:
+  short-description: "Добавление элементов, реквизитов и команд в существующую управляемую фо…"
 ---
 
 <!-- GENERATED: sync-imported-skills -->
 
-# /form-edit
+# Agent Skill: form-edit
 
 Repo script: `./scripts/skills/run-imported-skill.sh form-edit`
 Windows launcher: `./scripts/skills/run-imported-skill.ps1 form-edit`
@@ -18,7 +15,7 @@ Windows launcher: `./scripts/skills/run-imported-skill.ps1 form-edit`
 ## Use When
 
 - Добавление элементов, реквизитов и команд в существующую управляемую форму 1С. Используй когда нужно точечно модифицировать готовую форму
-- Нужно использовать template-managed импорт, а не копировать upstream PowerShell/CLI команды вручную.
+- Нужно использовать template-managed импортированный workflow без копирования inline логики из upstream `SKILL.md`.
 
 ## Usage
 
@@ -43,6 +40,7 @@ Windows launcher: `./scripts/skills/run-imported-skill.ps1 form-edit`
 
 ## Rules
 
-- Repo-owned dispatcher является source of truth для вызова skill в этом шаблоне.
-- Vendored upstream `SKILL.md` остаётся источником intent/examples, но не публичным execution contract.
+- Публичный contract для этого skill находится в repo-owned dispatcher, а не в vendored markdown.
+- Если нужны детали параметров, сначала читайте vendored upstream `SKILL.md`, затем helper-скрипты из `automation/vendor/cc-1c-skills/`.
 - Если dispatcher сообщает о missing dependencies, сначала используйте canonical readiness path, а не helper traceback.
+- Не переносите upstream PowerShell snippets в новый automation contract шаблона.

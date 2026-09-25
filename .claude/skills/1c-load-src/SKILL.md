@@ -1,22 +1,19 @@
 ---
 name: 1c-load-src
-description: >
-  Этот скилл MUST быть вызван, когда пользователь просит загрузить исходники
-  в информационную базу через канонический runtime contract проекта.
-allowed-tools:
-  - Bash
-  - Read
-  - Glob
+description: Используйте, когда нужно загрузить исходники в информационную базу через канонический runtime contract проекта.
+metadata:
+  short-description: Загрузка исходников в ИБ.
 ---
 
-# /1c-load-src
+# Agent Skill: 1c-load-src
 
 Repo script: `./scripts/platform/load-src.sh`
+Windows launcher: `./scripts/platform/load-src.ps1`
 
 ## Use When
 
 - Нужно загрузить исходники конфигурации или расширения в ИБ.
-- Нужно выполнить adapter-aware load с machine-readable артефактами.
+- Нужен adapter-aware load с machine-readable артефактами.
 
 ## Usage
 
@@ -28,5 +25,5 @@ Repo script: `./scripts/platform/load-src.sh`
 
 ## Rules
 
-- Не переносить shell/1C CLI в skill как inline logic.
-- После выполнения сначала читать `summary.json`, затем лог-файлы.
+- Не переносите shell/1C CLI в skill как inline logic.
+- После выполнения сначала читайте `summary.json`.

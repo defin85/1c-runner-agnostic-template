@@ -26,6 +26,7 @@ $targets = @{
     "format-bsl" = @((Resolve-TargetScript "scripts\qa\format-bsl.ps1"))
     "check-agent-docs" = @((Resolve-TargetScript "scripts\qa\check-agent-docs.ps1"))
     "check-skill-bindings" = @((Resolve-TargetScript "scripts\qa\check-skill-bindings.ps1"))
+    "sync-claude-skills" = @((Resolve-TargetScript "scripts\skills\sync-claude-skills.ps1"))
     "check-overlay-manifest" = @((Resolve-TargetScript "scripts\qa\check-overlay-manifest.ps1"))
     "codex-onboard" = @((Resolve-TargetScript "scripts\qa\codex-onboard.ps1"))
     "imported-skills-readiness" = @((Resolve-TargetScript "scripts\skills\run-imported-skill.ps1"), "--readiness")
@@ -65,6 +66,7 @@ if ($Target -eq "help") {
         "  ./make.ps1 format-bsl",
         "  ./make.ps1 check-agent-docs",
         "  ./make.ps1 check-skill-bindings",
+        "  ./make.ps1 sync-claude-skills",
         "  ./make.ps1 check-overlay-manifest",
         "  ./make.ps1 codex-onboard",
         "  ./make.ps1 imported-skills-readiness",

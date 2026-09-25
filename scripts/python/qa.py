@@ -79,6 +79,11 @@ def format_bsl() -> int:
 def check_skill_bindings(root: Path | None = None) -> int:
     repo_root = root or project_root()
     status = 0
+    from .imported_skills import claude_skill_mirror_drift
+
+    for rel in claude_skill_mirror_drift(repo_root):
+        print(f"stale Claude skill mirror: {rel}; run make sync-claude-skills", file=sys.stderr)
+        status = 1
     for rel in (".agents/skills", ".claude/skills"):
         skills_dir = repo_root / rel
         if not skills_dir.is_dir():

@@ -1,16 +1,13 @@
 ---
 name: mxl-decompile
-description: "Импортированный compatibility skill из cc-1c-skills. Декомпиляция табличного документа (MXL) в JSON-определение. Используй когда нужно получить редактируемое описание существующего макета"
-argument-hint: "<TemplatePath> [OutputPath]"
-allowed-tools:
-  - Bash
-  - Read
-  - Glob
+description: "Декомпиляция табличного документа (MXL) в JSON-определение. Используй к…"
+metadata:
+  short-description: "Декомпиляция табличного документа (MXL) в JSON-определение. Используй к…"
 ---
 
 <!-- GENERATED: sync-imported-skills -->
 
-# /mxl-decompile
+# Agent Skill: mxl-decompile
 
 Repo script: `./scripts/skills/run-imported-skill.sh mxl-decompile`
 Windows launcher: `./scripts/skills/run-imported-skill.ps1 mxl-decompile`
@@ -18,7 +15,7 @@ Windows launcher: `./scripts/skills/run-imported-skill.ps1 mxl-decompile`
 ## Use When
 
 - Декомпиляция табличного документа (MXL) в JSON-определение. Используй когда нужно получить редактируемое описание существующего макета
-- Нужно использовать template-managed импорт, а не копировать upstream PowerShell/CLI команды вручную.
+- Нужно использовать template-managed импортированный workflow без копирования inline логики из upstream `SKILL.md`.
 
 ## Usage
 
@@ -43,6 +40,7 @@ Windows launcher: `./scripts/skills/run-imported-skill.ps1 mxl-decompile`
 
 ## Rules
 
-- Repo-owned dispatcher является source of truth для вызова skill в этом шаблоне.
-- Vendored upstream `SKILL.md` остаётся источником intent/examples, но не публичным execution contract.
+- Публичный contract для этого skill находится в repo-owned dispatcher, а не в vendored markdown.
+- Если нужны детали параметров, сначала читайте vendored upstream `SKILL.md`, затем helper-скрипты из `automation/vendor/cc-1c-skills/`.
 - Если dispatcher сообщает о missing dependencies, сначала используйте canonical readiness path, а не helper traceback.
+- Не переносите upstream PowerShell snippets в новый automation contract шаблона.

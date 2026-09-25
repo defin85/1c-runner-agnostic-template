@@ -1,17 +1,14 @@
 ---
 name: 1c-dump-src
-description: >
-  Этот скилл MUST быть вызван, когда пользователь просит выгрузить конфигурацию
-  или расширение в исходники через канонический runtime contract проекта.
-allowed-tools:
-  - Bash
-  - Read
-  - Glob
+description: Используйте, когда нужно выгрузить конфигурацию или расширение в исходники через канонический runtime contract проекта.
+metadata:
+  short-description: Выгрузка конфигурации в исходники.
 ---
 
-# /1c-dump-src
+# Agent Skill: 1c-dump-src
 
 Repo script: `./scripts/platform/dump-src.sh`
+Windows launcher: `./scripts/platform/dump-src.ps1`
 
 ## Use When
 
@@ -28,5 +25,5 @@ Repo script: `./scripts/platform/dump-src.sh`
 
 ## Rules
 
-- Не описывай вручную команды платформы внутри skill.
-- Проверяй `summary.json` как первичный source of truth по результату выполнения.
+- Не описывайте вручную команды платформы внутри skill.
+- Проверяйте `summary.json` как первичный verdict.

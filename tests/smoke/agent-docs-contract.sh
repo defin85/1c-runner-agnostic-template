@@ -687,7 +687,7 @@ import sys
 path = Path(sys.argv[1])
 text = path.read_text()
 text = text.replace(
-    "For remote-backed repos with a writable Git remote, a code-change session is not complete until the verified branch state is pushed.\n- For local-only repos or repos without a writable remote, do not invent a push-only closeout path.\n",
+    "For remote-backed repos with a writable Git remote, push the verified branch state only when the user or the selected publication process asks for it; otherwise report the unpushed state in the handoff.\n- For local-only repos or repos without a writable remote, do not invent a push-only closeout path.\n",
     "A session with code changes is not complete until `git push` succeeds.\n",
     1,
 )

@@ -1,16 +1,13 @@
 ---
 name: meta-compile
-description: "Импортированный compatibility skill из cc-1c-skills. Создать объект метаданных 1С. Используй когда пользователь просит создать или добавить справочник, документ, регистр, перечисление, константу, общий модуль, обработку, отчёт и др."
-argument-hint: "<JsonPath> <OutputDir>"
-allowed-tools:
-  - Bash
-  - Read
-  - Glob
+description: "Создать объект метаданных 1С. Используй когда пользователь просит созда…"
+metadata:
+  short-description: "Создать объект метаданных 1С. Используй когда пользователь просит созда…"
 ---
 
 <!-- GENERATED: sync-imported-skills -->
 
-# /meta-compile
+# Agent Skill: meta-compile
 
 Repo script: `./scripts/skills/run-imported-skill.sh meta-compile`
 Windows launcher: `./scripts/skills/run-imported-skill.ps1 meta-compile`
@@ -18,7 +15,7 @@ Windows launcher: `./scripts/skills/run-imported-skill.ps1 meta-compile`
 ## Use When
 
 - Создать объект метаданных 1С. Используй когда пользователь просит создать или добавить справочник, документ, регистр, перечисление, константу, общий модуль, обработку, отчёт и др.
-- Нужно использовать template-managed импорт, а не копировать upstream PowerShell/CLI команды вручную.
+- Нужно использовать template-managed импортированный workflow без копирования inline логики из upstream `SKILL.md`.
 
 ## Usage
 
@@ -43,6 +40,7 @@ Windows launcher: `./scripts/skills/run-imported-skill.ps1 meta-compile`
 
 ## Rules
 
-- Repo-owned dispatcher является source of truth для вызова skill в этом шаблоне.
-- Vendored upstream `SKILL.md` остаётся источником intent/examples, но не публичным execution contract.
+- Публичный contract для этого skill находится в repo-owned dispatcher, а не в vendored markdown.
+- Если нужны детали параметров, сначала читайте vendored upstream `SKILL.md`, затем helper-скрипты из `automation/vendor/cc-1c-skills/`.
 - Если dispatcher сообщает о missing dependencies, сначала используйте canonical readiness path, а не helper traceback.
+- Не переносите upstream PowerShell snippets в новый automation contract шаблона.

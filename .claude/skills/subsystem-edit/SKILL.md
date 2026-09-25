@@ -1,16 +1,13 @@
 ---
 name: subsystem-edit
-description: "Импортированный compatibility skill из cc-1c-skills. Точечное редактирование подсистемы 1С. Используй когда нужно добавить или удалить объекты из подсистемы, управлять дочерними подсистемами или изменить свойства"
-argument-hint: "-SubsystemPath <path> -Operation <op> -Value <value>"
-allowed-tools:
-  - Bash
-  - Read
-  - Glob
+description: "Точечное редактирование подсистемы 1С. Используй когда нужно добавить и…"
+metadata:
+  short-description: "Точечное редактирование подсистемы 1С. Используй когда нужно добавить и…"
 ---
 
 <!-- GENERATED: sync-imported-skills -->
 
-# /subsystem-edit
+# Agent Skill: subsystem-edit
 
 Repo script: `./scripts/skills/run-imported-skill.sh subsystem-edit`
 Windows launcher: `./scripts/skills/run-imported-skill.ps1 subsystem-edit`
@@ -18,7 +15,7 @@ Windows launcher: `./scripts/skills/run-imported-skill.ps1 subsystem-edit`
 ## Use When
 
 - Точечное редактирование подсистемы 1С. Используй когда нужно добавить или удалить объекты из подсистемы, управлять дочерними подсистемами или изменить свойства
-- Нужно использовать template-managed импорт, а не копировать upstream PowerShell/CLI команды вручную.
+- Нужно использовать template-managed импортированный workflow без копирования inline логики из upstream `SKILL.md`.
 
 ## Usage
 
@@ -43,6 +40,7 @@ Windows launcher: `./scripts/skills/run-imported-skill.ps1 subsystem-edit`
 
 ## Rules
 
-- Repo-owned dispatcher является source of truth для вызова skill в этом шаблоне.
-- Vendored upstream `SKILL.md` остаётся источником intent/examples, но не публичным execution contract.
+- Публичный contract для этого skill находится в repo-owned dispatcher, а не в vendored markdown.
+- Если нужны детали параметров, сначала читайте vendored upstream `SKILL.md`, затем helper-скрипты из `automation/vendor/cc-1c-skills/`.
 - Если dispatcher сообщает о missing dependencies, сначала используйте canonical readiness path, а не helper traceback.
+- Не переносите upstream PowerShell snippets в новый automation contract шаблона.

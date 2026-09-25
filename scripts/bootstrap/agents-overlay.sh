@@ -127,6 +127,8 @@ EOF
 
 ## Search Playbook
 
+If the project documents its own search runbook, follow it; this playbook is the fallback.
+
 Search order:
 
 1. `mcp__claude-context__search_code`, if available in the current environment
@@ -151,9 +153,9 @@ Checklist:
 
 ## Landing the Plane
 
-- For remote-backed repos with a writable Git remote, a code-change session is not complete until the verified branch state is pushed.
+- For remote-backed repos with a writable Git remote, push the verified branch state only when the user or the selected publication process asks for it; otherwise report the unpushed state in the handoff.
 - For local-only repos or repos without a writable remote, do not invent a push-only closeout path.
-- Before handoff, update task status and run the relevant quality gates. If remote sync is expected, rebase or push only after the local verification set is green.
+- Before handoff, update task status and run the relevant quality gates. When a push is requested, rebase or push only after the local verification set is green.
 EOF
 
   printf '\n%s\n' "$project_agents_block_end" >>"$agents_file"

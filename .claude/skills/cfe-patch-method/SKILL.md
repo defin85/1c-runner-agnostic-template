@@ -1,16 +1,13 @@
 ---
 name: cfe-patch-method
-description: "Импортированный compatibility skill из cc-1c-skills. Генерация перехватчика метода в расширении 1С (CFE). Используй когда нужно перехватить метод заимствованного объекта — вставить код до, после или вместо оригинального"
-argument-hint: "-ExtensionPath <path> -ModulePath \"Catalog.X.ObjectModule\" -MethodName \"ПриЗаписи\" -InterceptorType Before"
-allowed-tools:
-  - Bash
-  - Read
-  - Glob
+description: "Генерация перехватчика метода в расширении 1С (CFE). Используй когда ну…"
+metadata:
+  short-description: "Генерация перехватчика метода в расширении 1С (CFE). Используй когда ну…"
 ---
 
 <!-- GENERATED: sync-imported-skills -->
 
-# /cfe-patch-method
+# Agent Skill: cfe-patch-method
 
 Repo script: `./scripts/skills/run-imported-skill.sh cfe-patch-method`
 Windows launcher: `./scripts/skills/run-imported-skill.ps1 cfe-patch-method`
@@ -18,7 +15,7 @@ Windows launcher: `./scripts/skills/run-imported-skill.ps1 cfe-patch-method`
 ## Use When
 
 - Генерация перехватчика метода в расширении 1С (CFE). Используй когда нужно перехватить метод заимствованного объекта — вставить код до, после или вместо оригинального
-- Нужно использовать template-managed импорт, а не копировать upstream PowerShell/CLI команды вручную.
+- Нужно использовать template-managed импортированный workflow без копирования inline логики из upstream `SKILL.md`.
 
 ## Usage
 
@@ -43,6 +40,7 @@ Windows launcher: `./scripts/skills/run-imported-skill.ps1 cfe-patch-method`
 
 ## Rules
 
-- Repo-owned dispatcher является source of truth для вызова skill в этом шаблоне.
-- Vendored upstream `SKILL.md` остаётся источником intent/examples, но не публичным execution contract.
+- Публичный contract для этого skill находится в repo-owned dispatcher, а не в vendored markdown.
+- Если нужны детали параметров, сначала читайте vendored upstream `SKILL.md`, затем helper-скрипты из `automation/vendor/cc-1c-skills/`.
 - Если dispatcher сообщает о missing dependencies, сначала используйте canonical readiness path, а не helper traceback.
+- Не переносите upstream PowerShell snippets в новый automation contract шаблона.

@@ -2,6 +2,7 @@
 
 Эти skills являются Codex-discoverable фасадом над versioned repo scripts.
 Claude-facing equivalents лежат в [.claude/skills/README.md](../../.claude/skills/README.md).
+`.agents/skills/<имя>` — единственный источник навыка; `.claude/skills/<имя>` — его зеркало. Правьте источник и выполняйте `make sync-claude-skills` (`./make.ps1 sync-claude-skills`).
 
 ## Native Runner-Agnostic Skills
 
@@ -18,7 +19,7 @@ Claude-facing equivalents лежат в [.claude/skills/README.md](../../.claude
 | Используйте, когда нужно прогнать BDD или acceptance contour через канонический test entrypoint проекта. | `1c-run-bdd` | `1c-run-bdd` | `./scripts/test/run-bdd.sh` | native template capability |
 | Используйте, когда нужно запустить smoke contour через канонический test entrypoint проекта. | `1c-run-smoke` | `1c-run-smoke` | `./scripts/test/run-smoke.sh` | native template capability |
 | Используйте, когда нужно применить изменения основной конфигурации к конфигурации базы данных. | `1c-update-db` | `1c-update-db` | `./scripts/platform/update-db.sh` | native template capability |
-| Запускает lightweight baseline verification для docs, OpenSpec, skills и live context этого репозитория. | `repo-agent-verify` | `-` | `./scripts/qa/agent-verify.sh` | native template capability |
+| Запускает lightweight baseline verification для docs, OpenSpec, skills и live context этого репозитория. | `repo-agent-verify` | `repo-agent-verify` | `./scripts/qa/agent-verify.sh` | native template capability |
 
 ## Imported Compatibility Pack (`cc-1c-skills`)
 

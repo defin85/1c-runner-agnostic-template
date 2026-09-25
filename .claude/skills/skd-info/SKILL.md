@@ -1,16 +1,13 @@
 ---
 name: skd-info
-description: "Импортированный compatibility skill из cc-1c-skills. Анализ структуры схемы компоновки данных 1С (СКД) — наборы, поля, параметры, варианты. Используй для понимания отчёта — источник данных (запрос), доступные поля, параметры"
-argument-hint: "<TemplatePath> [-Mode overview|query|fields|links|calculated|resources|params|variant|templates|trace|full] [-Name <dataset|variant|field|group>]"
-allowed-tools:
-  - Bash
-  - Read
-  - Glob
+description: "Анализ структуры схемы компоновки данных 1С (СКД) — наборы, поля, парам…"
+metadata:
+  short-description: "Анализ структуры схемы компоновки данных 1С (СКД) — наборы, поля, парам…"
 ---
 
 <!-- GENERATED: sync-imported-skills -->
 
-# /skd-info
+# Agent Skill: skd-info
 
 Repo script: `./scripts/skills/run-imported-skill.sh skd-info`
 Windows launcher: `./scripts/skills/run-imported-skill.ps1 skd-info`
@@ -18,7 +15,7 @@ Windows launcher: `./scripts/skills/run-imported-skill.ps1 skd-info`
 ## Use When
 
 - Анализ структуры схемы компоновки данных 1С (СКД) — наборы, поля, параметры, варианты. Используй для понимания отчёта — источник данных (запрос), доступные поля, параметры
-- Нужно использовать template-managed импорт, а не копировать upstream PowerShell/CLI команды вручную.
+- Нужно использовать template-managed импортированный workflow без копирования inline логики из upstream `SKILL.md`.
 
 ## Usage
 
@@ -43,6 +40,7 @@ Windows launcher: `./scripts/skills/run-imported-skill.ps1 skd-info`
 
 ## Rules
 
-- Repo-owned dispatcher является source of truth для вызова skill в этом шаблоне.
-- Vendored upstream `SKILL.md` остаётся источником intent/examples, но не публичным execution contract.
+- Публичный contract для этого skill находится в repo-owned dispatcher, а не в vendored markdown.
+- Если нужны детали параметров, сначала читайте vendored upstream `SKILL.md`, затем helper-скрипты из `automation/vendor/cc-1c-skills/`.
 - Если dispatcher сообщает о missing dependencies, сначала используйте canonical readiness path, а не helper traceback.
+- Не переносите upstream PowerShell snippets в новый automation contract шаблона.

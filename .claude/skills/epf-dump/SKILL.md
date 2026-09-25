@@ -1,16 +1,13 @@
 ---
 name: epf-dump
-description: "Импортированный compatibility skill из cc-1c-skills. Разобрать EPF-файл обработки 1С (EPF/ERF) в XML-исходники. Используй когда пользователь просит разобрать, декомпилировать обработку, получить исходники из EPF/ERF файла"
-argument-hint: "<EpfFile>"
-allowed-tools:
-  - Bash
-  - Read
-  - Glob
+description: "Разобрать EPF-файл обработки 1С (EPF/ERF) в XML-исходники. Используй ко…"
+metadata:
+  short-description: "Разобрать EPF-файл обработки 1С (EPF/ERF) в XML-исходники. Используй ко…"
 ---
 
 <!-- GENERATED: sync-imported-skills -->
 
-# /epf-dump
+# Agent Skill: epf-dump
 
 Repo script: `./scripts/skills/run-imported-skill.sh epf-dump`
 Windows launcher: `./scripts/skills/run-imported-skill.ps1 epf-dump`
@@ -18,7 +15,7 @@ Windows launcher: `./scripts/skills/run-imported-skill.ps1 epf-dump`
 ## Use When
 
 - Разобрать EPF-файл обработки 1С (EPF/ERF) в XML-исходники. Используй когда пользователь просит разобрать, декомпилировать обработку, получить исходники из EPF/ERF файла
-- Нужно использовать template-managed импорт, а не копировать upstream PowerShell/CLI команды вручную.
+- Нужно использовать template-managed импортированный workflow без копирования inline логики из upstream `SKILL.md`.
 
 ## Usage
 
@@ -43,6 +40,7 @@ Windows launcher: `./scripts/skills/run-imported-skill.ps1 epf-dump`
 
 ## Rules
 
-- Repo-owned dispatcher является source of truth для вызова skill в этом шаблоне.
-- Vendored upstream `SKILL.md` остаётся источником intent/examples, но не публичным execution contract.
+- Публичный contract для этого skill находится в repo-owned dispatcher, а не в vendored markdown.
+- Если нужны детали параметров, сначала читайте vendored upstream `SKILL.md`, затем helper-скрипты из `automation/vendor/cc-1c-skills/`.
 - Если dispatcher сообщает о missing dependencies, сначала используйте canonical readiness path, а не helper traceback.
+- Не переносите upstream PowerShell snippets в новый automation contract шаблона.

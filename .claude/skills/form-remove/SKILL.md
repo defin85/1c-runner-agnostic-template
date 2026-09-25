@@ -1,16 +1,13 @@
 ---
 name: form-remove
-description: "Импортированный compatibility skill из cc-1c-skills. Удалить форму из объекта 1С (обработка, отчёт, справочник, документ и др.)"
-argument-hint: "<ObjectName> <FormName>"
-allowed-tools:
-  - Bash
-  - Read
-  - Glob
+description: "Удалить форму из объекта 1С (обработка, отчёт, справочник, документ и д…"
+metadata:
+  short-description: "Удалить форму из объекта 1С (обработка, отчёт, справочник, документ и д…"
 ---
 
 <!-- GENERATED: sync-imported-skills -->
 
-# /form-remove
+# Agent Skill: form-remove
 
 Repo script: `./scripts/skills/run-imported-skill.sh form-remove`
 Windows launcher: `./scripts/skills/run-imported-skill.ps1 form-remove`
@@ -18,7 +15,7 @@ Windows launcher: `./scripts/skills/run-imported-skill.ps1 form-remove`
 ## Use When
 
 - Удалить форму из объекта 1С (обработка, отчёт, справочник, документ и др.)
-- Нужно использовать template-managed импорт, а не копировать upstream PowerShell/CLI команды вручную.
+- Нужно использовать template-managed импортированный workflow без копирования inline логики из upstream `SKILL.md`.
 
 ## Usage
 
@@ -43,6 +40,7 @@ Windows launcher: `./scripts/skills/run-imported-skill.ps1 form-remove`
 
 ## Rules
 
-- Repo-owned dispatcher является source of truth для вызова skill в этом шаблоне.
-- Vendored upstream `SKILL.md` остаётся источником intent/examples, но не публичным execution contract.
+- Публичный contract для этого skill находится в repo-owned dispatcher, а не в vendored markdown.
+- Если нужны детали параметров, сначала читайте vendored upstream `SKILL.md`, затем helper-скрипты из `automation/vendor/cc-1c-skills/`.
 - Если dispatcher сообщает о missing dependencies, сначала используйте canonical readiness path, а не helper traceback.
+- Не переносите upstream PowerShell snippets в новый automation contract шаблона.

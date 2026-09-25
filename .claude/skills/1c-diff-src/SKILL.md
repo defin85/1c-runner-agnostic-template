@@ -1,22 +1,19 @@
 ---
 name: 1c-diff-src
-description: >
-  Этот скилл MUST быть вызван, когда пользователь просит diff исходников
-  или диагностический сравнительный прогон через канонический contract проекта.
-allowed-tools:
-  - Bash
-  - Read
-  - Glob
+description: Используйте, когда нужно сравнить source tree или выполнить adapter-aware diff через repo-owned entrypoint.
+metadata:
+  short-description: Diff исходников через repo script.
 ---
 
-# /1c-diff-src
+# Agent Skill: 1c-diff-src
 
 Repo script: `./scripts/platform/diff-src.sh`
+Windows launcher: `./scripts/platform/diff-src.ps1`
 
 ## Use When
 
-- Нужно сравнить source tree или посмотреть adapter-specific diff.
-- Нужен machine-readable результат прогона и единый интерфейс запуска.
+- Нужно посмотреть diff исходников.
+- Нужен единый machine-readable результат прогона.
 
 ## Usage
 
@@ -28,5 +25,5 @@ Repo script: `./scripts/platform/diff-src.sh`
 
 ## Rules
 
-- Не копируй diff-логику в `SKILL.md`.
-- Для интерпретации результата начинай с `summary.json`.
+- Не копируйте diff logic в `SKILL.md`.
+- Интерпретацию результата начинайте с `summary.json`.

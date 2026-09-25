@@ -1,16 +1,13 @@
 ---
 name: web-publish
-description: "Импортированный compatibility skill из cc-1c-skills. Prefer native 1c-publish-http. Публикация информационной базы 1С через Apache. Используй когда пользователь просит опубликовать базу, сервисы, настроить веб-доступ, веб-клиент, открыть в браузере"
-argument-hint: "[database]"
-allowed-tools:
-  - Bash
-  - Read
-  - Glob
+description: "Prefer native 1c-publish-http. Публикация информационной базы 1С через…"
+metadata:
+  short-description: "Prefer native 1c-publish-http. Публикация информационной базы 1С через…"
 ---
 
 <!-- GENERATED: sync-imported-skills -->
 
-# /web-publish
+# Agent Skill: web-publish
 
 Repo script: `./scripts/skills/run-imported-skill.sh web-publish`
 Windows launcher: `./scripts/skills/run-imported-skill.ps1 web-publish`
@@ -18,7 +15,7 @@ Windows launcher: `./scripts/skills/run-imported-skill.ps1 web-publish`
 ## Use When
 
 - Публикация информационной базы 1С через Apache. Используй когда пользователь просит опубликовать базу, сервисы, настроить веб-доступ, веб-клиент, открыть в браузере
-- Нужно использовать template-managed импорт, а не копировать upstream PowerShell/CLI команды вручную.
+- Нужно использовать template-managed импортированный workflow без копирования inline логики из upstream `SKILL.md`.
 
 ## Usage
 
@@ -44,6 +41,7 @@ Windows launcher: `./scripts/skills/run-imported-skill.ps1 web-publish`
 
 ## Rules
 
-- Repo-owned dispatcher является source of truth для вызова skill в этом шаблоне.
-- Vendored upstream `SKILL.md` остаётся источником intent/examples, но не публичным execution contract.
+- Публичный contract для этого skill находится в repo-owned dispatcher, а не в vendored markdown.
+- Если нужны детали параметров, сначала читайте vendored upstream `SKILL.md`, затем helper-скрипты из `automation/vendor/cc-1c-skills/`.
 - Если dispatcher сообщает о missing dependencies, сначала используйте canonical readiness path, а не helper traceback.
+- Не переносите upstream PowerShell snippets в новый automation contract шаблона.

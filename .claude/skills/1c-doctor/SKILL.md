@@ -1,22 +1,19 @@
 ---
 name: 1c-doctor
-description: >
-  Этот скилл MUST быть вызван, когда пользователь просит диагностировать
-  готовность runtime-профиля, adapter config и базовых зависимостей проекта.
-allowed-tools:
-  - Bash
-  - Read
-  - Glob
+description: Используйте, когда нужно проверить readiness runtime profile, adapter config и базовые зависимости проекта.
+metadata:
+  short-description: Runtime readiness check.
 ---
 
-# /1c-doctor
+# Agent Skill: 1c-doctor
 
 Repo script: `./scripts/diag/doctor.sh`
+Windows launcher: `./scripts/diag/doctor.ps1`
 
 ## Use When
 
-- Нужно быстро проверить readiness runtime environment.
-- Нужно понять, каких tool/env dependency не хватает до запуска 1С-контуров.
+- Нужно быстро проверить runtime environment перед запуском 1С контуров.
+- Нужно увидеть missing tool/env dependency.
 
 ## Usage
 
@@ -28,5 +25,5 @@ Repo script: `./scripts/diag/doctor.sh`
 
 ## Rules
 
-- Этот skill не должен подменять собой actual runtime capabilities; он только проверяет readiness.
-- Вердикт и список missing dependency брать из `summary.json`.
+- Этот skill проверяет readiness и не подменяет actual runtime capabilities.
+- Вердикт и missing dependency берите из `summary.json`.

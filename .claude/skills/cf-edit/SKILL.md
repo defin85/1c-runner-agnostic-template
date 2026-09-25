@@ -1,16 +1,13 @@
 ---
 name: cf-edit
-description: "Импортированный compatibility skill из cc-1c-skills. Точечное редактирование конфигурации 1С. Используй когда нужно изменить свойства конфигурации, добавить или удалить объект из состава, настроить роли по умолчанию"
-argument-hint: "-ConfigPath <path> -Operation <op> -Value <value>"
-allowed-tools:
-  - Bash
-  - Read
-  - Glob
+description: "Точечное редактирование конфигурации 1С. Используй когда нужно изменить…"
+metadata:
+  short-description: "Точечное редактирование конфигурации 1С. Используй когда нужно изменить…"
 ---
 
 <!-- GENERATED: sync-imported-skills -->
 
-# /cf-edit
+# Agent Skill: cf-edit
 
 Repo script: `./scripts/skills/run-imported-skill.sh cf-edit`
 Windows launcher: `./scripts/skills/run-imported-skill.ps1 cf-edit`
@@ -18,7 +15,7 @@ Windows launcher: `./scripts/skills/run-imported-skill.ps1 cf-edit`
 ## Use When
 
 - Точечное редактирование конфигурации 1С. Используй когда нужно изменить свойства конфигурации, добавить или удалить объект из состава, настроить роли по умолчанию
-- Нужно использовать template-managed импорт, а не копировать upstream PowerShell/CLI команды вручную.
+- Нужно использовать template-managed импортированный workflow без копирования inline логики из upstream `SKILL.md`.
 
 ## Usage
 
@@ -43,6 +40,7 @@ Windows launcher: `./scripts/skills/run-imported-skill.ps1 cf-edit`
 
 ## Rules
 
-- Repo-owned dispatcher является source of truth для вызова skill в этом шаблоне.
-- Vendored upstream `SKILL.md` остаётся источником intent/examples, но не публичным execution contract.
+- Публичный contract для этого skill находится в repo-owned dispatcher, а не в vendored markdown.
+- Если нужны детали параметров, сначала читайте vendored upstream `SKILL.md`, затем helper-скрипты из `automation/vendor/cc-1c-skills/`.
 - Если dispatcher сообщает о missing dependencies, сначала используйте canonical readiness path, а не helper traceback.
+- Не переносите upstream PowerShell snippets в новый automation contract шаблона.

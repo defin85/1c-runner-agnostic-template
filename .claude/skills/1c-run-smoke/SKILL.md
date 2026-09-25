@@ -1,21 +1,18 @@
 ---
 name: 1c-run-smoke
-description: >
-  Этот скилл MUST быть вызван, когда пользователь просит запустить smoke-контур
-  через канонический test entrypoint проекта.
-allowed-tools:
-  - Bash
-  - Read
-  - Glob
+description: Используйте, когда нужно запустить smoke contour через канонический test entrypoint проекта.
+metadata:
+  short-description: Smoke contour.
 ---
 
-# /1c-run-smoke
+# Agent Skill: 1c-run-smoke
 
 Repo script: `./scripts/test/run-smoke.sh`
+Windows launcher: `./scripts/test/run-smoke.ps1`
 
 ## Use When
 
-- Нужно быстро проверить минимальный рабочий контур.
+- Нужно быстро проверить минимальный рабочий contour.
 - Нужен единый smoke entrypoint с machine-readable итогом.
 
 ## Usage
@@ -28,5 +25,5 @@ Repo script: `./scripts/test/run-smoke.sh`
 
 ## Rules
 
-- Не переносить smoke runtime logic в skill.
-- Используй `summary.json` как первичный verdict.
+- Не переносите smoke runtime logic в skill.
+- Используйте `summary.json` как первичный verdict.

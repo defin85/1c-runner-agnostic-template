@@ -1,16 +1,13 @@
 ---
 name: cfe-init
-description: "Импортированный compatibility skill из cc-1c-skills. Создать расширение конфигурации 1С (CFE) — scaffold XML-исходников. Используй когда нужно создать новое расширение для исправления, доработки или дополнения конфигурации"
-argument-hint: "<Name> [-ConfigPath <path>] [-Purpose Patch|Customization|AddOn] [-CompatibilityMode Version8_3_24]"
-allowed-tools:
-  - Bash
-  - Read
-  - Glob
+description: "Создать расширение конфигурации 1С (CFE) — scaffold XML-исходников. Исп…"
+metadata:
+  short-description: "Создать расширение конфигурации 1С (CFE) — scaffold XML-исходников. Исп…"
 ---
 
 <!-- GENERATED: sync-imported-skills -->
 
-# /cfe-init
+# Agent Skill: cfe-init
 
 Repo script: `./scripts/skills/run-imported-skill.sh cfe-init`
 Windows launcher: `./scripts/skills/run-imported-skill.ps1 cfe-init`
@@ -18,7 +15,7 @@ Windows launcher: `./scripts/skills/run-imported-skill.ps1 cfe-init`
 ## Use When
 
 - Создать расширение конфигурации 1С (CFE) — scaffold XML-исходников. Используй когда нужно создать новое расширение для исправления, доработки или дополнения конфигурации
-- Нужно использовать template-managed импорт, а не копировать upstream PowerShell/CLI команды вручную.
+- Нужно использовать template-managed импортированный workflow без копирования inline логики из upstream `SKILL.md`.
 
 ## Usage
 
@@ -43,6 +40,7 @@ Windows launcher: `./scripts/skills/run-imported-skill.ps1 cfe-init`
 
 ## Rules
 
-- Repo-owned dispatcher является source of truth для вызова skill в этом шаблоне.
-- Vendored upstream `SKILL.md` остаётся источником intent/examples, но не публичным execution contract.
+- Публичный contract для этого skill находится в repo-owned dispatcher, а не в vendored markdown.
+- Если нужны детали параметров, сначала читайте vendored upstream `SKILL.md`, затем helper-скрипты из `automation/vendor/cc-1c-skills/`.
 - Если dispatcher сообщает о missing dependencies, сначала используйте canonical readiness path, а не helper traceback.
+- Не переносите upstream PowerShell snippets в новый automation contract шаблона.

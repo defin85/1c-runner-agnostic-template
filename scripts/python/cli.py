@@ -10,7 +10,7 @@ from .http_runtime import run_publish_http
 from .bsl_mcp_runtime import run_bsl_analyzer_mcp
 from .context import export_context, verify_traceability
 from .epf_templates import init_epf_from_template
-from .imported_skills import render_imported_skill_readiness, run_imported_skill, sync_imported_skills
+from .imported_skills import render_imported_skill_readiness, run_imported_skill, sync_claude_skills, sync_imported_skills
 from .qa import agent_verify, analyze_bsl, check_agent_docs, check_overlay_manifest, check_skill_bindings, codex_onboard, format_bsl
 from .runtime import run_doctor, run_load_diff_src, run_load_task_src, run_profile_capability, task_trailers_render, task_trailers_select_commits, task_trailers_validate_message
 from .template_tools import (
@@ -114,6 +114,14 @@ def main(argv: list[str] | None = None) -> int:
                 index += 1
             print(render_imported_skill_readiness(json_mode=json_mode), end="")
             return 0
+        if command == "sync-claude-skills":
+            if any(arg in {"-h", "--help"} for arg in args):
+                print("Usage: sync-claude-skills [--check]")
+                return 0
+            unknown = [arg for arg in args if arg != "--check"]
+            if unknown:
+                die(f"unknown option: {unknown[0]}")
+            return sync_claude_skills(check="--check" in args)
         if command == "sync-imported-skills":
             source = ""
             index = 0

@@ -1,16 +1,13 @@
 ---
 name: db-load-git
-description: "Импортированный compatibility skill из cc-1c-skills. Prefer native 1c-load-diff-src, 1c-load-task-src. Загрузка изменений из Git в базу 1С. Используй когда пользователь просит загрузить изменения из гита, обновить базу из репозитория, partial load из коммита"
-argument-hint: "[database] [source]"
-allowed-tools:
-  - Bash
-  - Read
-  - Glob
+description: "Prefer native 1c-load-diff-src, 1c-load-task-src. Загрузка изменений из…"
+metadata:
+  short-description: "Prefer native 1c-load-diff-src, 1c-load-task-src. Загрузка изменений из…"
 ---
 
 <!-- GENERATED: sync-imported-skills -->
 
-# /db-load-git
+# Agent Skill: db-load-git
 
 Repo script: `./scripts/skills/run-imported-skill.sh db-load-git`
 Windows launcher: `./scripts/skills/run-imported-skill.ps1 db-load-git`
@@ -18,7 +15,7 @@ Windows launcher: `./scripts/skills/run-imported-skill.ps1 db-load-git`
 ## Use When
 
 - Загрузка изменений из Git в базу 1С. Используй когда пользователь просит загрузить изменения из гита, обновить базу из репозитория, partial load из коммита
-- Нужно использовать template-managed импорт, а не копировать upstream PowerShell/CLI команды вручную.
+- Нужно использовать template-managed импортированный workflow без копирования inline логики из upstream `SKILL.md`.
 
 ## Usage
 
@@ -44,6 +41,7 @@ Windows launcher: `./scripts/skills/run-imported-skill.ps1 db-load-git`
 
 ## Rules
 
-- Repo-owned dispatcher является source of truth для вызова skill в этом шаблоне.
-- Vendored upstream `SKILL.md` остаётся источником intent/examples, но не публичным execution contract.
+- Публичный contract для этого skill находится в repo-owned dispatcher, а не в vendored markdown.
+- Если нужны детали параметров, сначала читайте vendored upstream `SKILL.md`, затем helper-скрипты из `automation/vendor/cc-1c-skills/`.
 - Если dispatcher сообщает о missing dependencies, сначала используйте canonical readiness path, а не helper traceback.
+- Не переносите upstream PowerShell snippets в новый automation contract шаблона.

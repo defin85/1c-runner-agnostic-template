@@ -1,21 +1,18 @@
 ---
 name: 1c-load-task-src
-description: >
-  Этот скилл MUST быть вызван, когда пользователь просит загрузить в ИБ
-  уже закомиченные изменения задачи через repo-owned task bridge.
-allowed-tools:
-  - Bash
-  - Read
-  - Glob
+description: Используйте, когда нужно загрузить в ИБ уже закомиченные изменения задачи через repo-owned task bridge.
+metadata:
+  short-description: Загрузка task-scoped изменений в ИБ.
 ---
 
-# /1c-load-task-src
+# Agent Skill: 1c-load-task-src
 
 Repo script: `./scripts/platform/load-task-src.sh`
+Windows launcher: `./scripts/platform/load-task-src.ps1`
 
 ## Use When
 
-- Нужно загрузить в ИБ уже закомиченные изменения конкретной задачи внутри `src/cf`.
+- Нужно загрузить в информационную базу уже закомиченные изменения конкретной задачи внутри `src/cf`.
 - Нужен repo-owned bridge от commit trailer `Work-Item:` или explicit `--range` к `load-src --files`.
 - Нужны machine-readable wrapper artifacts и delegated `load-src` summary.
 
@@ -28,6 +25,6 @@ Repo script: `./scripts/platform/load-task-src.sh`
 
 ## Rules
 
-- Не переносить `git history -> --files` shell logic в `SKILL.md`.
-- Для canonical trailer block использовать `./scripts/git/task-trailers.sh render --work-item <id>`.
-- Сначала читать wrapper `summary.json`, затем delegated `load-src` artifacts.
+- Не собирайте вручную `git log -> changed files -> --files`; используйте repo script.
+- Для canonical trailer block используйте `./scripts/git/task-trailers.sh render --work-item <id>`.
+- Сначала читайте wrapper `summary.json`, затем delegated `load-src` artifacts.

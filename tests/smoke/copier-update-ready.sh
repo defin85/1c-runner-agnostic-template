@@ -528,7 +528,7 @@ assert_contains "$rendered_root/AGENTS.md" 'Use [docs/agent/review.md](docs/agen
 assert_contains "$rendered_root/AGENTS.md" 'Use [docs/template-maintenance.md](docs/template-maintenance.md) only for template refresh and maintenance work.'
 assert_contains "$rendered_root/AGENTS.md" './scripts/platform/load-diff-src.sh --profile <operator-profile> --run-root /tmp/load-diff-src-run'
 assert_contains "$rendered_root/AGENTS.md" './scripts/platform/load-task-src.sh --profile <operator-profile> --work-item <id> --run-root /tmp/load-task-src-run'
-assert_contains "$rendered_root/AGENTS.md" 'For remote-backed repos with a writable Git remote, a code-change session is not complete until the verified branch state is pushed.'
+assert_contains "$rendered_root/AGENTS.md" 'For remote-backed repos with a writable Git remote, push the verified branch state only when the user or the selected publication process asks for it; otherwise report the unpushed state in the handoff.'
 assert_contains "$rendered_root/AGENTS.md" 'For local-only repos or repos without a writable remote, do not invent a push-only closeout path.'
 assert_contains "$rendered_root/docs/README.md" "[docs/agent/generated-project-index.md](agent/generated-project-index.md)"
 assert_contains "$rendered_root/docs/AGENTS.md" "[docs/agent/generated-project-index.md](agent/generated-project-index.md)"

@@ -1,22 +1,19 @@
 ---
 name: 1c-create-ib
-description: >
-  Этот скилл MUST быть вызван, когда пользователь просит создать информационную базу
-  через канонический runtime contract проекта.
-allowed-tools:
-  - Bash
-  - Read
-  - Glob
+description: Используйте, когда нужно создать информационную базу через канонический runtime contract проекта.
+metadata:
+  short-description: Создание ИБ через repo-owned launcher.
 ---
 
-# /1c-create-ib
+# Agent Skill: 1c-create-ib
 
 Repo script: `./scripts/platform/create-ib.sh`
+Windows launcher: `./scripts/platform/create-ib.ps1`
 
 ## Use When
 
 - Нужно создать новую ИБ.
-- Нужен machine-readable результат прогона в `summary.json`.
+- Нужен machine-readable результат в `summary.json`.
 
 ## Usage
 
@@ -28,6 +25,5 @@ Repo script: `./scripts/platform/create-ib.sh`
 
 ## Rules
 
-- Не дублируй runtime-логику в skill; исполняемый контракт уже находится в repo script.
-- После выполнения прочитай `summary.json`, затем при необходимости `stdout.log` и `stderr.log`.
-- Если не хватает flags или artifact fields, меняй repo script, а не этот skill.
+- Не переносите runtime logic в skill.
+- После выполнения начинайте разбор с `summary.json`.

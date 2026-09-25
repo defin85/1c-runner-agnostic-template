@@ -1,16 +1,13 @@
 ---
 name: meta-validate
-description: "Импортированный compatibility skill из cc-1c-skills. Валидация объекта метаданных 1С. Используй после создания или модификации объекта конфигурации для проверки корректности"
-argument-hint: "<ObjectPath> [-Detailed] [-MaxErrors 30] — pipe-separated paths for batch"
-allowed-tools:
-  - Bash
-  - Read
-  - Glob
+description: "Валидация объекта метаданных 1С. Используй после создания или модификац…"
+metadata:
+  short-description: "Валидация объекта метаданных 1С. Используй после создания или модификац…"
 ---
 
 <!-- GENERATED: sync-imported-skills -->
 
-# /meta-validate
+# Agent Skill: meta-validate
 
 Repo script: `./scripts/skills/run-imported-skill.sh meta-validate`
 Windows launcher: `./scripts/skills/run-imported-skill.ps1 meta-validate`
@@ -18,7 +15,7 @@ Windows launcher: `./scripts/skills/run-imported-skill.ps1 meta-validate`
 ## Use When
 
 - Валидация объекта метаданных 1С. Используй после создания или модификации объекта конфигурации для проверки корректности
-- Нужно использовать template-managed импорт, а не копировать upstream PowerShell/CLI команды вручную.
+- Нужно использовать template-managed импортированный workflow без копирования inline логики из upstream `SKILL.md`.
 
 ## Usage
 
@@ -43,6 +40,7 @@ Windows launcher: `./scripts/skills/run-imported-skill.ps1 meta-validate`
 
 ## Rules
 
-- Repo-owned dispatcher является source of truth для вызова skill в этом шаблоне.
-- Vendored upstream `SKILL.md` остаётся источником intent/examples, но не публичным execution contract.
+- Публичный contract для этого skill находится в repo-owned dispatcher, а не в vendored markdown.
+- Если нужны детали параметров, сначала читайте vendored upstream `SKILL.md`, затем helper-скрипты из `automation/vendor/cc-1c-skills/`.
 - Если dispatcher сообщает о missing dependencies, сначала используйте canonical readiness path, а не helper traceback.
+- Не переносите upstream PowerShell snippets в новый automation contract шаблона.

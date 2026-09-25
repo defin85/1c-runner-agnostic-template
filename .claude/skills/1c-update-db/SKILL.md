@@ -1,17 +1,14 @@
 ---
 name: 1c-update-db
-description: >
-  Этот скилл MUST быть вызван, когда пользователь просит применить изменения
-  основной конфигурации к конфигурации базы данных.
-allowed-tools:
-  - Bash
-  - Read
-  - Glob
+description: Используйте, когда нужно применить изменения основной конфигурации к конфигурации базы данных.
+metadata:
+  short-description: Update DB contour.
 ---
 
-# /1c-update-db
+# Agent Skill: 1c-update-db
 
 Repo script: `./scripts/platform/update-db.sh`
+Windows launcher: `./scripts/platform/update-db.ps1`
 
 ## Use When
 
@@ -29,4 +26,4 @@ Repo script: `./scripts/platform/update-db.sh`
 ## Rules
 
 - Skill не должен становиться отдельным runtime implementation.
-- Если нужен новый adapter behavior, меняй repo script.
+- Если нужен новый adapter behavior, меняйте repo script.

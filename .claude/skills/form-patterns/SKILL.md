@@ -1,16 +1,13 @@
 ---
 name: form-patterns
-description: "Импортированный compatibility skill из cc-1c-skills. Справочник паттернов компоновки управляемых форм 1С. Используй как справочник при проектировании форм — архетипы, конвенции, продвинутые приёмы"
-argument-hint: "(no arguments)"
-allowed-tools:
-  - Bash
-  - Read
-  - Glob
+description: "Справочник паттернов компоновки управляемых форм 1С. Используй как спра…"
+metadata:
+  short-description: "Справочник паттернов компоновки управляемых форм 1С. Используй как спра…"
 ---
 
 <!-- GENERATED: sync-imported-skills -->
 
-# /form-patterns
+# Agent Skill: form-patterns
 
 Repo script: `./scripts/skills/run-imported-skill.sh form-patterns`
 Windows launcher: `./scripts/skills/run-imported-skill.ps1 form-patterns`
@@ -18,7 +15,7 @@ Windows launcher: `./scripts/skills/run-imported-skill.ps1 form-patterns`
 ## Use When
 
 - Справочник паттернов компоновки управляемых форм 1С. Используй как справочник при проектировании форм — архетипы, конвенции, продвинутые приёмы
-- Нужно использовать template-managed импорт, а не копировать upstream PowerShell/CLI команды вручную.
+- Нужно использовать template-managed импортированный workflow без копирования inline логики из upstream `SKILL.md`.
 
 ## Usage
 
@@ -43,6 +40,7 @@ Windows launcher: `./scripts/skills/run-imported-skill.ps1 form-patterns`
 
 ## Rules
 
-- Repo-owned dispatcher является source of truth для вызова skill в этом шаблоне.
-- Vendored upstream `SKILL.md` остаётся источником intent/examples, но не публичным execution contract.
+- Публичный contract для этого skill находится в repo-owned dispatcher, а не в vendored markdown.
+- Если нужны детали параметров, сначала читайте vendored upstream `SKILL.md`, затем helper-скрипты из `automation/vendor/cc-1c-skills/`.
 - Если dispatcher сообщает о missing dependencies, сначала используйте canonical readiness path, а не helper traceback.
+- Не переносите upstream PowerShell snippets в новый automation contract шаблона.

@@ -158,6 +158,7 @@
 ./.claude/skills/openspec-new-change/SKILL.md
 ./.claude/skills/openspec-sync-specs/SKILL.md
 ./.claude/skills/openspec-verify-change/SKILL.md
+./.claude/skills/repo-agent-verify/SKILL.md
 ./.claude/skills/role-compile/SKILL.md
 ./.claude/skills/role-info/SKILL.md
 ./.claude/skills/role-validate/SKILL.md
@@ -1159,6 +1160,11 @@
 ./openspec/changes/archive/2026-07-16-harden-warm-runtime-contours/specs/template-ci-contours/spec.md
 ./openspec/changes/archive/2026-07-16-harden-warm-runtime-contours/tasks.md
 ./openspec/changes/archive/2026-07-16-harden-warm-runtime-contours/traceability.md
+./openspec/changes/unify-agent-skill-sources/proposal.md
+./openspec/changes/unify-agent-skill-sources/specs/generated-project-agent-guidance/spec.md
+./openspec/changes/unify-agent-skill-sources/specs/project-scoped-skills/spec.md
+./openspec/changes/unify-agent-skill-sources/tasks.md
+./openspec/changes/unify-agent-skill-sources/traceability.md
 ./openspec/config.yaml
 ./openspec/project.md
 ./openspec/specs/agent-runtime-toolkit/spec.md
@@ -1289,6 +1295,8 @@
 ./scripts/release/publish-overlay-release.sh
 ./scripts/skills/run-imported-skill.ps1
 ./scripts/skills/run-imported-skill.sh
+./scripts/skills/sync-claude-skills.ps1
+./scripts/skills/sync-claude-skills.sh
 ./scripts/template/check-update.ps1
 ./scripts/template/check-update.sh
 ./scripts/template/lib-overlay.sh
