@@ -1,0 +1,24 @@
+## ADDED Requirements
+
+### Requirement: Материализованные необязательные модули остаются project-owned
+
+Overlay MUST обновлять заготовки `automation/optional/<module>/` и template-managed исполняемый код модулей. Overlay MUST NOT изменять пути, созданные командой `make optional-module-init`: профили, сценарии, регламенты, навыки и серверные обёртки модуля, а также кеши и каталоги прогонов.
+
+#### Scenario: Обновление проекта с материализованным модулем
+
+- **WHEN** проект с инициализированным модулем `customer-site-operations` выполняет `make template-update` на версию с изменённой заготовкой
+- **THEN** `automation/optional/customer-site-operations/` обновлена, а `infra/site/` и `docs/infra/site/` побайтно не изменены
+
+#### Scenario: Первичное создание проекта
+
+- **WHEN** проект создаётся `copier copy`
+- **THEN** заготовки модулей присутствуют в `automation/optional/`, а каталоги `infra/site/` и `migration/kd21/` отсутствуют
+
+### Requirement: Правки проекта в template-managed файлах переносятся до его обновления
+
+Перед `template-update` проекта, который изменял template-managed файлы, шаблон MUST содержать результат сверки этих файлов: для каждого файла решение `перенести`, `обобщить`, `оставить в проекте` или `уже есть` с причиной. Правки, которые остаются в проекте, MUST переноситься в project-owned точки расширения, а не терять при обновлении.
+
+#### Scenario: Сверка перед обновлением проекта-источника
+
+- **WHEN** в проекте-источнике готовится `template-update` на версию шаблона с этим change
+- **THEN** каждый из расходящихся template-managed файлов проекта имеет запись в инвентаре сверки change
