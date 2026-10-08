@@ -44,6 +44,12 @@ Project-owned шаги самого `agent-verify`:
 - шаги выполняются после базовых проверок шаблона в порядке имён файлов, первый отказ останавливает `agent-verify`;
 - `template-update` этот каталог не трогает; правила и остальные точки расширения (`Makefile.project`, `make.project.ps1`, проектный блок `.gitignore`/`.gitattributes`/`.contextignore`) описаны в [docs/template-maintenance.md](../template-maintenance.md#project-owned-extension-points).
 
+Python-окружение проекта:
+
+- `make verify-python-lint`, `make verify-types` и быстрый pytest входят в `make agent-verify` и запускают инструменты только через `uv run --locked`; без `uv` они завершаются ошибкой;
+- `pyproject.toml`, `uv.lock`, `requirements-dev.txt` и `pyrightconfig.json` принадлежат проекту: добавляйте свои зависимости (`uv add --dev ...`, затем перегенерация `requirements-dev.txt`) и корни проверки типов (`include` в `pyrightconfig.json`); `template-update` их не перезаписывает;
+- `pyrightconfig.json` должен сохранять `"extends": "scripts/qa/pyright-base.json"`, режим не ниже `standard` и не отключать правила; минимальные версии `ruff`, `basedpyright`, `pytest` задаёт шаблон. Подробности: [docs/template-maintenance.md](../template-maintenance.md#project-owned-extension-points).
+
 ## Imported Compatibility Skills
 
 Executable imported compatibility skills не должны использовать raw helper traceback как primary UX для missing Python/Node dependencies.

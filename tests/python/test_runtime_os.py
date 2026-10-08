@@ -8,14 +8,23 @@ from unittest.mock import patch
 
 from scripts.python.runtime_errors import CommandError
 from scripts.python.runtime_lock import ResourceLock
-from scripts.python.runtime_os import ProcessIdentity, identity_matches, manage_service, process_is_alive, service_command
+from scripts.python.runtime_os import (
+    ProcessIdentity,
+    identity_matches,
+    manage_service,
+    process_is_alive,
+    service_command,
+)
 from scripts.python.runtime_process import ProcessResult
 
 
 class RuntimeOsTests(unittest.TestCase):
     def test_windows_restart_is_stop_then_start(self) -> None:
         calls = []
-        with patch("scripts.python.runtime_os.run_process", side_effect=lambda command, **_kwargs: calls.append(command) or ProcessResult(command, 0, "", "")):
+        with patch(
+            "scripts.python.runtime_os.run_process",
+            side_effect=lambda command, **_kwargs: calls.append(command) or ProcessResult(command, 0, "", ""),
+        ):
             result = manage_service("Apache2.4", "restart", windows=True)
         self.assertEqual(result.returncode, 0)
         self.assertEqual(calls, [["sc.exe", "stop", "Apache2.4"], ["sc.exe", "start", "Apache2.4"]])

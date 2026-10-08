@@ -6,8 +6,7 @@ import shutil
 import uuid
 from pathlib import Path
 
-from .common import CommandError, die, repo_path
-
+from .common import die, repo_path
 
 TEMPLATE_ALIASES = {
     "sync": "TemplateSyncProcessor",
@@ -22,9 +21,7 @@ DEFAULT_INFO = {
     "TemplateSyncAsyncProcessor": "Шаблон синхронной и фоновой внешней обработки",
 }
 
-UUID_RE = re.compile(
-    r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"
-)
+UUID_RE = re.compile(r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}")
 EPF_NAME_RE = re.compile(r"^[A-Za-zА-Яа-яЁё_][A-Za-zА-Яа-яЁё0-9_]*$")
 
 
@@ -64,7 +61,9 @@ def _replace_uuids(text: str, replacements: dict[str, str]) -> str:
     return UUID_RE.sub(replace, text)
 
 
-def _rewrite_file(path: Path, template_name: str, new_name: str, info: str, version: str, uuids: dict[str, str]) -> None:
+def _rewrite_file(
+    path: Path, template_name: str, new_name: str, info: str, version: str, uuids: dict[str, str]
+) -> None:
     raw = path.read_text(encoding="utf-8-sig")
     text = raw.replace(template_name, new_name)
     if info:
@@ -111,7 +110,9 @@ def init_epf_from_template(argv: list[str]) -> int:
     if not source.is_dir():
         die(f"template directory does not exist: {source}")
 
-    output_root = Path(args.output_root).expanduser().resolve(strict=False) if args.output_root else repo_path("src", "epf")
+    output_root = (
+        Path(args.output_root).expanduser().resolve(strict=False) if args.output_root else repo_path("src", "epf")
+    )
     target = output_root / new_name
     if target.exists():
         die(f"target EPF already exists: {target}")
@@ -138,4 +139,3 @@ def init_epf_from_template(argv: list[str]) -> int:
     print(f"  ./scripts/skills/run-imported-skill.sh epf-validate src/epf/{new_name}")
     print(f"  ./scripts/skills/run-imported-skill.sh form-validate src/epf/{new_name}/{new_name}/Forms/Форма")
     return 0
-

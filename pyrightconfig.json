@@ -1,0 +1,15 @@
+{
+  "extends": "scripts/qa/pyright-base.json",
+  "include": [
+    "scripts",
+    "tests",
+    "tooling"
+  ],
+  "exclude": [
+    "**/__pycache__",
+    "**/node_modules",
+    ".artifacts",
+    ".venv",
+    "automation/vendor"
+  ]
+}

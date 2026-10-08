@@ -7,9 +7,15 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from scripts.python.bsl_mcp_runtime import load_available_connections, load_dotenv, resolve_analyzer_executable, run_bsl_analyzer_mcp, select_source_dir
-from scripts.python.runtime_process import ProcessResult
+from scripts.python.bsl_mcp_runtime import (
+    load_available_connections,
+    load_dotenv,
+    resolve_analyzer_executable,
+    run_bsl_analyzer_mcp,
+    select_source_dir,
+)
 from scripts.python.runtime_errors import CommandError
+from scripts.python.runtime_process import ProcessResult
 
 
 class BslMcpRuntimeTests(unittest.TestCase):
@@ -25,10 +31,17 @@ class BslMcpRuntimeTests(unittest.TestCase):
     def test_registry_filters_only_connections_with_available_secret_refs(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             path = Path(temp_dir) / "connections.json"
-            path.write_text(json.dumps({"connections": {
-                "ready": {"user_env": "USER", "password_env": "PASS"},
-                "missing": {"user_env": "USER", "password_env": "MISSING"},
-            }}), encoding="utf-8")
+            path.write_text(
+                json.dumps(
+                    {
+                        "connections": {
+                            "ready": {"user_env": "USER", "password_env": "PASS"},
+                            "missing": {"user_env": "USER", "password_env": "MISSING"},
+                        }
+                    }
+                ),
+                encoding="utf-8",
+            )
             with patch.dict(os.environ, {"USER": "chatgpt", "PASS": "secret"}, clear=True):
                 self.assertEqual(list(load_available_connections(path)), ["ready"])
 
@@ -65,9 +78,14 @@ class BslMcpRuntimeTests(unittest.TestCase):
             ):
                 self.assertEqual(run_bsl_analyzer_mcp([]), 0)
 
-            self.assertEqual(captured["command"], ["bsl-analyzer-app", "mcp", "serve", "--profile", "workspace", "--source-dir", str(source)])
-            self.assertEqual(captured["env"]["BSL_MCP_BROKER"], "1")
-            self.assertNotIn("BSL_MCP_BROKER_REGISTRY", captured["env"])
+            self.assertEqual(
+                captured["command"],
+                ["bsl-analyzer-app", "mcp", "serve", "--profile", "workspace", "--source-dir", str(source)],
+            )
+            env = captured["env"]
+            assert isinstance(env, dict)
+            self.assertEqual(env["BSL_MCP_BROKER"], "1")
+            self.assertNotIn("BSL_MCP_BROKER_REGISTRY", env)
 
     def test_launcher_loads_shared_embedding_profile(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -78,7 +96,9 @@ class BslMcpRuntimeTests(unittest.TestCase):
             registry = root / "connections.json"
             registry.write_text('{"connections": {}}', encoding="utf-8")
             profile = root / "embedding.env"
-            profile.write_text("EMBEDDING_URL=http://127.0.0.1:9000\nEMBEDDING_MODEL=test-model\nEMBEDDING_DIM=42\n", encoding="utf-8")
+            profile.write_text(
+                "EMBEDDING_URL=http://127.0.0.1:9000\nEMBEDDING_MODEL=test-model\nEMBEDDING_DIM=42\n", encoding="utf-8"
+            )
             captured: dict[str, object] = {}
 
             def fake_run(command: list[str], **kwargs: object) -> ProcessResult:
@@ -90,13 +110,19 @@ class BslMcpRuntimeTests(unittest.TestCase):
                 patch("scripts.python.bsl_mcp_runtime.resolve_analyzer_executable", return_value="bsl-analyzer-app"),
                 patch("scripts.python.bsl_mcp_runtime.embedding_is_ready", return_value=False),
                 patch("scripts.python.bsl_mcp_runtime.run_process", side_effect=fake_run),
-                patch.dict(os.environ, {"BSL_ONEC_CONNECTIONS_FILE": str(registry), "BSL_ANALYZER_EMBEDDING_ENV": str(profile)}, clear=True),
+                patch.dict(
+                    os.environ,
+                    {"BSL_ONEC_CONNECTIONS_FILE": str(registry), "BSL_ANALYZER_EMBEDDING_ENV": str(profile)},
+                    clear=True,
+                ),
             ):
                 self.assertEqual(run_bsl_analyzer_mcp([]), 0)
 
-            self.assertEqual(captured["env"]["EMBEDDING_URL"], "http://127.0.0.1:9000")
-            self.assertEqual(captured["env"]["EMBEDDING_MODEL"], "test-model")
-            self.assertEqual(captured["env"]["EMBEDDING_DIM"], "42")
+            env = captured["env"]
+            assert isinstance(env, dict)
+            self.assertEqual(env["EMBEDDING_URL"], "http://127.0.0.1:9000")
+            self.assertEqual(env["EMBEDDING_MODEL"], "test-model")
+            self.assertEqual(env["EMBEDDING_DIM"], "42")
 
     def test_windows_rejects_auto_update_launcher_as_broker_parent(self) -> None:
         with (

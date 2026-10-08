@@ -205,6 +205,28 @@ preserve_manifest_has_entry() {
   return 1
 }
 
+# Seed-once Python environment (design decision R15): delivered only when the project lacks it,
+# never overwritten afterwards. Keep in sync with PROJECT_OWNED_PYTHON_SEED_PATHS in
+# scripts/python/project_extensions.py.
+PROJECT_OWNED_PYTHON_SEED_PATHS=(pyproject.toml uv.lock requirements-dev.txt pyrightconfig.json)
+
+seed_missing_project_files() {
+  local source_root="$1"
+  local target_root="$2"
+  local relpath
+
+  for relpath in "${PROJECT_OWNED_PYTHON_SEED_PATHS[@]}"; do
+    [ -e "$target_root/$relpath" ] && continue
+    [ -f "$source_root/$relpath" ] || continue
+    if [ "${DRY_RUN:-0}" = "1" ]; then
+      printf 'seed %s\n' "$relpath"
+      continue
+    fi
+    mkdir -p "$(dirname -- "$target_root/$relpath")"
+    cp -p "$source_root/$relpath" "$target_root/$relpath"
+  done
+}
+
 # Keep in sync with scripts/python/project_extensions.py.
 project_block_begin="# >>> project-owned block: template-update keeps the lines up to the closing marker >>>"
 project_block_end="# <<< project-owned block <<<"

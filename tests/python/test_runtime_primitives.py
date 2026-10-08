@@ -21,7 +21,7 @@ class RuntimePrimitiveTests(unittest.TestCase):
 
             profile = load_runtime_profile(profile_path)
 
-            self.assertIsNotNone(profile)
+            assert profile is not None
             self.assertEqual(profile.name, "Локальная База")
             self.assertEqual(profile.path, profile_path.resolve())
 

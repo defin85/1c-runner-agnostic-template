@@ -133,6 +133,14 @@ def main(argv: list[str] | None = None) -> int:
             return agent_verify()
         if command == "agent-verify-project-steps":
             return run_project_verify_steps(project_root())
+        if command in {"python-lint", "type-check", "python-tests"}:
+            from .type_checking import run_python_lint, run_python_tests, run_type_check
+
+            if command == "python-lint":
+                return run_python_lint()
+            if command == "type-check":
+                return run_type_check()
+            return run_python_tests(args)
         if command == "check-agent-docs":
             return check_agent_docs()
         if command == "check-skill-bindings":

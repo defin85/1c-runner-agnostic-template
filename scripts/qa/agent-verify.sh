@@ -42,6 +42,18 @@ printf '%s' "$readiness_json" | jq -e '
 log "Check reusable testing contract"
 "$root/tests/smoke/reusable-testing-contract.sh"
 
+log "Python lint (ruff check, ruff format --check)"
+"$root/scripts/qa/python-lint.sh"
+
+log "Python types (basedpyright, no baseline)"
+"$root/scripts/qa/type-check.sh"
+
+log "Python unit tests (pytest, fast subset; the full suite runs in CI)"
+"$root/scripts/qa/python-tests.sh" --fast
+
+log "Check Python type checking contract"
+"$root/tests/smoke/python-type-checking-contract.sh"
+
 log "Run project-owned agent-verify steps (scripts/qa/agent-verify.d)"
 "$root/scripts/python/run-python.sh" agent-verify-project-steps
 

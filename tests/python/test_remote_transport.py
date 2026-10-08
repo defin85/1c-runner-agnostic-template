@@ -16,9 +16,16 @@ class RemoteTransportTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             profile = RuntimeProfile(root / "profile.json", {}, "remote", "remote-windows")
-            prepared = PreparedCommand("dump-src", "Dump", "remote-windows", command_source="builder", command=["1cv8.exe", "DESIGNER"])
-            with patch("scripts.python.runtime.run_transport_process", return_value=ProcessResult([], 0, json.dumps({"exitCode": 7, "stdout": "out", "stderr": "err"}), "")) as runner:
-                result = execute_prepared_capability_command(prepared, profile, root, root / "stdout.log", root / "stderr.log")
+            prepared = PreparedCommand(
+                "dump-src", "Dump", "remote-windows", command_source="builder", command=["1cv8.exe", "DESIGNER"]
+            )
+            with patch(
+                "scripts.python.runtime.run_transport_process",
+                return_value=ProcessResult([], 0, json.dumps({"exitCode": 7, "stdout": "out", "stderr": "err"}), ""),
+            ) as runner:
+                result = execute_prepared_capability_command(
+                    prepared, profile, root, root / "stdout.log", root / "stderr.log"
+                )
             self.assertEqual(result, 7)
             request = json.loads(runner.call_args.kwargs["input_text"])
             self.assertEqual(request["argv"], ["1cv8.exe", "DESIGNER"])
@@ -28,9 +35,15 @@ class RemoteTransportTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             profile = RuntimeProfile(root / "profile.json", {}, "remote", "remote-windows")
-            prepared = PreparedCommand("dump-src", "Dump", "remote-windows", command_source="builder", command=["1cv8.exe"])
-            with patch("scripts.python.runtime.run_transport_process", return_value=ProcessResult([], 2, "", "offline")):
-                result = execute_prepared_capability_command(prepared, profile, root, root / "stdout.log", root / "stderr.log")
+            prepared = PreparedCommand(
+                "dump-src", "Dump", "remote-windows", command_source="builder", command=["1cv8.exe"]
+            )
+            with patch(
+                "scripts.python.runtime.run_transport_process", return_value=ProcessResult([], 2, "", "offline")
+            ):
+                result = execute_prepared_capability_command(
+                    prepared, profile, root, root / "stdout.log", root / "stderr.log"
+                )
             self.assertEqual(result, 70)
             self.assertIn("transport failure", (root / "stderr.log").read_text(encoding="utf-8"))
 

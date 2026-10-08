@@ -33,7 +33,11 @@ class RuntimeResultTests(unittest.TestCase):
             artifacts.stderr_path.write_text(f"error {secret}", encoding="utf-8")
             sanitize_artifact_logs(artifacts, [secret])
             publish_summary(artifacts, {"diagnostic_argv": ["tool", secret]}, [secret])
-            combined = artifacts.stdout_path.read_text(encoding="utf-8") + artifacts.stderr_path.read_text(encoding="utf-8") + artifacts.summary_path.read_text(encoding="utf-8")
+            combined = (
+                artifacts.stdout_path.read_text(encoding="utf-8")
+                + artifacts.stderr_path.read_text(encoding="utf-8")
+                + artifacts.summary_path.read_text(encoding="utf-8")
+            )
             self.assertNotIn(secret, combined)
             self.assertIn("__REDACTED_SECRET__", combined)
 

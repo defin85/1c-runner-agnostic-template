@@ -13,21 +13,28 @@ from scripts.python.runtime_profiles import load_runtime_profile
 class HttpRuntimeTests(unittest.TestCase):
     def make_profile(self, root: Path) -> Path:
         path = root / "profile.json"
-        path.write_text(json.dumps({
-            "schemaVersion": 3,
-            "profileName": "http-test",
-            "capabilities": {"publishHttp": {
-                "backend": "apache-webinst",
-                "webinstPath": "C:/Program Files/1cv8/webinst.exe",
-                "configPath": "C:/Apache24/conf/httpd.conf",
-                "directory": "C:/Apache24/htdocs/demo",
-                "descriptor": "C:/Apache24/conf/demo.vrd",
-                "name": "demo",
-                "connectionString": "Srvr=localhost;Ref=demo;",
-                "serviceName": "Apache2.4",
-                "url": "http://localhost/demo/",
-            }},
-        }), encoding="utf-8")
+        path.write_text(
+            json.dumps(
+                {
+                    "schemaVersion": 3,
+                    "profileName": "http-test",
+                    "capabilities": {
+                        "publishHttp": {
+                            "backend": "apache-webinst",
+                            "webinstPath": "C:/Program Files/1cv8/webinst.exe",
+                            "configPath": "C:/Apache24/conf/httpd.conf",
+                            "directory": "C:/Apache24/htdocs/demo",
+                            "descriptor": "C:/Apache24/conf/demo.vrd",
+                            "name": "demo",
+                            "connectionString": "Srvr=localhost;Ref=demo;",
+                            "serviceName": "Apache2.4",
+                            "url": "http://localhost/demo/",
+                        }
+                    },
+                }
+            ),
+            encoding="utf-8",
+        )
         return path
 
     def test_webinst_command_preserves_paths_as_argv(self) -> None:
@@ -98,7 +105,9 @@ class HttpRuntimeTests(unittest.TestCase):
                 ["--profile", str(profile_path), "--run-root", str(root / "run")],
                 command_runner=fake_run,
             )
-            logs = (root / "run" / "stdout.log").read_text(encoding="utf-8") + (root / "run" / "stderr.log").read_text(encoding="utf-8")
+            logs = (root / "run" / "stdout.log").read_text(encoding="utf-8") + (root / "run" / "stderr.log").read_text(
+                encoding="utf-8"
+            )
             self.assertNotIn("SENTINEL_SECRET", logs)
             self.assertIn("__REDACTED_SECRET__", logs)
 

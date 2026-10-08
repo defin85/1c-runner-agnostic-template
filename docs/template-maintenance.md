@@ -67,6 +67,28 @@ make template-update
 
 Если маркеров в файле проекта нет, `template-update` просто заменяет файл версией шаблона, где блок пустой. Если маркеры повреждены (нет пары, повтор, обратный порядок), обновление останавливается с ошибкой и файл не меняется.
 
+### Python-окружение проекта (seed-once)
+
+`pyproject.toml`, `uv.lock`, `requirements-dev.txt` и `pyrightconfig.json` шаблон кладёт в проект один раз, после этого ими владеет проект:
+
+- при `copier copy` файлы приходят из шаблона вместе с остальным деревом;
+- `template-update` их не перезаписывает и не удаляет: они перечислены в `automation/context/template-update-preserve-paths.txt` и не входят в `template-managed-paths.txt`. Если в проекте какого-то файла нет (проект создан до появления Python-окружения), `template-update` один раз копирует его из release шаблона, существующие файлы не трогает;
+- проект добавляет свои зависимости через `uv add --dev <пакет>` и пересобирает производный `requirements-dev.txt`:
+
+  ```bash
+  uv export --locked --format requirements-txt --no-hashes --no-emit-project --no-annotate --output-file requirements-dev.txt
+  ```
+
+- проект добавляет свои корни проверки типов в `include` (и при необходимости в `exclude`) своего `pyrightconfig.json`.
+
+Что остаётся за шаблоном и проверяется `make verify-types` (`scripts/python/type_checking.py`):
+
+- базовые правила типизации лежат в template-managed `scripts/qa/pyright-base.json`; проектный `pyrightconfig.json` обязан подключать его через `"extends": "scripts/qa/pyright-base.json"`;
+- эффективный режим не ниже `standard`; проект может только ужесточать правила (`"error"`/`true`), значения `"none"`, `false`, `"warning"` и другие понижения отклоняются; `baselineFile` и `ignore` запрещены, baseline-файлы тоже;
+- `requirements-dev.txt` закрепляет `ruff`, `basedpyright` и `pytest` не ниже минимальных версий шаблона и совпадает с `uv export` из `uv.lock` проекта. При нарушении проверка печатает команду исправления (`uv add --dev "<пакет>>=<версия>"`, затем `uv export ...`).
+
+Когда шаблон поднимает минимальные версии инструментов, `template-update` файлы проекта не меняет: `make verify-types` сообщает, какой пин поднять.
+
 Пример `Makefile.project`:
 
 ```make

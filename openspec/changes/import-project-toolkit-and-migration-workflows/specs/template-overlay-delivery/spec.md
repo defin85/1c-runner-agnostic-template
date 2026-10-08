@@ -44,3 +44,17 @@ Overlay MUST обновлять заготовки `automation/optional/<module>
 
 - **WHEN** в `.gitignore` проекта есть открывающий маркер проектного блока без закрывающего и выполняется `template-update`
 - **THEN** обновление завершается ошибкой с именем файла, и `.gitignore` не изменён
+
+### Requirement: Python-конфигурация созданного проекта создаётся один раз и принадлежит проекту
+
+`pyproject.toml`, `uv.lock`, `requirements-dev.txt` и `pyrightconfig.json` MUST попадать в созданный проект при `copier copy` и MUST NOT входить в `template-managed-paths.txt`. `template-update` MUST создавать такой файл только при его отсутствии и MUST NOT перезаписывать существующий. Общие правила типизации MUST лежать в template-managed `scripts/qa/pyright-base.json`, а проектный `pyrightconfig.json` MUST подключать его через `extends`. Проверка типов MUST завершаться ошибкой, если `extends` удалён или указывает на другой файл, режим слабее `standard`, правило отключено или понижено, задан `baselineFile`, версия `ruff`, `basedpyright` или `pytest` ниже требуемой либо `requirements-dev.txt` расходится с `uv.lock`.
+
+#### Scenario: Проектная зависимость переживает обновление
+
+- **WHEN** проект добавил зависимость в `pyproject.toml` и `uv.lock` и дополнительный корень в `include` своего `pyrightconfig.json`, затем выполнил `template-update`
+- **THEN** зависимость, lock-файл и корень `include` остались без изменений
+
+#### Scenario: Проект ослабил проверку типов
+
+- **WHEN** в проектном `pyrightconfig.json` задан режим `basic` или удалён `extends`
+- **THEN** `make verify-types` завершается с ненулевым кодом и называет нарушенное правило

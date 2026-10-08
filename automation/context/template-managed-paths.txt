@@ -891,6 +891,7 @@ env/wsl.example.json
 features/README.md
 features/examples/tdd-starter.feature
 make.ps1
+ruff.toml
 scripts/AGENTS.md
 scripts/__init__.py
 scripts/adapters/direct-platform.ps1
@@ -1022,6 +1023,7 @@ scripts/python/runtime_techlog.py
 scripts/python/template_tools.py
 scripts/python/testing_campaign.py
 scripts/python/testing_tooling.py
+scripts/python/type_checking.py
 scripts/python/v8std.py
 scripts/python/v8unpack_container.py
 scripts/python/v8unpack_erf_form.py
@@ -1043,6 +1045,13 @@ scripts/qa/check-skill-bindings.ps1
 scripts/qa/check-skill-bindings.sh
 scripts/qa/codex-onboard.ps1
 scripts/qa/codex-onboard.sh
+scripts/qa/pyright-base.json
+scripts/qa/python-lint.ps1
+scripts/qa/python-lint.sh
+scripts/qa/python-tests.ps1
+scripts/qa/python-tests.sh
+scripts/qa/type-check.ps1
+scripts/qa/type-check.sh
 scripts/skills/run-imported-skill.ps1
 scripts/skills/run-imported-skill.sh
 scripts/skills/sync-claude-skills.ps1
@@ -1322,6 +1331,7 @@ tests/smoke/new-1c-project-current-dir-defaults.sh
 tests/smoke/observation-contract.sh
 tests/smoke/onec-port-lease-contract.sh
 tests/smoke/project-extension-points.sh
+tests/smoke/python-type-checking-contract.sh
 tests/smoke/reusable-testing-contract.sh
 tests/smoke/reusable_testing_contract.py
 tests/smoke/run-client-contract.sh

@@ -7,3 +7,9 @@ tests/golden/run.sh
 Makefile.project
 make.project.ps1
 scripts/qa/agent-verify.d/
+# Seed-once Python environment: copier copy and template-update (only when absent) deliver these files,
+# afterwards the project owns its dependencies and type-check roots. Tool minimums are enforced by type-check.
+pyproject.toml
+uv.lock
+requirements-dev.txt
+pyrightconfig.json

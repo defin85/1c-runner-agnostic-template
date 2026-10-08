@@ -10,10 +10,11 @@ from pathlib import Path
 
 import pytest
 
-ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(ROOT))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from scripts.python import metadata, metadata_template_ops  # noqa: E402
+from scripts.python import metadata, metadata_template_ops
+
+ROOT = Path(__file__).resolve().parents[2]
 
 FIXTURE = ROOT / "tests/fixtures/metadata-template/config"
 STUB = "Catalog.Товары.Template.Пустой"

@@ -48,7 +48,7 @@
 ## 3. Качество репозитория
 
 - [x] 3.1 Добавить в `check-skill-bindings` проверку существования путей из `SKILL.md` с учётом необязательных модулей; добавить `tests/smoke/skill-bindings-paths.sh`.
-- [ ] 3.2 Добавить проверку Python-кода ruff и basedpyright (Р9, Р10).
+- [x] 3.2 Добавить проверку Python-кода ruff и basedpyright (Р9, Р10).
   - ruff: `ruff.toml` (правила `E4,E7,E9,F,B,I,UP`, `py312`, 120, `per-file-target-version = "py37"` для серверных обёрток площадки), цель `make verify-python-lint` / `./make.ps1 verify-python-lint` с `ruff check` и `ruff format --check`; исправить замечания шаблона, каждый `noqa` с причиной.
   - basedpyright: `pyrightconfig.json` в режиме `standard`, `scripts/python/type_checking.py`, `scripts/qa/type-check.sh|.ps1`, цель `make verify-types`; baseline не поставлять, при наличии baseline-файла проверка падает; исправить ошибки шаблона кодом.
   - Обе цели включить в `make agent-verify`; добавить `tests/smoke/python-type-checking-contract.sh`.
@@ -56,6 +56,8 @@
   - Проверка: `ruff check`, `ruff format --check` и `basedpyright` без ошибок; после `ruff check --fix` unit-тесты проходят и diff пуст; добавленная в фикстуру ошибка типа даёт ненулевой код с файлом и строкой.
   - Добавить запуск pytest в CI и `agent-verify`: тесты `test_metadata_*.py` написаны для pytest, под `unittest discover` они не выполняются.
   - Сделать `uv.lock` обязательным входом отпечатка движка в `metadata.py` (сейчас необязателен, потому что uv в шаблоне ещё нет).
+  - Сделано по Р15: `pyproject.toml`, `uv.lock`, `requirements-dev.txt`, `pyrightconfig.json` создаются один раз и принадлежат проекту; общие правила в `scripts/qa/pyright-base.json`. В `agent-verify` идёт быстрый pytest без шести медленных наборов metadata, полный — в CI и `make verify-python-tests`.
+  - Не проверено: PowerShell-обёртки и Windows-джобы CI (на машине нет `pwsh`); проверить первым прогоном CI.
 - [x] 3.3 Перенести общие правки template-managed сценариев по решениям `inventory.md`.
   - Для `runtime.py` — сопоставить с модулями `runtime_*`.
   - Включить возможности по Р12 и импортированные `db-*`/`epf/erf-*` через профиль по Р11 (поведение в `imported_skills.py`, vendor-файлы не править); удалить тесты текста BSL, блок `rlm-tools` и `format-bsl` по Р14; перенести коммит `06b9155` (preserve для `tests/golden/run.sh`).

@@ -26,7 +26,7 @@ class ResourceLock:
     poll_interval: float = 0.05
     _owned: bool = False
 
-    def acquire(self) -> "ResourceLock":
+    def acquire(self) -> ResourceLock:
         self.path.parent.mkdir(parents=True, exist_ok=True)
         deadline = time.monotonic() + self.timeout
         payload = json.dumps(self.owner, ensure_ascii=False, sort_keys=True).encode("utf-8")
@@ -52,7 +52,7 @@ class ResourceLock:
                         pass
                     continue
                 if time.monotonic() >= deadline:
-                    raise CommandError(f"resource lock timeout: {self.path}")
+                    raise CommandError(f"resource lock timeout: {self.path}") from None
                 time.sleep(self.poll_interval)
 
     def release(self) -> None:
@@ -60,16 +60,16 @@ class ResourceLock:
             return
         try:
             current = json.loads(self.path.read_text(encoding="utf-8"))
-        except (FileNotFoundError, json.JSONDecodeError):
+        except (FileNotFoundError, json.JSONDecodeError) as error:
             self._owned = False
-            raise CommandError(f"resource lock ownership cannot be verified: {self.path}")
+            raise CommandError(f"resource lock ownership cannot be verified: {self.path}") from error
         if current != self.owner:
             self._owned = False
             raise CommandError(f"resource lock owner changed: {self.path}")
         self.path.unlink()
         self._owned = False
 
-    def __enter__(self) -> "ResourceLock":
+    def __enter__(self) -> ResourceLock:
         return self.acquire()
 
     def __exit__(self, exc_type: object, exc: object, traceback: object) -> None:

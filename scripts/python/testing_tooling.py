@@ -15,7 +15,6 @@ from pathlib import Path, PurePosixPath
 
 from .common import die, project_root
 
-
 UUID_RE = re.compile(r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}")
 CLASS_ID_RE = re.compile(r"<xr:ClassId>([0-9a-fA-F-]{36})</xr:ClassId>")
 NAME_RE = re.compile(r"^[^\W\d]\w{0,79}$", re.UNICODE)

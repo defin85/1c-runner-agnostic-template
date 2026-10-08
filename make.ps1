@@ -20,6 +20,9 @@ function Resolve-TargetScript {
 
 $targets = @{
     "agent-verify" = @((Resolve-TargetScript "scripts\qa\agent-verify.ps1"))
+    "verify-python-lint" = @((Resolve-TargetScript "scripts\qa\python-lint.ps1"))
+    "verify-types" = @((Resolve-TargetScript "scripts\qa\type-check.ps1"))
+    "verify-python-tests" = @((Resolve-TargetScript "scripts\qa\python-tests.ps1"))
     "act-preflight" = @((Resolve-TargetScript "scripts\qa\act-preflight.ps1"))
     "qa" = @((Resolve-TargetScript "scripts\qa\agent-verify.ps1"))
     "analyze-bsl" = @((Resolve-TargetScript "scripts\qa\analyze-bsl.ps1"))
@@ -81,6 +84,9 @@ if ($Target -eq "help") {
     @(
         "Available targets:",
         "  ./make.ps1 agent-verify",
+        "  ./make.ps1 verify-python-lint",
+        "  ./make.ps1 verify-types",
+        "  ./make.ps1 verify-python-tests",
         "  ./make.ps1 act-preflight",
         "  ./make.ps1 qa",
         "  ./make.ps1 analyze-bsl",

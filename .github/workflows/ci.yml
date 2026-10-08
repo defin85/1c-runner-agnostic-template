@@ -22,6 +22,13 @@ jobs:
 
       - uses: ./.github/actions/setup-openspec
 
+      - uses: astral-sh/setup-uv@v9
+        with:
+          version: "0.11.18"
+
+      - name: Install Python development dependencies
+        run: uv sync --locked
+
       - name: Shell syntax
         if: runner.os != 'Windows'
         run: |
@@ -78,6 +85,24 @@ jobs:
             bash ./scripts/qa/check-agent-docs.sh
           }
 
+      - name: Python lint (ruff)
+        shell: pwsh
+        run: |
+          if ($env:RUNNER_OS -eq 'Windows') {
+            ./scripts/qa/python-lint.ps1
+          } else {
+            bash ./scripts/qa/python-lint.sh
+          }
+
+      - name: Python types (basedpyright, no baseline)
+        shell: pwsh
+        run: |
+          if ($env:RUNNER_OS -eq 'Windows') {
+            ./scripts/qa/type-check.ps1
+          } else {
+            bash ./scripts/qa/type-check.sh
+          }
+
   fixture:
     name: fixture (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
@@ -99,6 +124,10 @@ jobs:
         with:
           python-version: "3.12"
 
+      - uses: astral-sh/setup-uv@v9
+        with:
+          version: "0.11.18"
+
       - name: Install fixture runtime tools
         if: runner.os != 'Windows'
         run: |
@@ -108,8 +137,18 @@ jobs:
       - name: Install Copier
         run: python -m pip install --upgrade pip copier
 
-      - name: Python runtime contracts
-        run: python -m unittest discover -s tests/python -p "test_*.py"
+      - name: Python unit tests (full pytest suite)
+        shell: pwsh
+        run: |
+          if ($env:RUNNER_OS -eq 'Windows') {
+            ./scripts/qa/python-tests.ps1
+          } else {
+            bash ./scripts/qa/python-tests.sh
+          }
+
+      - name: Python type checking contract
+        if: runner.os != 'Windows'
+        run: bash tests/smoke/python-type-checking-contract.sh
 
       - name: Agent docs contract
         if: runner.os != 'Windows'

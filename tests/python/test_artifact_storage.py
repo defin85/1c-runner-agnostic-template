@@ -177,7 +177,7 @@ class WindowsSimulationTests(ArtifactStorageTestCase):
         real = sample.stat()
         values = [getattr(real, name) for name in ("st_mode", "st_ino", "st_dev", "st_nlink", "st_uid", "st_gid")]
         fake = os.stat_result((*values, 1234, int(real.st_atime), int(real.st_mtime), int(real.st_ctime)))
-        self.assertEqual(storage._allocated_bytes(fake), 1234)  # pyright: ignore[reportPrivateUsage]
+        self.assertEqual(storage._allocated_bytes(fake), 1234)
 
 
 class LockTests(ArtifactStorageTestCase):
@@ -307,7 +307,7 @@ class CacheAndUsageTests(ArtifactStorageTestCase):
         sparse = self.tmp / "sparse"
         with sparse.open("wb") as stream:
             stream.truncate(1024 * 1024)
-        used_bytes, inodes = storage._tree_usage(sparse)  # pyright: ignore[reportPrivateUsage]
+        used_bytes, inodes = storage._tree_usage(sparse)
         self.assertEqual(used_bytes, getattr(sparse.stat(), "st_blocks", 0) * 512)
         self.assertEqual(inodes, 1)
 

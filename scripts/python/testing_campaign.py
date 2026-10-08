@@ -7,11 +7,10 @@ import re
 import shutil
 import tempfile
 from collections import Counter
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path, PurePosixPath
 
 from .common import die, project_root
-
 
 ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$")
 UTC_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$")
@@ -81,7 +80,7 @@ def _validate_campaign(raw: object, expected_id: str | None = None) -> dict:
         parsed = datetime.fromisoformat(data["createdAt"].replace("Z", "+00:00"))
     except ValueError:
         die("createdAt must be UTC RFC 3339")
-    if parsed.tzinfo != timezone.utc or not data["createdAt"].endswith("Z"):
+    if parsed.tzinfo != UTC or not data["createdAt"].endswith("Z"):
         die("createdAt must be UTC RFC 3339")
     entrypoints = _object(data["entrypoints"], "entrypoints")
     _exact_keys(entrypoints, ENTRYPOINT_KEYS, ENTRYPOINT_KEYS, "entrypoints")
@@ -108,7 +107,11 @@ def _validate_job(raw: object) -> dict:
         if not filters:
             die("filters must contain at least one filter")
         for key, values in filters.items():
-            if not isinstance(values, list) or not values or any(not isinstance(item, str) or not item for item in values):
+            if (
+                not isinstance(values, list)
+                or not values
+                or any(not isinstance(item, str) or not item for item in values)
+            ):
                 die(f"filters.{key} must be a non-empty string array")
             if key == "paths":
                 for value in values:
@@ -228,12 +231,15 @@ def run_testing_campaign(argv: list[str]) -> int:
         queue_source = Path(args.queue).resolve(strict=True)
         entrypoints = _object(_load_json(Path(args.entrypoints).resolve(strict=True)), "entrypoints")
         _exact_keys(entrypoints, ENTRYPOINT_KEYS, ENTRYPOINT_KEYS, "entrypoints")
-        campaign = _validate_campaign({
-            "schemaVersion": 1,
-            "id": campaign_id,
-            "createdAt": datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z"),
-            "entrypoints": entrypoints,
-        }, campaign_id)
+        campaign = _validate_campaign(
+            {
+                "schemaVersion": 1,
+                "id": campaign_id,
+                "createdAt": datetime.now(UTC).isoformat(timespec="seconds").replace("+00:00", "Z"),
+                "entrypoints": entrypoints,
+            },
+            campaign_id,
+        )
         jobs = _load_queue(queue_source)
         campaigns = base / "campaigns"
         if campaigns.is_symlink():
@@ -244,7 +250,9 @@ def run_testing_campaign(argv: list[str]) -> int:
         campaigns.mkdir(parents=True, exist_ok=True)
         temp = Path(tempfile.mkdtemp(prefix=f".{campaign_id}.", dir=campaigns))
         try:
-            (temp / "campaign.json").write_text(json.dumps(campaign, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+            (temp / "campaign.json").write_text(
+                json.dumps(campaign, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+            )
             _write_queue(temp / "queue.jsonl", jobs)
             os.replace(temp, target)
             _atomic_text(base / "active-campaign.txt", campaign_id + "\n")
@@ -257,7 +265,9 @@ def run_testing_campaign(argv: list[str]) -> int:
     if args.action == "use":
         campaign_id = _valid_id(args.id, "campaign id")
         campaign_dir = _safe_existing(base / "campaigns" / campaign_id, root, "campaign directory")
-        _validate_campaign(_load_json(_safe_existing(campaign_dir / "campaign.json", root, "campaign file")), campaign_id)
+        _validate_campaign(
+            _load_json(_safe_existing(campaign_dir / "campaign.json", root, "campaign file")), campaign_id
+        )
         _load_queue(_safe_existing(campaign_dir / "queue.jsonl", root, "queue file"))
         _atomic_text(base / "active-campaign.txt", campaign_id + "\n")
         return 0
@@ -268,7 +278,17 @@ def run_testing_campaign(argv: list[str]) -> int:
         return 0
     if args.action == "status":
         counts = Counter(job["status"] for job in jobs)
-        print(json.dumps({"campaignId": campaign_id, "schemaVersion": 1, "counts": {status: counts[status] for status in STATUSES}}, ensure_ascii=False, separators=(",", ":")))
+        print(
+            json.dumps(
+                {
+                    "campaignId": campaign_id,
+                    "schemaVersion": 1,
+                    "counts": {status: counts[status] for status in STATUSES},
+                },
+                ensure_ascii=False,
+                separators=(",", ":"),
+            )
+        )
         return 0
     job = next((job for job in jobs if job["id"] == args.id), None)
     if job is None:

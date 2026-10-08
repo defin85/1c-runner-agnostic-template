@@ -254,6 +254,14 @@ def _procedures(module: Path) -> list[dict[str, object]]:
     ]
 
 
+def _at(value: object, *indexes: int) -> object:
+    """Index a nested raw Form.bin tree; raises IndexError/TypeError/KeyError exactly like direct indexing."""
+    current: Any = value
+    for index in indexes:
+        current = current[index]
+    return current
+
+
 def _raw_strings(value: object) -> list[str]:
     result: list[str] = []
     if isinstance(value, str):
@@ -285,7 +293,7 @@ def _table_column_titles(raw: object, column_names: list[str]) -> dict[str, str]
         }
 
     try:
-        entries = raw[2][2][1][23]  # type: ignore[index]
+        entries = _at(raw, 2, 2, 1, 23)
     except (IndexError, TypeError):
         entries = None
     if entries is None:
@@ -329,8 +337,8 @@ def _command_panel_action_source(raw: object, panel_name: str) -> str | None:
 
 def _text_color(raw: object) -> str | None:
     try:
-        color = raw[2][1][0][3]  # type: ignore[index]
-        value = int(str(color[2][0]))
+        color = _at(raw, 2, 1, 0, 3)
+        value = int(str(_at(color, 2, 0)))
     except (IndexError, TypeError, ValueError):
         return None
     if not isinstance(color, list) or len(color) < 3 or str(color[0]) != "3" or str(color[1]) != "0":
@@ -354,7 +362,7 @@ def _command_panel_buttons(raw: object, procedure_names: set[str]) -> list[tuple
 
     def legacy() -> list[tuple[str, str, str]] | None:
         try:
-            items = raw[2][1][7][9]  # type: ignore[index]
+            items = _at(raw, 2, 1, 7, 9)
         except (IndexError, TypeError):
             return None
         if not isinstance(items, list):
@@ -379,7 +387,7 @@ def _command_panel_buttons(raw: object, procedure_names: set[str]) -> list[tuple
         return result
 
     try:
-        payload = raw[2][1][7]  # type: ignore[index]
+        payload = _at(raw, 2, 1, 7)
     except (IndexError, TypeError):
         return legacy() or single_handler()
     if not isinstance(payload, list):
@@ -449,7 +457,7 @@ def _command_panel_buttons(raw: object, procedure_names: set[str]) -> list[tuple
 
 def _command_panel_tree(raw: object, procedure_names: set[str]) -> list[dict[str, object]] | None:
     try:
-        payload = raw[2][1][7]  # type: ignore[index]
+        payload = _at(raw, 2, 1, 7)
     except (IndexError, TypeError):
         return None
     if not isinstance(payload, list):
@@ -487,7 +495,7 @@ def _command_panel_tree(raw: object, procedure_names: set[str]) -> list[dict[str
         if not definition or str(definition[0]) not in {"6", "7"}:
             return None
         try:
-            return {"-10": "StdPicture.CheckAll", "-11": "StdPicture.UncheckAll"}.get(str(definition[6][2][0]))  # type: ignore[index]
+            return {"-10": "StdPicture.CheckAll", "-11": "StdPicture.UncheckAll"}.get(str(_at(definition, 6, 2, 0)))
         except (IndexError, TypeError):
             return None
 
@@ -541,9 +549,9 @@ def _command_panel_tree(raw: object, procedure_names: set[str]) -> list[dict[str
 
 def _radio_choice(raw: object) -> tuple[str, str, str] | None:
     try:
-        element = raw[2]  # type: ignore[index]
-        title = _raw_strings(element[2][0][2][2])  # type: ignore[index]
-        value = element[4]  # type: ignore[index]
+        element = _at(raw, 2)
+        title = _raw_strings(_at(element, 2, 0, 2, 2))
+        value = _at(element, 4)
     except (IndexError, TypeError):
         return None
     value_types = _raw_strings(value[:1]) if isinstance(value, list) else []
@@ -555,7 +563,7 @@ def _radio_choice(raw: object) -> tuple[str, str, str] | None:
 
 def _input_choice_list(raw: object) -> list[dict[str, str]]:
     try:
-        source_items = raw[2][1][26][2][6]  # type: ignore[index]
+        source_items = _at(raw, 2, 1, 26, 2, 6)
     except (IndexError, TypeError):
         return []
     if not isinstance(source_items, list) or len(source_items) < 2 or str(source_items[0]) != "1":
@@ -581,7 +589,7 @@ def _input_choice_list(raw: object) -> list[dict[str, str]]:
 
 def _form_events(raw: object) -> list[tuple[str, str]] | None:
     try:
-        records = raw[0][0][4]  # type: ignore[index]
+        records = _at(raw, 0, 0, 4)
     except (IndexError, TypeError):
         return None
     if not isinstance(records, list):
@@ -608,7 +616,7 @@ def _rectangle(record: dict[str, object]) -> tuple[int, int, int, int] | None:
         values = tuple(int(str(value)) for value in geometry[1:5])
     except ValueError:
         return None
-    return values if len(values) == 4 else None  # type: ignore[return-value]
+    return values if len(values) == 4 else None
 
 
 def _arrange_page(
@@ -683,7 +691,7 @@ def _arrange_page(
                     "verticalStretch": False,
                     "children": [label, field],
                 },
-                (label_rect[0], min(label_rect[1], field_rect[1]), field_rect[2], max(label_rect[3], field_rect[3])),  # type: ignore[index]
+                (label_rect[0], min(label_rect[1], field_rect[1]), field_rect[2], max(label_rect[3], field_rect[3])),
                 label_index,
                 {label_index, field_index},
             )

@@ -7,6 +7,11 @@
 
 The template never ships these project-owned paths; they are listed in
 `automation/context/template-update-preserve-paths.txt` so overlay sync never writes them.
+
+Seed-once Python environment (design decision R15): `pyproject.toml`, `uv.lock`,
+`requirements-dev.txt` and `pyrightconfig.json` ship with the template, reach a generated
+project through `copier copy` (or through `template-update` when the project lacks them),
+and afterwards belong to the project: overlay sync never overwrites them.
 """
 
 from __future__ import annotations
@@ -23,6 +28,8 @@ PROJECT_BLOCK_BEGIN = "# >>> project-owned block: template-update keeps the line
 PROJECT_BLOCK_END = "# <<< project-owned block <<<"
 PROJECT_BLOCK_FILES = frozenset({".gitignore", ".gitattributes", ".contextignore"})
 _IGNORED_STEP_SUFFIXES = frozenset({".md", ".txt"})
+# Keep in sync with PROJECT_OWNED_PYTHON_SEED_PATHS in scripts/template/lib-overlay.sh.
+PROJECT_OWNED_PYTHON_SEED_PATHS = ("pyproject.toml", "uv.lock", "requirements-dev.txt", "pyrightconfig.json")
 
 
 def _block_bounds(lines: list[str], label: str) -> tuple[int, int] | None:
@@ -63,6 +70,23 @@ def copy_with_project_block(source_path: Path, target_path: Path, rel: str) -> b
         stream.write(merged)
     shutil.copymode(source_path, target_path)
     return True
+
+
+def seed_missing_project_files(source_root: Path, target_root: Path, *, dry_run: bool = False) -> list[str]:
+    """Copy seed-once project files from a template release only when the project lacks them."""
+    seeded: list[str] = []
+    for rel in PROJECT_OWNED_PYTHON_SEED_PATHS:
+        source_path = source_root / rel
+        target_path = target_root / rel
+        if target_path.exists() or not source_path.is_file():
+            continue
+        seeded.append(rel)
+        if dry_run:
+            print(f"seed {rel}")
+            continue
+        target_path.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source_path, target_path)
+    return seeded
 
 
 def is_preserved(rel: str, preserve_entries: set[str]) -> bool:

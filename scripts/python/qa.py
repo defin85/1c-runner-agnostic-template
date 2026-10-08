@@ -15,6 +15,7 @@ from .imported_skills import _is_overlay_managed, imported_skill_readiness_paylo
 from .optional_modules import is_unmaterialized_optional_path
 from .project_extensions import run_project_verify_steps
 from .template_tools import GENERATED_PROJECT_SEED_PATHS
+from .type_checking import run_python_lint, run_python_tests_fast, run_type_check
 
 
 def _frontmatter_lines(text: str) -> list[tuple[int, str]]:
@@ -520,6 +521,9 @@ def agent_verify(root: Path | None = None) -> int:
         check_overlay_manifest,
         check_agent_docs,
         check_imported_skill_readiness_contract,
+        run_python_lint,
+        run_type_check,
+        run_python_tests_fast,
         run_project_verify_steps,
     ):
         result = check(repo_root)

@@ -160,8 +160,8 @@ class OrdinaryFormConversionTest(unittest.TestCase):
             root = Path(temp)
             original = conversion._form_dsl
 
-            def unsupported(*args: object, **kwargs: object):
-                dsl, _diagnostics, coverage, outcomes = original(*args, **kwargs)  # type: ignore[arg-type]
+            def unsupported(*args: Any, **kwargs: Any):
+                dsl, _diagnostics, coverage, outcomes = original(*args, **kwargs)
                 return dsl, [{"code": "unsupported-element"}], coverage, outcomes
 
             with (

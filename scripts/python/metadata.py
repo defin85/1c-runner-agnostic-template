@@ -58,7 +58,6 @@ ENGINE_FILES = (
     "scripts/python/common.py",
     "uv.lock",
 )
-OPTIONAL_ENGINE_FILES = frozenset({"uv.lock"})
 COMPANIONS = {"ContextMenu": "КонтекстноеМеню", "ExtendedTooltip": "РасширеннаяПодсказка"}
 OWNER_TYPES = {
     "Catalogs": "Catalog",
@@ -923,11 +922,8 @@ def element_check(snapshot: Snapshot, operation: dict, *, check_position=True):
 def engine_fingerprint() -> str:
     h = hashlib.sha256()
     for relative_path in sorted(ENGINE_FILES):
-        # uv.lock appears only after the project adopts uv; its absence is a stable fingerprint input.
-        if relative_path in OPTIONAL_ENGINE_FILES and not (PROJECT_ROOT / relative_path).exists():
-            data = b"<absent>"
-        else:
-            data = read_file(PROJECT_ROOT / relative_path, FILE_LIMIT)
+        # Every engine file, uv.lock included, is mandatory: a missing input fails closed in read_file.
+        data = read_file(PROJECT_ROOT / relative_path, FILE_LIMIT)
         # Length framing prevents concatenation ambiguities.
         for part in (relative_path.encode("utf-8"), data):
             h.update(len(part).to_bytes(8, "big"))

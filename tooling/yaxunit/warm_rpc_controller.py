@@ -37,7 +37,10 @@ def append_jsonl(path: Path, data: dict[str, Any]) -> None:
 
 def redact(value: Any) -> Any:
     if isinstance(value, dict):
-        return {key: ("__REDACTED_SECRET__" if key.lower() in {"key", "password", "pwd"} else redact(item)) for key, item in value.items()}
+        return {
+            key: ("__REDACTED_SECRET__" if key.lower() in {"key", "password", "pwd"} else redact(item))
+            for key, item in value.items()
+        }
     if isinstance(value, list):
         return [redact(item) for item in value]
     return value
@@ -182,7 +185,8 @@ class Controller:
         message_type = message.get("type")
         message_id = message.get("id")
         if message_type == "hello":
-            data = message.get("data") if isinstance(message.get("data"), dict) else {}
+            raw_data = message.get("data")
+            data = raw_data if isinstance(raw_data, dict) else {}
             if data.get("key") != self.key:
                 self.event("hello-rejected")
                 if self.writer is not None:
@@ -221,7 +225,10 @@ class Controller:
             request = json.loads(processing_path.read_text(encoding="utf-8"))
             if request.get("type") == "shutdown":
                 self.shutdown.set()
-                write_json(Path(request["result_path"]), {"status": "success", "classification": "success", "finished_at": utc_now()})
+                write_json(
+                    Path(request["result_path"]),
+                    {"status": "success", "classification": "success", "finished_at": utc_now()},
+                )
                 processing_path.unlink(missing_ok=True)
                 return
             if request.get("type") != "run":
@@ -235,7 +242,15 @@ class Controller:
             except Exception:
                 pass
             if result_path is not None:
-                write_json(result_path, {"status": "failed", "classification": "protocol failed", "message": str(exc), "finished_at": utc_now()})
+                write_json(
+                    result_path,
+                    {
+                        "status": "failed",
+                        "classification": "protocol failed",
+                        "message": str(exc),
+                        "finished_at": utc_now(),
+                    },
+                )
             self.event("command-error", request_path=str(request_path), error=str(exc))
         finally:
             processing_path.unlink(missing_ok=True)
@@ -247,7 +262,15 @@ class Controller:
         timeout_seconds = int(request.get("timeout_seconds") or 300)
 
         if not self.authenticated.is_set() or self.writer is None:
-            write_json(result_path, {"status": "failed", "classification": "handshake failed", "message": "YAxUnit client is not connected", "finished_at": utc_now()})
+            write_json(
+                result_path,
+                {
+                    "status": "failed",
+                    "classification": "handshake failed",
+                    "message": "YAxUnit client is not connected",
+                    "finished_at": utc_now(),
+                },
+            )
             return
 
         message_id = self.next_message_id
@@ -273,13 +296,30 @@ class Controller:
 
         try:
             response = await asyncio.wait_for(future, timeout=timeout_seconds)
-        except asyncio.TimeoutError:
+        except TimeoutError:
             self.pending.pop(message_id, None)
-            write_json(result_path, {"status": "failed", "classification": "timeout", "message": "Timed out waiting for YAxUnit report", "finished_at": utc_now()})
+            write_json(
+                result_path,
+                {
+                    "status": "failed",
+                    "classification": "timeout",
+                    "message": "Timed out waiting for YAxUnit report",
+                    "finished_at": utc_now(),
+                },
+            )
             return
 
         write_json(raw_response_path, redact(response))
-        write_json(result_path, {"status": "success", "classification": "success", "message": "YAxUnit report received", "report": response.get("data"), "finished_at": utc_now()})
+        write_json(
+            result_path,
+            {
+                "status": "success",
+                "classification": "success",
+                "message": "YAxUnit report received",
+                "report": response.get("data"),
+                "finished_at": utc_now(),
+            },
+        )
 
     async def run(self) -> None:
         loop = asyncio.get_running_loop()

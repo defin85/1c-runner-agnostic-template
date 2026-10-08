@@ -114,7 +114,11 @@ def load_runtime_profile(profile_path: Path | None) -> RuntimeProfile | None:
     if WINDOWS:
         platform = payload.get("platform", {})
         if isinstance(platform, dict):
-            enabled = [name for name in ("xpra", "xvfb", "ldPreload") if isinstance(platform.get(name), dict) and platform[name].get("enabled") is True]
+            enabled = [
+                name
+                for name in ("xpra", "xvfb", "ldPreload")
+                if isinstance(platform.get(name), dict) and platform[name].get("enabled") is True
+            ]
             if enabled:
                 die("Windows runtime profile enables POSIX-only platform features: " + ", ".join(enabled))
     transport = payload.get("transport")
@@ -136,7 +140,9 @@ def load_runtime_profile(profile_path: Path | None) -> RuntimeProfile | None:
         if not isinstance(capability, dict):
             die(f"runtime profile field has invalid type: capabilities.{name} ({_json_type_name(capability)})")
         if "command" in capability:
-            die(f"schemaVersion=3 does not support profile-defined command orchestration: capabilities.{name}.command; use a repo-owned structured backend")
+            die(
+                f"schemaVersion=3 does not support profile-defined command orchestration: capabilities.{name}.command; use a repo-owned structured backend"
+            )
         if "backend" in capability and (name != "publishHttp" or capability.get("backend") != "apache-webinst"):
             die(f"unsupported backend={capability.get('backend')} for capabilities.{name} in {profile_path}")
     profile_name = payload.get("profileName", "")

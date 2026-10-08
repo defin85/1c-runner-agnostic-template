@@ -24,7 +24,7 @@ class RuntimeProfileV3Tests(unittest.TestCase):
                 {"schemaVersion": 3, "profileName": "local", "capabilities": {}},
             )
             profile = load_runtime_profile(path)
-        self.assertIsNotNone(profile)
+        assert profile is not None
         self.assertEqual(profile.runner_adapter, "direct-platform")
         self.assertEqual(resolve_capability_driver(profile, "create-ib"), "designer")
 
@@ -40,7 +40,7 @@ class RuntimeProfileV3Tests(unittest.TestCase):
                 },
             )
             profile = load_runtime_profile(path)
-        self.assertIsNotNone(profile)
+        assert profile is not None
         self.assertEqual(profile.runner_adapter, "remote-windows")
 
     def test_unknown_transport_fails_closed(self) -> None:

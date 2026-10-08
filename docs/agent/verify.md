@@ -13,13 +13,40 @@ make agent-verify
 - валидность OpenSpec;
 - layout traceability;
 - целостность skill bindings;
-- целостность agent-facing docs и live context.
+- целостность agent-facing docs и live context;
+- Python-код проходит `ruff check`, `ruff format --check` и basedpyright (режим `standard`, без baseline);
+- быстрый набор pytest-тестов `tests/python` и smoke `tests/smoke/python-type-checking-contract.sh`.
 
 Baseline intentionally не требует:
 
 - licensed 1C runtime;
 - BSL Language Server / Java;
 - secret runtime profiles.
+
+## Python Quality Contour
+
+Python-инструменты берутся только из окружения `uv` проекта (`uv run --locked ...`): версии ruff, basedpyright и pytest закреплены в `pyproject.toml` и `uv.lock`. Глобально установленные ruff/basedpyright/pytest не используются: без `uv` цели завершаются ошибкой с подсказкой установки ([docs.astral.sh/uv](https://docs.astral.sh/uv/getting-started/installation/)). Первый запуск сам создаёт `.venv` через `uv run`.
+
+```bash
+make verify-python-lint     # ruff check . && ruff format --check .   (Windows: ./make.ps1 verify-python-lint)
+make verify-types           # scripts/qa/type-check.sh -> basedpyright  (Windows: ./make.ps1 verify-types)
+make verify-python-tests    # полный pytest по tests/python            (Windows: ./make.ps1 verify-python-tests)
+make verify-python-tests ARGS="--fast"   # быстрый набор, который запускает agent-verify
+bash tests/smoke/python-type-checking-contract.sh
+```
+
+- Настройки: `ruff.toml` (правила `E4,E7,E9,F,B,I,UP`, `py312`, длина строки 120) и `pyrightconfig.json`, который через `extends` подключает базовые правила `scripts/qa/pyright-base.json` (`standard`) и задаёт только `include`/`exclude`. Каталог `automation/vendor/` исключён из обеих проверок.
+- `pyproject.toml`, `uv.lock`, `requirements-dev.txt` и `pyrightconfig.json` в созданном проекте seed-once и project-owned (Р15); проверка типов требует пины `ruff`, `basedpyright`, `pytest` не ниже минимальных версий шаблона и печатает команду исправления. Подробности: [docs/template-maintenance.md](../template-maintenance.md#project-owned-extension-points).
+- Каждый `# noqa` и `# pyright: ignore[...]` содержит причину; правила в конфиге не отключаются.
+- Baseline basedpyright запрещён: при наличии `basedpyright-baseline*` или `.basedpyright/baseline*` проверка типов падает. Ошибки исправляются кодом.
+- Python-файл вне корней `include` из `pyrightconfig.json` делает проверку типов неуспешной: добавьте корень в `include` или осознанно в `exclude`.
+- `requirements-dev.txt` — производный export из `uv.lock`; проверка типов сравнивает его с `uv export` и при расхождении печатает команду перегенерации. После `uv lock` выполните:
+
+  ```bash
+  uv export --locked --format requirements-txt --no-hashes --no-emit-project --no-annotate --output-file requirements-dev.txt
+  ```
+
+- `make agent-verify` запускает быстрый набор pytest: весь `tests/python`, кроме самых долгих наборов операций metadata CLI (список `PYTEST_SLOW_FILES` в `scripts/python/type_checking.py`). Полный набор (несколько минут) запускается в CI в job `fixture` и локально через `make verify-python-tests`.
 
 ## Local GitHub Actions Preflight
 

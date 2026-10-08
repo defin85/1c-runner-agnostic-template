@@ -181,10 +181,15 @@ def test_complete_routes_and_explicit_exclusions():
     assert not set(RECORDED_LEGACY_ROUTES) & helpers.keys()
     for command in ("template-add", "template-remove", "mxl-info", "mxl-compile", "mxl-decompile", "mxl-validate"):
         assert (VENDOR.parent / helpers[command]).is_file()
+    # Skill directories are produced by import sync only in the template source repo. In a generated
+    # project they follow the applied overlay release; their removal on template-update is covered by
+    # tests/smoke/copier-update-ready.sh, which starts from a release that still ships a retired skill.
+    source_repo = (project / "automation/context/template-source-project-map.md").is_file()
     for name in RECORDED_LEGACY_ROUTES:
         assert not (VENDOR / name).exists()
-        assert not (project / ".agents/skills" / name).exists()
-        assert not (project / ".claude/skills" / name).exists()
+        if source_repo:
+            assert not (project / ".agents/skills" / name).exists()
+            assert not (project / ".claude/skills" / name).exists()
 
 
 # Operations for catalogs, charts of accounts and exchange plans added after the initial catalog.

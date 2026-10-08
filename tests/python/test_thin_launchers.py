@@ -6,7 +6,6 @@ import subprocess
 import unittest
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[2]
 CORE_COMMANDS = ("create-ib", "dump-src", "load-src", "update-db", "diff-src", "load-diff-src", "load-task-src")
 CFE_COMMANDS = ("load-cfe", "configure-cfe-runtime-flags", "check-cfe-applicability", "check-cfe-config", "manage-cfe")
@@ -36,10 +35,23 @@ class ThinLauncherTests(unittest.TestCase):
         makefile = (ROOT / "Makefile").read_text(encoding="utf-8")
         powershell = (ROOT / "make.ps1").read_text(encoding="utf-8")
         for target in (
-            "create-ib", "dump-src", "load-src", "load-cfe", "manage-cfe",
-            "configure-cfe-runtime-flags", "check-cfe-applicability", "check-cfe-config",
-            "load-diff-src", "load-task-src", "update-db", "diff-src", "doctor",
-            "publish-http", "bsl-analyzer-mcp", "test-bdd", "smoke",
+            "create-ib",
+            "dump-src",
+            "load-src",
+            "load-cfe",
+            "manage-cfe",
+            "configure-cfe-runtime-flags",
+            "check-cfe-applicability",
+            "check-cfe-config",
+            "load-diff-src",
+            "load-task-src",
+            "update-db",
+            "diff-src",
+            "doctor",
+            "publish-http",
+            "bsl-analyzer-mcp",
+            "test-bdd",
+            "smoke",
         ):
             self.assertIn(f"{target}:", makefile)
             self.assertIn(f'"{target}" =', powershell)

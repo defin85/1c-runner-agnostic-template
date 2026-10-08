@@ -11,13 +11,14 @@ import tempfile
 import zipfile
 from pathlib import Path
 
-SOURCE_ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(SOURCE_ROOT))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from scripts.python import common  # noqa: E402
-from scripts.python.common import CommandError  # noqa: E402
-from scripts.python.testing_campaign import STATUSES, TRANSITIONS, run_testing_campaign  # noqa: E402
-from scripts.python.testing_tooling import CLASS_ID_RE, UUID_RE, init_test_tooling, install_test_tooling  # noqa: E402
+from scripts.python import common
+from scripts.python.common import CommandError
+from scripts.python.testing_campaign import STATUSES, TRANSITIONS, run_testing_campaign
+from scripts.python.testing_tooling import CLASS_ID_RE, UUID_RE, init_test_tooling, install_test_tooling
+
+SOURCE_ROOT = Path(__file__).resolve().parents[2]
 
 
 def expect_failure(call, contains: str = "") -> None:

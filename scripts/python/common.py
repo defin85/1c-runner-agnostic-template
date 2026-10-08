@@ -4,16 +4,15 @@ import json
 import os
 import shutil
 import subprocess
-import sys
 import tempfile
-from dataclasses import dataclass
-from datetime import datetime, timezone
+from collections.abc import Iterable, Sequence
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Iterable, NoReturn, Sequence
+from typing import NoReturn
 
-from .runtime_errors import CommandError
 from .runtime_atomic import atomic_write_json, atomic_write_text
-
+from .runtime_errors import CommandError
+from .runtime_process import ProcessResult, run_process
 
 WINDOWS = os.name == "nt"
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -44,7 +43,7 @@ def ensure_dir(path: str | os.PathLike[str]) -> Path:
 
 
 def timestamp_utc() -> str:
-    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def require_command(name: str) -> str:
@@ -181,9 +180,6 @@ def shlex_quote(value: str) -> str:
     import shlex
 
     return shlex.quote(value)
-
-
-from .runtime_process import ProcessResult, run_logged, run_process
 
 
 def run_git(args: Sequence[str], *, cwd: str | os.PathLike[str] | None = None, check: bool = False) -> ProcessResult:

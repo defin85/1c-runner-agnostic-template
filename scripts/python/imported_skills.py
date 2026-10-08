@@ -21,6 +21,7 @@ from .common import (
     write_json,
     write_text,
 )
+from .project_extensions import PROJECT_OWNED_PYTHON_SEED_PATHS
 from .runtime_profiles import RuntimeProfile, load_runtime_profile, resolve_runtime_profile_path
 
 IMPORT_ROOT = repo_path("automation", "vendor", "cc-1c-skills")
@@ -234,6 +235,20 @@ def _short_text(value: str, limit: int = 92) -> str:
     return compact[: limit - 1].rstrip() + "…"
 
 
+def _mapping(value: object) -> dict[str, object]:
+    """Return a JSON object field as a dict; absent or non-object values read as empty."""
+    return dict(value) if isinstance(value, dict) else {}
+
+
+def _items(value: object) -> list[object]:
+    """Return a JSON array field as a list; absent or non-array values read as empty."""
+    return list(value) if isinstance(value, (list, tuple)) else []
+
+
+def _strings(value: object) -> list[str]:
+    return [str(item) for item in _items(value)]
+
+
 def _yaml_scalar(value: str) -> str:
     return json.dumps(str(value), ensure_ascii=False)
 
@@ -247,7 +262,7 @@ def _skill_powershell_command(skill_name: str) -> str:
 
 
 def _preferred_native_hint(entry: dict[str, object]) -> str:
-    preferred = [str(name) for name in entry.get("preferred_native_skills") or []]
+    preferred = _strings(entry.get("preferred_native_skills"))
     if not preferred:
         return ""
     names = ", ".join(preferred)
@@ -448,7 +463,7 @@ def _python_runtime_readiness() -> dict[str, object]:
     missing: list[str] = []
     bootstrap: list[str] = []
     try:
-        import lxml.etree  # type: ignore  # noqa: F401
+        import lxml.etree  # noqa: F401 - availability probe: the import itself is the check
     except ModuleNotFoundError:
         missing.append("Python module `lxml`")
         bootstrap.append("python -m pip install lxml")
@@ -517,9 +532,7 @@ def imported_skill_readiness_payload() -> dict[str, object]:
                 "bootstrap_commands": [],
                 "representative_skill": REPRESENTATIVE_NATIVE_ALIAS_SKILL,
                 "entrypoint": _skill_shell_command(REPRESENTATIVE_NATIVE_ALIAS_SKILL),
-                "preferred_native_skills": [
-                    str(name) for name in native_alias_entry.get("preferred_native_skills") or []
-                ],
+                "preferred_native_skills": _strings(native_alias_entry.get("preferred_native_skills")),
             },
         },
         "skills": {
@@ -536,35 +549,35 @@ def imported_skill_readiness_payload() -> dict[str, object]:
 
 
 def _readiness_lines(payload: dict[str, object]) -> list[str]:
-    representative = dict(payload.get("representative") or {})
+    representative = _mapping(payload.get("representative"))
     lines = [
         "# Imported Skill Readiness",
         "",
         f"Canonical target: `{payload['canonicalTarget']}`",
         f"Direct entrypoint: `{payload['canonicalCommand']}`",
-        "Guidance docs: " + ", ".join(f"`{item}`" for item in payload.get("guidanceDocs", [])),
+        "Guidance docs: " + ", ".join(f"`{item}`" for item in _items(payload.get("guidanceDocs", []))),
         f"Full catalog: `{payload['fullCatalog']}`",
         "",
         "## Representative Runtimes",
         "",
     ]
     for key in ("python", "node", "reference", "nativeAlias"):
-        item = representative.get(key) or {}
+        item = _mapping(representative.get(key))
         skill_name = str(item.get("representative_skill") or key)
         runtime_kind = str(item.get("runtime_kind") or key)
         if item.get("ready"):
             line = f"- `{runtime_kind}` (`{skill_name}`): ready"
-            preferred_native = [str(name) for name in item.get("preferred_native_skills") or []]
+            preferred_native = _strings(item.get("preferred_native_skills"))
             if preferred_native:
                 line += " via native workflow " + ", ".join(f"`{name}`" for name in preferred_native)
             lines.append(line)
-            notes = [str(note) for note in item.get("notes") or []]
+            notes = _strings(item.get("notes"))
             for note in notes:
                 lines.append(f"  note: {note}")
             continue
-        missing = ", ".join(str(dep) for dep in item.get("missing_dependencies") or [])
+        missing = ", ".join(_strings(item.get("missing_dependencies")))
         lines.append(f"- `{runtime_kind}` (`{skill_name}`): missing {missing}")
-        for command in item.get("bootstrap_commands") or []:
+        for command in _items(item.get("bootstrap_commands")):
             lines.append(f"  bootstrap: `{command}`")
     return lines
 
@@ -578,15 +591,15 @@ def render_imported_skill_readiness(json_mode: bool = False) -> str:
 
 def _runtime_readiness_for_kind(runtime_kind: str) -> dict[str, object]:
     payload = imported_skill_readiness_payload()
-    representative = dict(payload.get("representative") or {})
+    representative = _mapping(payload.get("representative"))
     if runtime_kind == "python":
-        return dict(representative.get("python") or {})
+        return _mapping(representative.get("python"))
     if runtime_kind == "node":
-        return dict(representative.get("node") or {})
+        return _mapping(representative.get("node"))
     if runtime_kind == "reference":
-        return dict(representative.get("reference") or {})
+        return _mapping(representative.get("reference"))
     if runtime_kind == "native-alias":
-        return dict(representative.get("nativeAlias") or {})
+        return _mapping(representative.get("nativeAlias"))
     return {
         "runtime_kind": runtime_kind,
         "ready": True,
@@ -596,7 +609,7 @@ def _runtime_readiness_for_kind(runtime_kind: str) -> dict[str, object]:
 
 
 def _print_runtime_not_ready(entry: dict[str, object], readiness: dict[str, object]) -> int:
-    missing = [str(item) for item in readiness.get("missing_dependencies") or []]
+    missing = _strings(readiness.get("missing_dependencies"))
     print(f"Imported skill `{entry['name']}` is not ready in this local contour.", file=sys.stderr)
     print(f"Runtime kind: {entry['runtime_kind']}", file=sys.stderr)
     if missing:
@@ -605,7 +618,7 @@ def _print_runtime_not_ready(entry: dict[str, object], readiness: dict[str, obje
     print(f"Direct readiness command: {CANONICAL_READINESS_COMMAND}", file=sys.stderr)
     print(f"Windows readiness command: {WINDOWS_READINESS_COMMAND}", file=sys.stderr)
     print(f"Guidance docs: {CANONICAL_READINESS_DOC}, {CANONICAL_ENV_DOC}", file=sys.stderr)
-    bootstrap = [str(command) for command in readiness.get("bootstrap_commands") or []]
+    bootstrap = _strings(readiness.get("bootstrap_commands"))
     if bootstrap:
         print("Bootstrap suggestions:", file=sys.stderr)
         for command in bootstrap:
@@ -749,7 +762,7 @@ def _render_agents_readme(
         ]
     )
     for entry in imported_entries:
-        preferred = list(entry.get("preferred_native_skills") or [])
+        preferred = _strings(entry.get("preferred_native_skills"))
         extra = str(entry["runtime_kind"])
         if preferred:
             extra += "; prefer " + ", ".join(preferred)
@@ -824,7 +837,7 @@ def _render_claude_readme(
         ]
     )
     for entry in imported_entries:
-        preferred = list(entry.get("preferred_native_skills") or [])
+        preferred = _strings(entry.get("preferred_native_skills"))
         extra = str(entry["runtime_kind"])
         if preferred:
             extra += "; prefer " + ", ".join(preferred)
@@ -906,6 +919,9 @@ def _is_overlay_managed(rel: str) -> bool:
         "docs/work-items/TEMPLATE.md",
         "tests/smoke/template-release-workflow.sh",
         "tests/golden/run.sh",
+        # Seed-once Python environment (design decision R15): copier copy delivers them,
+        # afterwards the generated project owns them and template-update never overwrites them.
+        *PROJECT_OWNED_PYTHON_SEED_PATHS,
     }
     if rel.startswith("env/") and rel.endswith(".example.json.jinja"):
         return False
@@ -1108,7 +1124,7 @@ def _run_node_helper(entry: dict[str, object], args: list[str]) -> int:
 
 
 def _render_reference(entry: dict[str, object]) -> str:
-    preferred_native = list(entry.get("preferred_native_skills") or [])
+    preferred_native = _strings(entry.get("preferred_native_skills"))
     lines = [
         f"Imported skill: {entry['name']}",
         f"Description: {entry['description']}",
@@ -1117,7 +1133,7 @@ def _render_reference(entry: dict[str, object]) -> str:
     ]
     if preferred_native:
         lines.append("Preferred native skills: " + ", ".join(preferred_native))
-    reference_paths = list(entry.get("reference_paths") or [])
+    reference_paths = _items(entry.get("reference_paths"))
     if reference_paths:
         lines.append("Reference files:")
         for rel in reference_paths[:12]:

@@ -22,17 +22,25 @@ class RuntimeSupportMatrixTests(unittest.TestCase):
             payload = _runtime_support_matrix_json()
             self.write_matrix(root, payload)
             self.assertEqual(validate_runtime_support_matrix(root), 0)
-            self.assertEqual(payload["contours"][0]["platforms"]["windows"]["evidenceClass"], "contract-only")
+            contours = payload["contours"]
+            assert isinstance(contours, list)
+            self.assertEqual(contours[0]["platforms"]["windows"]["evidenceClass"], "contract-only")
 
     def test_supported_live_entry_requires_unexpired_evidence(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             payload = _runtime_support_matrix_json()
-            support = payload["contours"][3]["platforms"]["windows"]
+            contours = payload["contours"]
+            assert isinstance(contours, list)
+            support = contours[3]["platforms"]["windows"]
             support["status"] = "supported"
             self.write_matrix(root, payload)
             self.assertEqual(validate_runtime_support_matrix(root), 1)
-            support["evidence"] = {"fingerprint": "fixture", "timestamp": "2026-01-01T00:00:00Z", "expiresAt": "2020-01-01T00:00:00Z"}
+            support["evidence"] = {
+                "fingerprint": "fixture",
+                "timestamp": "2026-01-01T00:00:00Z",
+                "expiresAt": "2020-01-01T00:00:00Z",
+            }
             self.write_matrix(root, payload)
             self.assertEqual(validate_runtime_support_matrix(root), 1)
 
@@ -42,7 +50,10 @@ class RuntimeSupportMatrixTests(unittest.TestCase):
             payload = _runtime_support_matrix_json()
             self.write_matrix(root, payload)
             markdown = root / "automation" / "context" / "runtime-support-matrix.md"
-            markdown.write_text(markdown.read_text(encoding="utf-8").replace("| `doctor` | `windows` |", "| `doctor` | `other` |"), encoding="utf-8")
+            markdown.write_text(
+                markdown.read_text(encoding="utf-8").replace("| `doctor` | `windows` |", "| `doctor` | `other` |"),
+                encoding="utf-8",
+            )
             self.assertEqual(validate_runtime_support_matrix(root), 1)
 
 

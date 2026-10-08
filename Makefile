@@ -1,11 +1,14 @@
 SHELL := bash
 
-.PHONY: help agent-verify act-preflight qa analyze-bsl check-bsl check-cf-modules analyze-bsl-external artifact-storage run-client check-agent-docs check-skill-bindings sync-claude-skills check-overlay-manifest codex-onboard imported-skills-readiness create-ib dump-src load-src load-cfe manage-cfe configure-cfe-runtime-flags check-cfe-applicability check-cfe-config load-diff-src load-task-src update-db diff-src doctor publish-http bsl-analyzer-mcp check-x11-contour test-yaxunit sync-yaxunit-runtime yaxunit-warm-service web-client-diagnostic golden-create golden-restore golden-baseline test-bdd bdd-warm-service smoke export-context export-context-preview export-context-check export-context-write verify-traceability template-check-update template-update
+.PHONY: help agent-verify verify-python-lint verify-types verify-python-tests act-preflight qa analyze-bsl check-bsl check-cf-modules analyze-bsl-external artifact-storage run-client check-agent-docs check-skill-bindings sync-claude-skills check-overlay-manifest codex-onboard imported-skills-readiness create-ib dump-src load-src load-cfe manage-cfe configure-cfe-runtime-flags check-cfe-applicability check-cfe-config load-diff-src load-task-src update-db diff-src doctor publish-http bsl-analyzer-mcp check-x11-contour test-yaxunit sync-yaxunit-runtime yaxunit-warm-service web-client-diagnostic golden-create golden-restore golden-baseline test-bdd bdd-warm-service smoke export-context export-context-preview export-context-check export-context-write verify-traceability template-check-update template-update
 
 help:
 	@printf '%s\n' \
 		'Available targets:' \
 		'  make agent-verify' \
+		'  make verify-python-lint' \
+		'  make verify-types' \
+		'  make verify-python-tests ARGS="..."' \
 		'  make act-preflight' \
 		'  make qa' \
 		'  make analyze-bsl' \
@@ -59,6 +62,15 @@ help:
 
 agent-verify:
 	@./scripts/qa/agent-verify.sh
+
+verify-python-lint:
+	@./scripts/qa/python-lint.sh
+
+verify-types:
+	@./scripts/qa/type-check.sh
+
+verify-python-tests:
+	@./scripts/qa/python-tests.sh $(ARGS)
 
 act-preflight:
 	@./scripts/qa/act-preflight.sh

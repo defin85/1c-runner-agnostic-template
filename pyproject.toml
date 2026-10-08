@@ -1,0 +1,21 @@
+# Template-managed development environment for the repository Python tooling.
+# Lint (ruff.toml) and type-check (pyrightconfig.json) settings live in their own files.
+[project]
+name = "onec-project-tooling"
+version = "0.0.0"
+requires-python = ">=3.12"
+dependencies = []
+
+[dependency-groups]
+dev = [
+    "basedpyright==1.39.9",
+    "copier>=9.18.2",
+    "jsonschema==4.19.2",
+    "lxml==6.1.3",
+    "pytest==9.0.2",
+    "ruff==0.16.10",
+    "v8unpack==1.2.6",
+]
+
+[tool.uv]
+package = false

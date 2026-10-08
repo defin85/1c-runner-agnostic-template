@@ -10,7 +10,7 @@ from typing import Any
 
 from .common import canonical_path, die, ensure_dir, project_root, run_git, run_process, write_json, write_text
 from .context import export_context
-from .project_extensions import copy_with_project_block, is_preserved
+from .project_extensions import copy_with_project_block, is_preserved, seed_missing_project_files
 
 DEFAULT_TEMPLATE_GIT_URL = "https://github.com/defin85/1c-runner-agnostic-template.git"
 MANIFEST_RELPATH = "automation/context/template-managed-paths.txt"
@@ -715,6 +715,7 @@ def update_template(requested_ref: str = "", pretend: bool = False, *, root: Pat
                 overlay_preserve_manifest_file(release_root),
                 dry_run=True,
             )
+            seed_missing_project_files(release_root, repo_root, dry_run=True)
             print("would refresh generated overlay surfaces")
             return 0
         sync_overlay_manifests(
@@ -724,6 +725,7 @@ def update_template(requested_ref: str = "", pretend: bool = False, *, root: Pat
             overlay_manifest_file(release_root),
             overlay_preserve_manifest_file(release_root),
         )
+        seed_missing_project_files(release_root, repo_root)
         seed_generated_project_surface(
             repo_root,
             template_answers_value(repo_root, "project_name"),
