@@ -54,7 +54,18 @@ make act-preflight
 bash tests/smoke/bootstrap-agents-overlay.sh
 bash tests/smoke/copier-update-ready.sh
 bash tests/smoke/template-release-workflow.sh
+bash tests/smoke/project-extension-points.sh
 ```
+
+`make agent-verify` после базовых проверок выполняет project-owned шаги из `scripts/qa/agent-verify.d/`, если каталог есть. В source repo шаблона этого каталога нет. Контракт точек расширения generated project (`Makefile.project`, `make.project.ps1`, `scripts/qa/agent-verify.d/`, проектный блок `.gitignore`/`.gitattributes`/`.contextignore`) описан в [docs/template-maintenance.md](../template-maintenance.md#project-owned-extension-points).
+
+Если меняются skills или их пути, отдельно проверьте контракт путей в `SKILL.md`:
+
+```bash
+bash tests/smoke/skill-bindings-paths.sh
+```
+
+`check-skill-bindings` требует, чтобы пути репозитория, упомянутые в `SKILL.md` (`scripts/`, `docs/`, `tests/`, `automation/`, `env/` и т.д.), существовали. Допускаются glob-шаблоны, git-ignored operator-local файлы и пути необязательных модулей, пока модуль не материализован (`scripts/python/optional_modules.py`).
 
 ## Runtime Contour
 

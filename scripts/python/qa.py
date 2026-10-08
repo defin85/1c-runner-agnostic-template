@@ -5,12 +5,16 @@ import os
 import re
 import shutil
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 from .common import die, project_root, run_process
 from .context import export_context, is_source_repo, verify_traceability
 from .imported_skills import _is_overlay_managed, imported_skill_readiness_payload
+from .optional_modules import is_unmaterialized_optional_path
+from .project_extensions import run_project_verify_steps
+from .template_tools import GENERATED_PROJECT_SEED_PATHS
 
 
 def _frontmatter_lines(text: str) -> list[tuple[int, str]]:
@@ -62,19 +66,48 @@ def analyze_bsl() -> int:
     cmd = ["java", f"-Xmx{xmx}", "-jar", jar]
     if config_path:
         cmd.extend(["--configuration", config_path])
-    cmd.extend(["--analyze", "--srcDir", src_dir, "--outputDir", output_dir, "--reporter", "json", "--reporter", "junit"])
+    cmd.extend(
+        ["--analyze", "--srcDir", src_dir, "--outputDir", output_dir, "--reporter", "json", "--reporter", "junit"]
+    )
     return run_process(cmd, cwd=root, check=False, capture_output=False).returncode
 
 
-def format_bsl() -> int:
-    jar = os.environ.get("BSL_LANGUAGE_SERVER_JAR", "")
-    if not jar:
-        die("required env var is not set: BSL_LANGUAGE_SERVER_JAR")
-    root = project_root()
-    src_dir = os.environ.get("BSL_FORMAT_SRC", str(root / "src" / "cf"))
-    xmx = os.environ.get("BSL_LS_XMX", "2g")
-    cmd = ["java", f"-Xmx{xmx}", "-jar", jar, "--format", "--src", src_dir]
-    return run_process(cmd, cwd=root, check=False, capture_output=False).returncode
+# Repository paths named in skill text. `src/` and `features/` hold project content, so only
+# template-shipped scaffolds and test-tooling roots under `src/` are checked. `*` globs,
+# git-ignored operator-local files and paths of not yet materialized optional modules are allowed.
+_SKILL_PATH = re.compile(
+    r"(?<![\w/.$-])(?:\./|\$PWD/)?"
+    r"((?:scripts|infra|tests|docs|automation|tooling|migration|openspec|env"
+    r"|src/(?:epf|cfe)/(?:_templates|TemplateXUnitHarness|YAxUnit|VATestContour|VAExtension))"
+    r"/[\w./-]*\w)(\*)?"
+)
+
+
+_GENERATED_DERIVED_CONTEXT = re.compile(r"automation/context/[\w.-]+\.generated\.\w+")
+
+
+def _missing_skill_paths(repo_root: Path, text: str) -> list[str]:
+    missing = sorted(
+        {
+            match.group(1)
+            for match in _SKILL_PATH.finditer(text)
+            if not match.group(2)
+            and not (repo_root / match.group(1)).exists()
+            and not is_unmaterialized_optional_path(repo_root, match.group(1))
+        }
+    )
+    if missing and is_source_repo(repo_root):
+        # Skills ship to generated projects; seeded and generated-derived project files exist only there.
+        missing = [
+            path
+            for path in missing
+            if path not in GENERATED_PROJECT_SEED_PATHS and not _GENERATED_DERIVED_CONTEXT.fullmatch(path)
+        ]
+    if not missing:
+        return []
+    ignored = run_process(["git", "check-ignore", "--no-index", "--", *missing], cwd=repo_root, check=False)
+    ignored_paths = set(ignored.stdout.splitlines())
+    return [path for path in missing if path not in ignored_paths]
 
 
 def check_skill_bindings(root: Path | None = None) -> int:
@@ -90,18 +123,26 @@ def check_skill_bindings(root: Path | None = None) -> int:
         if not skills_dir.is_dir():
             die(f"skills directory not found: {skills_dir}")
         if not (skills_dir / "README.md").is_file():
-            print(f"missing skills README: {skills_dir / 'README.md'}", file=os.sys.stderr)
+            print(f"missing skills README: {skills_dir / 'README.md'}", file=sys.stderr)
             status = 1
         for skill_file in sorted(skills_dir.glob("*/*/SKILL.md")) + sorted(skills_dir.glob("*/SKILL.md")):
             text = skill_file.read_text(encoding="utf-8")
-            if not skill_file.parent.name.startswith("openspec-") and not re.search(r"^Repo script: `\./scripts/.+`$", text, re.MULTILINE):
-                print(f"missing repo script binding: {skill_file}", file=os.sys.stderr)
+            if not skill_file.parent.name.startswith("openspec-") and not re.search(
+                r"^Repo script: `\./(?:scripts|infra)/.+`$", text, re.MULTILINE
+            ):
+                print(f"missing repo script binding: {skill_file}", file=sys.stderr)
+                status = 1
+            for path in _missing_skill_paths(repo_root, text):
+                print(
+                    f"skill {skill_file.parent.name} references missing repository path {path}: {skill_file}",
+                    file=sys.stderr,
+                )
                 status = 1
             if re.search(r"powershell\.exe -File|/opt/1cv8|1cv8 DESIGNER|rac ", text):
-                print(f"skill embeds runtime implementation details: {skill_file}", file=os.sys.stderr)
+                print(f"skill embeds runtime implementation details: {skill_file}", file=sys.stderr)
                 status = 1
             for error in _skill_frontmatter_errors(skill_file, text):
-                print(error, file=os.sys.stderr)
+                print(error, file=sys.stderr)
                 status = 1
     return status
 
@@ -111,6 +152,7 @@ def check_overlay_manifest(root: Path | None = None) -> int:
     manifest = repo_root / "automation" / "context" / "template-managed-paths.txt"
     if not manifest.is_file():
         die(f"overlay manifest is missing: {manifest}")
+
     def is_managed_src_scaffold(path: str) -> bool:
         return (
             path.startswith("src/epf/TemplateXUnitHarness/")
@@ -118,6 +160,7 @@ def check_overlay_manifest(root: Path | None = None) -> int:
             or path.startswith("src/epf/_templates/")
             or path.startswith("src/cfe/_templates/")
         )
+
     if not (repo_root / "automation" / "context" / "template-source-project-map.md").is_file():
         forbidden_prefixes = ("openspec/", "tooling/", "analysis/testing/")
         forbidden_exact = {"AGENTS.md", "README.md", "copier.yml"}
@@ -126,13 +169,27 @@ def check_overlay_manifest(root: Path | None = None) -> int:
             if not line or line.startswith("#"):
                 continue
             if line in forbidden_exact or any(line.startswith(prefix) for prefix in forbidden_prefixes):
-                print("generated-project overlay manifest must not manage source-only or project-owned paths", file=os.sys.stderr)
+                print(
+                    "generated-project overlay manifest must not manage source-only or project-owned paths",
+                    file=sys.stderr,
+                )
                 return 1
-            if line.startswith("src/") and line not in {"src/AGENTS.md", "src/README.md"} and not is_managed_src_scaffold(line):
-                print("generated-project overlay manifest must not manage source-only or project-owned paths", file=os.sys.stderr)
+            if (
+                line.startswith("src/")
+                and line not in {"src/AGENTS.md", "src/README.md"}
+                and not is_managed_src_scaffold(line)
+            ):
+                print(
+                    "generated-project overlay manifest must not manage source-only or project-owned paths",
+                    file=sys.stderr,
+                )
                 return 1
         return 0
-    tracked = run_process(["git", "-c", "core.quotePath=false", "ls-files", "--cached", "--others", "--exclude-standard"], cwd=repo_root, check=True).stdout.splitlines()
+    tracked = run_process(
+        ["git", "-c", "core.quotePath=false", "ls-files", "--cached", "--others", "--exclude-standard"],
+        cwd=repo_root,
+        check=True,
+    ).stdout.splitlines()
     expected = [entry for entry in tracked if _is_overlay_managed(entry)]
     actual = [
         line.strip()
@@ -149,15 +206,21 @@ def check_agent_docs(root: Path | None = None) -> int:
         repo_root / "README.md",
         repo_root / "docs" / "agent" / ("index.md" if is_source_repo(repo_root) else "generated-project-index.md"),
         repo_root / "docs" / "template-maintenance.md",
-        repo_root / "automation" / "context" / ("template-source-tree.txt" if is_source_repo(repo_root) else "source-tree.generated.txt"),
-        repo_root / "automation" / "context" / ("template-source-source-files.txt" if is_source_repo(repo_root) else "metadata-index.generated.json"),
+        repo_root
+        / "automation"
+        / "context"
+        / ("template-source-tree.txt" if is_source_repo(repo_root) else "source-tree.generated.txt"),
+        repo_root
+        / "automation"
+        / "context"
+        / ("template-source-source-files.txt" if is_source_repo(repo_root) else "metadata-index.generated.json"),
     ]
     if not is_source_repo(repo_root):
         required_paths.append(repo_root / "automation" / "context" / "recommended-skills.generated.md")
     status = 0
     for path in required_paths:
         if not path.exists():
-            print(f"missing agent-facing path: {path.relative_to(repo_root).as_posix()}", file=os.sys.stderr)
+            print(f"missing agent-facing path: {path.relative_to(repo_root).as_posix()}", file=sys.stderr)
             status = 1
     if export_context("--check", repo_root) != 0:
         status = 1
@@ -175,18 +238,18 @@ def check_agent_docs(root: Path | None = None) -> int:
                 "./env/windows-executor.json",
                 "./env/.local",
             } or rel.startswith("./env/.local/"):
-                print(f"local-private path leaked into generated context: {rel.removeprefix('./')}", file=os.sys.stderr)
+                print(f"local-private path leaked into generated context: {rel.removeprefix('./')}", file=sys.stderr)
                 status = 1
             if rel.startswith("./.codex/") and rel not in {
                 "./.codex/.gitkeep",
                 "./.codex/README.md",
                 "./.codex/config.toml",
             }:
-                print(f"local-private path leaked into generated context: {rel.removeprefix('./')}", file=os.sys.stderr)
+                print(f"local-private path leaked into generated context: {rel.removeprefix('./')}", file=sys.stderr)
                 status = 1
         metadata_text = metadata_file.read_text(encoding="utf-8")
         if re.search(r'"env/(local|wsl|ci|windows-executor)\.json"|env/\.local/', metadata_text):
-            print("generated metadata leaked local-private runtime profile paths", file=os.sys.stderr)
+            print("generated metadata leaked local-private runtime profile paths", file=sys.stderr)
             status = 1
     return status
 
@@ -198,7 +261,7 @@ def validate_runtime_support_matrix(root: Path) -> int:
         return 1
     payload = json.loads(json_path.read_text(encoding="utf-8"))
     allowed_statuses = set(payload.get("statuses") or [])
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     for contour in payload.get("contours") or []:
         contour_id = str(contour.get("id") or "<missing>")
         platforms = contour.get("platforms") or {}
@@ -206,25 +269,27 @@ def validate_runtime_support_matrix(root: Path) -> int:
             support = platforms.get(platform)
             pair = f"{contour_id}/{platform}"
             if not isinstance(support, dict):
-                print(f"runtime support matrix is missing capability/platform entry: {pair}", file=os.sys.stderr)
+                print(f"runtime support matrix is missing capability/platform entry: {pair}", file=sys.stderr)
                 return 1
             status = support.get("status")
             evidence_class = support.get("evidenceClass")
             if status not in allowed_statuses or evidence_class not in {"contract-only", "contract-plus-live"}:
-                print(f"runtime support matrix has invalid status/evidence class: {pair}", file=os.sys.stderr)
+                print(f"runtime support matrix has invalid status/evidence class: {pair}", file=sys.stderr)
                 return 1
             if status == "supported" and evidence_class == "contract-plus-live":
                 evidence = support.get("evidence")
-                if not isinstance(evidence, dict) or not all(evidence.get(key) for key in ("fingerprint", "timestamp", "expiresAt")):
-                    print(f"runtime support matrix lacks current live evidence: {pair}", file=os.sys.stderr)
+                if not isinstance(evidence, dict) or not all(
+                    evidence.get(key) for key in ("fingerprint", "timestamp", "expiresAt")
+                ):
+                    print(f"runtime support matrix lacks current live evidence: {pair}", file=sys.stderr)
                     return 1
                 try:
                     expires_at = datetime.fromisoformat(str(evidence["expiresAt"]).replace("Z", "+00:00"))
                 except ValueError:
-                    print(f"runtime support matrix has invalid evidence expiry: {pair}", file=os.sys.stderr)
+                    print(f"runtime support matrix has invalid evidence expiry: {pair}", file=sys.stderr)
                     return 1
                 if expires_at <= now:
-                    print(f"runtime support matrix live evidence expired: {pair}", file=os.sys.stderr)
+                    print(f"runtime support matrix live evidence expired: {pair}", file=sys.stderr)
                     return 1
     from .template_tools import _runtime_support_matrix_md
 
@@ -236,20 +301,24 @@ def validate_runtime_support_matrix(root: Path) -> int:
                 prefix = f"| `{contour['id']}` | `{platform}` |"
                 expected_row = next(line for line in expected_markdown.splitlines() if line.startswith(prefix))
                 if expected_row not in actual_markdown.splitlines():
-                    print(f"runtime support matrix Markdown is stale: {contour['id']}/{platform}", file=os.sys.stderr)
+                    print(f"runtime support matrix Markdown is stale: {contour['id']}/{platform}", file=sys.stderr)
                     return 1
-        print("runtime support matrix Markdown has unexpected stale content", file=os.sys.stderr)
+        print("runtime support matrix Markdown has unexpected stale content", file=sys.stderr)
         return 1
     return 0
+
+
+def _mapping(value: object) -> dict[str, Any]:
+    return dict(value) if isinstance(value, dict) else {}
 
 
 def check_imported_skill_readiness_contract(root: Path | None = None) -> int:
     repo_root = root or project_root()
     payload = imported_skill_readiness_payload()
     if payload.get("canonicalTarget") != "make imported-skills-readiness":
-        print("unexpected imported-skill readiness target", file=os.sys.stderr)
+        print("unexpected imported-skill readiness target", file=sys.stderr)
         return 1
-    representative = dict(payload.get("representative") or {})
+    representative = _mapping(payload.get("representative"))
     required = {
         "python": "cf-edit",
         "node": "web-test",
@@ -257,31 +326,31 @@ def check_imported_skill_readiness_contract(root: Path | None = None) -> int:
         "nativeAlias": "db-create",
     }
     for key, skill_name in required.items():
-        item = dict(representative.get(key) or {})
+        item = _mapping(representative.get(key))
         if str(item.get("representative_skill") or "") != skill_name:
-            print(f"missing representative readiness entry: {key}", file=os.sys.stderr)
+            print(f"missing representative readiness entry: {key}", file=sys.stderr)
             return 1
         if not str(item.get("entrypoint") or "").startswith("./scripts/skills/run-imported-skill.sh "):
-            print(f"invalid readiness entrypoint for {key}", file=os.sys.stderr)
+            print(f"invalid readiness entrypoint for {key}", file=sys.stderr)
             return 1
         if not item.get("ready") and not item.get("bootstrap_commands"):
-            print(f"missing bootstrap commands for unready imported runtime: {key}", file=os.sys.stderr)
+            print(f"missing bootstrap commands for unready imported runtime: {key}", file=sys.stderr)
             return 1
     if not (repo_root / "scripts" / "skills" / "run-imported-skill.sh").is_file():
-        print("missing imported-skill dispatcher", file=os.sys.stderr)
+        print("missing imported-skill dispatcher", file=sys.stderr)
         return 1
     return 0
 
 
 def _imported_skill_readiness_status_lines() -> list[str]:
     payload = imported_skill_readiness_payload()
-    representative = dict(payload.get("representative") or {})
+    representative = _mapping(payload.get("representative"))
     lines = [
         f"Imported skill readiness target: {payload['canonicalTarget']}",
         f"Imported skill readiness command: {payload['canonicalCommand']}",
     ]
     for key in ("python", "node", "reference", "nativeAlias"):
-        item = dict(representative.get(key) or {})
+        item = _mapping(representative.get(key))
         runtime_kind = str(item.get("runtime_kind") or key)
         skill_name = str(item.get("representative_skill") or key)
         if item.get("ready"):
@@ -342,7 +411,7 @@ def codex_onboard(root: Path | None = None) -> str:
     for path in required_generated_paths:
         if not path.exists():
             die(f"generated-project onboarding path is missing: {path.relative_to(repo_root).as_posix()}")
-    support_matrix_payload: dict[str, object] = {}
+    support_matrix_payload: dict[str, Any] = {}
     extension_line = "not declared"
     if support_matrix.is_file():
         support_matrix_payload = json.loads(support_matrix.read_text(encoding="utf-8"))
@@ -440,7 +509,9 @@ def agent_verify(root: Path | None = None) -> int:
     openspec = shutil.which("openspec")
     if not openspec:
         die("command not found: openspec")
-    status = run_process([openspec, "validate", "--all", "--strict", "--no-interactive"], cwd=repo_root, capture_output=False).returncode
+    status = run_process(
+        [openspec, "validate", "--all", "--strict", "--no-interactive"], cwd=repo_root, capture_output=False
+    ).returncode
     if status != 0:
         return status
     for check in (
@@ -449,6 +520,7 @@ def agent_verify(root: Path | None = None) -> int:
         check_overlay_manifest,
         check_agent_docs,
         check_imported_skill_readiness_contract,
+        run_project_verify_steps,
     ):
         result = check(repo_root)
         if result != 0:

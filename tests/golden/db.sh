@@ -11,15 +11,18 @@ COMMAND="${1:-}"
 PROFILE_INPUT="${GOLDEN_BASELINE_PROFILE:-${ONEC_PROFILE:-}}"
 TARGET_INPUT="${GOLDEN_BASELINE_TARGET:-}"
 SNAPSHOT_INPUT="${GOLDEN_BASELINE_SNAPSHOT:-}"
+CREATE_ONLY=0
 
 usage() {
   cat <<'EOF'
 Usage:
   tests/golden/create.sh --profile <file> [--target <id>] [--snapshot <file>]
-  tests/golden/restore.sh --profile <file> [--target <id>] [--snapshot <file>]
+  tests/golden/restore.sh --profile <file> [--target <id>] [--snapshot <file>] [--create-only]
 
 Creates/restores a PostgreSQL golden snapshot for the profile infobase.
 Default snapshot: .artifacts/golden/<target>.dump
+--create-only restores into a database that does not exist yet: it is created,
+and no existing database is dropped. pg_restore stops on the first error.
 EOF
 }
 
@@ -84,6 +87,11 @@ parse_args() {
         SNAPSHOT_INPUT="$2"
         shift 2
         ;;
+      --create-only)
+        [ "$COMMAND" = "restore" ] || die "--create-only requires restore"
+        CREATE_ONLY=1
+        shift
+        ;;
       -h|--help)
         usage
         exit 0
@@ -138,16 +146,19 @@ ADMIN_CONNINFO="$DB_SERVER_CONNINFO dbname=postgres user=$DB_USER"
 
 case "$COMMAND" in
   create)
-    pg_dump --format=custom --file="$SNAPSHOT_PATH" "$DB_CONNINFO"
+    pg_dump --verbose --format=custom --file="$SNAPSHOT_PATH" "$DB_CONNINFO"
     printf 'golden snapshot created: %s\n' "$SNAPSHOT_PATH"
     ;;
   restore)
     [ -f "$SNAPSHOT_PATH" ] || die "golden snapshot not found: $SNAPSHOT_PATH"
+    if [ "$CREATE_ONLY" -eq 0 ]; then
+      psql "$ADMIN_CONNINFO" -v ON_ERROR_STOP=1 \
+        -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '$DB_NAME' AND pid <> pg_backend_pid();" \
+        -c "DROP DATABASE IF EXISTS \"$DB_NAME\";"
+    fi
     psql "$ADMIN_CONNINFO" -v ON_ERROR_STOP=1 \
-      -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '$DB_NAME' AND pid <> pg_backend_pid();" \
-      -c "DROP DATABASE IF EXISTS \"$DB_NAME\";" \
       -c "CREATE DATABASE \"$DB_NAME\" WITH OWNER \"$DB_USER\" TEMPLATE template0;"
-    pg_restore --no-owner --dbname="$DB_CONNINFO" "$SNAPSHOT_PATH"
+    pg_restore --verbose --exit-on-error --no-owner --dbname="$DB_CONNINFO" "$SNAPSHOT_PATH"
     printf 'golden snapshot restored: %s -> %s\n' "$SNAPSHOT_PATH" "$DB_NAME"
     ;;
 esac

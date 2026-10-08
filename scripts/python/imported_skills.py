@@ -517,7 +517,9 @@ def imported_skill_readiness_payload() -> dict[str, object]:
                 "bootstrap_commands": [],
                 "representative_skill": REPRESENTATIVE_NATIVE_ALIAS_SKILL,
                 "entrypoint": _skill_shell_command(REPRESENTATIVE_NATIVE_ALIAS_SKILL),
-                "preferred_native_skills": [str(name) for name in native_alias_entry.get("preferred_native_skills") or []],
+                "preferred_native_skills": [
+                    str(name) for name in native_alias_entry.get("preferred_native_skills") or []
+                ],
             },
         },
         "skills": {
@@ -694,12 +696,19 @@ def _render_agents_skill(entry: dict[str, object]) -> str:
     return "\n".join(lines)
 
 
-def _mapping_row(intent: str, codex_skill: str, claude_skill: str, repo_entrypoint: str, extra: str | None = None) -> str:
+def _mapping_row(
+    intent: str, codex_skill: str, claude_skill: str, repo_entrypoint: str, extra: str | None = None
+) -> str:
     details = extra or ""
     return f"| {intent} | `{codex_skill}` | `{claude_skill}` | `{repo_entrypoint}` | {details} |"
 
 
-def _render_agents_readme(native_codex: list[dict[str, str]], native_claude: list[dict[str, str]], imported_entries: list[dict[str, object]], upstream: dict[str, str]) -> str:
+def _render_agents_readme(
+    native_codex: list[dict[str, str]],
+    native_claude: list[dict[str, str]],
+    imported_entries: list[dict[str, object]],
+    upstream: dict[str, str],
+) -> str:
     claude_names = {entry["name"] for entry in native_claude}
     lines = [
         "# Project-Scoped Codex Skills",
@@ -769,7 +778,12 @@ def _render_agents_readme(native_codex: list[dict[str, str]], native_claude: lis
     return "\n".join(lines)
 
 
-def _render_claude_readme(native_codex: list[dict[str, str]], native_claude: list[dict[str, str]], imported_entries: list[dict[str, object]], upstream: dict[str, str]) -> str:
+def _render_claude_readme(
+    native_codex: list[dict[str, str]],
+    native_claude: list[dict[str, str]],
+    imported_entries: list[dict[str, object]],
+    upstream: dict[str, str],
+) -> str:
     codex_names = {entry["name"] for entry in native_codex}
     lines = [
         "# Project-Scoped 1C Skills",
@@ -891,6 +905,7 @@ def _is_overlay_managed(rel: str) -> bool:
         "docs/work-items/README.md",
         "docs/work-items/TEMPLATE.md",
         "tests/smoke/template-release-workflow.sh",
+        "tests/golden/run.sh",
     }
     if rel.startswith("env/") and rel.endswith(".example.json.jinja"):
         return False
@@ -921,7 +936,9 @@ def _is_overlay_managed(rel: str) -> bool:
 
 
 def _refresh_overlay_manifest() -> None:
-    tracked = run_git(["ls-files", "--cached", "--others", "--exclude-standard"], cwd=PROJECT_ROOT, check=True).stdout.splitlines()
+    tracked = run_git(
+        ["ls-files", "--cached", "--others", "--exclude-standard"], cwd=PROJECT_ROOT, check=True
+    ).stdout.splitlines()
     entries = sorted({rel.strip() for rel in tracked if rel.strip() and _is_overlay_managed(rel.strip())})
     write_text(OVERLAY_MANIFEST, "\n".join(entries) + "\n")
 
@@ -934,8 +951,9 @@ def _remove_previous_generated_surfaces(previous_names: list[str]) -> None:
                 shutil.rmtree(target)
 
 
-def _write_generated_surfaces(imported_entries: list[dict[str, object]], upstream: dict[str, str], previous_names: list[str]) -> None:
-    imported_names = {str(entry["name"]) for entry in imported_entries}
+def _write_generated_surfaces(
+    imported_entries: list[dict[str, object]], upstream: dict[str, str], previous_names: list[str]
+) -> None:
     _remove_previous_generated_surfaces(previous_names)
 
     agents_root = repo_path(".agents", "skills")
@@ -952,12 +970,20 @@ def _write_generated_surfaces(imported_entries: list[dict[str, object]], upstrea
 def _write_skill_readmes(imported_entries: list[dict[str, object]], upstream: dict[str, str]) -> None:
     imported_names = {str(entry["name"]) for entry in imported_entries}
     native = _existing_skill_docs(repo_path(".agents", "skills"), imported_names)
-    write_text(repo_path(".agents", "skills", "README.md"), _render_agents_readme(native, native, imported_entries, upstream))
-    write_text(repo_path(".claude", "skills", "README.md"), _render_claude_readme(native, native, imported_entries, upstream))
+    write_text(
+        repo_path(".agents", "skills", "README.md"), _render_agents_readme(native, native, imported_entries, upstream)
+    )
+    write_text(
+        repo_path(".claude", "skills", "README.md"), _render_claude_readme(native, native, imported_entries, upstream)
+    )
 
 
 def _skill_tree(skill_dir: Path) -> dict[str, bytes]:
-    return {path.relative_to(skill_dir).as_posix(): path.read_bytes() for path in sorted(skill_dir.rglob("*")) if path.is_file()}
+    return {
+        path.relative_to(skill_dir).as_posix(): path.read_bytes()
+        for path in sorted(skill_dir.rglob("*"))
+        if path.is_file()
+    }
 
 
 def _mirror_claude_skills(root: Path, check: bool) -> list[str]:
@@ -1097,7 +1123,9 @@ def _render_reference(entry: dict[str, object]) -> str:
         for rel in reference_paths[:12]:
             lines.append(f"- automation/vendor/cc-1c-skills/{rel}")
     lines.append("")
-    lines.append("Use the vendored upstream material as guidance; this imported skill is reference-only in the runner-agnostic template.")
+    lines.append(
+        "Use the vendored upstream material as guidance; this imported skill is reference-only in the runner-agnostic template."
+    )
     return "\n".join(lines) + "\n"
 
 

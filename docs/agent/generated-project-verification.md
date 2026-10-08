@@ -38,6 +38,12 @@ Optional project-specific baseline extension:
 - advertising такого contour-а должно идти через runtime support matrix, `docs/agent/runtime-quickstart.md` и `make codex-onboard`;
 - отсутствие extension по умолчанию не делает generated repo “неполным”.
 
+Project-owned шаги самого `agent-verify`:
+
+- проектные проверки без 1С, которые должны входить в `make agent-verify`, кладите в `scripts/qa/agent-verify.d/` (`*.py` для всех ОС, `*.sh` для Linux/macOS, `*.ps1` для Windows);
+- шаги выполняются после базовых проверок шаблона в порядке имён файлов, первый отказ останавливает `agent-verify`;
+- `template-update` этот каталог не трогает; правила и остальные точки расширения (`Makefile.project`, `make.project.ps1`, проектный блок `.gitignore`/`.gitattributes`/`.contextignore`) описаны в [docs/template-maintenance.md](../template-maintenance.md#project-owned-extension-points).
+
 ## Imported Compatibility Skills
 
 Executable imported compatibility skills не должны использовать raw helper traceback как primary UX для missing Python/Node dependencies.
@@ -88,6 +94,34 @@ make imported-skills-readiness
 | `./scripts/platform/load-task-src.sh --profile env/local.json --work-item 93984 --run-root /tmp/load-task-src-run` | Загрузка уже закомиченного scope задачи по `Work-Item:` или `--range` | runtime + prepared infobase + git history с canonical trailers или явным revset | меняет ИБ только через delegated `load-src --files` | wrapper run-root logs и delegated `load-src` summary |
 | `./scripts/platform/update-db.sh --profile env/local.json --run-root /tmp/update-db-run` | Обновление DB configuration | runtime + prepared infobase | меняет ИБ | run-root logs и summary |
 | `./scripts/platform/dump-src.sh --profile env/local.json --run-root /tmp/dump-src-run` | Выгрузка исходников | runtime + prepared infobase | меняет target source tree или run-root по контракту capability | run-root logs и summary |
+| `./scripts/platform/configure-cfe-runtime-flags.sh --profile env/local.json --extension <name>` | Флаги расширения: безопасный режим, защита от опасных действий, активность, профиль безопасности | runtime + ИБ с расширением | меняет свойства расширения в ИБ | run-root logs и summary |
+| `./scripts/platform/manage-cfe.sh <action> --profile env/local.json [--extension <name>]` | Управление расширениями: `list`, `dump`, `import`, `load`, `save`, `apply`, `activate`, `deactivate`, `delete` | runtime + prepared infobase | меняет ИБ, кроме `list`, `dump`, `save` | run-root logs и summary |
+
+### Опции одного запуска
+
+Опции меняют только текущий запуск; профиль остаётся прежним. Флаг, который capability не поддерживает, отклоняется как неизвестный аргумент.
+
+| Capability | Опция | Поведение |
+| --- | --- | --- |
+| `load-src` | `--source-dir <dir>` | загружает из указанного каталога вместо `capabilities.loadSrc.sourceDir` |
+| `load-src` | `--override-unsupported-profile` | разово снимает `capabilities.loadSrc.unsupportedReason`; только с `--files`, явным `--run-root` и для профиля из `unsupportedOverride.loadSrc.allowedProfiles` в `automation/context/runtime-profile-policy.json`; причина пишется в `summary.json` → `unsupported_override` |
+| `dump-src` | `--output-dir <dir>` | выгружает в указанный каталог вместо `capabilities.dumpSrc.outputDir` |
+| `dump-src` | `--info-only` | только `ConfigDumpInfo.xml` через `ibcmd config export info`; нужен драйвер `ibcmd` |
+| `update-db` | `--vendor-cf <file.cf>` | Designer `/UpdateCfg` из CF поставщика и `/UpdateDBCfg`; только локальная платформа или `remote-windows`, нужен `--run-root` для `designer-out.log` |
+| `configure-cfe-runtime-flags` | `--safe-mode yes\|no`, `--unsafe-action-protection yes\|no` | по умолчанию оба `no` |
+| `configure-cfe-runtime-flags` | `--active yes\|no`, `--security-profile-name <name>`, `--clear-security-profile` | последние два флага взаимоисключающие; `--clear-security-profile` передаёт пустое имя профиля |
+| `manage-cfe` | `--output <dir>` (`dump`), `--source <dir>` (`import`, с `Configuration.xml`), `--file <file>` (`load`, `save`) | обязательны для своих действий и отклоняются для остальных |
+| `manage-cfe` | `--driver designer` или `--via-designer` | `import` и `apply` через Designer (`/LoadConfigFromFiles` или `/UpdateDBCfg`) с `-Extension <name>` и журналом `designer.out.log` в run-root |
+| `manage-cfe` | `--list-file <file>` | частичный Designer `import`: относительные пути внутри `--source`, по одному в строке |
+
+### Поля профиля для этих сценариев
+
+- `infobase.auth.mode`: `os` или `none` (ИБ без пользователей, аргументы авторизации не передаются).
+- `ibcmd.auth.mode`: `user-password` (по умолчанию) или `none`.
+- `ibcmd.locale`: локаль `ibcmd infobase create` и регистрации в кластере.
+- `capabilities.dumpSrc.sourceFile`: выгрузка из файла `.cf` вместо ИБ (`--file=`); не сочетается с `--info-only`.
+- `capabilities.createIb.registerInCluster: true`: после `create-ib` ИБ регистрируется через `rac infobase create` с запретом регламентных заданий. Нужны `infobase.mode=client-server`, `ibcmd.runtimeMode=dbms-infobase`, `platform.racPath`, `cluster.ras`, `infobase.ref`; при `clusterAdmin.user` — `clusterAdmin.passwordEnv`. Уже зарегистрированная ИБ с тем же именем не перезаписывается; итог — в `summary.json` → `registration`.
+- `unsupportedOverride.<capabilityKey>.allowedProfiles` в `automation/context/runtime-profile-policy.json`: список расходуемых профилей `env/<name>.json`, для которых разрешён `--override-unsupported-profile`.
 
 ## Context Refresh
 

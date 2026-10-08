@@ -4,15 +4,29 @@ import re
 import sys
 from pathlib import Path
 
-from .common import CommandError, die
-from .cfe_runtime import CFE_COMMANDS, run_cfe_command
-from .http_runtime import run_publish_http
 from .bsl_mcp_runtime import run_bsl_analyzer_mcp
+from .cfe_runtime import CFE_COMMANDS, run_cfe_command
+from .common import CommandError, die, project_root
 from .context import export_context, verify_traceability
 from .epf_templates import init_epf_from_template
-from .imported_skills import render_imported_skill_readiness, run_imported_skill, sync_claude_skills, sync_imported_skills
-from .qa import agent_verify, analyze_bsl, check_agent_docs, check_overlay_manifest, check_skill_bindings, codex_onboard, format_bsl
-from .runtime import run_doctor, run_load_diff_src, run_load_task_src, run_profile_capability, task_trailers_render, task_trailers_select_commits, task_trailers_validate_message
+from .http_runtime import run_publish_http
+from .imported_skills import (
+    render_imported_skill_readiness,
+    run_imported_skill,
+    sync_claude_skills,
+    sync_imported_skills,
+)
+from .project_extensions import run_project_verify_steps
+from .qa import agent_verify, analyze_bsl, check_agent_docs, check_overlay_manifest, check_skill_bindings, codex_onboard
+from .runtime import (
+    run_doctor,
+    run_load_diff_src,
+    run_load_task_src,
+    run_profile_capability,
+    task_trailers_render,
+    task_trailers_select_commits,
+    task_trailers_validate_message,
+)
 from .template_tools import (
     bootstrap_post_copy,
     bootstrap_post_update,
@@ -26,7 +40,6 @@ from .template_tools import (
 )
 from .testing_campaign import run_testing_campaign
 from .testing_tooling import init_test_tooling, install_test_tooling
-
 
 CAPABILITY_LABELS = {
     "create-ib": "Create infobase",
@@ -42,8 +55,9 @@ CAPABILITY_LABELS = {
 
 def _prefer_utf8_stdio() -> None:
     for stream in (sys.stdout, sys.stderr):
-        if hasattr(stream, "reconfigure"):
-            stream.reconfigure(encoding="utf-8")
+        reconfigure = getattr(stream, "reconfigure", None)
+        if callable(reconfigure):
+            reconfigure(encoding="utf-8")
 
 
 def _print_usage() -> None:
@@ -117,6 +131,8 @@ def main(argv: list[str] | None = None) -> int:
             return verify_traceability()
         if command == "agent-verify":
             return agent_verify()
+        if command == "agent-verify-project-steps":
+            return run_project_verify_steps(project_root())
         if command == "check-agent-docs":
             return check_agent_docs()
         if command == "check-skill-bindings":
@@ -175,8 +191,6 @@ def main(argv: list[str] | None = None) -> int:
             return sync_imported_skills(Path(source))
         if command == "analyze-bsl":
             return analyze_bsl()
-        if command == "format-bsl":
-            return format_bsl()
         if command == "ordinary-form-conversion":
             from .ordinary_form_conversion import run_ordinary_form_conversion
 
@@ -337,7 +351,9 @@ def main(argv: list[str] | None = None) -> int:
                 index += 1
             default_name_source = Path.cwd() if destination in {".", "./"} else Path(destination)
             if not project_slug:
-                project_slug = re.sub(r"-{2,}", "-", re.sub(r"[^a-z0-9]+", "-", default_name_source.name.lower())).strip("-")
+                project_slug = re.sub(
+                    r"-{2,}", "-", re.sub(r"[^a-z0-9]+", "-", default_name_source.name.lower())
+                ).strip("-")
             if not project_name:
                 project_name = re.sub(r"[-_]+", " ", default_name_source.name)
             copier_args: list[str] = []

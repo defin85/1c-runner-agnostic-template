@@ -185,12 +185,99 @@ manifest_has_entry() {
   grep -Fqx -- "$relpath" "$manifest_file"
 }
 
+# Exact preserve entries match one path; entries ending with `/` match a whole project-owned directory.
 preserve_manifest_has_entry() {
   local manifest_file="$1"
   local relpath="$2"
+  local entry
 
   [ -f "$manifest_file" ] || return 1
-  grep -Fqx -- "$relpath" "$manifest_file"
+  grep -Fqx -- "$relpath" "$manifest_file" && return 0
+  while IFS= read -r entry; do
+    case "$entry" in
+      */)
+        case "$relpath" in
+          "$entry"*) return 0 ;;
+        esac
+        ;;
+    esac
+  done < <(manifest_entries "$manifest_file")
+  return 1
+}
+
+# Keep in sync with scripts/python/project_extensions.py.
+project_block_begin="# >>> project-owned block: template-update keeps the lines up to the closing marker >>>"
+project_block_end="# <<< project-owned block <<<"
+
+is_project_block_file() {
+  case "$1" in
+    .gitignore|.gitattributes|.contextignore) return 0 ;;
+  esac
+  return 1
+}
+
+# Prints "none", "ok" or "invalid" for the project-owned block markers in a file.
+project_block_state() {
+  local file="$1"
+  awk -v begin="$project_block_begin" -v end="$project_block_end" '
+    { sub(/\r$/, "") }
+    $0 == begin { begins++; if (!first_begin) first_begin = NR }
+    $0 == end { ends++; if (!first_end) first_end = NR }
+    END {
+      if (!begins && !ends) print "none"
+      else if (begins == 1 && ends == 1 && first_begin < first_end) print "ok"
+      else print "invalid"
+    }
+  ' "$file"
+}
+
+# Writes the template file with the project-owned block taken from the current project file.
+merge_project_block_file() {
+  local source_file="$1"
+  local target_file="$2"
+  local relpath="$3"
+  local target_state source_state block_file merged_file
+
+  target_state="$(project_block_state "$target_file")"
+  source_state="$(project_block_state "$source_file")"
+  [ "$target_state" != "invalid" ] || die "$relpath (project): project-owned block must have exactly one opening and one closing marker in this order"
+  [ "$source_state" != "invalid" ] || die "$relpath (template release): project-owned block must have exactly one opening and one closing marker in this order"
+
+  if [ "$target_state" = "none" ]; then
+    return 1
+  fi
+
+  block_file="$(mktemp)"
+  merged_file="$(mktemp)"
+  awk -v begin="$project_block_begin" -v end="$project_block_end" '
+    { line = $0; sub(/\r$/, "", line) }
+    line == begin { inside = 1 }
+    inside { print }
+    line == end { inside = 0 }
+  ' "$target_file" >"$block_file"
+
+  if [ "$source_state" = "ok" ]; then
+    awk -v begin="$project_block_begin" -v end="$project_block_end" -v block_file="$block_file" '
+      { line = $0; sub(/\r$/, "", line) }
+      line == begin {
+        while ((getline block_line < block_file) > 0) print block_line
+        skipping = 1
+        next
+      }
+      skipping && line == end { skipping = 0; next }
+      !skipping { print }
+    ' "$source_file" >"$merged_file"
+  else
+    cat "$source_file" >"$merged_file"
+    if [ -s "$merged_file" ] && [ -n "$(tail -c 1 "$merged_file")" ]; then
+      printf '\n' >>"$merged_file"
+    fi
+    cat "$block_file" >>"$merged_file"
+  fi
+
+  install -m "$(stat -c '%a' "$source_file")" "$merged_file" "$target_file"
+  rm -f "$block_file" "$merged_file"
+  return 0
 }
 
 prune_empty_parent_dirs() {
@@ -233,6 +320,11 @@ copy_manifest_entry_from_source() {
     return 0
   fi
 
+  if is_project_block_file "$relpath" && [ -f "$target_root/$relpath" ] \
+    && merge_project_block_file "$source_file" "$target_root/$relpath" "$relpath"; then
+    return 0
+  fi
+
   mode="$(stat -c '%a' "$source_file")"
   install -D -m "$mode" "$source_file" "$target_root/$relpath"
 }
@@ -256,10 +348,11 @@ sync_overlay_manifests() {
   while IFS= read -r relpath; do
     [ -n "$relpath" ] || continue
 
-    if manifest_has_entry "$next_manifest" "$relpath"; then
-      copy_manifest_entry_from_source "$source_root" "$target_root" "$relpath"
-    elif preserve_manifest_has_entry "$preserve_manifest" "$relpath"; then
+    # Project-owned paths win over the managed manifest: overlay sync never writes or removes them.
+    if preserve_manifest_has_entry "$preserve_manifest" "$relpath"; then
       continue
+    elif manifest_has_entry "$next_manifest" "$relpath"; then
+      copy_manifest_entry_from_source "$source_root" "$target_root" "$relpath"
     else
       remove_manifest_entry_target "$target_root" "$relpath"
     fi

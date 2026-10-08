@@ -23,7 +23,6 @@ $targets = @{
     "act-preflight" = @((Resolve-TargetScript "scripts\qa\act-preflight.ps1"))
     "qa" = @((Resolve-TargetScript "scripts\qa\agent-verify.ps1"))
     "analyze-bsl" = @((Resolve-TargetScript "scripts\qa\analyze-bsl.ps1"))
-    "format-bsl" = @((Resolve-TargetScript "scripts\qa\format-bsl.ps1"))
     "check-bsl" = @((Resolve-TargetScript "scripts\qa\check-bsl.ps1"))
     "check-cf-modules" = @((Resolve-TargetScript "scripts\platform\check-cf-modules.ps1"))
     "analyze-bsl-external" = @((Resolve-TargetScript "scripts\qa\analyze-bsl-external.ps1"))
@@ -61,6 +60,23 @@ $targets = @{
     "template-update" = @((Resolve-TargetScript "scripts\template\update-template.ps1"))
 }
 
+# Project-owned extension point. make.project.ps1 is dot-sourced when it exists and may add
+# entries to $projectTargets (name -> @(script, fixed args...)) and lines to $projectHelp.
+# The template never ships that file and template-update never writes it.
+$projectTargets = [ordered]@{}
+$projectHelp = @()
+$projectMakeScript = Join-Path $root "make.project.ps1"
+if (Test-Path -LiteralPath $projectMakeScript -PathType Leaf) {
+    . $projectMakeScript
+    foreach ($projectTarget in $projectTargets.Keys) {
+        if ($projectTarget -eq "help" -or $targets.ContainsKey($projectTarget)) {
+            [Console]::Error.WriteLine("make.project.ps1 must not redefine template target: $projectTarget")
+            exit 1
+        }
+        $targets[$projectTarget] = @($projectTargets[$projectTarget])
+    }
+}
+
 if ($Target -eq "help") {
     @(
         "Available targets:",
@@ -73,7 +89,6 @@ if ($Target -eq "help") {
         "  ./make.ps1 analyze-bsl-external",
         "  ./make.ps1 artifact-storage",
         "  ./make.ps1 run-client",
-        "  ./make.ps1 format-bsl",
         "  ./make.ps1 check-agent-docs",
         "  ./make.ps1 check-skill-bindings",
         "  ./make.ps1 sync-claude-skills",
@@ -105,6 +120,15 @@ if ($Target -eq "help") {
         "  ./make.ps1 template-check-update",
         "  ./make.ps1 template-update"
     ) | ForEach-Object { Write-Output $_ }
+    if ($projectTargets.Count -gt 0) {
+        Write-Output ""
+        Write-Output "Project targets (make.project.ps1):"
+        if ($projectHelp.Count -gt 0) {
+            $projectHelp | ForEach-Object { Write-Output $_ }
+        } else {
+            $projectTargets.Keys | ForEach-Object { Write-Output "  ./make.ps1 $_" }
+        }
+    }
     exit 0
 }
 

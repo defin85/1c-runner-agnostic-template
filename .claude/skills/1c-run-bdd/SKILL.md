@@ -21,7 +21,7 @@ Windows launcher: `./scripts/test/run-bdd.ps1`
 ./scripts/test/run-bdd.sh --profile env/local.json --target <target-id>
 ./scripts/test/run-bdd.sh --profile env/ci.json --target <target-id> --run-root /tmp/run-bdd
 ./scripts/test/run-bdd.sh --profile env/local.json --target <target-id> --dry-run
-ONEC_BDD_FEATURES='features/vanessa/example.feature' ./scripts/test/run-bdd.sh --profile env/local.json --target <target-id> --run-root /tmp/run-bdd
+ONEC_BDD_FEATURES='features/examples/tdd-starter.feature' ./scripts/test/run-bdd.sh --profile env/local.json --target <target-id> --run-root /tmp/run-bdd
 ```
 
 ## Rules

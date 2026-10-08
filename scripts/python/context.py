@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 import json
-import os
 import re
+import sys
 from pathlib import Path
 from typing import Any
 
-from .common import canonical_path, die, ensure_dir, project_root, run_process, write_text
+from .common import die, ensure_dir, project_root, run_process, write_text
 
 
 def is_source_repo(root: Path | None = None) -> bool:
@@ -30,9 +30,7 @@ def _iter_files(root: Path, rel: str) -> list[Path]:
     if not base.is_dir():
         return []
     return sorted(
-        path
-        for path in base.rglob("*")
-        if path.is_file() and "__pycache__" not in path.parts and path.suffix != ".pyc"
+        path for path in base.rglob("*") if path.is_file() and "__pycache__" not in path.parts and path.suffix != ".pyc"
     )
 
 
@@ -118,45 +116,62 @@ def render_source_files(root: Path) -> str:
     return "# Template Source Files\n\n" + "\n".join(sorted(set(files))) + "\n"
 
 
+GENERATED_TREE_MAX_DEPTH = 4
+GENERATED_TREE_HIDDEN_PARTS = {".git", ".venv", ".artifacts", ".build", ".agent-browser", "__pycache__"}
+GENERATED_CONTEXT_FILES = {
+    "source-tree.generated.txt",
+    "metadata-index.generated.json",
+    "hotspots-summary.generated.md",
+    "recommended-skills.generated.md",
+    "project-delta-hotspots.generated.md",
+}
+
+
 def _is_generated_private(rel: str) -> bool:
-    return rel in {
-        "./env/local.json",
-        "./env/wsl.json",
-        "./env/ci.json",
-        "./env/windows-executor.json",
-        "./env/windows-local.json",
-        "./env/.local",
-    } or rel.startswith("./env/.local/")
+    if rel.startswith("./.codex/"):
+        return rel not in {"./.codex/.gitkeep", "./.codex/README.md", "./.codex/config.toml"}
+    return (
+        bool(set(Path(rel).parts) & GENERATED_TREE_HIDDEN_PARTS)
+        or rel
+        in {
+            "./env/local.json",
+            "./env/wsl.json",
+            "./env/ci.json",
+            "./env/windows-executor.json",
+            "./env/windows-local.json",
+            "./env/.local",
+        }
+        or rel.startswith("./env/.local/")
+        or rel.endswith(".pyc")
+    )
+
+
+def _visible_files(root: Path) -> list[Path]:
+    """Files of the generated project: Git-visible (tracked or not ignored) when a Git index exists."""
+    if (root / ".git").exists():
+        result = run_process(
+            ["git", "-C", str(root), "ls-files", "--cached", "--others", "--exclude-standard", "-z"], check=True
+        )
+        paths = {root / rel for rel in result.stdout.split("\0") if rel}
+    else:
+        # Standalone fixture or export directories have no Git index.
+        paths = set(root.rglob("*"))
+    return sorted(path for path in paths if path.is_file() and not _is_generated_private(_repo_rel(path, root)))
 
 
 def render_generated_tree(root: Path) -> str:
-    ignored = {
-        ".git",
-        ".agent-browser",
-    }
-    lines = ["# Generated Project Tree", ""]
-    for path in sorted(root.rglob("*")):
-        rel = _repo_rel(path, root)
-        if any(part in ignored for part in path.relative_to(root).parts):
+    """Directories and files up to GENERATED_TREE_MAX_DEPTH levels, without local-private and build output."""
+    entries = {"."}
+    context_dir = root / "automation" / "context"
+    for path in _visible_files(root):
+        if path.parent == context_dir and path.name in GENERATED_CONTEXT_FILES:
             continue
-        if rel in {
-            "./automation/context/source-tree.generated.txt",
-            "./automation/context/metadata-index.generated.json",
-            "./automation/context/hotspots-summary.generated.md",
-            "./automation/context/recommended-skills.generated.md",
-            "./automation/context/project-delta-hotspots.generated.md",
-        }:
-            continue
-        if _is_generated_private(rel):
-            continue
-        if rel.startswith("./.codex/") and rel not in {
-            "./.codex/.gitkeep",
-            "./.codex/README.md",
-            "./.codex/config.toml",
-        }:
-            continue
-        lines.append(rel)
-    return "\n".join(lines) + "\n"
+        for entry in (path, *path.parents):
+            if entry == root:
+                break
+            if len(entry.relative_to(root).parts) <= GENERATED_TREE_MAX_DEPTH:
+                entries.add(_repo_rel(entry, root))
+    return "# Generated Project Tree\n\n" + "\n".join(sorted(entries)) + "\n"
 
 
 def _list_top_level(root: Path, rel: str) -> list[str]:
@@ -437,7 +452,14 @@ def render_generated_project_delta_hotspots(root: Path, metadata_json: str) -> s
     lines.extend(["", "### Representative Paths", ""])
     lines.extend([f"- `{value}`" for value in hints.get("representativePaths", [])] or ["- none"])
     lines.extend(["", "## Matching Hotspots", ""])
-    lines.extend([f"- `{value}`" for value in matches[:20]] or ["No project-delta selectors are declared yet." if not (prefixes or keywords) else "Selectors are declared, but they do not currently match generated tree entries."])
+    lines.extend(
+        [f"- `{value}`" for value in matches[:20]]
+        or [
+            "No project-delta selectors are declared yet."
+            if not (prefixes or keywords)
+            else "Selectors are declared, but they do not currently match generated tree entries."
+        ]
+    )
     lines.extend(
         [
             "",
@@ -516,12 +538,36 @@ def render_generated_hotspots_summary(root: Path, metadata_json: str, tree_text:
     return "\n".join(lines) + "\n"
 
 
+EXPORT_CONTEXT_USAGE = """Usage:
+  ./scripts/llm/export-context.sh --help
+  ./scripts/llm/export-context.sh --preview
+  ./scripts/llm/export-context.sh --check
+  ./scripts/llm/export-context.sh --write
+
+Modes:
+  --help     Show this contract and exit without writing files.
+  --preview  Print the would-be context artifacts to stdout without writing files.
+  --check    Compare checked-in context artifacts with freshly rendered output.
+  --write    Refresh checked-in context artifacts in place.
+
+Repo behavior:
+  - Template source repo refreshes automation/context/template-source-tree.txt
+    and automation/context/template-source-source-files.txt.
+  - Generated repo refreshes automation/context/source-tree.generated.txt,
+    automation/context/metadata-index.generated.json,
+    automation/context/recommended-skills.generated.md,
+    automation/context/hotspots-summary.generated.md,
+    and automation/context/project-delta-hotspots.generated.md.
+"""
+
+
 def export_context(mode: str, root: Path | None = None) -> int:
     repo_root = root or project_root()
     context_dir = ensure_dir(repo_root / "automation" / "context")
     if mode not in {"--help", "--preview", "--check", "--write"}:
         die(f"unknown mode: {mode}")
     if mode == "--help":
+        print(EXPORT_CONTEXT_USAGE, end="")
         return 0
     targets: list[tuple[Path, str]] = []
     if is_source_repo(repo_root):
@@ -535,9 +581,18 @@ def export_context(mode: str, root: Path | None = None) -> int:
         targets = [
             (context_dir / "source-tree.generated.txt", tree_text),
             (context_dir / "metadata-index.generated.json", metadata_json),
-            (context_dir / "recommended-skills.generated.md", render_generated_recommended_skills(repo_root, metadata_json)),
-            (context_dir / "project-delta-hotspots.generated.md", render_generated_project_delta_hotspots(repo_root, metadata_json)),
-            (context_dir / "hotspots-summary.generated.md", render_generated_hotspots_summary(repo_root, metadata_json, tree_text)),
+            (
+                context_dir / "recommended-skills.generated.md",
+                render_generated_recommended_skills(repo_root, metadata_json),
+            ),
+            (
+                context_dir / "project-delta-hotspots.generated.md",
+                render_generated_project_delta_hotspots(repo_root, metadata_json),
+            ),
+            (
+                context_dir / "hotspots-summary.generated.md",
+                render_generated_hotspots_summary(repo_root, metadata_json, tree_text),
+            ),
         ]
     if mode == "--preview":
         for path, content in targets:
@@ -548,7 +603,7 @@ def export_context(mode: str, root: Path | None = None) -> int:
         status = 0
         for path, content in targets:
             if not path.is_file() or path.read_text(encoding="utf-8") != content:
-                print(f"stale context file: {path}", file=os.sys.stderr)
+                print(f"stale context file: {path}", file=sys.stderr)
                 status = 1
         return status
     for path, content in targets:
@@ -560,23 +615,23 @@ def verify_traceability(root: Path | None = None) -> int:
     repo_root = root or project_root()
     changes_dir = repo_root / "openspec" / "changes"
     if not changes_dir.is_dir():
-        print(f"error: changes directory not found: {changes_dir}", file=os.sys.stderr)
-        print("hint: run openspec init in the project root", file=os.sys.stderr)
+        print(f"error: changes directory not found: {changes_dir}", file=sys.stderr)
+        print("hint: run openspec init in the project root", file=sys.stderr)
         return 1
     status = 0
     for change_dir in sorted(path for path in changes_dir.iterdir() if path.is_dir() and path.name != "archive"):
         if not (change_dir / "proposal.md").is_file():
-            print(f"missing proposal.md: {change_dir}", file=os.sys.stderr)
+            print(f"missing proposal.md: {change_dir}", file=sys.stderr)
             status = 1
         specs_root = change_dir / "specs"
         spec_count = len(list(specs_root.glob("*/*/spec.md"))) + len(list(specs_root.glob("*/spec.md")))
         if spec_count == 0:
-            print(f"missing capability spec delta under specs/*/spec.md: {change_dir}", file=os.sys.stderr)
+            print(f"missing capability spec delta under specs/*/spec.md: {change_dir}", file=sys.stderr)
             status = 1
         if not (change_dir / "tasks.md").is_file():
-            print(f"missing tasks.md: {change_dir}", file=os.sys.stderr)
+            print(f"missing tasks.md: {change_dir}", file=sys.stderr)
             status = 1
         if not (change_dir / "traceability.md").is_file():
-            print(f"missing traceability.md: {change_dir}", file=os.sys.stderr)
+            print(f"missing traceability.md: {change_dir}", file=sys.stderr)
             status = 1
     return status

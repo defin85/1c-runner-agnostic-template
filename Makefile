@@ -1,6 +1,6 @@
 SHELL := bash
 
-.PHONY: help agent-verify act-preflight qa analyze-bsl format-bsl check-bsl check-cf-modules analyze-bsl-external artifact-storage run-client check-agent-docs check-skill-bindings sync-claude-skills check-overlay-manifest codex-onboard imported-skills-readiness create-ib dump-src load-src load-cfe manage-cfe configure-cfe-runtime-flags check-cfe-applicability check-cfe-config load-diff-src load-task-src update-db diff-src doctor publish-http bsl-analyzer-mcp check-x11-contour test-yaxunit sync-yaxunit-runtime yaxunit-warm-service web-client-diagnostic golden-create golden-restore golden-baseline test-bdd bdd-warm-service smoke export-context export-context-preview export-context-check export-context-write verify-traceability template-check-update template-update
+.PHONY: help agent-verify act-preflight qa analyze-bsl check-bsl check-cf-modules analyze-bsl-external artifact-storage run-client check-agent-docs check-skill-bindings sync-claude-skills check-overlay-manifest codex-onboard imported-skills-readiness create-ib dump-src load-src load-cfe manage-cfe configure-cfe-runtime-flags check-cfe-applicability check-cfe-config load-diff-src load-task-src update-db diff-src doctor publish-http bsl-analyzer-mcp check-x11-contour test-yaxunit sync-yaxunit-runtime yaxunit-warm-service web-client-diagnostic golden-create golden-restore golden-baseline test-bdd bdd-warm-service smoke export-context export-context-preview export-context-check export-context-write verify-traceability template-check-update template-update
 
 help:
 	@printf '%s\n' \
@@ -14,7 +14,6 @@ help:
 		'  make analyze-bsl-external ARGS="..."' \
 		'  make artifact-storage ARGS="..."' \
 		'  make run-client ARGS="..."' \
-		'  make format-bsl' \
 		'  make check-agent-docs' \
 		'  make check-skill-bindings' \
 		'  make sync-claude-skills' \
@@ -54,7 +53,9 @@ help:
 		'  make export-context-write' \
 		'  make verify-traceability' \
 		'  make template-check-update' \
-		'  make template-update'
+		'  make template-update' \
+		'' \
+		'Project targets: see Makefile.project (project-owned, optional).'
 
 agent-verify:
 	@./scripts/qa/agent-verify.sh
@@ -66,9 +67,6 @@ qa: analyze-bsl check-agent-docs check-skill-bindings check-overlay-manifest ver
 
 analyze-bsl:
 	@./scripts/qa/analyze-bsl.sh
-
-format-bsl:
-	@./scripts/qa/format-bsl.sh
 
 check-bsl:
 	@./scripts/qa/check-bsl.sh $(ARGS)
@@ -204,3 +202,8 @@ template-check-update:
 
 template-update:
 	@./scripts/template/update-template.sh
+
+# Project-owned targets live in Makefile.project. The template never ships that file and
+# template-update never writes it (automation/context/template-update-preserve-paths.txt).
+# Add new target names only; redefining a template target is not supported.
+-include Makefile.project

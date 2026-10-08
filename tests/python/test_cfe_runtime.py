@@ -8,7 +8,14 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from scripts.python.cfe_runtime import build_cfe_commands, run_cfe_command, validate_extension_name
+from scripts.python.cfe_runtime import (
+    CfeOptions,
+    build_cfe_commands,
+    read_list_file,
+    run_cfe_command,
+    validate_extension_name,
+    validate_manage_cfe,
+)
 from scripts.python.runtime_errors import CommandError
 from scripts.python.runtime_observation import ObservationRequest, ObservationResult
 from scripts.python.runtime_profiles import load_runtime_profile
@@ -171,6 +178,113 @@ class CfeRuntimeTests(unittest.TestCase):
                 )
             self.assertEqual(exit_code, 0)
             self.assertEqual(roots, [run_root / "steps" / name for name in ("01", "02", "03")])
+
+
+class CfeOptionsTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.profile = load_runtime_profile(ROOT / "env" / "windows-local.example.json")
+
+    def test_runtime_flags_accept_security_profile_and_active(self) -> None:
+        options = CfeOptions(safe_mode="yes", active="no", security_profile_name="Профиль")
+        command = build_cfe_commands(
+            "configure-cfe-runtime-flags", self.profile, "Тест", dry_run=True, options=options
+        )[0]
+        tail = command[command.index("--name=Тест") :]
+        self.assertEqual(
+            tail,
+            [
+                "--name=Тест",
+                "--security-profile-name=Профиль",
+                "--safe-mode=yes",
+                "--unsafe-action-protection=no",
+                "--active=no",
+            ],
+        )
+
+    def test_runtime_flags_clear_security_profile(self) -> None:
+        options = CfeOptions(clear_security_profile=True)
+        command = build_cfe_commands(
+            "configure-cfe-runtime-flags", self.profile, "Тест", dry_run=True, options=options
+        )[0]
+        self.assertIn("--security-profile-name=", command)
+
+    def test_runtime_flags_reject_conflicting_security_profile_options(self) -> None:
+        argv = ["--extension", "Тест", "--clear-security-profile", "--security-profile-name", "Профиль"]
+        with self.assertRaises(CommandError):
+            run_cfe_command("configure-cfe-runtime-flags", argv)
+        with self.assertRaises(CommandError):
+            run_cfe_command("configure-cfe-runtime-flags", ["--extension", "Тест", "--safe-mode", "maybe"])
+
+    def test_manage_cfe_ibcmd_actions(self) -> None:
+        def build(action: str, options: CfeOptions | None = None) -> list[str]:
+            return build_cfe_commands("manage-cfe", self.profile, "Тест", action=action, dry_run=True, options=options)[
+                0
+            ]
+
+        self.assertIn("list", build("list"))
+        self.assertEqual(build("activate")[-2:], ["--name=Тест", "--active=yes"])
+        self.assertEqual(build("deactivate")[-1], "--active=no")
+        self.assertEqual(build("apply")[-2:], ["--extension=Тест", "--force"])
+        self.assertEqual(build("delete")[-1], "--name=Тест")
+        dump = build("dump", CfeOptions(output="out-dir"))
+        self.assertIn("export", dump)
+        self.assertTrue(dump[-1].endswith("out-dir"))
+        save = build("save", CfeOptions(file="ext.cfe"))
+        self.assertIn("save", save)
+        self.assertTrue(save[-1].endswith("ext.cfe"))
+
+    def test_manage_cfe_designer_import_uses_partial_list(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            run_root = Path(raw) / "run"
+            options = CfeOptions(driver="designer", source=raw, list_file="selected.txt")
+            command = build_cfe_commands(
+                "manage-cfe", self.profile, "Тест", action="import", dry_run=True, options=options, run_root=run_root
+            )[0]
+        start = command.index("/LoadConfigFromFiles")
+        self.assertEqual(command[start + 2], "-listFile")
+        self.assertTrue(command[start + 3].endswith("import-files.txt"))
+        self.assertEqual(command[start + 4 : start + 6], ["-partial", "-Extension"])
+        self.assertTrue(command[-1].endswith("designer.out.log"))
+
+    def test_manage_cfe_designer_apply_updates_db(self) -> None:
+        options = CfeOptions(driver="designer")
+        command = build_cfe_commands("manage-cfe", self.profile, "Тест", action="apply", dry_run=True, options=options)[
+            0
+        ]
+        self.assertIn("/UpdateDBCfg", command)
+        self.assertEqual(command[command.index("-Extension") + 1], "Тест")
+
+    def test_manage_cfe_validation(self) -> None:
+        cases = [
+            ("unknown", "Тест", CfeOptions()),
+            ("apply", "", CfeOptions()),
+            ("list", "Тест", CfeOptions(driver="designer")),
+            ("dump", "", CfeOptions()),
+            ("list", "", CfeOptions(output="out")),
+            ("save", "", CfeOptions()),
+            ("import", "Тест", CfeOptions(source="missing-source-dir")),
+            ("import", "Тест", CfeOptions(source=".", list_file="files.txt")),
+        ]
+        for action, extension, options in cases:
+            with self.subTest(action=action, options=options), self.assertRaises(CommandError):
+                validate_manage_cfe(action, extension, options)
+
+    def test_list_file_entries_stay_inside_source(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            source = Path(raw) / "src"
+            (source / "CommonModules").mkdir(parents=True)
+            (source / "Configuration.xml").write_text("<x/>", encoding="utf-8")
+            (source / "CommonModules" / "Module.xml").write_text("<x/>", encoding="utf-8")
+            list_file = Path(raw) / "files.txt"
+            list_file.write_text("Configuration.xml\nCommonModules\\Module.xml\n", encoding="utf-8")
+            self.assertEqual(
+                read_list_file(str(list_file), str(source)), ["Configuration.xml", "CommonModules/Module.xml"]
+            )
+            for bad in ("../outside.xml", "/abs/path.xml", "Missing.xml"):
+                list_file.write_text(bad + "\n", encoding="utf-8")
+                with self.subTest(entry=bad), self.assertRaises(CommandError):
+                    read_list_file(str(list_file), str(source))
 
 
 if __name__ == "__main__":

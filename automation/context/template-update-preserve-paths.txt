@@ -1,3 +1,9 @@
 # Paths that left the template-managed overlay but must stay untouched in
 # generated repositories during template-update migration.
 .codex/config.toml
+tests/golden/run.sh
+# Project-owned extension points: the template never ships them and overlay sync never writes them.
+# An entry ending with `/` covers the whole directory.
+Makefile.project
+make.project.ps1
+scripts/qa/agent-verify.d/

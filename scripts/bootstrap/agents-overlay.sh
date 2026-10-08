@@ -137,11 +137,6 @@ Search order:
 4. `rg --files`
 5. Targeted file reads
 
-Optional sidecar: `rlm-tools`
-
-- Use `rlm-tools` for low-context exploration when broad grep or file reads would dump too much raw text into the conversation.
-- Treat `rlm-tools` as exploratory evidence, not final proof. Confirm final facts with direct code evidence.
-
 Checklist:
 
 1. Formulate the query as `component + action + context`.

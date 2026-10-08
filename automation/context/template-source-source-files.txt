@@ -1264,16 +1264,20 @@
 ./scripts/python/metadata_template_ops.py
 ./scripts/python/metadata_validate.py
 ./scripts/python/onec_xpra.py
+./scripts/python/optional_modules.py
 ./scripts/python/ordinary_form_conversion.py
+./scripts/python/project_extensions.py
 ./scripts/python/qa.py
 ./scripts/python/run-python.ps1
 ./scripts/python/run-python.sh
 ./scripts/python/run_client.py
 ./scripts/python/runtime.py
 ./scripts/python/runtime_atomic.py
+./scripts/python/runtime_cluster.py
 ./scripts/python/runtime_errors.py
 ./scripts/python/runtime_lock.py
 ./scripts/python/runtime_observation.py
+./scripts/python/runtime_options.py
 ./scripts/python/runtime_os.py
 ./scripts/python/runtime_paths.py
 ./scripts/python/runtime_process.py
@@ -1306,8 +1310,6 @@
 ./scripts/qa/check-skill-bindings.sh
 ./scripts/qa/codex-onboard.ps1
 ./scripts/qa/codex-onboard.sh
-./scripts/qa/format-bsl.ps1
-./scripts/qa/format-bsl.sh
 ./scripts/release/install-source-hooks.ps1
 ./scripts/release/install-source-hooks.sh
 ./scripts/release/lib-source-release.ps1
@@ -1530,9 +1532,9 @@
 ./tests/python/test_bsl_mcp_runtime.py
 ./tests/python/test_cfe_init_from_template_command.py
 ./tests/python/test_cfe_runtime.py
+./tests/python/test_context_generated_tree.py
 ./tests/python/test_cross_platform.py
 ./tests/python/test_epf_init_from_template_command.py
-./tests/python/test_epf_templates_form_title_version.py
 ./tests/python/test_http_runtime.py
 ./tests/python/test_imported_skills.py
 ./tests/python/test_metadata_apply.py
@@ -1565,6 +1567,8 @@
 ./tests/python/test_remote_transport.py
 ./tests/python/test_run_client.py
 ./tests/python/test_runtime_atomic.py
+./tests/python/test_runtime_capability_options.py
+./tests/python/test_runtime_doctor_context.py
 ./tests/python/test_runtime_observation.py
 ./tests/python/test_runtime_observation_techlog.py
 ./tests/python/test_runtime_os.py
@@ -1594,6 +1598,7 @@
 ./tests/smoke/new-1c-project-current-dir-defaults.sh
 ./tests/smoke/observation-contract.sh
 ./tests/smoke/onec-port-lease-contract.sh
+./tests/smoke/project-extension-points.sh
 ./tests/smoke/reusable-testing-contract.sh
 ./tests/smoke/reusable_testing_contract.py
 ./tests/smoke/run-client-contract.sh
@@ -1612,6 +1617,7 @@
 ./tests/smoke/runtime-overlay-rollback-contract.sh
 ./tests/smoke/runtime-profile-legacy-rejection.sh
 ./tests/smoke/runtime-profile-migration-helper.sh
+./tests/smoke/skill-bindings-paths.sh
 ./tests/smoke/template-release-workflow.sh
 ./tests/smoke/update-1c-project-wrapper.sh
 ./tests/smoke/v8unpack-contract.sh

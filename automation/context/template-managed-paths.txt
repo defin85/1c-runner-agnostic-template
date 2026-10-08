@@ -997,16 +997,20 @@ scripts/python/metadata_predefined_ops.py
 scripts/python/metadata_template_ops.py
 scripts/python/metadata_validate.py
 scripts/python/onec_xpra.py
+scripts/python/optional_modules.py
 scripts/python/ordinary_form_conversion.py
+scripts/python/project_extensions.py
 scripts/python/qa.py
 scripts/python/run-python.ps1
 scripts/python/run-python.sh
 scripts/python/run_client.py
 scripts/python/runtime.py
 scripts/python/runtime_atomic.py
+scripts/python/runtime_cluster.py
 scripts/python/runtime_errors.py
 scripts/python/runtime_lock.py
 scripts/python/runtime_observation.py
+scripts/python/runtime_options.py
 scripts/python/runtime_os.py
 scripts/python/runtime_paths.py
 scripts/python/runtime_process.py
@@ -1039,8 +1043,6 @@ scripts/qa/check-skill-bindings.ps1
 scripts/qa/check-skill-bindings.sh
 scripts/qa/codex-onboard.ps1
 scripts/qa/codex-onboard.sh
-scripts/qa/format-bsl.ps1
-scripts/qa/format-bsl.sh
 scripts/skills/run-imported-skill.ps1
 scripts/skills/run-imported-skill.sh
 scripts/skills/sync-claude-skills.ps1
@@ -1244,7 +1246,6 @@ tests/golden/README.md
 tests/golden/create.sh
 tests/golden/db.sh
 tests/golden/restore.sh
-tests/golden/run.sh
 tests/python/__init__.py
 tests/python/metadata_test_support.py
 tests/python/ordinary_form_test_support.py
@@ -1254,9 +1255,9 @@ tests/python/test_bsl_connections.py
 tests/python/test_bsl_mcp_runtime.py
 tests/python/test_cfe_init_from_template_command.py
 tests/python/test_cfe_runtime.py
+tests/python/test_context_generated_tree.py
 tests/python/test_cross_platform.py
 tests/python/test_epf_init_from_template_command.py
-tests/python/test_epf_templates_form_title_version.py
 tests/python/test_http_runtime.py
 tests/python/test_imported_skills.py
 tests/python/test_metadata_apply.py
@@ -1289,6 +1290,8 @@ tests/python/test_qa_skill_bindings.py
 tests/python/test_remote_transport.py
 tests/python/test_run_client.py
 tests/python/test_runtime_atomic.py
+tests/python/test_runtime_capability_options.py
+tests/python/test_runtime_doctor_context.py
 tests/python/test_runtime_observation.py
 tests/python/test_runtime_observation_techlog.py
 tests/python/test_runtime_os.py
@@ -1318,6 +1321,7 @@ tests/smoke/multi-target-extension-workspace-contract.sh
 tests/smoke/new-1c-project-current-dir-defaults.sh
 tests/smoke/observation-contract.sh
 tests/smoke/onec-port-lease-contract.sh
+tests/smoke/project-extension-points.sh
 tests/smoke/reusable-testing-contract.sh
 tests/smoke/reusable_testing_contract.py
 tests/smoke/run-client-contract.sh
@@ -1336,6 +1340,7 @@ tests/smoke/runtime-load-task-src-validation-contract.sh
 tests/smoke/runtime-overlay-rollback-contract.sh
 tests/smoke/runtime-profile-legacy-rejection.sh
 tests/smoke/runtime-profile-migration-helper.sh
+tests/smoke/skill-bindings-paths.sh
 tests/smoke/update-1c-project-wrapper.sh
 tests/smoke/v8unpack-contract.sh
 tests/smoke/vanessa-bdd-warm-service-contract.sh

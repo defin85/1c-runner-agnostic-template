@@ -47,7 +47,7 @@
 
 ## 3. Качество репозитория
 
-- [ ] 3.1 Добавить в `check-skill-bindings` проверку существования путей из `SKILL.md` с учётом необязательных модулей; добавить `tests/smoke/skill-bindings-paths.sh`.
+- [x] 3.1 Добавить в `check-skill-bindings` проверку существования путей из `SKILL.md` с учётом необязательных модулей; добавить `tests/smoke/skill-bindings-paths.sh`.
 - [ ] 3.2 Добавить проверку Python-кода ruff и basedpyright (Р9, Р10).
   - ruff: `ruff.toml` (правила `E4,E7,E9,F,B,I,UP`, `py312`, 120, `per-file-target-version = "py37"` для серверных обёрток площадки), цель `make verify-python-lint` / `./make.ps1 verify-python-lint` с `ruff check` и `ruff format --check`; исправить замечания шаблона, каждый `noqa` с причиной.
   - basedpyright: `pyrightconfig.json` в режиме `standard`, `scripts/python/type_checking.py`, `scripts/qa/type-check.sh|.ps1`, цель `make verify-types`; baseline не поставлять, при наличии baseline-файла проверка падает; исправить ошибки шаблона кодом.
@@ -56,14 +56,19 @@
   - Проверка: `ruff check`, `ruff format --check` и `basedpyright` без ошибок; после `ruff check --fix` unit-тесты проходят и diff пуст; добавленная в фикстуру ошибка типа даёт ненулевой код с файлом и строкой.
   - Добавить запуск pytest в CI и `agent-verify`: тесты `test_metadata_*.py` написаны для pytest, под `unittest discover` они не выполняются.
   - Сделать `uv.lock` обязательным входом отпечатка движка в `metadata.py` (сейчас необязателен, потому что uv в шаблоне ещё нет).
-- [ ] 3.3 Перенести общие правки template-managed сценариев по решениям `inventory.md`.
+- [x] 3.3 Перенести общие правки template-managed сценариев по решениям `inventory.md`.
   - Для `runtime.py` — сопоставить с модулями `runtime_*`.
   - Включить возможности по Р12 и импортированные `db-*`/`epf/erf-*` через профиль по Р11 (поведение в `imported_skills.py`, vendor-файлы не править); удалить тесты текста BSL, блок `rlm-tools` и `format-bsl` по Р14; перенести коммит `06b9155` (preserve для `tests/golden/run.sh`).
   - Перед началом повторить сверку для файлов проекта, изменённых после коммита инвентаря `099860613`.
   - Проверка: существующие smoke runtime-контура и `copier-update-ready.sh` проходят.
-  - Известное падение: `copier-update-ready.sh` останавливается на проверке `runtime-doctor-runtime-mode` (в summary doctor нет `context.runtime_mode`) до шага `template-update`; разобрать в этой задаче.
-- [ ] 3.4 Добавить project-owned точки расширения для фрагментов `оставить в проекте` из `inventory.md`: `Makefile.project`/`make.project.ps1`, дополнительные шаги `agent-verify`, проектный блок `.gitignore`/`.gitattributes`.
+  - Падение `copier-update-ready.sh` на `runtime-doctor-runtime-mode` было регрессией порта doctor на Python (контекст ibcmd пустой); исправлено кодом, smoke проходит.
+- [x] 3.4 Добавить project-owned точки расширения для фрагментов `оставить в проекте` из `inventory.md`: `Makefile.project`/`make.project.ps1`, дополнительные шаги `agent-verify`, проектный блок `.gitignore`/`.gitattributes`.
   - Проверка: `template-update` копии проекта с заполненными точками расширения не меняет их, а проектные цели и шаги `agent-verify` выполняются.
+- [ ] 3.5 Закрыть остаток сверки, найденный при выполнении 3.3.
+  - Перенести обобщённую Python-проверку документации из проектного `scripts/python/agent_docs.py` без проектных проверок; сейчас Python-версия `check-agent-docs` в шаблоне не ловит `missing required markdown link`, поэтому оставлен shell-вариант.
+  - Обновить или удалить smoke, построенные на профиле `schemaVersion` 2 и target-matrix: `runtime-ibcmd-doctor-contract.sh`, `runtime-ibcmd-capability-contract.sh`, `manage-cfe-contract.sh`, `configure-cfe-runtime-flags-contract.sh`, `runtime-load-diff-src*`, `runtime-load-task-src*`, `runtime-profile-legacy-rejection`.
+  - Убрать устаревшие `--target` и `capabilities.bdd.command` из навыка `1c-run-bdd`.
+  - Проверка: перечисленные smoke проходят или удалены вместе с записями манифеста; `check-agent-docs` на Python падает при отсутствующей обязательной ссылке.
 
 ## 4. Необязательные модули: механизм
 

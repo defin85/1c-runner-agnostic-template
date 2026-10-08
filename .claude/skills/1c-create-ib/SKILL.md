@@ -23,6 +23,13 @@ Windows launcher: `./scripts/platform/create-ib.ps1`
 ./scripts/platform/create-ib.sh --profile env/local.json --dry-run
 ```
 
+- `capabilities.createIb.registerInCluster: true` после успешного `ibcmd infobase create` регистрирует ИБ в
+  кластере утилитой `rac` (команда `infobase create`) с запретом регламентных заданий. Нужны `infobase.mode=client-server`,
+  `ibcmd.runtimeMode=dbms-infobase`, `platform.racPath`, `cluster.ras`, `infobase.ref`; при `clusterAdmin.user`
+  также `clusterAdmin.passwordEnv`. ИБ с тем же именем повторно не регистрируется. Итог — в секции
+  `registration` файла `summary.json`.
+- `ibcmd.locale` задаёт локаль создаваемой ИБ (`--locale=`) и регистрации в кластере.
+
 ## Rules
 
 - Не переносите runtime logic в skill.

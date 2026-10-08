@@ -42,4 +42,7 @@ printf '%s' "$readiness_json" | jq -e '
 log "Check reusable testing contract"
 "$root/tests/smoke/reusable-testing-contract.sh"
 
+log "Run project-owned agent-verify steps (scripts/qa/agent-verify.d)"
+"$root/scripts/python/run-python.sh" agent-verify-project-steps
+
 log "Baseline agent verification passed"

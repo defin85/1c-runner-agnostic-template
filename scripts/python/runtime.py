@@ -22,6 +22,11 @@ from .common import (
     unique_preserve_order,
     write_json,
 )
+from .runtime_cluster import (
+    cluster_registration_failure_reason,
+    cluster_registration_requested,
+    register_infobase_in_cluster,
+)
 from .runtime_lock import project_runtime_lock
 from .runtime_observation import (
     PROGRESS_FILE,
@@ -30,6 +35,12 @@ from .runtime_observation import (
     launch_identity,
     run_observed,
     stall_timeout_from_env,
+)
+from .runtime_options import (
+    CapabilityOptions,
+    require_unsupported_override,
+    require_vendor_cf,
+    split_capability_options,
 )
 from .runtime_paths import resolve_project_tree_path
 from .runtime_process import run_process as run_transport_process
@@ -473,6 +484,9 @@ def append_connection_args(profile: RuntimeProfile, args: list[str]) -> None:
 
 def append_auth_args(profile: RuntimeProfile, args: list[str], *, dry_run: bool) -> None:
     auth_mode = profile.string("infobase", "auth", "mode", default="os")
+    if auth_mode == "none":
+        # Infobase without users: Designer starts without authentication arguments.
+        return
     if auth_mode == "os":
         args.append("/WA+")
         return
@@ -562,7 +576,17 @@ def append_ibcmd_target_args(profile: RuntimeProfile, args: list[str], *, dry_ru
     die(f"unsupported ibcmd.runtimeMode={runtime_mode} in {profile.path}")
 
 
+def ibcmd_auth_mode(profile: RuntimeProfile) -> str:
+    """ibcmd.auth.mode: user-password (default) or none for an infobase without users."""
+    return profile.string("ibcmd", "auth", "mode", default="user-password")
+
+
 def append_ibcmd_infobase_auth_args(profile: RuntimeProfile, args: list[str], *, dry_run: bool) -> None:
+    auth_mode = ibcmd_auth_mode(profile)
+    if auth_mode == "none":
+        return
+    if auth_mode != "user-password":
+        die(f"unsupported ibcmd.auth.mode={auth_mode} in {profile.path}")
     runtime_mode = profile.require_string("ibcmd", "runtimeMode")
     has_user = profile.has("ibcmd", "auth", "user")
     has_password = profile.has("ibcmd", "auth", "passwordEnv")
@@ -572,6 +596,42 @@ def append_ibcmd_infobase_auth_args(profile: RuntimeProfile, args: list[str], *,
     password_env = profile.require_string("ibcmd", "auth", "passwordEnv")
     password = resolve_secret_value(password_env, dry_run=dry_run)
     args.extend([f"--user={user}", f"--password={password}"])
+
+
+def ibcmd_topology_context(profile: RuntimeProfile) -> dict[str, Any]:
+    """Describe the ibcmd target without secrets: database path or DBMS coordinates."""
+    runtime_mode = profile.string("ibcmd", "runtimeMode")
+    if runtime_mode in {"standalone-server", "file-infobase"}:
+        section = "standalone" if runtime_mode == "standalone-server" else "fileInfobase"
+        return {"kind": runtime_mode, "database_path": profile.string("ibcmd", section, "databasePath") or None}
+    if runtime_mode == "dbms-infobase":
+        return {
+            "kind": "dbms-infobase",
+            "dbms": {
+                "kind": profile.string("ibcmd", "dbmsInfobase", "kind") or None,
+                "server": profile.string("ibcmd", "dbmsInfobase", "server") or None,
+                "name": profile.string("ibcmd", "dbmsInfobase", "name") or None,
+                "user": profile.string("ibcmd", "dbmsInfobase", "user") or None,
+                "password_configured": bool(profile.string("ibcmd", "dbmsInfobase", "passwordEnv")),
+            },
+        }
+    return {}
+
+
+def build_ibcmd_driver_context(profile: RuntimeProfile, *, partial_import: bool = False) -> dict[str, Any]:
+    """Shared ibcmd driver context for capability summaries and doctor capability_drivers."""
+    context: dict[str, Any] = {
+        "runtime_mode": profile.string("ibcmd", "runtimeMode") or None,
+        "server_access": {
+            "mode": profile.string("ibcmd", "serverAccess", "mode") or None,
+            "data_dir": profile.string("ibcmd", "serverAccess", "dataDir") or None,
+        },
+        "partial_import": partial_import,
+    }
+    topology = ibcmd_topology_context(profile)
+    if topology:
+        context["topology"] = topology
+    return context
 
 
 def ibcmd_capability_failure_reason(profile: RuntimeProfile, capability_id: str, adapter: str) -> str:
@@ -608,7 +668,16 @@ def ibcmd_capability_failure_reason(profile: RuntimeProfile, capability_id: str,
         for key, message in required:
             if not profile.has("ibcmd", "dbmsInfobase", key):
                 return message
+    if capability_id == "create-ib" and cluster_registration_requested(profile):
+        registration_reason = cluster_registration_failure_reason(profile)
+        if registration_reason:
+            return registration_reason
     if capability_id in {"dump-src", "load-src", "update-db"}:
+        auth_mode = ibcmd_auth_mode(profile)
+        if auth_mode == "none":
+            return ""
+        if auth_mode != "user-password":
+            return f"ibcmd.auth.mode={auth_mode} is unsupported; use none or user-password"
         has_user = profile.has("ibcmd", "auth", "user")
         has_password = profile.has("ibcmd", "auth", "passwordEnv")
         if runtime_mode == "file-infobase":
@@ -696,7 +765,9 @@ def collect_required_env_refs(profile: RuntimeProfile) -> list[str]:
         if driver == "ibcmd":
             if profile.string("ibcmd", "runtimeMode") == "dbms-infobase":
                 refs.append(profile.string("ibcmd", "dbmsInfobase", "passwordEnv"))
-            if capability_id in {"dump-src", "load-src", "update-db"}:
+            if capability_id == "create-ib" and cluster_registration_requested(profile):
+                refs.append(profile.string("clusterAdmin", "passwordEnv"))
+            if capability_id in {"dump-src", "load-src", "update-db"} and ibcmd_auth_mode(profile) != "none":
                 runtime_mode = profile.string("ibcmd", "runtimeMode")
                 if runtime_mode != "file-infobase" or profile.has("ibcmd", "auth", "passwordEnv"):
                     refs.append(profile.string("ibcmd", "auth", "passwordEnv"))
@@ -744,7 +815,7 @@ def collect_required_profile_fields(profile: RuntimeProfile, adapter: str) -> li
                         "ibcmd.dbmsInfobase.passwordEnv",
                     ]
                 )
-            if capability_id in {"dump-src", "load-src", "update-db"}:
+            if capability_id in {"dump-src", "load-src", "update-db"} and ibcmd_auth_mode(profile) != "none":
                 if runtime_mode == "file-infobase":
                     if profile.has("ibcmd", "auth", "user") or profile.has("ibcmd", "auth", "passwordEnv"):
                         fields.extend(["ibcmd.auth.user", "ibcmd.auth.passwordEnv"])
@@ -791,7 +862,7 @@ def doctor_capability_failure_reason(profile: RuntimeProfile, capability_id: str
                     return "missing infobase.auth.user for infobase.auth.mode=user-password"
                 if not profile.has("infobase", "auth", "passwordEnv"):
                     return "missing infobase.auth.passwordEnv for infobase.auth.mode=user-password"
-            elif auth_mode != "os":
+            elif auth_mode not in {"os", "none"}:
                 return f"unsupported infobase.auth.mode={auth_mode}"
             return capability_command_failure_reason(profile, adapter, [platform_binary_path(profile)])
         if driver == "ibcmd":
@@ -814,6 +885,47 @@ def capability_string_or_default(
     return value or default_value
 
 
+def capability_output_dir(profile: RuntimeProfile, capability_id: str, options: CapabilityOptions) -> Path:
+    return resolve_project_tree_path(
+        options.output_dir or capability_string_or_default(profile, capability_id, "outputDir", "./src/cf")
+    )
+
+
+def capability_source_dir(profile: RuntimeProfile, capability_id: str, options: CapabilityOptions) -> Path:
+    return resolve_project_tree_path(
+        options.source_dir or capability_string_or_default(profile, capability_id, "sourceDir", "./src/cf")
+    )
+
+
+def build_ibcmd_dump_command(
+    profile: RuntimeProfile, options: CapabilityOptions, *, dry_run: bool
+) -> tuple[list[str], Path]:
+    """ibcmd config export: full dump, --sync over an existing dump, or ConfigDumpInfo.xml only (--info-only)."""
+    output_dir = capability_output_dir(profile, "dump-src", options)
+    command = [ibcmd_binary_path(profile), "config", "export"]
+    if options.info_only:
+        command.append("info")
+    append_ibcmd_server_access_args(profile, command)
+    append_ibcmd_target_args(profile, command, dry_run=dry_run)
+    append_ibcmd_infobase_auth_args(profile, command, dry_run=dry_run)
+    source_file = profile.string("capabilities", "dumpSrc", "sourceFile")
+    if source_file:
+        if options.info_only:
+            die("--info-only cannot use capabilities.dumpSrc.sourceFile")
+        if not dry_run and not Path(source_file).is_file():
+            die(f"capabilities.dumpSrc.sourceFile does not exist: {source_file}")
+        command.append(f"--file={source_file}")
+    if options.info_only:
+        if not dry_run:
+            output_dir.mkdir(parents=True, exist_ok=True)
+        command.append(f"--out={output_dir}")
+    else:
+        if (output_dir / "ConfigDumpInfo.xml").is_file():
+            command.append("--sync")
+        command.append(str(output_dir))
+    return command, output_dir
+
+
 def prepare_ibcmd_command(
     profile: RuntimeProfile,
     capability_id: str,
@@ -821,10 +933,12 @@ def prepare_ibcmd_command(
     selected_files: list[str],
     *,
     dry_run: bool,
+    options: CapabilityOptions | None = None,
 ) -> PreparedCommand:
     reason = ibcmd_capability_failure_reason(profile, capability_id, adapter)
     if reason:
         die(reason)
+    options = options or CapabilityOptions()
     binary_path = ibcmd_binary_path(profile)
     command: list[str]
     partial_import = False
@@ -832,20 +946,14 @@ def prepare_ibcmd_command(
         command = [binary_path, "infobase", "create"]
         append_ibcmd_server_access_args(profile, command)
         append_ibcmd_target_args(profile, command, dry_run=dry_run)
+        locale_name = profile.string("ibcmd", "locale")
+        if locale_name:
+            command.append(f"--locale={locale_name}")
         command.append("--create-database")
     elif capability_id == "dump-src":
-        output_dir = resolve_project_tree_path(
-            capability_string_or_default(profile, capability_id, "outputDir", "./src/cf")
-        )
-        command = [binary_path, "config", "export"]
-        append_ibcmd_server_access_args(profile, command)
-        append_ibcmd_target_args(profile, command, dry_run=dry_run)
-        append_ibcmd_infobase_auth_args(profile, command, dry_run=dry_run)
-        command.append(str(output_dir))
+        command, _ = build_ibcmd_dump_command(profile, options, dry_run=dry_run)
     elif capability_id == "load-src":
-        source_dir = resolve_project_tree_path(
-            capability_string_or_default(profile, capability_id, "sourceDir", "./src/cf")
-        )
+        source_dir = capability_source_dir(profile, capability_id, options)
         if selected_files:
             partial_import = True
             command = [binary_path, "config", "import", "files"]
@@ -876,16 +984,7 @@ def prepare_ibcmd_command(
         executor="adapter-wrapper" if not WINDOWS else "direct",
         command=command,
         context=build_redacted_context(profile)
-        | {
-            "driver_context": {
-                "runtime_mode": profile.string("ibcmd", "runtimeMode") or None,
-                "server_access": {
-                    "mode": profile.string("ibcmd", "serverAccess", "mode") or None,
-                    "data_dir": profile.string("ibcmd", "serverAccess", "dataDir") or None,
-                },
-                "partial_import": partial_import,
-            }
-        },
+        | {"driver_context": build_ibcmd_driver_context(profile, partial_import=partial_import)},
     )
 
 
@@ -897,10 +996,24 @@ def prepare_standard_capability_command(
     selected_files: list[str],
     *,
     dry_run: bool,
+    options: CapabilityOptions | None = None,
+    run_root_input: str = "",
 ) -> PreparedCommand:
+    options = options or CapabilityOptions()
     if selected_files and capability_id != "load-src":
         die(f"capability {capability_id} does not support --files")
     reason = profile_unsupported_reason(profile, capability_id)
+    if options.override_unsupported:
+        require_unsupported_override(
+            capability_id,
+            capability_key(capability_id),
+            profile.path,
+            reason=reason,
+            selected_files=selected_files,
+            run_root_input=run_root_input,
+        )
+        log(f"override of profile unsupportedReason: {reason}")
+        reason = None
     if reason:
         return PreparedCommand(
             capability_id=capability_id,
@@ -912,6 +1025,8 @@ def prepare_standard_capability_command(
             context=build_unsupported_capability_context(profile, reason),
         )
     override = profile_command(profile, capability_id)
+    if override and (options.info_only or options.vendor_cf):
+        die(f"--info-only and --vendor-cf cannot use a custom capabilities.{capability_key(capability_id)} command")
     if override:
         normalized = normalize_repo_command_tokens(override)
         executor = "direct"
@@ -943,11 +1058,17 @@ def prepare_standard_capability_command(
             context=build_redacted_context(profile),
         )
     if capability_id in DRIVER_CAPABILITIES:
+        if capability_id == "update-db" and options.vendor_cf:
+            return prepare_vendor_cf_update_command(profile, label, adapter, options, run_root_input, dry_run=dry_run)
         driver = resolve_capability_driver(profile, capability_id)
         if capability_id == "load-src" and selected_files and driver != "ibcmd":
             die("partial load-src is supported only for ibcmd driver")
+        if options.info_only and driver != "ibcmd":
+            die("--info-only requires the ibcmd dumpSrc driver")
         if driver == "ibcmd":
-            result = prepare_ibcmd_command(profile, capability_id, adapter, selected_files, dry_run=dry_run)
+            result = prepare_ibcmd_command(
+                profile, capability_id, adapter, selected_files, dry_run=dry_run, options=options
+            )
             result.label = label
             return result
         if adapter not in {"direct-platform", "remote-windows"}:
@@ -962,14 +1083,10 @@ def prepare_standard_capability_command(
                 build_create_infobase_connection_string(profile, dry_run=dry_run),
             ]
         elif capability_id == "dump-src":
-            output_dir = resolve_project_tree_path(
-                capability_string_or_default(profile, capability_id, "outputDir", "./src/cf")
-            )
+            output_dir = capability_output_dir(profile, capability_id, options)
             command = build_designer_command(profile, "/DumpConfigToFiles", str(output_dir), dry_run=dry_run)
         elif capability_id == "load-src":
-            source_dir = resolve_project_tree_path(
-                capability_string_or_default(profile, capability_id, "sourceDir", "./src/cf")
-            )
+            source_dir = capability_source_dir(profile, capability_id, options)
             command = build_designer_command(profile, "/LoadConfigFromFiles", str(source_dir), dry_run=dry_run)
         elif capability_id == "update-db":
             command = build_designer_command(profile, "/UpdateDBCfg", dry_run=dry_run)
@@ -988,6 +1105,47 @@ def prepare_standard_capability_command(
     if capability_id in VERIFICATION_CAPABILITIES:
         die(f"runtime profile is missing .capabilities.{capability_key(capability_id)}.command in {profile.path}")
     die(f"unsupported capability id: {capability_id}")
+
+
+def prepare_vendor_cf_update_command(
+    profile: RuntimeProfile,
+    label: str,
+    adapter: str,
+    options: CapabilityOptions,
+    run_root_input: str,
+    *,
+    dry_run: bool,
+) -> PreparedCommand:
+    """Designer /UpdateCfg from the vendor CF, then /UpdateDBCfg.
+
+    ibcmd cannot update a configuration under vendor support from a vendor CF; only Designer can.
+    Batch startup keys are mandatory: without them Designer waits for a modal dialog without output.
+    """
+    vendor_cf = require_vendor_cf(options.vendor_cf, adapter, run_root_input)
+    designer_log = Path(run_root_input).resolve() / "designer-out.log"
+    command = build_designer_command(
+        profile,
+        "/DisableStartupDialogs",
+        "/DisableStartupMessages",
+        "/Out",
+        str(designer_log),
+        "/UpdateCfg",
+        str(vendor_cf),
+        "/UpdateDBCfg",
+        dry_run=dry_run,
+    )
+    context = build_capability_context(profile, adapter, command)
+    context["vendor_cf"] = {"path": str(vendor_cf), "designer_out_log": str(designer_log)}
+    return PreparedCommand(
+        capability_id="update-db",
+        label=label,
+        adapter=adapter,
+        driver="designer",
+        command_source="standard-builder",
+        executor="adapter-wrapper" if not WINDOWS else "direct",
+        command=command,
+        context=context,
+    )
 
 
 def write_capability_summary(
@@ -1169,7 +1327,8 @@ def run_profile_capability(
     label: str,
     argv: list[str],
 ) -> CapabilityResult:
-    args = parse_capability_cli_args(argv, allow_files=True)
+    options, standard_argv = split_capability_options(capability_id, argv)
+    args = parse_capability_cli_args(standard_argv, allow_files=True)
     if args.show_help:
         raise CommandError("help-requested", 2)
     profile_path = resolve_runtime_profile_path(args.profile_input)
@@ -1183,6 +1342,13 @@ def run_profile_capability(
         adapter,
         selected_files,
         dry_run=args.dry_run,
+        options=options,
+        run_root_input=args.run_root_input,
+    )
+    if options.override_unsupported:
+        prepared.context["unsupported_override"] = {"reason": profile_unsupported_reason(profile, capability_id)}
+    register_in_cluster = (
+        capability_id == "create-ib" and prepared.driver == "ibcmd" and cluster_registration_requested(profile)
     )
     run_root = prepare_capability_run_root(capability_id, args.run_root_input)
     artifacts = prepare_run_artifacts(run_root)
@@ -1205,6 +1371,10 @@ def run_profile_capability(
         try:
             with project_runtime_lock(project_root(), capability_id):
                 exit_code = execute_prepared_capability_command(prepared, profile, run_root, stdout_log, stderr_log)
+                if exit_code == 0 and register_in_cluster:
+                    exit_code, prepared.context["registration"] = register_infobase_in_cluster(
+                        profile, stdout_log, stderr_log
+                    )
         except KeyboardInterrupt:
             interrupted = {
                 "capability": {"id": capability_id, "label": label},
@@ -1347,7 +1517,7 @@ def build_doctor_capability_drivers_json(profile: RuntimeProfile, adapter: str) 
             "source": "driver-selection",
             "driver": driver or None,
             "reason": reason or None,
-            "context": {},
+            "context": build_ibcmd_driver_context(profile) if driver == "ibcmd" else {},
         }
     return result
 

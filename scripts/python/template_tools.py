@@ -1,15 +1,16 @@
 from __future__ import annotations
 
+import copy
 import json
 import os
-import copy
 import shutil
 import tempfile
 from pathlib import Path
+from typing import Any
 
 from .common import canonical_path, die, ensure_dir, project_root, run_git, run_process, write_json, write_text
 from .context import export_context
-
+from .project_extensions import copy_with_project_block, is_preserved
 
 DEFAULT_TEMPLATE_GIT_URL = "https://github.com/defin85/1c-runner-agnostic-template.git"
 MANIFEST_RELPATH = "automation/context/template-managed-paths.txt"
@@ -92,6 +93,9 @@ def sync_overlay_manifests(
     for rel in sorted(previous_entries | next_entries):
         source_path = source_root / rel
         target_path = target_root / rel
+        # Project-owned paths win over the managed manifest: overlay sync never writes or removes them.
+        if is_preserved(rel, preserve_entries):
+            continue
         if rel in next_entries:
             if not source_path.is_file():
                 die(f"overlay entry is missing in source release: {rel}")
@@ -99,9 +103,8 @@ def sync_overlay_manifests(
                 print(f"sync {rel}")
                 continue
             ensure_dir(target_path.parent)
-            shutil.copy2(source_path, target_path)
-            continue
-        if rel in preserve_entries:
+            if not copy_with_project_block(source_path, target_path, rel):
+                shutil.copy2(source_path, target_path)
             continue
         if dry_run:
             print(f"remove {rel}")
@@ -141,59 +144,65 @@ def template_source_path(root: Path) -> str:
 
 
 def _generated_readme(project_name: str, project_description: str) -> str:
-    return "\n".join(
-        [
-            "<!-- RUNNER_AGNOSTIC_PROJECT:START -->",
-            "## Agent Entry Point",
-            "",
-            "Этот репозиторий является generated 1С-проектом, созданным на шаблоне `1c-runner-agnostic-template`.",
-            "",
-            "- Canonical onboarding router: [docs/agent/generated-project-index.md](docs/agent/generated-project-index.md).",
-            "- Read-only first screen: `make codex-onboard` или `./make.ps1 codex-onboard`.",
-            "- Curated project truth: [automation/context/project-map.md](automation/context/project-map.md).",
-            "- Project-owned code map: [docs/agent/architecture-map.md](docs/agent/architecture-map.md).",
-            "- Operator-local runtime bridge: [docs/agent/operator-local-runbook.md](docs/agent/operator-local-runbook.md).",
-            "- Project-specific runtime digest: [docs/agent/runtime-quickstart.md](docs/agent/runtime-quickstart.md).",
-            "- Checked-in runtime support truth: [automation/context/runtime-support-matrix.md](automation/context/runtime-support-matrix.md), [automation/context/runtime-support-matrix.json](automation/context/runtime-support-matrix.json).",
-            "- AI-ready skill routing: [automation/context/recommended-skills.generated.md](automation/context/recommended-skills.generated.md), `make imported-skills-readiness`.",
-            "<!-- RUNNER_AGNOSTIC_PROJECT:END -->",
-            "",
-            f"# {project_name}",
-            "",
-            project_description or "1С-проект, созданный на шаблоне runner-agnostic monorepo.",
-            "",
-        ]
-    ) + "\n"
+    return (
+        "\n".join(
+            [
+                "<!-- RUNNER_AGNOSTIC_PROJECT:START -->",
+                "## Agent Entry Point",
+                "",
+                "Этот репозиторий является generated 1С-проектом, созданным на шаблоне `1c-runner-agnostic-template`.",
+                "",
+                "- Canonical onboarding router: [docs/agent/generated-project-index.md](docs/agent/generated-project-index.md).",
+                "- Read-only first screen: `make codex-onboard` или `./make.ps1 codex-onboard`.",
+                "- Curated project truth: [automation/context/project-map.md](automation/context/project-map.md).",
+                "- Project-owned code map: [docs/agent/architecture-map.md](docs/agent/architecture-map.md).",
+                "- Operator-local runtime bridge: [docs/agent/operator-local-runbook.md](docs/agent/operator-local-runbook.md).",
+                "- Project-specific runtime digest: [docs/agent/runtime-quickstart.md](docs/agent/runtime-quickstart.md).",
+                "- Checked-in runtime support truth: [automation/context/runtime-support-matrix.md](automation/context/runtime-support-matrix.md), [automation/context/runtime-support-matrix.json](automation/context/runtime-support-matrix.json).",
+                "- AI-ready skill routing: [automation/context/recommended-skills.generated.md](automation/context/recommended-skills.generated.md), `make imported-skills-readiness`.",
+                "<!-- RUNNER_AGNOSTIC_PROJECT:END -->",
+                "",
+                f"# {project_name}",
+                "",
+                project_description or "1С-проект, созданный на шаблоне runner-agnostic monorepo.",
+                "",
+            ]
+        )
+        + "\n"
+    )
 
 
 def _project_map(project_name: str, project_slug: str, project_description: str) -> str:
-    return "\n".join(
-        [
-            "# Project Map",
-            "",
-            "## Repository Identity",
-            "",
-            f"- name: `{project_name}`",
-            f"- slug: `{project_slug}`",
-            f"- description: {project_description or '1С-проект, созданный на шаблоне runner-agnostic monorepo.'}",
-            "- role: generated 1С-проект на шаблоне runner-agnostic monorepo",
-            "",
-            "## Repo-Derived Snapshot",
-            "",
-            f"- configuration xml: `{'present' if (project_root() / 'src' / 'cf' / 'Configuration.xml').is_file() else 'missing'}`",
-            f"- extensions: `{sum(1 for _ in (project_root() / 'src' / 'cfe').glob('*')) if (project_root() / 'src' / 'cfe').is_dir() else 0}`",
-            f"- external processors: `{sum(1 for _ in (project_root() / 'src' / 'epf').glob('*')) if (project_root() / 'src' / 'epf').is_dir() else 0}`",
-            f"- reports: `{sum(1 for _ in (project_root() / 'src' / 'erf').glob('*')) if (project_root() / 'src' / 'erf').is_dir() else 0}`",
-            "",
-            "## Canonical Entrypoints",
-            "",
-            "- onboarding: `make codex-onboard` / `./make.ps1 codex-onboard`",
-            "- baseline verify: `make agent-verify` / `./make.ps1 agent-verify`",
-            "- context refresh: `./scripts/llm/export-context.sh --write` / `./scripts/llm/export-context.ps1 --write`",
-            "- imported skill readiness: `make imported-skills-readiness` / `./make.ps1 imported-skills-readiness`",
-            "",
-        ]
-    ) + "\n"
+    return (
+        "\n".join(
+            [
+                "# Project Map",
+                "",
+                "## Repository Identity",
+                "",
+                f"- name: `{project_name}`",
+                f"- slug: `{project_slug}`",
+                f"- description: {project_description or '1С-проект, созданный на шаблоне runner-agnostic monorepo.'}",
+                "- role: generated 1С-проект на шаблоне runner-agnostic monorepo",
+                "",
+                "## Repo-Derived Snapshot",
+                "",
+                f"- configuration xml: `{'present' if (project_root() / 'src' / 'cf' / 'Configuration.xml').is_file() else 'missing'}`",
+                f"- extensions: `{sum(1 for _ in (project_root() / 'src' / 'cfe').glob('*')) if (project_root() / 'src' / 'cfe').is_dir() else 0}`",
+                f"- external processors: `{sum(1 for _ in (project_root() / 'src' / 'epf').glob('*')) if (project_root() / 'src' / 'epf').is_dir() else 0}`",
+                f"- reports: `{sum(1 for _ in (project_root() / 'src' / 'erf').glob('*')) if (project_root() / 'src' / 'erf').is_dir() else 0}`",
+                "",
+                "## Canonical Entrypoints",
+                "",
+                "- onboarding: `make codex-onboard` / `./make.ps1 codex-onboard`",
+                "- baseline verify: `make agent-verify` / `./make.ps1 agent-verify`",
+                "- context refresh: `./scripts/llm/export-context.sh --write` / `./scripts/llm/export-context.ps1 --write`",
+                "- imported skill readiness: `make imported-skills-readiness` / `./make.ps1 imported-skills-readiness`",
+                "",
+            ]
+        )
+        + "\n"
+    )
 
 
 def _architecture_map() -> str:
@@ -424,7 +433,14 @@ def _runtime_support_matrix_json() -> dict[str, object]:
             },
         ],
     }
-    posix_only = {"check-x11-contour", "yaxunit", "yaxunit-warm-rpc", "web-client-diagnostic", "golden-baseline", "bdd-warm-service"}
+    posix_only = {
+        "check-x11-contour",
+        "yaxunit",
+        "yaxunit-warm-rpc",
+        "web-client-diagnostic",
+        "golden-baseline",
+        "bdd-warm-service",
+    }
     for contour in payload["contours"]:
         evidence_class = "contract-only" if contour["layer"] == "safe-local" else "contract-plus-live"
         contour["platforms"] = {
@@ -438,7 +454,7 @@ def _runtime_support_matrix_json() -> dict[str, object]:
     return payload
 
 
-def _runtime_support_matrix_md(payload: dict[str, object]) -> str:
+def _runtime_support_matrix_md(payload: dict[str, Any]) -> str:
     lines = [
         "# Runtime Support Matrix",
         "",
@@ -451,7 +467,13 @@ def _runtime_support_matrix_md(payload: dict[str, object]) -> str:
                 f"| `{contour['id']}` | `{platform}` | `{support['status']}` | `{support['evidenceClass']}` | "
                 f"`{contour['profileProvenance']}` | `{contour['entrypoint']}` | `{contour['runbookPath']}` |"
             )
-    lines.extend(["", "Live evidence records a platform/runtime fingerprint, timestamp, and expiry. Operator-local status is not shared baseline readiness.", ""])
+    lines.extend(
+        [
+            "",
+            "Live evidence records a platform/runtime fingerprint, timestamp, and expiry. Operator-local status is not shared baseline readiness.",
+            "",
+        ]
+    )
     return "\n".join(lines)
 
 
@@ -477,13 +499,33 @@ def _operator_local_targets_json() -> dict[str, object]:
     }
 
 
+# Project-owned files that seed_generated_project_surface writes into a generated project.
+# They do not exist in the template source repo; keep this list in sync with the function below.
+GENERATED_PROJECT_SEED_PATHS: frozenset[str] = frozenset(
+    {
+        "README.md",
+        "automation/context/project-map.md",
+        "docs/agent/architecture-map.md",
+        "docs/agent/operator-local-runbook.md",
+        "docs/agent/runtime-quickstart.md",
+        "automation/context/runtime-profile-policy.json",
+        "automation/context/operator-local-targets.json",
+        "automation/context/runtime-support-matrix.json",
+        "automation/context/runtime-support-matrix.md",
+    }
+)
+
+
 def seed_generated_project_surface(root: Path, project_name: str, project_slug: str, project_description: str) -> None:
     ensure_dir(root / "src" / "cf")
     ensure_dir(root / "src" / "cfe")
     ensure_dir(root / "src" / "epf")
     ensure_dir(root / "src" / "erf")
     write_text(root / "README.md", _generated_readme(project_name, project_description))
-    write_text(root / "automation" / "context" / "project-map.md", _project_map(project_name, project_slug, project_description))
+    write_text(
+        root / "automation" / "context" / "project-map.md",
+        _project_map(project_name, project_slug, project_description),
+    )
     write_text(root / "docs" / "agent" / "architecture-map.md", _architecture_map())
     write_text(root / "docs" / "agent" / "operator-local-runbook.md", _operator_local_runbook())
     write_text(root / "docs" / "agent" / "runtime-quickstart.md", _runtime_quickstart())
@@ -618,7 +660,9 @@ def resolve_target_overlay_ref(source: str, requested_ref: str = "") -> str:
     else:
         tags = [
             line.split("/")[-1]
-            for line in run_git(["ls-remote", "--tags", "--refs", source], cwd=project_root(), check=True).stdout.splitlines()
+            for line in run_git(
+                ["ls-remote", "--tags", "--refs", source], cwd=project_root(), check=True
+            ).stdout.splitlines()
             if line.strip()
         ]
     if not tags:
@@ -629,7 +673,11 @@ def resolve_target_overlay_ref(source: str, requested_ref: str = "") -> str:
 def check_update(requested_ref: str = "", *, root: Path | None = None) -> int:
     repo_root = root or project_root()
     source_path = template_source_path(repo_root)
-    current_version = overlay_version_file(repo_root).read_text(encoding="utf-8").strip() if overlay_version_file(repo_root).is_file() else template_answers_value(repo_root, "_commit", "unknown")
+    current_version = (
+        overlay_version_file(repo_root).read_text(encoding="utf-8").strip()
+        if overlay_version_file(repo_root).is_file()
+        else template_answers_value(repo_root, "_commit", "unknown")
+    )
     target_ref = resolve_target_overlay_ref(source_path, requested_ref)
     print(f"Current overlay version: {current_version}")
     print(f"Available overlay release: {target_ref}")
@@ -644,14 +692,20 @@ def update_template(requested_ref: str = "", pretend: bool = False, *, root: Pat
     if run_git(["status", "--porcelain"], cwd=repo_root, check=True).stdout.strip():
         die("git working tree is dirty; commit or stash changes before overlay update")
     source_path = template_source_path(repo_root)
-    current_version = overlay_version_file(repo_root).read_text(encoding="utf-8").strip() if overlay_version_file(repo_root).is_file() else template_answers_value(repo_root, "_commit", "unknown")
+    current_version = (
+        overlay_version_file(repo_root).read_text(encoding="utf-8").strip()
+        if overlay_version_file(repo_root).is_file()
+        else template_answers_value(repo_root, "_commit", "unknown")
+    )
     target_ref = resolve_target_overlay_ref(source_path, requested_ref)
     if current_version == target_ref:
         print("Overlay is already up-to-date")
         return 0
     with tempfile.TemporaryDirectory(prefix="overlay-release-") as temp_dir:
         release_root = Path(temp_dir) / "release"
-        run_git(["clone", "--depth", "1", "--branch", target_ref, source_path, str(release_root)], cwd=repo_root, check=True)
+        run_git(
+            ["clone", "--depth", "1", "--branch", target_ref, source_path, str(release_root)], cwd=repo_root, check=True
+        )
         if pretend:
             sync_overlay_manifests(
                 release_root,
@@ -703,7 +757,8 @@ def migrate_runtime_profile_v2(legacy_profile: Path) -> str:
         "runnerAdapter": payload.get("runnerAdapter") or "direct-platform",
         "notes": ["Generated by migrate-runtime-profile-v2.sh. Review all fields before use."],
         "platform": {
-            "binaryPath": binary_path or (r"C:/Program Files/1cv8/common/1cv8.exe" if os.name == "nt" else "/opt/1cv8/1cv8")
+            "binaryPath": binary_path
+            or (r"C:/Program Files/1cv8/common/1cv8.exe" if os.name == "nt" else "/opt/1cv8/1cv8")
         },
         "infobase": {
             "mode": "file",
@@ -715,9 +770,15 @@ def migrate_runtime_profile_v2(legacy_profile: Path) -> str:
             "dumpSrc": {"outputDir": "./src/cf"},
             "loadSrc": {"sourceDir": "./src/cf"},
             "diffSrc": {"command": ["git", "diff", "--", "./src"]},
-            "bdd": {"unsupportedReason": "Review and wire a repo-owned BDD contour before using this migrated profile."},
-            "smoke": {"unsupportedReason": "Review and wire a repo-owned smoke contour before using this migrated profile."},
-            "publishHttp": {"unsupportedReason": "Review and wire a repo-owned publish contour before using this migrated profile."},
+            "bdd": {
+                "unsupportedReason": "Review and wire a repo-owned BDD contour before using this migrated profile."
+            },
+            "smoke": {
+                "unsupportedReason": "Review and wire a repo-owned smoke contour before using this migrated profile."
+            },
+            "publishHttp": {
+                "unsupportedReason": "Review and wire a repo-owned publish contour before using this migrated profile."
+            },
         },
     }
     return json.dumps(result, ensure_ascii=False, indent=2) + "\n"
@@ -735,10 +796,7 @@ def migrate_runtime_profile_v3(schema_v2_profile: Path, *, profile_only: bool = 
     elif adapter == "remote-windows":
         result["transport"] = {"kind": "remote-windows"}
     else:
-        die(
-            "schemaVersion=2 profile has unsupported runnerAdapter for automatic migration: "
-            f"{adapter!r}"
-        )
+        die(f"schemaVersion=2 profile has unsupported runnerAdapter for automatic migration: {adapter!r}")
 
     unsupported_commands: list[str] = []
     capabilities = result.get("capabilities", {})
@@ -755,8 +813,7 @@ def migrate_runtime_profile_v3(schema_v2_profile: Path, *, profile_only: bool = 
     if unsupported_commands:
         die(
             "schemaVersion=2 profile contains command orchestration without a supported "
-            "schemaVersion=3 backend: "
-            + ", ".join(sorted(unsupported_commands))
+            "schemaVersion=3 backend: " + ", ".join(sorted(unsupported_commands))
         )
 
     notes = result.setdefault("notes", [])

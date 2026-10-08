@@ -221,6 +221,13 @@ render_generated_repo "$generated_template_root" "$generated_root" "$generated_b
   cd "$generated_root"
   PATH="$generated_bindir:$PATH" ./scripts/qa/check-agent-docs.sh >/dev/null
 )
+mkdir -p "$generated_root/.build"
+printf 'volatile index\n' >"$generated_root/.build/bsl-search.db"
+refresh_source_context "$generated_root"
+if grep -Fq './.build' "$generated_root/automation/context/source-tree.generated.txt"; then
+  printf 'generated source tree leaked volatile build output\n' >&2
+  exit 1
+fi
 
 generated_forbidden_src_cf_doc_root="$tmpdir/generated-forbidden-src-cf-doc"
 cp -R "$generated_root" "$generated_forbidden_src_cf_doc_root"

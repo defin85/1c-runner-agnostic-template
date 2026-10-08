@@ -7,12 +7,11 @@ import subprocess
 import sys
 import tempfile
 import unittest
-from unittest.mock import patch
 from pathlib import Path
+from unittest.mock import patch
 
 from scripts.python.common import run_process
 from scripts.python.context import render_generated_tree
-
 
 ROOT = Path(__file__).resolve().parents[2]
 ARTIFACTS = Path(tempfile.mkdtemp(prefix="template-python-tests-"))
@@ -27,9 +26,7 @@ def powershell_command(*args: str) -> list[str]:
 
 def is_source_repo() -> bool:
     return all(
-        (
-            ROOT / rel
-        ).is_file()
+        (ROOT / rel).is_file()
         for rel in (
             "openspec/specs/agent-runtime-toolkit/spec.md",
             "openspec/specs/project-scoped-skills/spec.md",
@@ -63,6 +60,12 @@ class CrossPlatformSmokeTests(unittest.TestCase):
     def tearDownClass(cls) -> None:
         shutil.rmtree(ARTIFACTS, ignore_errors=True)
 
+    def test_cli_import_without_optional_converter(self) -> None:
+        result = run_command(
+            [sys.executable, "-c", "import sys; sys.modules['v8unpack'] = None; import scripts.python.cli"]
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+
     def test_onboard_entrypoint(self) -> None:
         if os.name == "nt":
             result = run_command(powershell_command("make.ps1", "codex-onboard"))
@@ -75,7 +78,9 @@ class CrossPlatformSmokeTests(unittest.TestCase):
             self.assertIn("Repository role: template-source", result.stdout)
             self.assertIn("Canonical onboarding router: docs/agent/index.md", result.stdout)
             self.assertIn("Generated-project router reference: docs/agent/generated-project-index.md", result.stdout)
-            self.assertIn("Execution plan starters: docs/exec-plans/TEMPLATE.md, docs/exec-plans/EXAMPLE.md", result.stdout)
+            self.assertIn(
+                "Execution plan starters: docs/exec-plans/TEMPLATE.md, docs/exec-plans/EXAMPLE.md", result.stdout
+            )
             self.assertNotIn("Recommended skills:", result.stdout)
             self.assertNotIn("AI-readiness:", result.stdout)
         else:
@@ -84,6 +89,13 @@ class CrossPlatformSmokeTests(unittest.TestCase):
             self.assertIn("AI-readiness:", result.stdout)
 
     def test_export_context_check(self) -> None:
+        cache = ROOT / "tests/python/__pycache__"
+        cache.mkdir(exist_ok=True)
+        with tempfile.TemporaryDirectory(dir=cache) as local_cache:
+            (Path(local_cache) / "local.pyc").write_bytes(b"local cache")
+            self._check_export_context()
+
+    def _check_export_context(self) -> None:
         if os.name == "nt":
             result = run_command(powershell_command("make.ps1", "export-context-check"))
         else:
@@ -102,6 +114,11 @@ class CrossPlatformSmokeTests(unittest.TestCase):
         (generated_root / "env" / ".local").mkdir(parents=True, exist_ok=True)
         (generated_root / "env" / ".local" / "README.md").write_text("private\n", encoding="utf-8")
         (generated_root / "env" / "README.md").write_text("shared\n", encoding="utf-8")
+        (generated_root / ".artifacts" / "run").mkdir(parents=True, exist_ok=True)
+        (generated_root / ".artifacts" / "run" / "result.json").write_text("{}\n", encoding="utf-8")
+        deep_file = generated_root / "src" / "one" / "two" / "three" / "four.txt"
+        deep_file.parent.mkdir(parents=True, exist_ok=True)
+        deep_file.write_text("deep\n", encoding="utf-8")
 
         rendered = render_generated_tree(generated_root)
 
@@ -109,6 +126,9 @@ class CrossPlatformSmokeTests(unittest.TestCase):
         self.assertIn("./env/README.md", rendered)
         self.assertNotIn("./env/.local\n", rendered)
         self.assertNotIn("./env/.local/README.md", rendered)
+        self.assertNotIn("./.artifacts", rendered)
+        self.assertIn("./src/one/two/three", rendered)
+        self.assertNotIn("./src/one/two/three/four.txt", rendered)
 
     def test_doctor_dry_run_summary(self) -> None:
         run_root = ARTIFACTS / "doctor"
@@ -141,8 +161,13 @@ class CrossPlatformSmokeTests(unittest.TestCase):
         for entry in skills:
             name = entry["name"]
             self.assertTrue((ROOT / ".agents" / "skills" / name / "SKILL.md").is_file(), f"missing Codex skill: {name}")
-            self.assertTrue((ROOT / ".claude" / "skills" / name / "SKILL.md").is_file(), f"missing Claude skill: {name}")
-            self.assertTrue((ROOT / "automation" / "vendor" / "cc-1c-skills" / entry["vendor_dir"]).is_dir(), f"missing vendored skill dir: {name}")
+            self.assertTrue(
+                (ROOT / ".claude" / "skills" / name / "SKILL.md").is_file(), f"missing Claude skill: {name}"
+            )
+            self.assertTrue(
+                (ROOT / "automation" / "vendor" / "cc-1c-skills" / entry["vendor_dir"]).is_dir(),
+                f"missing vendored skill dir: {name}",
+            )
             codex_text = (ROOT / ".agents" / "skills" / name / "SKILL.md").read_text(encoding="utf-8")
             self.assertIn(f"Repo script: `./scripts/skills/run-imported-skill.sh {name}`", codex_text)
 

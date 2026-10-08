@@ -22,6 +22,13 @@
 - review / env / skills / exec-plan routers, если команда меняет стартовый onboarding;
 - ограничения проекта, которые не принадлежат template-managed слою.
 
+## Project-owned точки расширения
+
+- проектные цели `make` и `./make.ps1` — в `Makefile.project` и `make.project.ps1`, а не в template-managed `Makefile`/`make.ps1`;
+- проектные шаги `make agent-verify` — в `scripts/qa/agent-verify.d/`;
+- проектные строки `.gitignore`, `.gitattributes`, `.contextignore` — только между маркерами project-owned блока;
+- `template-update` эти пути и блоки не перезаписывает; контракт описан в `docs/template-maintenance.md` (раздел `Project-Owned Extension Points`), а в карте проекта достаточно перечислить, какие точки команда использует и зачем.
+
 ## Что не смешивать с этим файлом
 
 - compact generated summary из `automation/context/hotspots-summary.generated.md`, если нужна summary-first навигация;

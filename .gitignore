@@ -39,3 +39,7 @@ env/windows-local.json
 env/.local/*.json
 env/.local/**/*.json
 src/cf/Ext/ParentConfigurations/
+
+# Project-specific lines belong between the markers below; template-update keeps them as is.
+# >>> project-owned block: template-update keeps the lines up to the closing marker >>>
+# <<< project-owned block <<<

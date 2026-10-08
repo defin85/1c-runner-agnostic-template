@@ -40,6 +40,51 @@ make template-update
 - `generated-derived` артефакты refresh-ятся отдельной repo-owned командой `./scripts/llm/export-context.sh --write`;
 - `local-private` machine-specific настройки не входят в checked-in template contract.
 
+## Project-Owned Extension Points
+
+Проектные дополнения к template-managed точкам входа держите в project-owned файлах. `template-update` их не создаёт, не перезаписывает и не удаляет, а шаблон не поставляет их содержимое. Пути перечислены в `automation/context/template-update-preserve-paths.txt`; запись с `/` в конце защищает весь каталог. Даже если в release шаблона попадёт такой путь, overlay sync его пропустит.
+
+| Точка | Что делает | Как подключается |
+| --- | --- | --- |
+| `Makefile.project` | Проектные цели `make` | `Makefile` выполняет `-include Makefile.project` в конце файла. Добавляйте только новые имена целей: переопределение цели шаблона не поддерживается, `make` выдаст предупреждение `overriding recipe`. |
+| `make.project.ps1` | Проектные цели `./make.ps1` | `make.ps1` dot-source-ит файл, если он есть. Файл добавляет записи в `$projectTargets` (имя → `@(сценарий, фиксированные аргументы...)`) и строки в `$projectHelp`. Если имя совпадает с целью шаблона, `make.ps1` завершается с ошибкой. |
+| `scripts/qa/agent-verify.d/` | Дополнительные шаги `make agent-verify` / `./make.ps1 agent-verify` | Шаги выполняются после базовых проверок шаблона, в порядке имён файлов, из корня репозитория. Первый ненулевой код останавливает `agent-verify` и называет шаг. |
+| Блок между маркерами в `.gitignore`, `.gitattributes`, `.contextignore` | Проектные строки этих файлов | `template-update` берёт новую версию файла из шаблона и переносит в неё блок проекта без изменений. |
+
+Шаги `agent-verify.d`:
+
+- `*.py` выполняется тем же Python, что и `scripts/python/run-python.*`, на любой ОС — это предпочтительный кроссплатформенный формат;
+- `*.sh` выполняется через `bash` только на Linux/macOS, `*.ps1` — через PowerShell только на Windows; шаг для другой ОС пропускается с сообщением `Skip project agent-verify step for another platform`;
+- `*.md`, `*.txt` и скрытые файлы игнорируются, любое другое расширение — ошибка;
+- шаг не должен требовать 1С runtime, секретов или сети: `agent-verify` остаётся no-1C baseline.
+
+Маркеры проектного блока (строки должны совпадать точно, по одному маркеру каждого вида):
+
+```text
+# >>> project-owned block: template-update keeps the lines up to the closing marker >>>
+# <<< project-owned block <<<
+```
+
+Если маркеров в файле проекта нет, `template-update` просто заменяет файл версией шаблона, где блок пустой. Если маркеры повреждены (нет пары, повтор, обратный порядок), обновление останавливается с ошибкой и файл не меняется.
+
+Пример `Makefile.project`:
+
+```make
+.PHONY: project-report
+
+project-report:
+	@./scripts/project/report.sh
+```
+
+Пример `make.project.ps1`:
+
+```powershell
+$projectTargets["project-report"] = @((Join-Path $root "scripts\project\report.ps1"))
+$projectHelp += "  ./make.ps1 project-report"
+```
+
+Проверка контракта: `bash tests/smoke/project-extension-points.sh`.
+
 ## Compatibility Note
 
 - `copier copy` остаётся bootstrap-механизмом для новых generated repos;

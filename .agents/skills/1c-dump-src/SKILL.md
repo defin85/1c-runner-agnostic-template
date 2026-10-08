@@ -21,7 +21,15 @@ Windows launcher: `./scripts/platform/dump-src.ps1`
 ./scripts/platform/dump-src.sh --profile env/local.json
 ./scripts/platform/dump-src.sh --profile env/ci.json --run-root /tmp/dump-src-run
 ./scripts/platform/dump-src.sh --profile env/local.json --dry-run
+./scripts/platform/dump-src.sh --profile env/local.json --output-dir ./build/dump --run-root /tmp/dump-src-run
+./scripts/platform/dump-src.sh --profile env/local.json --info-only --output-dir ./build/dump-info
 ```
+
+- `--output-dir <dir>` подменяет `capabilities.dumpSrc.outputDir` на один запуск.
+- `--info-only` выгружает только `ConfigDumpInfo.xml` (`ibcmd config export info`); нужен драйвер `ibcmd`.
+- Если в каталоге выгрузки уже есть `ConfigDumpInfo.xml`, ibcmd-выгрузка идёт инкрементально (`--sync`).
+- `capabilities.dumpSrc.sourceFile` выгружает конфигурацию из файла `.cf` (`--file=`), а не из ИБ; с
+  `--info-only` не сочетается.
 
 ## Rules
 

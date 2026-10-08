@@ -49,6 +49,7 @@ git -C "$root" -c core.quotePath=false ls-files --cached --others --exclude-stan
       /^\.githooks\// { next }
       /^scripts\/release\// { next }
       /^tests\/smoke\/template-release-workflow\.sh$/ { next }
+      /^tests\/golden\/run\.sh$/ { next }
       /^src\// && $0 != "src/AGENTS.md" && $0 != "src/README.md" && $0 !~ /^src\/epf\/TemplateXUnitHarness(\/|$)/ && $0 !~ /^src\/(epf|cfe)\/AGENT_TEMPLATES\.md$/ && $0 !~ /^src\/(epf|cfe)\/_templates\// { next }
       { print }
     ' \

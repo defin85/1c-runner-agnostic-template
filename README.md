@@ -110,7 +110,6 @@ Generated projects получают отдельный стартовый сло
 - `./scripts/test/run-bdd.sh`
 - `./scripts/test/run-smoke.sh`
 - `./scripts/qa/analyze-bsl.sh`
-- `./scripts/qa/format-bsl.sh`
 
 Для Windows рядом добавлены симметричные PowerShell entrypoint-ы `./scripts/**.ps1` и корневой `./make.ps1`.
 Нативный Windows-контур не требует WSL или Git Bash: например, `./make.ps1 doctor --profile env/windows-local.json`, `./make.ps1 load-src --profile env/windows-local.json` и `./make.ps1 publish-http --profile env/windows-local.json` передают аргументы тем же Python-командам. Полный список поддерживаемых целей выводит `./make.ps1 help`.
@@ -354,7 +353,6 @@ update-1c-project /path/to/generated-project --vcs-ref v0.1.1
 - `make agent-verify`
 - `make qa`
 - `make analyze-bsl`
-- `make format-bsl`
 - `make check-agent-docs`
 - `make check-skill-bindings`
 - `make check-overlay-manifest`
