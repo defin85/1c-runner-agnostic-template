@@ -254,8 +254,79 @@ def _runtime_profile_policy() -> dict[str, object]:
     }
 
 
-def _runtime_support_matrix_json() -> dict[str, object]:
-    payload = {
+# Development toolkit contours. Linux and Windows wrappers exist for each of them, but the Windows
+# path has not been executed yet: profile-bound entries keep `operator-local` without live evidence,
+# and every summary says so until a Windows run records evidence.
+WINDOWS_NOT_RUN = "Windows wrapper ships but has not been executed on Windows yet."
+
+
+def _toolkit_contours() -> list[dict[str, object]]:
+    return [
+        {
+            "id": "check-bsl",
+            "layer": "profile-required",
+            "status": "operator-local",
+            "entrypoint": 'make check-bsl ARGS="--profile env/local.json MODULE.bsl" / ./make.ps1 check-bsl --profile env/windows-local.json MODULE.bsl',
+            "profileProvenance": "bsl-analyzer-app for static mode; operator-local env/local.json or explicit --profile for platform mode",
+            "runbookPath": ".agents/skills/1c-check-bsl/SKILL.md",
+            "summary": "Syntax check of selected BSL modules: static parse plus platform compile in the profile infobase; "
+            "reports 'not checked' when a tool is unavailable. " + WINDOWS_NOT_RUN,
+        },
+        {
+            "id": "check-cf-modules",
+            "layer": "profile-required",
+            "status": "operator-local",
+            "entrypoint": 'make check-cf-modules ARGS="--profile env/local.json MODULE.bsl" / ./make.ps1 check-cf-modules --profile env/windows-local.json MODULE.bsl',
+            "profileProvenance": "operator-local env/local.json or explicit --profile",
+            "runbookPath": ".agents/skills/1c-check-bsl/SKILL.md",
+            "summary": "Designer /CheckModules after a partial load of selected main-configuration modules; "
+            "the database configuration is not updated. " + WINDOWS_NOT_RUN,
+        },
+        {
+            "id": "analyze-bsl-external",
+            "layer": "tool-required",
+            "status": "operator-local",
+            "entrypoint": 'make analyze-bsl-external ARGS="--all-managed" / ./make.ps1 analyze-bsl-external --all-managed',
+            "profileProvenance": "operator-installed bsl-analyzer-app; no runtime profile",
+            "runbookPath": ".agents/skills/1c-check-bsl/SKILL.md",
+            "summary": "Static check of EPF/ERF modules together with the main configuration; exit code 3 means "
+            "the analyzer is unavailable. " + WINDOWS_NOT_RUN,
+        },
+        {
+            "id": "run-client",
+            "layer": "profile-required",
+            "status": "operator-local",
+            "entrypoint": 'make run-client ARGS="start --profile env/local.json --run-root /tmp/run-client-run" / ./make.ps1 run-client start --profile env/windows-local.json',
+            "profileProvenance": "operator-local env/local.json (Linux: platform.xpra.enabled) or explicit --profile",
+            "runbookPath": ".agents/skills/1c-run-client/SKILL.md",
+            "summary": "Start, wait for, inspect and stop a 1C client of the profile infobase under the observation adapter; "
+            "screenshot, key and click work on Linux only. " + WINDOWS_NOT_RUN,
+        },
+        {
+            "id": "technological-log",
+            "layer": "profile-required",
+            "status": "operator-local",
+            "entrypoint": "./scripts/diag/technological-log.sh status / ./scripts/diag/technological-log.ps1 status",
+            "profileProvenance": "operator-local platform install with writable logcfg.xml (TECHLOG_CONFIG_PATH)",
+            "runbookPath": ".agents/skills/1c-observe-run/SKILL.md",
+            "summary": "Bounded technological log for one observed launch, cursor read and logcfg.xml restore; "
+            "observation.jsonl and progress.txt are written by every observed launch. " + WINDOWS_NOT_RUN,
+        },
+        {
+            "id": "artifact-storage",
+            "layer": "safe-local",
+            "status": "supported",
+            "entrypoint": 'make artifact-storage ARGS="status" / ./make.ps1 artifact-storage status',
+            "profileProvenance": "none",
+            "runbookPath": "docs/agent/generated-project-verification.md",
+            "summary": "Run storage outside the checkout with size and free-space limits; Windows locking and free-space "
+            "checks are covered by contract tests only. " + WINDOWS_NOT_RUN,
+        },
+    ]
+
+
+def _runtime_support_matrix_json() -> dict[str, Any]:
+    payload: dict[str, Any] = {
         "matrixRole": "project-owned-runtime-support-matrix",
         "statuses": ["supported", "unsupported", "operator-local", "provisioned"],
         "projectSpecificBaselineExtension": None,
@@ -431,9 +502,14 @@ def _runtime_support_matrix_json() -> dict[str, object]:
                 "runbookPath": "docs/agent/operator-local-runbook.md",
                 "summary": "HTTP publication contour.",
             },
+            *_toolkit_contours(),
         ],
     }
-    posix_only = {
+    return apply_runtime_support_platforms(payload)
+
+
+POSIX_ONLY_CONTOURS = frozenset(
+    {
         "check-x11-contour",
         "yaxunit",
         "yaxunit-warm-rpc",
@@ -441,11 +517,20 @@ def _runtime_support_matrix_json() -> dict[str, object]:
         "golden-baseline",
         "bdd-warm-service",
     }
+)
+
+
+def apply_runtime_support_platforms(payload: dict[str, Any]) -> dict[str, Any]:
+    """Add the linux/windows entries without live evidence; keeps entries a project already wrote."""
     for contour in payload["contours"]:
-        evidence_class = "contract-only" if contour["layer"] == "safe-local" else "contract-plus-live"
+        if isinstance(contour.get("platforms"), dict):
+            continue
+        evidence_class = "contract-only" if contour.get("layer") == "safe-local" else "contract-plus-live"
         contour["platforms"] = {
             platform: {
-                "status": "unsupported" if platform == "windows" and contour["id"] in posix_only else contour["status"],
+                "status": "unsupported"
+                if platform == "windows" and contour["id"] in POSIX_ONLY_CONTOURS
+                else contour["status"],
                 "evidenceClass": evidence_class,
                 "evidence": None,
             }
@@ -458,6 +543,16 @@ def _runtime_support_matrix_md(payload: dict[str, Any]) -> str:
     lines = [
         "# Runtime Support Matrix",
         "",
+        "Этот файл является project-owned checked-in truth для runtime contour-ов generated repo.",
+        "Он строится из `automation/context/runtime-support-matrix.json`; меняйте JSON и Markdown вместе.",
+        "",
+        "Статусы:",
+        "",
+        "- `supported` — runnable по checked-in baseline или safe-local contract.",
+        "- `unsupported` — контур пока должен завершаться fail-closed и не считается baseline-ready.",
+        "- `operator-local` — runnable только через ignored local-private profile или operator-owned local setup.",
+        "- `provisioned` — требует provisioned/self-hosted runtime contour и выходит за safe-local baseline.",
+        "",
         "| Contour | Platform | Status | Evidence | Profile provenance | Canonical entrypoint | Runbook |",
         "| --- | --- | --- | --- | --- | --- | --- |",
     ]
@@ -467,14 +562,64 @@ def _runtime_support_matrix_md(payload: dict[str, Any]) -> str:
                 f"| `{contour['id']}` | `{platform}` | `{support['status']}` | `{support['evidenceClass']}` | "
                 f"`{contour['profileProvenance']}` | `{contour['entrypoint']}` | `{contour['runbookPath']}` |"
             )
+    not_run_on_windows = [
+        f"`{contour['id']}`" for contour in payload["contours"] if WINDOWS_NOT_RUN in str(contour.get("summary") or "")
+    ]
     lines.extend(
         [
             "",
-            "Live evidence records a platform/runtime fingerprint, timestamp, and expiry. Operator-local status is not shared baseline readiness.",
+            "Live evidence records a platform/runtime fingerprint, timestamp, and expiry. "
+            "Operator-local status is not shared baseline readiness.",
+            "",
+            "Missing test sources route to `init-test-tooling`; installed YAxUnit sources route to "
+            "`sync-yaxunit-runtime`; Vanessa BDD additionally routes missing Vanessa Automation Single to "
+            "`install-test-tooling`.",
+        ]
+    )
+    if not_run_on_windows:
+        lines.extend(
+            [
+                "",
+                "Windows: обёртки "
+                + ", ".join(not_run_on_windows)
+                + " поставляются, но на Windows ещё не запускались. Пока у Windows-записи нет живого доказательства, "
+                "не считайте контур проверенным на Windows.",
+            ]
+        )
+    lines.extend(
+        [
+            "",
+            "## Optional Project-Specific Baseline Extension",
+            "",
+            "- По умолчанию `projectSpecificBaselineExtension` в `automation/context/runtime-support-matrix.json` "
+            "остаётся `null`.",
+            "- Если проект добавляет extra no-1C smoke, используйте direct repo-owned entrypoint или "
+            "`make project-smoke` и держите его отдельным от template baseline.",
+            "- `docs/agent/runtime-quickstart.md` и `make codex-onboard` должны ссылаться на extension только после "
+            "того, как он объявлен здесь.",
+            "",
+            "## Rules",
+            "",
+            "- Если durable docs ссылаются на contour, который живёт только через ignored local-private profile, "
+            "отмечайте его здесь как `operator-local` и ведите decision bridge через "
+            "`docs/agent/operator-local-runbook.md`.",
+            "- `automation/context/project-map.md` и onboarding docs должны ссылаться на этот matrix вместо того, "
+            "чтобы делать `env/local.json` shared source of truth.",
+            "- Меняйте этот файл синхронно с `automation/context/runtime-profile-policy.json`, "
+            "`docs/agent/generated-project-index.md` и `docs/agent/generated-project-verification.md`.",
             "",
         ]
     )
     return "\n".join(lines)
+
+
+def render_runtime_support_matrix_files(json_path: Path, markdown_path: Path | None = None) -> None:
+    """Add platform entries to a seeded matrix JSON and render its Markdown (used by the POSIX bootstrap)."""
+    payload = json.loads(json_path.read_text(encoding="utf-8"))
+    if not all(isinstance(contour.get("platforms"), dict) for contour in payload["contours"]):
+        write_json(json_path, apply_runtime_support_platforms(payload))
+    if markdown_path is not None:
+        write_text(markdown_path, _runtime_support_matrix_md(payload))
 
 
 def _operator_local_targets_json() -> dict[str, object]:

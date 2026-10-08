@@ -512,6 +512,13 @@ write_operator_local_runbook_starter() {
 - Полный `./scripts/platform/load-cfe.sh --profile env/local.json --target target-id --run-root /tmp/load-cfe-run` используйте только для первичной подготовки ИБ, массового обновления расширений или изменения `automation/context/target-matrix.json`.
 - В multi-target workspace сочетание `--target target-id --extension ExtensionName` допустимо только для расширений, перечисленных в `extensionMatrix` этой цели.
 
+## Инструменты разработки
+
+- Синтаксис изменённых модулей проверяйте `./scripts/qa/check-bsl.sh --profile env/local.json MODULE.bsl`. Итог `синтаксис: не проверен` означает, что анализатор или ИБ профиля недоступны; это не успех.
+- Клиент 1С открывайте `./scripts/platform/run-client.sh start --profile env/local.json --run-root /tmp/run-client-run`, останавливайте `stop --run-root` того же каталога.
+- Если длительный запуск завис или упал, читайте `observation.jsonl`, `progress.txt` и `summary.json` в его `--run-root` по навыку `.agents/skills/1c-observe-run/SKILL.md`, не останавливая процесс вручную.
+- На Windows используйте `./make.ps1 check-bsl`, `./make.ps1 run-client` и `./scripts/diag/technological-log.ps1`; эти обёртки на Windows ещё не запускались, поэтому первый запуск считайте проверкой обёртки.
+
 ## Project Extensions
 
 - Если проект wires дополнительные operator-local `smoke`, `bdd` или другие contour-ы сверх обязательного `golden-baseline`, добавляйте сюда отдельную строку и синхронно обновляйте `automation/context/runtime-support-matrix.md`, `.json` и `docs/agent/runtime-quickstart.md`.
@@ -581,6 +588,14 @@ EOF
 | `bdd-warm-service` | `operator-local` | `./scripts/test/run-bdd-warm-service.sh up --profile env/local.json --run-root /tmp/bdd-warm-service-run` | `operator-local target truth + Vanessa inputs + project-owned launchParameterName handler` | `docs/agent/operator-local-runbook.md` |
 | `smoke` | `unsupported` | `./scripts/test/run-smoke.sh --profile env/local.json --run-root /tmp/smoke-run` | `future project-owned contour or sanctioned preset` | `docs/agent/generated-project-verification.md` |
 | `publish-http` | `unsupported` | `./scripts/platform/publish-http.sh --profile env/local.json --run-root /tmp/publish-http-run` | `future project-owned contour or sanctioned preset` | `docs/agent/generated-project-verification.md` |
+| `check-bsl` | `operator-local` | `./scripts/qa/check-bsl.sh --profile env/local.json MODULE.bsl` | `bsl-analyzer-app для static; ИБ профиля для platform; итог "не проверен", если инструмента нет` | `.agents/skills/1c-check-bsl/SKILL.md` |
+| `check-cf-modules` | `operator-local` | `./scripts/platform/check-cf-modules.sh --profile env/local.json --run-root /tmp/check-cf-modules-run MODULE.bsl` | `Designer-ready operator-owned profile; конфигурация базы данных не обновляется` | `.agents/skills/1c-check-bsl/SKILL.md` |
+| `analyze-bsl-external` | `operator-local` | `./scripts/qa/analyze-bsl-external.sh --all-managed` | `установленный bsl-analyzer-app и выгрузка src/cf, код 3 — анализатор недоступен` | `.agents/skills/1c-check-bsl/SKILL.md` |
+| `run-client` | `operator-local` | `./scripts/platform/run-client.sh start --profile env/local.json --run-root /tmp/run-client-run` | `operator-owned profile; на Linux platform.xpra.enabled=true` | `.agents/skills/1c-run-client/SKILL.md` |
+| `technological-log` | `operator-local` | `./scripts/diag/technological-log.sh status` | `локальная платформа с доступным на запись logcfg.xml` | `.agents/skills/1c-observe-run/SKILL.md` |
+| `artifact-storage` | `supported` | `./scripts/artifact-storage status` | `shell-only; общий каталог REPO-artifacts рядом с репозиторием` | `docs/agent/generated-project-verification.md` |
+
+Windows: у `check-bsl`, `check-cf-modules`, `analyze-bsl-external`, `run-client`, `technological-log` и `artifact-storage` есть обёртки `.ps1` и цели `./make.ps1`, но на Windows они ещё не запускались. Длительные запуски 1С пишут в свой `--run-root` файлы `observation.jsonl` и `progress.txt`; разбор зависшего запуска — по навыку `1c-observe-run`.
 
 ## Optional Project-Specific Baseline Extension
 
@@ -789,6 +804,30 @@ write_target_matrix_starter() {
 EOF
 }
 
+# Linux/Windows entries and the Markdown view come from scripts/python/template_tools.py, the same
+# code the Windows bootstrap and the matrix check use, so both platforms get one format.
+render_runtime_support_matrix() {
+  local json_file markdown_file=""
+  local repo_root
+
+  json_file="$(cd -- "$(dirname -- "$1")" && pwd)/$(basename -- "$1")"
+  if [ -n "${2:-}" ]; then
+    markdown_file="$(cd -- "$(dirname -- "$2")" && pwd)/$(basename -- "$2")"
+  fi
+  repo_root="$(cd -- "$(dirname -- "$json_file")/../.." && pwd)"
+  (
+    cd "$repo_root" &&
+      "${ONEC_PYTHON:-python3}" -B -c '
+import sys
+from pathlib import Path
+
+from scripts.python.template_tools import render_runtime_support_matrix_files
+
+render_runtime_support_matrix_files(Path(sys.argv[1]), Path(sys.argv[2]) if len(sys.argv) > 2 else None)
+' "$json_file" ${markdown_file:+"$markdown_file"}
+  )
+}
+
 write_runtime_support_matrix_json_starter() {
   local target_file="$1"
 
@@ -974,71 +1013,74 @@ write_runtime_support_matrix_json_starter() {
       "profileProvenance": "future sanctioned preset or operator-local repo-owned contour",
       "runbookPath": "docs/agent/generated-project-verification.md",
       "summary": "Keep fail-closed until the project wires a real repo-owned publish-http contour."
+    },
+    {
+      "id": "check-bsl",
+      "layer": "profile-required",
+      "status": "operator-local",
+      "entrypoint": "./scripts/qa/check-bsl.sh --profile env/local.json MODULE.bsl",
+      "profileProvenance": "bsl-analyzer-app for static mode; operator-local env/local.json or explicit --profile for platform mode",
+      "runbookPath": ".agents/skills/1c-check-bsl/SKILL.md",
+      "summary": "Syntax check of selected BSL modules: static parse plus platform compile in the profile infobase; reports 'not checked' when a tool is unavailable. Windows wrapper ships but has not been executed on Windows yet."
+    },
+    {
+      "id": "check-cf-modules",
+      "layer": "profile-required",
+      "status": "operator-local",
+      "entrypoint": "./scripts/platform/check-cf-modules.sh --profile env/local.json --run-root /tmp/check-cf-modules-run MODULE.bsl",
+      "profileProvenance": "operator-local env/local.json or explicit --profile",
+      "runbookPath": ".agents/skills/1c-check-bsl/SKILL.md",
+      "summary": "Designer /CheckModules after a partial load of selected main-configuration modules; the database configuration is not updated. Windows wrapper ships but has not been executed on Windows yet."
+    },
+    {
+      "id": "analyze-bsl-external",
+      "layer": "tool-required",
+      "status": "operator-local",
+      "entrypoint": "./scripts/qa/analyze-bsl-external.sh --all-managed",
+      "profileProvenance": "operator-installed bsl-analyzer-app; no runtime profile",
+      "runbookPath": ".agents/skills/1c-check-bsl/SKILL.md",
+      "summary": "Static check of EPF/ERF modules together with the main configuration; exit code 3 means the analyzer is unavailable. Windows wrapper ships but has not been executed on Windows yet."
+    },
+    {
+      "id": "run-client",
+      "layer": "profile-required",
+      "status": "operator-local",
+      "entrypoint": "./scripts/platform/run-client.sh start --profile env/local.json --run-root /tmp/run-client-run",
+      "profileProvenance": "operator-local env/local.json with platform.xpra.enabled or explicit --profile",
+      "runbookPath": ".agents/skills/1c-run-client/SKILL.md",
+      "summary": "Start, wait for, inspect and stop a 1C client of the profile infobase under the observation adapter; screenshot, key and click work on Linux only. Windows wrapper ships but has not been executed on Windows yet."
+    },
+    {
+      "id": "technological-log",
+      "layer": "profile-required",
+      "status": "operator-local",
+      "entrypoint": "./scripts/diag/technological-log.sh status",
+      "profileProvenance": "operator-local platform install with writable logcfg.xml (TECHLOG_CONFIG_PATH)",
+      "runbookPath": ".agents/skills/1c-observe-run/SKILL.md",
+      "summary": "Bounded technological log for one observed launch, cursor read and logcfg.xml restore; observation.jsonl and progress.txt are written by every observed launch. Windows wrapper ships but has not been executed on Windows yet."
+    },
+    {
+      "id": "artifact-storage",
+      "layer": "safe-local",
+      "status": "supported",
+      "entrypoint": "./scripts/artifact-storage status",
+      "profileProvenance": "none",
+      "runbookPath": "docs/agent/generated-project-verification.md",
+      "summary": "Run storage outside the checkout with size and free-space limits; Windows locking and free-space checks are covered by contract tests only. Windows wrapper ships but has not been executed on Windows yet."
     }
   ]
 }
 EOF
+  render_runtime_support_matrix "$target_file"
 }
 
 write_runtime_support_matrix_markdown_starter() {
   local target_file="$1"
+  local json_file
+  json_file="$(dirname -- "$target_file")/runtime-support-matrix.json"
 
   ensure_parent_dir "$target_file"
-  cat >"$target_file" <<'EOF'
-# Runtime Support Matrix
-
-Этот файл является project-owned checked-in truth для runtime contour-ов generated repo.
-
-Статусы:
-
-- `supported` — runnable по checked-in baseline или safe-local contract.
-- `unsupported` — контур пока должен завершаться fail-closed и не считается baseline-ready.
-- `operator-local` — runnable только через ignored local-private profile или operator-owned local setup.
-- `provisioned` — требует provisioned/self-hosted runtime contour и выходит за safe-local baseline.
-
-## Safe Local
-
-| Contour | Status | Profile provenance | Canonical entrypoint | Runbook |
-| --- | --- | --- | --- | --- |
-| `codex-onboard` | `supported` | `none` | `make codex-onboard` | `docs/agent/generated-project-index.md` |
-| `agent-verify` | `supported` | `none` | `make agent-verify` | `docs/agent/generated-project-verification.md` |
-| `export-context-check` | `supported` | `none` | `make export-context-check` | `docs/agent/generated-project-verification.md` |
-
-## Runtime Contours
-
-| Contour | Status | Profile provenance | Canonical entrypoint | Runbook |
-| --- | --- | --- | --- | --- |
-| `doctor` | `operator-local` | `env/local.json` или явный `--profile` | `./scripts/diag/doctor.sh --profile env/local.json --run-root /tmp/doctor-run` | `docs/agent/operator-local-runbook.md` |
-| `check-x11-contour` | `operator-local` | `env/local.json` или явный `--profile` | `./scripts/diag/check-x11-contour.sh --profile env/local.json --run-root /tmp/check-x11-contour-run` | `docs/agent/operator-local-runbook.md` |
-| `load-cfe` | `operator-local` | `env/local.json` или явный `--profile` | `./scripts/platform/load-cfe.sh --profile env/local.json --target target-id --extension ExtensionName --run-root /tmp/load-cfe-run` | `docs/agent/operator-local-runbook.md` |
-| `configure-cfe-runtime-flags` | `operator-local` | `env/local.json` или явный `--profile` | `./scripts/platform/configure-cfe-runtime-flags.sh --profile env/local.json --run-root /tmp/configure-cfe-runtime-flags-run` | `docs/agent/operator-local-runbook.md` |
-| `check-cfe-applicability` | `operator-local` | `env/local.json` или явный `--profile` | `./scripts/platform/check-cfe-applicability.sh --profile env/local.json --run-root /tmp/check-cfe-applicability-run` | `docs/agent/operator-local-runbook.md` |
-| `check-cfe-config` | `operator-local` | `env/local.json` или явный `--profile` | `./scripts/platform/check-cfe-config.sh --profile env/local.json --run-root /tmp/check-cfe-config-run` | `docs/agent/operator-local-runbook.md` |
-| `load-diff-src` | `operator-local` | `env/local.json` с ready partial-import contour или явный `--profile` | `./scripts/platform/load-diff-src.sh --profile env/local.json --run-root /tmp/load-diff-src-run` | `docs/agent/operator-local-runbook.md` |
-| `load-task-src` | `operator-local` | `env/local.json` с ready partial-import contour или явный `--profile` | `./scripts/platform/load-task-src.sh --profile env/local.json --work-item 93984 --run-root /tmp/load-task-src-run` | `docs/agent/operator-local-runbook.md` |
-| `yaxunit` | `operator-local` | `env/local.json` или явный `--profile` | `./scripts/test/sync-yaxunit-runtime.sh --profile env/local.json --target target-id --extension YAxUnitTestsExtension --run-root /tmp/yaxunit-sync-run && ./scripts/test/run-yaxunit.sh --profile env/local.json --run-root /tmp/yaxunit-run` | `docs/agent/operator-local-runbook.md` |
-| `yaxunit-warm-rpc` | `operator-local` | `env/local.json` или явный `--profile` | `./scripts/test/sync-yaxunit-runtime.sh --profile env/local.json --target target-id --extension YAxUnitTestsExtension --run-root /tmp/yaxunit-sync-run && ./scripts/test/run-yaxunit-warm-service.sh up --profile env/local.json --run-root /tmp/yaxunit-warm-rpc-up-run` | `docs/agent/operator-local-runbook.md` |
-| `web-client-diagnostic` | `operator-local` | `env/local.json` или явный `--profile` | `./scripts/test/run-web-client-diagnostic.sh --profile env/local.json --run-root /tmp/web-client-diagnostic-run` | `docs/agent/operator-local-runbook.md` |
-| `golden-baseline` | `operator-local` | `tests/golden/run.sh` или `GOLDEN_BASELINE_COMMAND` | `./scripts/test/run-golden-baseline.sh --run-root /tmp/golden-baseline-run` | `tests/golden/README.md` |
-| `bdd` | `unsupported` | project decides later | `./scripts/test/run-bdd.sh --profile env/local.json --run-root /tmp/bdd-run` | `docs/agent/generated-project-verification.md` |
-| `bdd-warm-service` | `operator-local` | `env/local.json` + `automation/context/operator-local-targets.json` | `./scripts/test/run-bdd-warm-service.sh up --profile env/local.json --run-root /tmp/bdd-warm-service-run` | `docs/agent/operator-local-runbook.md` |
-| `smoke` | `unsupported` | project decides later | `./scripts/test/run-smoke.sh --profile env/local.json --run-root /tmp/smoke-run` | `docs/agent/generated-project-verification.md` |
-| `publish-http` | `unsupported` | project decides later | `./scripts/platform/publish-http.sh --profile env/local.json --run-root /tmp/publish-http-run` | `docs/agent/generated-project-verification.md` |
-
-Missing test sources route to `init-test-tooling`; installed YAxUnit sources route to `sync-yaxunit-runtime`; Vanessa BDD additionally routes missing Vanessa Automation Single to `install-test-tooling`.
-
-## Optional Project-Specific Baseline Extension
-
-- По умолчанию `projectSpecificBaselineExtension` в `automation/context/runtime-support-matrix.json` остаётся `null`.
-- Если проект добавляет extra no-1C smoke, используйте direct repo-owned entrypoint или `make project-smoke` и держите его отдельным от template baseline.
-- `docs/agent/runtime-quickstart.md` и `make codex-onboard` должны ссылаться на extension только после того, как он объявлен здесь.
-
-## Rules
-
-- Если durable docs ссылаются на contour, который живёт только через ignored local-private profile, отмечайте его здесь как `operator-local` и ведите decision bridge через `docs/agent/operator-local-runbook.md`.
-- `automation/context/project-map.md` и onboarding docs должны ссылаться на этот matrix вместо того, чтобы делать `env/local.json` shared source of truth.
-- Меняйте этот файл синхронно с `automation/context/runtime-profile-policy.json`, `docs/agent/generated-project-index.md` и `docs/agent/generated-project-verification.md`.
-EOF
+  render_runtime_support_matrix "$json_file" "$target_file"
 }
 
 write_openspec_project_starter() {

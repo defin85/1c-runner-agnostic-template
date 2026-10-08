@@ -129,13 +129,15 @@ bash tests/smoke/copier-update-ready.sh
 1. Проверьте root `README.md`, `AGENTS.md` и project-owned context.
 2. Убедитесь, что `.template-overlay-version` обновился до ожидаемого release ref.
 3. Если репозиторий обновлялся со старого шаблона, подтвердите, что stale `src/cf/AGENTS.md` и `src/cf/README.md` исчезли и `src/cf` снова остаётся чистым importable source tree.
-4. При необходимости refresh-ните generated-derived inventory:
+4. Сверьте project-owned `automation/context/runtime-support-matrix.md`, `.json` и `docs/agent/runtime-quickstart.md` с новыми контурами шаблона. `template-update` на Linux создаёт эти файлы только при их отсутствии, поэтому новые контуры (`check-bsl`, `check-cf-modules`, `analyze-bsl-external`, `run-client`, `technological-log`, `artifact-storage`) нужно перенести вручную по образцу `automation/context/templates/generated-project-runtime-support-matrix.md`. Для Windows-записей не указывайте живое доказательство, пока команда не запускалась на Windows.
+5. Убедитесь, что выведенные навыки `meta-*`, `form-*` (кроме `form-patterns`) и `cfe-borrow` и цель `format-bsl` исчезли, а проектные ссылки на них заменены на `metadata-use` и `cfe-form-workflow`.
+6. При необходимости refresh-ните generated-derived inventory:
 
 ```bash
 ./scripts/llm/export-context.sh --write
 ```
 
-4. Повторно прогоните baseline verify:
+7. Повторно прогоните baseline verify:
 
 ```bash
 make agent-verify

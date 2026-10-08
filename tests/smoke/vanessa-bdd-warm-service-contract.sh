@@ -5,7 +5,19 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 SOURCE_ROOT="$(cd -- "$SCRIPT_DIR/../.." && pwd)"
 
 tmpdir="$(mktemp -d)"
-trap 'rm -rf "$tmpdir"' EXIT
+# Keep warm-service state inside the fixture so parallel or failed runs do not share a ready session.
+export XDG_STATE_HOME="$tmpdir/state"
+
+cleanup() {
+  if [ -x "$tmpdir/repo/scripts/test/run-bdd-warm-service.sh" ]; then
+    (
+      cd "$tmpdir/repo"
+      PATH="$tmpdir/bin:$PATH" ./scripts/test/run-bdd-warm-service.sh down --profile env/local.json --run-root "$tmpdir/cleanup-down"
+    ) >/dev/null 2>&1 || true
+  fi
+  rm -rf "$tmpdir"
+}
+trap cleanup EXIT
 
 fixture_root="$tmpdir/repo"
 run_root="$tmpdir/run"
@@ -186,7 +198,6 @@ cat >"$fixture_root/env/local.json" <<EOF
       "visibleManager": true
     },
     "bdd": {
-      "command": ["./scripts/test/run-bdd-warm-run.sh"],
       "eventLogDir": "$tmpdir/eventlog",
       "featurePaths": ["features/example.feature"]
     }
@@ -248,7 +259,6 @@ assert_jq "$state_path" '.roles.manager.pid != null and .roles.test_client.pid !
 assert_jq "$state_path" '.service_files.run_complete != null' "run-complete-file"
 assert_contains "$SOURCE_ROOT/scripts/adapters/direct-platform.sh" "flock -x 9"
 assert_contains "$SOURCE_ROOT/scripts/adapters/direct-platform.sh" "process-cleanup-baseline.txt"
-assert_contains "$SOURCE_ROOT/scripts/test/run-bdd.sh" "--target <id>"
 assert_contains "$SOURCE_ROOT/scripts/test/run-bdd-warm-run.sh" "capabilities.bdd.manifestPath"
 assert_contains "$SOURCE_ROOT/scripts/test/run-bdd-warm-run.sh" "capabilities.bdd.featurePaths"
 assert_contains "$SOURCE_ROOT/scripts/test/run-bdd-warm-run.sh" "capabilities.bdd.eventLogDir"
@@ -268,9 +278,9 @@ assert_contains "$(jq -r '.roles.test_client.artifacts.command_txt' "$state_path
 (
   cd "$fixture_root"
   PATH="$bindir:$PATH" ONEC_FAKE_XPRA_READY_FILE="$ready_file" \
-    ./scripts/test/run-bdd.sh --profile env/local.json --target local-bdd --run-root "$run_root/run-bdd"
+    ONEC_PROFILE_PATH=env/local.json ONEC_TARGET_ID=local-bdd ONEC_CAPABILITY_RUN_ROOT="$run_root/run-bdd" \
+    ./scripts/test/run-bdd-warm-run.sh
 )
-assert_jq "$run_root/run-bdd/summary.json" '.status == "success" and .execution.source == "profile-command"' "run-bdd-warm-success"
 assert_jq "$run_root/run-bdd/bdd-warm-run-summary.json" '.status == "success" and .contour.runner == "bdd-warm-run"' "warm-run-summary"
 assert_jq "$run_root/run-bdd/bdd-warm-run-summary.json" '.event_log.enabled == true and .event_log.dir != null' "warm-run-eventlog-summary"
 assert_contains "$run_root/run-bdd/results.tsv" "features/example.feature"

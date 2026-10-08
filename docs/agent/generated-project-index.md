@@ -38,6 +38,7 @@
 | Где лежит checked-in runtime truth? | `automation/context/runtime-support-matrix.md`, `automation/context/runtime-support-matrix.json` |
 | Где смотреть optional project-specific baseline extension? | `automation/context/runtime-support-matrix.json`, `docs/agent/runtime-quickstart.md`, `make codex-onboard` |
 | Где брать compact project-aware skill routing? | `automation/context/recommended-skills.generated.md` |
+| Какие команды проверки BSL, запуска клиента и наблюдения есть и где они проверены? | `automation/context/runtime-support-matrix.md` (контуры `check-bsl`, `check-cf-modules`, `analyze-bsl-external`, `run-client`, `technological-log`, `artifact-storage`), [docs/agent/generated-project-verification.md](generated-project-verification.md), раздел «Инструменты разработки» |
 | Где проверять readiness executable imported skills? | `make imported-skills-readiness`, `./scripts/skills/run-imported-skill.sh --readiness`, [docs/agent/generated-project-verification.md](generated-project-verification.md) |
 | Где смотреть project-specific delta hotspots? | `automation/context/project-delta-hotspots.generated.md`, `automation/context/project-delta-hints.json` |
 | Где summary-first карта hot paths? | `automation/context/hotspots-summary.generated.md` |
@@ -68,9 +69,11 @@
 10. Для детальных Codex-native workflows переходите в [docs/agent/codex-workflows.md](codex-workflows.md).
 11. Пройдите safe-local baseline: `make agent-verify`, затем `make export-context-check`.
 12. Для YAxUnit и Vanessa BDD сначала выполните явные шаги из [кампании тестирования](../testing/testing-campaign.md): `init-test-tooling`, `install-test-tooling`, настройку профиля и синхронизацию расширений.
-12. Перед изменениями поведения сверяйтесь с `automation/context/project-map.md` и [docs/agent/review.md](review.md).
-13. Если работа становится multi-session, скопируйте [docs/exec-plans/TEMPLATE.md](../exec-plans/TEMPLATE.md) и держите supporting artifacts через [docs/work-items/README.md](../work-items/README.md).
-14. Для repeatable действий ищите готовый workflow в [.agents/skills/README.md](../../.agents/skills/README.md) и [.codex/README.md](../../.codex/README.md).
+13. Перед изменениями поведения сверяйтесь с `automation/context/project-map.md` и [docs/agent/review.md](review.md).
+14. Изменённые модули BSL проверяйте до загрузки в ИБ: `make check-bsl ARGS="<module.bsl>..."` или `./make.ps1 check-bsl <module.bsl>...` (навык `1c-check-bsl`). Объекты метаданных и формы в XML меняйте через `metadata-use`, а не ручной правкой XML.
+15. Если длительный запуск 1С идёт долго или упал, разберите `observation.jsonl`, `progress.txt` и `summary.json` его `--run-root` по навыку `1c-observe-run`; клиентом 1С управляйте через `1c-run-client`.
+16. Если работа становится multi-session, скопируйте [docs/exec-plans/TEMPLATE.md](../exec-plans/TEMPLATE.md) и держите supporting artifacts через [docs/work-items/README.md](../work-items/README.md).
+17. Для repeatable действий ищите готовый workflow в [.agents/skills/README.md](../../.agents/skills/README.md) и [.codex/README.md](../../.codex/README.md).
 
 ## Planning Matrix
 
@@ -85,6 +88,7 @@
 ## Ownership Model
 
 - `template-managed`: `scripts/`, shared docs в `docs/agent/`, `.agents/skills/`, `.claude/skills/`, CI workflow, managed blocks в root docs.
+- `project-owned extension points`: `Makefile.project`, `make.project.ps1`, `scripts/qa/agent-verify.d/`, проектный блок `.gitignore`/`.gitattributes`/`.contextignore`; `seed-once` Python-окружение: `pyproject.toml`, `uv.lock`, `requirements-dev.txt`, `pyrightconfig.json`. Список защищённых путей — `automation/context/template-update-preserve-paths.txt`.
 - `seed-once / project-owned`: root `README.md`, `.codex/config.toml`, `automation/context/project-map.md`, `docs/agent/architecture-map.md`, `docs/agent/operator-local-runbook.md`, `docs/agent/runtime-quickstart.md`, `docs/work-items/README.md`, `docs/work-items/TEMPLATE.md`, `automation/context/project-delta-hints.json`, `automation/context/runtime-profile-policy.json`, `automation/context/runtime-support-matrix.md`, `automation/context/runtime-support-matrix.json`.
 - `generated-derived`: `automation/context/source-tree.generated.txt`, `automation/context/metadata-index.generated.json`, `automation/context/hotspots-summary.generated.md`, `automation/context/project-delta-hotspots.generated.md`.
 - `local-private`: `env/local.json`, `env/wsl.json`, `env/ci.json`, `env/windows-executor.json`, `env/.local/*.json`, host-specific Codex/MCP overrides вне checked-in `.codex/config.toml` и секреты.

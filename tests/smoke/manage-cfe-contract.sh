@@ -16,7 +16,7 @@ data_dir="$tmpdir/ibcmd-data"
 
 mkdir -p "$fixture_root" "$data_dir"
 cp -R "$SOURCE_ROOT/scripts" "$fixture_root/scripts"
-mkdir -p "$fixture_root/env" "$fixture_root/automation/context"
+mkdir -p "$fixture_root/env"
 
 cat >"$fake_ibcmd" <<'EOF'
 #!/usr/bin/env bash
@@ -38,12 +38,8 @@ chmod +x "$fake_ibcmd"
 
 cat >"$fixture_root/env/local.json" <<EOF
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "profileName": "manage-cfe-fixture",
-  "runnerAdapter": "direct-platform",
-  "target": {
-    "id": "fixture-target"
-  },
   "platform": {
     "ibcmdPath": "$fake_ibcmd"
   },
@@ -81,22 +77,6 @@ cat >"$fixture_root/env/local.json" <<EOF
       "sourceDir": "./src/cf"
     }
   }
-}
-EOF
-
-cat >"$fixture_root/automation/context/target-matrix.json" <<'EOF'
-{
-  "schemaVersion": 1,
-  "targets": [
-    {
-      "id": "fixture-target",
-      "role": "test",
-      "server": "fixture-server",
-      "ref": "fixture-ref",
-      "sourcePath": "src/cf"
-    }
-  ],
-  "extensionMatrix": {}
 }
 EOF
 
@@ -140,35 +120,38 @@ assert_jq() {
   TEST_IB_PASSWORD="ib-secret" \
   TEST_DB_PASSWORD="db-secret" \
   MANAGE_CFE_INVOCATION_LOG="$invocation_log" \
-  ./scripts/platform/manage-cfe.sh list --profile env/local.json --target fixture-target --run-root "$run_list" >/dev/null
+  ./scripts/platform/manage-cfe.sh list --profile env/local.json --run-root "$run_list" >/dev/null
 )
 
-assert_jq "$run_list/summary.json" '.status == "success" and .action == "list" and .target_id == "fixture-target"' "list-summary"
-assert_contains "$run_list/command.txt" "config"
-assert_contains "$run_list/command.txt" "extension"
-assert_contains "$run_list/command.txt" "list"
-assert_contains "$run_list/command.txt" "--data=$data_dir"
-assert_contains "$run_list/command.txt" "--dbms=PostgreSQL"
-assert_contains "$run_list/command.txt" "--db-server=fixture-db\\ port=5432"
-assert_contains "$run_list/command.txt" "--db-name=fixture_db"
-assert_contains "$run_list/command.txt" "--db-user=postgres"
-assert_contains "$run_list/command.txt" "--user=ib-user"
-assert_contains "$run_list/command.txt" "--password=__REDACTED_SECRET__"
-assert_contains "$run_list/command.txt" "--db-pwd=__REDACTED_SECRET__"
-assert_not_contains "$run_list/command.txt" "ib-secret"
-assert_not_contains "$run_list/command.txt" "db-secret"
+assert_jq "$run_list/summary.json" '.status == "success" and .action == "list"' "list-summary"
+# The Python CFE runtime records the executed argv in summary.json with secrets redacted.
+if ! jq -e --arg ibcmd "$fake_ibcmd" --arg data "--data=$data_dir" \
+  '.execution.commands == [[$ibcmd, "config", "extension", "list", $data, "--dbms=PostgreSQL", "--db-server=fixture-db port=5432", "--db-name=fixture_db", "--db-user=postgres", "--db-pwd=__REDACTED_SECRET__", "--user=ib-user", "--password=__REDACTED_SECRET__"]]' \
+  "$run_list/summary.json" >/dev/null; then
+  printf 'unexpected list command in summary.json\n' >&2
+  cat "$run_list/summary.json" >&2
+  exit 1
+fi
+for artifact in summary.json stdout.log stderr.log; do
+  assert_not_contains "$run_list/$artifact" "ib-secret"
+  assert_not_contains "$run_list/$artifact" "db-secret"
+done
+assert_contains "$run_list/stdout.log" "--password=__SECRET_SEEN__"
+assert_contains "$run_list/stdout.log" "--db-pwd=__SECRET_SEEN__"
 
 (
   cd "$fixture_root"
   TEST_IB_PASSWORD="ib-secret" \
   TEST_DB_PASSWORD="db-secret" \
   MANAGE_CFE_INVOCATION_LOG="$invocation_log" \
-  ./scripts/platform/manage-cfe.sh delete --profile env/local.json --target fixture-target --extension FixtureExtension --run-root "$run_delete" >/dev/null
+  ./scripts/platform/manage-cfe.sh delete --profile env/local.json --extension FixtureExtension --run-root "$run_delete" >/dev/null
 )
 
 assert_jq "$run_delete/summary.json" '.status == "success" and .action == "delete" and .extension_name == "FixtureExtension"' "delete-summary"
-assert_contains "$run_delete/command.txt" "delete"
-assert_contains "$run_delete/command.txt" "--name=FixtureExtension"
+assert_jq "$run_delete/summary.json" '.execution.commands[0][1:4] == ["config", "extension", "delete"]' "delete-command"
+assert_jq "$run_delete/summary.json" '.execution.commands[0] | index("--name=FixtureExtension") != null' "delete-extension-name"
+assert_not_contains "$run_delete/summary.json" "ib-secret"
+assert_not_contains "$run_delete/summary.json" "db-secret"
 assert_contains "$run_delete/stdout.log" "--password=__SECRET_SEEN__"
 assert_contains "$run_delete/stdout.log" "--db-pwd=__SECRET_SEEN__"
 

@@ -313,6 +313,11 @@ def render_generated_recommended_skills(root: Path, metadata_json: str) -> str:
             "`1c-load-task-src` -> `./scripts/platform/load-task-src.sh`",
             "Используйте, когда scope уже зафиксирован через `Work-Item:` trailer или `--range`.",
         ),
+        (
+            "BSL syntax check",
+            "`1c-check-bsl` -> `make check-bsl` / `./make.ps1 check-bsl`",
+            "Проверяйте изменённые модули до загрузки в ИБ; итог `синтаксис: не проверен` не является успехом.",
+        ),
     ]
 
     if config_present or (root / "src" / "cf").is_dir():
@@ -326,8 +331,8 @@ def render_generated_recommended_skills(root: Path, metadata_json: str) -> str:
         recommendations.append(
             (
                 "Metadata object routing",
-                "`meta-info` -> `meta-edit` -> `meta-validate`",
-                "Подходит для object-level XML changes без ручного редактирования сырого metadata XML.",
+                "`metadata-use` -> `metadata inspect`, `plan`, `apply`, `verify`",
+                "Создание и правка объектов метаданных и форм через metadata CLI вместо ручного редактирования XML.",
             )
         )
     if subsystems_count > 0:
@@ -342,7 +347,7 @@ def render_generated_recommended_skills(root: Path, metadata_json: str) -> str:
         recommendations.append(
             (
                 "Managed form routing",
-                "`form-info` -> `form-edit` -> `form-validate`",
+                "`metadata-use` (формы), `form-patterns`, `cfe-form-workflow` для форм через расширение",
                 "Полезно для forms-heavy repo footprint и object UI changes.",
             )
         )
@@ -366,15 +371,15 @@ def render_generated_recommended_skills(root: Path, metadata_json: str) -> str:
         recommendations.append(
             (
                 "External processor routing",
-                "`epf-dump` -> `epf-build` -> `epf-validate`",
-                "Подходит для внешних обработок и adjacent processor workflows.",
+                "`epf-dump` -> `epf-build` -> `epf-validate`, `ordinary-form-workflow`, `prepare-external-artifact`",
+                "Подходит для внешних обработок; сборка и разбор идут через runtime-профиль.",
             )
         )
     if services_count > 0 or scheduled_jobs_count > 0 or common_modules_count > 0:
         recommendations.append(
             (
                 "Service and runtime edges",
-                "`cf-info`, `meta-info`, затем native `1c-*` runtime workflows",
+                "`cf-info`, `metadata-use`, затем native `1c-*` runtime workflows",
                 "Service surfaces, scheduled jobs и common modules обычно требуют сначала routing по metadata, потом native runtime path.",
             )
         )
@@ -402,7 +407,7 @@ def render_generated_recommended_skills(root: Path, metadata_json: str) -> str:
         "| Workflow | Recommended skills / entrypoints | Why now |",
         "| --- | --- | --- |",
     ]
-    for title, workflow, why in recommendations[:7]:
+    for title, workflow, why in recommendations[:8]:
         lines.append(f"| {title} | {workflow} | {why} |")
     lines.extend(
         [
@@ -411,6 +416,7 @@ def render_generated_recommended_skills(root: Path, metadata_json: str) -> str:
             "",
             "- Full catalog: `.agents/skills/README.md`",
             "- Imported skill readiness: `make imported-skills-readiness`, `./scripts/skills/run-imported-skill.sh --readiness`",
+            "- Long-running 1C launches: `1c-observe-run` (`observation.jsonl`, `progress.txt`), client control: `1c-run-client`",
             "- Curated project truth: `automation/context/project-map.md`",
             "- Project-owned code map: `docs/agent/architecture-map.md`",
             "- Runtime quick reference: `docs/agent/runtime-quickstart.md`",

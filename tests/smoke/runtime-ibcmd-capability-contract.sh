@@ -29,11 +29,17 @@ done
 printf 'fake-designer-stderr\n' >&2
 EOF
 
+# Run logs are redacted, so the fake binary reports that it received the real secret
+# with a marker instead of echoing the secret value.
 cat >"$fake_ibcmd" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
 
 for arg in "$@"; do
+  case "$arg" in
+    --password=ibcmd-secret) arg="--password=__SECRET_SEEN__" ;;
+    --db-pwd=dbms-secret) arg="--db-pwd=__SECRET_SEEN__" ;;
+  esac
   printf '%s\n' "$arg"
 done
 
@@ -98,9 +104,8 @@ write_ibcmd_profile() {
     --argjson capabilities "$capabilities_json" \
     --argjson include_auth "$include_auth" \
     '{
-      schemaVersion: 2,
+      schemaVersion: 3,
       profileName: $profile_name,
-      runnerAdapter: "direct-platform",
       platform: {
         binaryPath: $fake_designer,
         ibcmdPath: $fake_ibcmd
@@ -139,14 +144,14 @@ all_ibcmd_capabilities_json='{
   "dumpSrc": {"driver": "ibcmd", "outputDir": "./src/cf"},
   "loadSrc": {"driver": "ibcmd", "sourceDir": "./src/cf"},
   "updateDb": {"driver": "ibcmd"},
-  "bdd": {"command": ["bash", "-lc", "printf '\''bdd-ok\\n'\''"]},
-  "smoke": {"command": ["bash", "-lc", "printf '\''smoke-ok\\n'\''"]}
+  "bdd": {"unsupportedReason": "bdd is outside this fixture"},
+  "smoke": {"unsupportedReason": "smoke is outside this fixture"}
 }'
 
 mixed_capabilities_json='{
   "loadSrc": {"driver": "ibcmd", "sourceDir": "./src/cf"},
-  "bdd": {"command": ["bash", "-lc", "printf '\''bdd-ok\\n'\''"]},
-  "smoke": {"command": ["bash", "-lc", "printf '\''smoke-ok\\n'\''"]}
+  "bdd": {"unsupportedReason": "bdd is outside this fixture"},
+  "smoke": {"unsupportedReason": "smoke is outside this fixture"}
 }'
 
 write_ibcmd_profile \
@@ -222,7 +227,7 @@ assert_contains "$standalone_create_run/stdout.log" "--data=$tmpdir/standalone"
 assert_contains "$standalone_create_run/stdout.log" "--database-path=$tmpdir/standalone/db"
 assert_contains "$standalone_create_run/stdout.log" "--create-database"
 assert_not_contains "$standalone_create_run/stdout.log" "--user=ibcmd-user"
-assert_not_contains "$standalone_create_run/stdout.log" "--password=ibcmd-secret"
+assert_not_contains "$standalone_create_run/stdout.log" "--password="
 
 run_capability "$standalone_profile" "$standalone_dump_run" ./scripts/platform/dump-src.sh
 assert_ibcmd_summary "$standalone_dump_run/summary.json" "standalone-server"
@@ -231,7 +236,7 @@ assert_contains "$standalone_dump_run/stdout.log" "export"
 assert_contains "$standalone_dump_run/stdout.log" "--data=$tmpdir/standalone"
 assert_contains "$standalone_dump_run/stdout.log" "--database-path=$tmpdir/standalone/db"
 assert_contains "$standalone_dump_run/stdout.log" "--user=ibcmd-user"
-assert_contains "$standalone_dump_run/stdout.log" "--password=ibcmd-secret"
+assert_contains "$standalone_dump_run/stdout.log" "--password=__SECRET_SEEN__"
 assert_contains "$standalone_dump_run/stdout.log" "$expected_src_cf"
 assert_not_contains "$standalone_dump_run/stdout.log" "--dir=$expected_src_cf"
 assert_not_contains "$standalone_dump_run/stdout.log" "--format=hierarchical"
@@ -242,7 +247,7 @@ assert_contains "$standalone_load_full_run/stdout.log" "config"
 assert_contains "$standalone_load_full_run/stdout.log" "import"
 assert_contains "$standalone_load_full_run/stdout.log" "--database-path=$tmpdir/standalone/db"
 assert_contains "$standalone_load_full_run/stdout.log" "--user=ibcmd-user"
-assert_contains "$standalone_load_full_run/stdout.log" "--password=ibcmd-secret"
+assert_contains "$standalone_load_full_run/stdout.log" "--password=__SECRET_SEEN__"
 assert_contains "$standalone_load_full_run/stdout.log" "$expected_src_cf"
 assert_not_contains "$standalone_load_full_run/stdout.log" "--dir=$expected_src_cf"
 assert_not_contains "$standalone_load_full_run/stdout.log" "--format=hierarchical"
@@ -316,9 +321,9 @@ assert_contains "$dbms_create_run/stdout.log" "--dbms=PostgreSQL"
 assert_contains "$dbms_create_run/stdout.log" "--db-server=127.0.0.1 port=5432;"
 assert_contains "$dbms_create_run/stdout.log" "--db-name=runtime_fixture"
 assert_contains "$dbms_create_run/stdout.log" "--db-user=db-admin"
-assert_contains "$dbms_create_run/stdout.log" "--db-pwd=dbms-secret"
+assert_contains "$dbms_create_run/stdout.log" "--db-pwd=__SECRET_SEEN__"
 assert_not_contains "$dbms_create_run/stdout.log" "--user=ibcmd-user"
-assert_not_contains "$dbms_create_run/stdout.log" "--password=ibcmd-secret"
+assert_not_contains "$dbms_create_run/stdout.log" "--password="
 
 run_capability "$dbms_profile" "$dbms_dump_run" ./scripts/platform/dump-src.sh
 assert_ibcmd_summary "$dbms_dump_run/summary.json" "dbms-infobase"
@@ -326,22 +331,22 @@ assert_contains "$dbms_dump_run/stdout.log" "--dbms=PostgreSQL"
 assert_contains "$dbms_dump_run/stdout.log" "--db-server=127.0.0.1 port=5432;"
 assert_contains "$dbms_dump_run/stdout.log" "--db-name=runtime_fixture"
 assert_contains "$dbms_dump_run/stdout.log" "--db-user=db-admin"
-assert_contains "$dbms_dump_run/stdout.log" "--db-pwd=dbms-secret"
+assert_contains "$dbms_dump_run/stdout.log" "--db-pwd=__SECRET_SEEN__"
 assert_contains "$dbms_dump_run/stdout.log" "--user=ibcmd-user"
-assert_contains "$dbms_dump_run/stdout.log" "--password=ibcmd-secret"
+assert_contains "$dbms_dump_run/stdout.log" "--password=__SECRET_SEEN__"
 assert_contains "$dbms_dump_run/stdout.log" "$expected_src_cf"
 
 run_capability "$dbms_profile" "$dbms_load_run" ./scripts/platform/load-src.sh
 assert_ibcmd_summary "$dbms_load_run/summary.json" "dbms-infobase"
 assert_contains "$dbms_load_run/stdout.log" "--dbms=PostgreSQL"
-assert_contains "$dbms_load_run/stdout.log" "--db-pwd=dbms-secret"
+assert_contains "$dbms_load_run/stdout.log" "--db-pwd=__SECRET_SEEN__"
 assert_contains "$dbms_load_run/stdout.log" "--user=ibcmd-user"
 assert_contains "$dbms_load_run/stdout.log" "$expected_src_cf"
 
 run_capability "$dbms_profile" "$dbms_update_run" ./scripts/platform/update-db.sh
 assert_ibcmd_summary "$dbms_update_run/summary.json" "dbms-infobase"
 assert_contains "$dbms_update_run/stdout.log" "--dbms=PostgreSQL"
-assert_contains "$dbms_update_run/stdout.log" "--db-pwd=dbms-secret"
+assert_contains "$dbms_update_run/stdout.log" "--db-pwd=__SECRET_SEEN__"
 assert_contains "$dbms_update_run/stdout.log" "--force"
 
 if grep -Fq -- "ibcmd-secret" "$dbms_create_run/summary.json"; then

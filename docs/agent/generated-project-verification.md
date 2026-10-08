@@ -50,6 +50,24 @@ Python-окружение проекта:
 - `pyproject.toml`, `uv.lock`, `requirements-dev.txt` и `pyrightconfig.json` принадлежат проекту: добавляйте свои зависимости (`uv add --dev ...`, затем перегенерация `requirements-dev.txt`) и корни проверки типов (`include` в `pyrightconfig.json`); `template-update` их не перезаписывает;
 - `pyrightconfig.json` должен сохранять `"extends": "scripts/qa/pyright-base.json"`, режим не ниже `standard` и не отключать правила; минимальные версии `ruff`, `basedpyright`, `pytest` задаёт шаблон. Подробности: [docs/template-maintenance.md](../template-maintenance.md#project-owned-extension-points).
 
+## Инструменты разработки
+
+Эти команды не входят в `make agent-verify`. Статус каждой — в `automation/context/runtime-support-matrix.md` и `.json`.
+
+| Команда (Linux / Windows) | Назначение | Что нужно | Изменяет |
+| --- | --- | --- | --- |
+| `make check-bsl ARGS="<module.bsl>..."` / `./make.ps1 check-bsl <module.bsl>...` | Синтаксис выбранных модулей одного корня: `static` через `bsl-analyzer-app` и `platform` через компиляцию в ИБ профиля | `bsl-analyzer-app`; для `platform` — `--profile` | конфигурацию ИБ профиля при частичной загрузке модулей; конфигурацию базы данных не обновляет |
+| `make check-cf-modules ARGS="--profile env/local.json <module.bsl>..."` / `./make.ps1 check-cf-modules` | Designer `/CheckModules` после частичной загрузки модулей основной конфигурации | Designer-ready профиль | конфигурацию ИБ профиля, без обновления конфигурации базы данных |
+| `make analyze-bsl-external ARGS="--all-managed"` / `./make.ps1 analyze-bsl-external --all-managed` | Статическая проверка модулей EPF/ERF вместе с основной конфигурацией | `bsl-analyzer-app` и выгрузка `src/cf` | ничего |
+| `make run-client ARGS="start --profile env/local.json --run-root <dir>"` / `./make.ps1 run-client start --profile env/windows-local.json` | Открыть клиент ИБ профиля, дождаться завершения, остановить | профиль; на Linux `platform.xpra.enabled=true` | только `--run-root`; `screenshot`, `key`, `click` — только Linux |
+| `./scripts/diag/technological-log.sh status` / `./scripts/diag/technological-log.ps1 status` | Состояние и восстановление технологического журнала наблюдаемого запуска | доступный на запись `logcfg.xml` платформы | `logcfg.xml` только на время одного запуска |
+| `make artifact-storage ARGS="status"` / `./make.ps1 artifact-storage status` | Хранилище прогонов вне checkout с лимитами размера и свободного места | Python 3.12+ | каталог `<repo>-artifacts` рядом с репозиторием |
+
+- Итог `синтаксис: не проверен` у `check-bsl` и код 3 у `analyze-bsl-external` означают, что проверка не выполнена. Это не успех.
+- Каждый наблюдаемый запуск 1С пишет в свой `--run-root` файлы `observation.jsonl`, `progress.txt` и раздел `observation` в `summary.json`; разбор — по навыку `1c-observe-run`.
+- Справочник стандартов: `scripts/tools/v8std-fetch` и `scripts/tools/v8std-search` (только Linux), кеш в `.artifacts/v8std` или `V8STD_CACHE_ROOT`.
+- Windows-обёртки команд из таблицы поставляются, но на Windows ещё не запускались. До первого запуска на Windows считайте этот путь непроверенным; matrix не содержит для него живого доказательства.
+
 ## Imported Compatibility Skills
 
 Executable imported compatibility skills не должны использовать raw helper traceback как primary UX для missing Python/Node dependencies.

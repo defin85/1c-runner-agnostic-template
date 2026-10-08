@@ -15,5 +15,8 @@
 - отмечает, что `direct-platform` `xpra` wrapper очищает wrapper-owned `dbus/gvfs` хвосты после завершения;
 - ссылается на `docs/agent/generated-project-verification.md`, `env/README.md` и checked-in runtime support matrix как на canonical truth;
 - ссылается на `automation/context/recommended-skills.generated.md` и `make imported-skills-readiness` как на AI-ready companion layer для first-hour skill routing;
+- содержит строки `check-bsl`, `check-cf-modules`, `analyze-bsl-external`, `run-client`, `technological-log` и `artifact-storage` с тем же статусом, entrypoint и runbook, что в matrix; итог `синтаксис: не проверен` у `check-bsl` описывает как непройденную проверку, а не как успех;
+- отмечает, что Windows-обёртки этих команд (`./make.ps1 <цель>`, `*.ps1`) поставляются, но на Windows ещё не запускались, а `screenshot`, `key` и `click` из `run-client` работают только на Linux;
+- отправляет разбор зависшего или упавшего длительного запуска к `observation.jsonl`, `progress.txt` и `summary.json` его `--run-root` по навыку `1c-observe-run`;
 - отделяет template baseline от optional project-specific baseline extension;
 - остаётся digest-слоем и не заставляет читать весь общий runtime contract для первого ответа.

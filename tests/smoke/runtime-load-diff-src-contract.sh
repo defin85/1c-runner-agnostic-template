@@ -14,6 +14,8 @@ run_root="$tmpdir/run"
 
 mkdir -p "$fixture_root"
 cp -R "$SOURCE_ROOT/scripts" "$fixture_root/scripts"
+# Python bytecode written while the fixture runs must not show up as a git change.
+printf '__pycache__/\n*.pyc\n' >"$fixture_root/.gitignore"
 mkdir -p \
   "$fixture_root/env" \
   "$fixture_root/src/cf/Catalogs" \
@@ -43,9 +45,8 @@ chmod +x "$fake_designer" "$fake_ibcmd"
 
 cat >"$fixture_root/env/local.json" <<EOF
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "profileName": "load-diff-fixture",
-  "runnerAdapter": "direct-platform",
   "platform": {
     "binaryPath": "$fake_designer",
     "ibcmdPath": "$fake_ibcmd"
@@ -79,10 +80,10 @@ cat >"$fixture_root/env/local.json" <<EOF
       "sourceDir": "./src/cf"
     },
     "bdd": {
-      "command": ["bash", "-lc", "printf 'bdd-ok\\\\n'"]
+      "unsupportedReason": "bdd is outside this fixture"
     },
     "smoke": {
-      "command": ["bash", "-lc", "printf 'smoke-ok\\\\n'"]
+      "unsupportedReason": "smoke is outside this fixture"
     }
   }
 }
@@ -194,10 +195,8 @@ assert_jq "$dry_run_root/summary.json" '.delegated.stderr_log == $ARGS.positiona
 assert_jq "$dry_run_root/load-src/summary.json" '.status == "dry-run"' "delegated-dry-run-status"
 assert_jq "$dry_run_root/load-src/summary.json" '.driver_context.partial_import == true' "delegated-dry-run-partial-import"
 
-jq '.capabilities.diffSrc = {"command":["bash","-lc","printf '\''profile-defined diffSrc must not run\n'\'' >&2; exit 42"]}' \
-  "$fixture_root/env/local.json" >"$fixture_root/env/local.json.tmp"
-mv "$fixture_root/env/local.json.tmp" "$fixture_root/env/local.json"
-
+# schemaVersion 3 rejects capabilities.diffSrc.command, so file selection must not depend
+# on the repo diff-src entrypoint either.
 cat >"$fixture_root/scripts/platform/diff-src.sh" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
@@ -216,5 +215,4 @@ independent_run_root="$tmpdir/run-independent"
 
 assert_jq "$independent_run_root/summary.json" '.status == "success"' "wrapper-independent-status"
 assert_jq "$independent_run_root/summary.json" '(.selection.selected_files | sort) == ["CommonModules/рлф_Тест/Ext/Module.bsl", "Configuration.xml", "EventSubscriptions/LoadDiff.xml"]' "wrapper-independent-selected-files"
-assert_not_contains "$independent_run_root/stderr.log" "profile-defined diffSrc must not run"
 assert_not_contains "$independent_run_root/stderr.log" "repo diff-src entrypoint must not run"

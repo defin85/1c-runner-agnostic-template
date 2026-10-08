@@ -1,14 +1,15 @@
-# Paths that left the template-managed overlay but must stay untouched in
-# generated repositories during template-update migration.
+# Project-owned paths that template-update never overwrites or deletes.
+# Entries take precedence over the overlay manifest; an entry ending with `/` covers the whole directory.
+#
+# Paths that left the template-managed overlay and stay as the project left them.
 .codex/config.toml
 tests/golden/run.sh
-# Project-owned extension points: the template never ships them and overlay sync never writes them.
-# An entry ending with `/` covers the whole directory.
+# Extension points: the template never ships them and overlay sync never writes them.
 Makefile.project
 make.project.ps1
 scripts/qa/agent-verify.d/
-# Seed-once Python environment: copier copy and template-update (only when absent) deliver these files,
-# afterwards the project owns its dependencies and type-check roots. Tool minimums are enforced by type-check.
+# Seed-once Python environment (R15): copier copy creates them, template-update creates them only when absent.
+# Afterwards the project owns its dependencies and type-check roots; tool minimums are enforced by type-check.
 pyproject.toml
 uv.lock
 requirements-dev.txt

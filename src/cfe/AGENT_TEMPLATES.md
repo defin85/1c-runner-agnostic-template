@@ -26,6 +26,6 @@
 ## Минимальная проверка
 
 1. `./scripts/skills/run-imported-skill.sh cfe-validate -ExtensionPath src/cfe/<ИмяРасширения> -Detailed`
-2. Для измененных форм дополнительно запускайте `form-validate`.
+2. Для изменённых форм дополнительно выполните `./scripts/python/run-python.sh metadata verify --root src/cfe/<ИмяРасширения> --object <Объект>` (навык `metadata-use`).
 3. После добавления файлов в `src/cfe` обновляйте generated context через `make export-context-write`.
 4. Закрывающая проверка: `git diff --check`, `make export-context-check`, `make agent-verify`.

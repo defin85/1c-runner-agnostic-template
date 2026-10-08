@@ -260,13 +260,12 @@ Inline shell snippets и trivial success commands вроде `true`, `echo ...` 
 Warmup feature должен подключаться к уже поднятому клиенту по порту из service config, а не запускать новый клиент через сохранённый профиль TestClient Vanessa Automation.
 Если проектное расширение поддержки BDD менялось перед warm-service, обновляйте только его: `./scripts/platform/load-cfe.sh --profile env/local.json --target <id> --extension <BddSupportExtension> --run-root /tmp/load-cfe-bdd-support`. Не перезагружайте весь набор `src/cfe` при каждом старте warm-service.
 
-Шаблонный warmed BDD runner подключается через обычный `bdd` capability:
+Шаблонный warmed BDD runner запускается напрямую: `schemaVersion: 3` не принимает `capabilities.bdd.command`, поэтому `./scripts/test/run-bdd.sh` его не вызывает. Набор сценариев задаётся в профиле:
 
 ```json
 {
   "capabilities": {
     "bdd": {
-      "command": ["./scripts/test/run-bdd-warm-run.sh"],
       "manifestPath": "tests/bdd/vanessa/manifests/smoke-manifest.txt"
     }
   }
@@ -276,8 +275,8 @@ Warmup feature должен подключаться к уже поднятом�
 `manifestPath` можно заменить на `featurePaths`, если нужен явный список feature-файлов. Для разовых narrow rerun без изменения profile используйте переменные:
 
 ```bash
-ONEC_BDD_FEATURES='features/vanessa/example.feature' \
-  ./scripts/test/run-bdd.sh --profile env/local.json --target <target-id> --run-root /tmp/bdd-run
+ONEC_PROFILE_PATH=env/local.json ONEC_TARGET_ID=<target-id> ONEC_BDD_FEATURES='features/vanessa/example.feature' \
+  ONEC_CAPABILITY_RUN_ROOT=/tmp/bdd-run ./scripts/test/run-bdd-warm-run.sh
 ```
 
 Runner сам поднимет `bdd-warm-service`, если активной ready-сессии ещё нет, и выполнит выбранные feature-файлы через уже запущенный TestManager/TestClient.

@@ -37,7 +37,13 @@
     "bdd",
     "bdd-warm-service",
     "smoke",
-    "publish-http"
+    "publish-http",
+    "check-bsl",
+    "check-cf-modules",
+    "analyze-bsl-external",
+    "run-client",
+    "technological-log",
+    "artifact-storage"
   ],
   "optionalFields": [
     "projectSpecificBaselineExtension",
@@ -56,6 +62,8 @@
     "golden-baseline is a mandatory project regression contour and should fail closed until the project wires tests/golden/run.sh or GOLDEN_BASELINE_COMMAND.",
     "bdd-warm-service is an operator-local Vanessa Automation warm contour: the template starts /TESTMANAGER and /TestClient, while project-owned 1C code must handle capabilities.bddWarmService.launchParameterName.",
     "YAxUnit and Vanessa BDD require explicit init-test-tooling, install-test-tooling where applicable, profile setup and extension synchronization; Vanessa Automation Single uses the versioned repo-relative .artifacts/testing path.",
-    "If a project adds an extra no-1C smoke contour, declare it via projectSpecificBaselineExtension and keep it separate from the template baseline."
+    "If a project adds an extra no-1C smoke contour, declare it via projectSpecificBaselineExtension and keep it separate from the template baseline.",
+    "Development toolkit contours check-bsl, check-cf-modules, analyze-bsl-external, run-client and technological-log stay operator-local without live evidence; artifact-storage is safe-local.",
+    "Windows wrappers of the development toolkit have not been executed on Windows yet: keep Windows entries without live evidence and say so in the contour summary until a Windows run records evidence."
   ]
 }

@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from .common import die, project_root, run_process
-from .context import export_context, is_source_repo, verify_traceability
+from .context import is_source_repo, verify_traceability
 from .imported_skills import _is_overlay_managed, imported_skill_readiness_payload
 from .optional_modules import is_unmaterialized_optional_path
 from .project_extensions import run_project_verify_steps
@@ -201,58 +201,9 @@ def check_overlay_manifest(root: Path | None = None) -> int:
 
 
 def check_agent_docs(root: Path | None = None) -> int:
-    repo_root = root or project_root()
-    required_paths = [
-        repo_root / "AGENTS.md",
-        repo_root / "README.md",
-        repo_root / "docs" / "agent" / ("index.md" if is_source_repo(repo_root) else "generated-project-index.md"),
-        repo_root / "docs" / "template-maintenance.md",
-        repo_root
-        / "automation"
-        / "context"
-        / ("template-source-tree.txt" if is_source_repo(repo_root) else "source-tree.generated.txt"),
-        repo_root
-        / "automation"
-        / "context"
-        / ("template-source-source-files.txt" if is_source_repo(repo_root) else "metadata-index.generated.json"),
-    ]
-    if not is_source_repo(repo_root):
-        required_paths.append(repo_root / "automation" / "context" / "recommended-skills.generated.md")
-    status = 0
-    for path in required_paths:
-        if not path.exists():
-            print(f"missing agent-facing path: {path.relative_to(repo_root).as_posix()}", file=sys.stderr)
-            status = 1
-    if export_context("--check", repo_root) != 0:
-        status = 1
-    if not is_source_repo(repo_root):
-        if validate_runtime_support_matrix(repo_root) != 0:
-            status = 1
-        tree_file = repo_root / "automation" / "context" / "source-tree.generated.txt"
-        metadata_file = repo_root / "automation" / "context" / "metadata-index.generated.json"
-        for line in tree_file.read_text(encoding="utf-8").splitlines():
-            rel = line.strip()
-            if rel in {
-                "./env/local.json",
-                "./env/wsl.json",
-                "./env/ci.json",
-                "./env/windows-executor.json",
-                "./env/.local",
-            } or rel.startswith("./env/.local/"):
-                print(f"local-private path leaked into generated context: {rel.removeprefix('./')}", file=sys.stderr)
-                status = 1
-            if rel.startswith("./.codex/") and rel not in {
-                "./.codex/.gitkeep",
-                "./.codex/README.md",
-                "./.codex/config.toml",
-            }:
-                print(f"local-private path leaked into generated context: {rel.removeprefix('./')}", file=sys.stderr)
-                status = 1
-        metadata_text = metadata_file.read_text(encoding="utf-8")
-        if re.search(r'"env/(local|wsl|ci|windows-executor)\.json"|env/\.local/', metadata_text):
-            print("generated metadata leaked local-private runtime profile paths", file=sys.stderr)
-            status = 1
-    return status
+    from .agent_docs import check_agent_docs as check_docs_contract
+
+    return check_docs_contract(root or project_root())
 
 
 def validate_runtime_support_matrix(root: Path) -> int:

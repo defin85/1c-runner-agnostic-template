@@ -969,6 +969,7 @@ scripts/platform/update-db.ps1
 scripts/platform/update-db.sh
 scripts/platform/v8unpack.sh
 scripts/python/__init__.py
+scripts/python/agent_docs.py
 scripts/python/artifact_storage.py
 scripts/python/bsl_check.py
 scripts/python/bsl_connections.py
@@ -1258,6 +1259,7 @@ tests/golden/restore.sh
 tests/python/__init__.py
 tests/python/metadata_test_support.py
 tests/python/ordinary_form_test_support.py
+tests/python/test_agent_docs.py
 tests/python/test_artifact_storage.py
 tests/python/test_bsl_check.py
 tests/python/test_bsl_connections.py
@@ -1319,7 +1321,6 @@ tests/smoke/bootstrap-agents-overlay.sh
 tests/smoke/check-bsl-routing.sh
 tests/smoke/check-cfe-applicability-contract.sh
 tests/smoke/check-cfe-config-contract.sh
-tests/smoke/configure-cfe-runtime-flags-contract.sh
 tests/smoke/copier-update-ready.sh
 tests/smoke/git-task-trailer-contract.sh
 tests/smoke/golden-baseline-contract.sh

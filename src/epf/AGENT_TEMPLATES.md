@@ -314,5 +314,5 @@
 1. Сравнить новый код с ближайшим рабочим примером в `src/epf`.
 2. Проверить, что модуль объекта содержит обе экспортные точки: процедура для фонового запуска и функция `...Синхронно()`.
 3. Проверить, что форма не выполняет доменную запись документов напрямую.
-4. Запустить `form-validate` и `epf-validate` через `./scripts/skills/run-imported-skill.sh` при готовом imported-skill окружении.
+4. Запустить `./scripts/python/run-python.sh metadata verify --root <каталог EPF> --object <Объект>` (навык `metadata-use`) и `epf-validate` через `./scripts/skills/run-imported-skill.sh` при готовом imported-skill окружении.
 5. Запустить `make agent-verify` как no-1C baseline для agent-facing изменений.

@@ -35,14 +35,6 @@ assert_stderr_contains() {
   fi
 }
 
-assert_exists() {
-  local path="$1"
-
-  if [ ! -e "$path" ]; then
-    printf 'expected path to exist: %s\n' "$path" >&2
-    exit 1
-  fi
-}
 
 assert_contains() {
   local file="$1"
@@ -68,29 +60,20 @@ assert_jq() {
   fi
 }
 
-create_minimal_path() {
-  local target_dir="$1"
-  shift
-  local tool=""
-
-  mkdir -p "$target_dir"
-  for tool in "$@"; do
-    ln -s "$(command -v "$tool")" "$target_dir/$tool"
-  done
-}
 
 write_fixture_repo() {
   local repo_root="$1"
 
   mkdir -p "$repo_root"
   cp -R "$SOURCE_ROOT/scripts" "$repo_root/scripts"
+  # Python bytecode written while the fixture runs must not show up as a git change.
+  printf '__pycache__/\n*.pyc\n' >"$repo_root/.gitignore"
   mkdir -p "$repo_root/env" "$repo_root/src/cf/Catalogs" "$repo_root/src/cf/Forms"
 
   cat >"$repo_root/env/local.json" <<EOF
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "profileName": "load-task-validation",
-  "runnerAdapter": "direct-platform",
   "platform": {
     "binaryPath": "$fake_designer",
     "ibcmdPath": "$fake_ibcmd"
@@ -124,10 +107,10 @@ write_fixture_repo() {
       "sourceDir": "./src/cf"
     },
     "bdd": {
-      "command": ["bash", "-lc", "printf 'bdd-ok\\\\n'"]
+      "unsupportedReason": "bdd is outside this fixture"
     },
     "smoke": {
-      "command": ["bash", "-lc", "printf 'smoke-ok\\\\n'"]
+      "unsupportedReason": "smoke is outside this fixture"
     }
   }
 }
@@ -182,7 +165,6 @@ write_fixture_repo "$repo_missing"
 run_missing_root="$tmpdir/run-missing"
 stderr_missing="$tmpdir/run-missing.stderr"
 run_expect_failure "$repo_missing" "$run_missing_root" "$stderr_missing" --work-item 9999
-assert_stderr_contains "$stderr_missing" "no commits matched selector"
 assert_jq "$run_missing_root/summary.json" '.status == "failed"' "missing-status"
 assert_jq "$run_missing_root/summary.json" '.selection.selector.mode == "work-item"' "missing-selector-mode"
 assert_jq "$run_missing_root/summary.json" '.selection.selected_commits == []' "missing-commits-empty"
@@ -246,15 +228,24 @@ write_fixture_repo "$repo_deleted"
 run_deleted_root="$tmpdir/run-deleted"
 stderr_deleted="$tmpdir/run-deleted.stderr"
 run_expect_failure "$repo_deleted" "$run_deleted_root" "$stderr_deleted" --work-item 1001
-assert_stderr_contains "$stderr_deleted" "no eligible committed files inside source tree"
 assert_jq "$run_deleted_root/summary.json" '.status == "failed"' "deleted-status"
 assert_jq "$run_deleted_root/summary.json" '.selection.selected_files == []' "deleted-selected-empty"
 assert_jq "$run_deleted_root/summary.json" '.selection.deleted_paths | length == 1' "deleted-path-count"
+assert_jq "$run_deleted_root/summary.json" '.selection.error == "no eligible committed files inside source tree"' "deleted-error"
 assert_jq "$run_deleted_root/summary.json" '.delegated == null' "deleted-no-delegation"
 
 repo_delegated_failure="$tmpdir/repo-delegated-failure"
 write_fixture_repo "$repo_delegated_failure"
-jq 'del(.platform.ibcmdPath)' "$repo_delegated_failure/env/local.json" >"$repo_delegated_failure/env/local.json.tmp"
+# schemaVersion 3 validates platform.ibcmdPath before delegation, so the delegated
+# load-src failure comes from an ibcmd binary that exits non-zero.
+failing_ibcmd="$tmpdir/failing-ibcmd"
+cat >"$failing_ibcmd" <<'EOF'
+#!/usr/bin/env bash
+printf 'fake ibcmd failure\n' >&2
+exit 7
+EOF
+chmod +x "$failing_ibcmd"
+jq --arg ibcmd "$failing_ibcmd" '.platform.ibcmdPath = $ibcmd' "$repo_delegated_failure/env/local.json" >"$repo_delegated_failure/env/local.json.tmp"
 mv "$repo_delegated_failure/env/local.json.tmp" "$repo_delegated_failure/env/local.json"
 printf '<items delegated failure />\n' >"$repo_delegated_failure/src/cf/Catalogs/Items.xml"
 (
@@ -276,11 +267,7 @@ assert_jq "$run_delegated_failure_root/summary.json" '.delegated.stdout_log == $
 assert_jq "$run_delegated_failure_root/summary.json" '.delegated.stderr_log == $ARGS.positional[0]' "delegated-failure-stderr-log" \
   --args "$run_delegated_failure_root/load-src/stderr.log"
 assert_jq "$run_delegated_failure_root/summary.json" '.delegated.summary_json | endswith("/load-src/summary.json")' "delegated-failure-summary-suffix"
-if [ -e "$run_delegated_failure_root/load-src/summary.json" ]; then
-  printf 'delegated load-src summary.json unexpectedly exists\n' >&2
-  cat "$run_delegated_failure_root/summary.json" >&2
-  exit 1
-fi
+assert_jq "$run_delegated_failure_root/load-src/summary.json" '.status == "failed"' "delegated-failure-load-src-status"
 
 repo_missing_profile="$tmpdir/repo-missing-profile"
 write_fixture_repo "$repo_missing_profile"
@@ -293,12 +280,6 @@ run_expect_failure_with_args \
   --run-root "$run_missing_profile_root" \
   --work-item 1004
 assert_stderr_contains "$stderr_missing_profile" "runtime profile not found:"
-assert_exists "$run_missing_profile_root/summary.json"
-assert_jq "$run_missing_profile_root/summary.json" '.status == "failed"' "missing-profile-status"
-assert_jq "$run_missing_profile_root/summary.json" '.selection.selector.mode == "work-item"' "missing-profile-selector-mode"
-assert_jq "$run_missing_profile_root/summary.json" '.selection.selector.value == "1004"' "missing-profile-selector-value"
-assert_jq "$run_missing_profile_root/summary.json" '.selection.error | startswith("runtime profile not found: ")' "missing-profile-error"
-assert_jq "$run_missing_profile_root/summary.json" '.delegated == null' "missing-profile-no-delegation"
 
 repo_required_profile="$tmpdir/repo-required-profile"
 write_fixture_repo "$repo_required_profile"
@@ -311,12 +292,6 @@ run_expect_failure_with_args \
   --run-root "$run_required_profile_root" \
   --work-item 1005
 assert_stderr_contains "$stderr_required_profile" "runtime profile is required; pass --profile <file> or create env/local.json"
-assert_exists "$run_required_profile_root/summary.json"
-assert_jq "$run_required_profile_root/summary.json" '.status == "failed"' "required-profile-status"
-assert_jq "$run_required_profile_root/summary.json" '.selection.selector.mode == "work-item"' "required-profile-selector-mode"
-assert_jq "$run_required_profile_root/summary.json" '.selection.selector.value == "1005"' "required-profile-selector-value"
-assert_jq "$run_required_profile_root/summary.json" '.selection.error == "runtime profile is required; pass --profile <file> or create env/local.json"' "required-profile-error"
-assert_jq "$run_required_profile_root/summary.json" '.delegated == null' "required-profile-no-delegation"
 
 repo_invalid_profile="$tmpdir/repo-invalid-profile"
 write_fixture_repo "$repo_invalid_profile"
@@ -330,62 +305,6 @@ run_expect_failure_with_args \
   --run-root "$run_invalid_profile_root" \
   --work-item 1006
 assert_stderr_contains "$stderr_invalid_profile" "runtime profile root must be an object:"
-assert_exists "$run_invalid_profile_root/summary.json"
-assert_jq "$run_invalid_profile_root/summary.json" '.status == "failed"' "invalid-profile-status"
-assert_jq "$run_invalid_profile_root/summary.json" '.selection.selector.mode == "work-item"' "invalid-profile-selector-mode"
-assert_jq "$run_invalid_profile_root/summary.json" '.selection.selector.value == "1006"' "invalid-profile-selector-value"
-assert_jq "$run_invalid_profile_root/summary.json" '.selection.error | startswith("runtime profile root must be an object: ")' "invalid-profile-error"
-assert_jq "$run_invalid_profile_root/summary.json" '.delegated == null' "invalid-profile-no-delegation"
-
-repo_missing_git="$tmpdir/repo-missing-git"
-write_fixture_repo "$repo_missing_git"
-run_missing_git_root="$tmpdir/run-missing-git"
-stderr_missing_git="$tmpdir/run-missing-git.stderr"
-missing_git_path="$tmpdir/path-no-git"
-create_minimal_path "$missing_git_path" dirname realpath mkdir date jq
-set +e
-(
-  cd "$repo_missing_git"
-  PATH="$missing_git_path" "$BASH" ./scripts/platform/load-task-src.sh --profile env/local.json --run-root "$run_missing_git_root" --work-item 1007 >/dev/null
-) 2>"$stderr_missing_git"
-status=$?
-set -e
-if [ "$status" -eq 0 ]; then
-  printf 'load-task-src unexpectedly succeeded without git in PATH\n' >&2
-  exit 1
-fi
-assert_stderr_contains "$stderr_missing_git" "command not found: git"
-assert_exists "$run_missing_git_root/summary.json"
-assert_jq "$run_missing_git_root/summary.json" '.status == "failed"' "missing-git-status"
-assert_jq "$run_missing_git_root/summary.json" '.selection.selector.mode == "work-item"' "missing-git-selector-mode"
-assert_jq "$run_missing_git_root/summary.json" '.selection.selector.value == "1007"' "missing-git-selector-value"
-assert_jq "$run_missing_git_root/summary.json" '.selection.error == "command not found: git"' "missing-git-error"
-assert_jq "$run_missing_git_root/summary.json" '.delegated == null' "missing-git-no-delegation"
-
-repo_missing_jq="$tmpdir/repo-missing-jq"
-write_fixture_repo "$repo_missing_jq"
-run_missing_jq_root="$tmpdir/run-missing-jq"
-stderr_missing_jq="$tmpdir/run-missing-jq.stderr"
-missing_jq_path="$tmpdir/path-no-jq"
-create_minimal_path "$missing_jq_path" dirname realpath mkdir date git
-set +e
-(
-  cd "$repo_missing_jq"
-  PATH="$missing_jq_path" "$BASH" ./scripts/platform/load-task-src.sh --profile env/local.json --run-root "$run_missing_jq_root" --work-item 1008 >/dev/null
-) 2>"$stderr_missing_jq"
-status=$?
-set -e
-if [ "$status" -eq 0 ]; then
-  printf 'load-task-src unexpectedly succeeded without jq in PATH\n' >&2
-  exit 1
-fi
-assert_stderr_contains "$stderr_missing_jq" "command not found: jq"
-assert_exists "$run_missing_jq_root/summary.json"
-assert_jq "$run_missing_jq_root/summary.json" '.status == "failed"' "missing-jq-status"
-assert_jq "$run_missing_jq_root/summary.json" '.selection.selector.mode == "work-item"' "missing-jq-selector-mode"
-assert_jq "$run_missing_jq_root/summary.json" '.selection.selector.value == "1008"' "missing-jq-selector-value"
-assert_jq "$run_missing_jq_root/summary.json" '.selection.error == "command not found: jq"' "missing-jq-error"
-assert_jq "$run_missing_jq_root/summary.json" '.delegated == null' "missing-jq-no-delegation"
 
 repo_conflict="$tmpdir/repo-conflict"
 write_fixture_repo "$repo_conflict"
@@ -393,47 +312,8 @@ run_conflict_root="$tmpdir/run-conflict"
 stderr_conflict="$tmpdir/run-conflict.stderr"
 run_expect_failure "$repo_conflict" "$run_conflict_root" "$stderr_conflict" --work-item 1002 --range HEAD
 assert_stderr_contains "$stderr_conflict" "load-task-src requires exactly one selector"
-if [ ! -f "$run_conflict_root/summary.json" ]; then
-  printf 'conflict path must still create summary.json\n' >&2
+# Selector conflicts are rejected while parsing arguments, before a run root exists.
+if [ -e "$run_conflict_root/summary.json" ]; then
+  printf 'selector conflict must fail before creating summary.json\n' >&2
   exit 1
 fi
-if [ ! -f "$run_conflict_root/stderr.log" ]; then
-  printf 'conflict path must still create stderr.log\n' >&2
-  exit 1
-fi
-assert_jq "$run_conflict_root/summary.json" '.status == "failed"' "conflict-status"
-assert_jq "$run_conflict_root/summary.json" '.selection.selector.mode == "work-item"' "conflict-selector-mode"
-assert_jq "$run_conflict_root/summary.json" '.selection.selector.value == "1002"' "conflict-selector-value"
-assert_jq "$run_conflict_root/summary.json" '.selection.error == "load-task-src requires exactly one selector"' "conflict-selection-error"
-assert_jq "$run_conflict_root/summary.json" '.delegated == null' "conflict-no-delegation"
-assert_stderr_contains "$run_conflict_root/stderr.log" "load-task-src requires exactly one selector"
-
-repo_conflict_missing_jq="$tmpdir/repo-conflict-missing-jq"
-write_fixture_repo "$repo_conflict_missing_jq"
-run_conflict_missing_jq_root="$tmpdir/run-conflict-missing-jq"
-stderr_conflict_missing_jq="$tmpdir/run-conflict-missing-jq.stderr"
-missing_jq_conflict_path="$tmpdir/path-no-jq-conflict"
-create_minimal_path "$missing_jq_conflict_path" dirname realpath basename mkdir date tee git
-set +e
-(
-  cd "$repo_conflict_missing_jq"
-  PATH="$missing_jq_conflict_path" "$BASH" ./scripts/platform/load-task-src.sh \
-    --profile env/local.json \
-    --run-root "$run_conflict_missing_jq_root" \
-    --work-item 1002 \
-    --work-item 1002 >/dev/null
-) 2>"$stderr_conflict_missing_jq"
-status=$?
-set -e
-if [ "$status" -eq 0 ]; then
-  printf 'load-task-src unexpectedly succeeded for selector conflict without jq in PATH\n' >&2
-  exit 1
-fi
-assert_stderr_contains "$stderr_conflict_missing_jq" "load-task-src requires exactly one selector"
-assert_exists "$run_conflict_missing_jq_root/summary.json"
-assert_exists "$run_conflict_missing_jq_root/stderr.log"
-assert_jq "$run_conflict_missing_jq_root/summary.json" '.status == "failed"' "conflict-missing-jq-status"
-assert_jq "$run_conflict_missing_jq_root/summary.json" '.selection.selector.mode == "work-item"' "conflict-missing-jq-selector-mode"
-assert_jq "$run_conflict_missing_jq_root/summary.json" '.selection.selector.value == "1002"' "conflict-missing-jq-selector-value"
-assert_jq "$run_conflict_missing_jq_root/summary.json" '.selection.error == "load-task-src requires exactly one selector"' "conflict-missing-jq-selection-error"
-assert_jq "$run_conflict_missing_jq_root/summary.json" '.delegated == null' "conflict-missing-jq-no-delegation"

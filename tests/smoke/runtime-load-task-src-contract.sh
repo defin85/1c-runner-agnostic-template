@@ -15,6 +15,8 @@ run_work_item_root="$tmpdir/run-work-item"
 
 mkdir -p "$fixture_root"
 cp -R "$SOURCE_ROOT/scripts" "$fixture_root/scripts"
+# Python bytecode written while the fixture runs must not show up as a git change.
+printf '__pycache__/\n*.pyc\n' >"$fixture_root/.gitignore"
 mkdir -p \
   "$fixture_root/env" \
   "$fixture_root/src/cf/Catalogs" \
@@ -44,9 +46,8 @@ chmod +x "$fake_designer" "$fake_ibcmd"
 
 cat >"$fixture_root/env/local.json" <<EOF
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "profileName": "load-task-fixture",
-  "runnerAdapter": "direct-platform",
   "platform": {
     "binaryPath": "$fake_designer",
     "ibcmdPath": "$fake_ibcmd"
@@ -80,10 +81,10 @@ cat >"$fixture_root/env/local.json" <<EOF
       "sourceDir": "./src/cf"
     },
     "bdd": {
-      "command": ["bash", "-lc", "printf 'bdd-ok\\\\n'"]
+      "unsupportedReason": "bdd is outside this fixture"
     },
     "smoke": {
-      "command": ["bash", "-lc", "printf 'smoke-ok\\\\n'"]
+      "unsupportedReason": "smoke is outside this fixture"
     }
   }
 }

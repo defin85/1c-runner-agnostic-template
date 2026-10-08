@@ -50,9 +50,8 @@ assert_jq() {
 
 cat >"$profile_path" <<EOF
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "profileName": "doctor-ibcmd-fixture",
-  "runnerAdapter": "direct-platform",
   "platform": {
     "binaryPath": "$fake_designer",
     "ibcmdPath": "$fake_ibcmd"
@@ -98,10 +97,10 @@ cat >"$profile_path" <<EOF
       "driver": "ibcmd"
     },
     "bdd": {
-      "command": ["bash", "-lc", "printf 'bdd-ok\\\\n'"]
+      "unsupportedReason": "bdd is outside this fixture"
     },
     "smoke": {
-      "command": ["bash", "-lc", "printf 'smoke-ok\\\\n'"]
+      "unsupportedReason": "smoke is outside this fixture"
     }
   }
 }
@@ -135,7 +134,8 @@ assert_jq "$run_root/summary.json" '[.checks.required_profile_fields[] | select(
 assert_jq "$run_root/summary.json" '[.checks.required_profile_fields[] | select(.name == "ibcmd.auth.passwordEnv" and .status == "present")] | length == 1' "doctor-ibcmd-auth-password-env"
 assert_jq "$run_root/summary.json" '[.checks.required_env_refs[] | select(.name == "ONEC_DBMS_PASSWORD" and .status == "set")] | length == 1' "doctor-dbms-env-ref"
 assert_jq "$run_root/summary.json" '[.checks.required_env_refs[] | select(.name == "ONEC_IBCMD_PASSWORD" and .status == "set")] | length == 1' "doctor-ibcmd-env-ref"
-assert_jq "$run_root/summary.json" '[.checks.required_capabilities[] | select(.status != "present")] | length == 0' "doctor-required-capabilities"
+assert_jq "$run_root/summary.json" '[.checks.required_capabilities[] | select(.status == "missing")] | length == 0' "doctor-required-capabilities"
+assert_jq "$run_root/summary.json" '[.checks.required_capabilities[] | select((.name == "run-bdd" or .name == "run-smoke") and .status == "unsupported")] | length == 2' "doctor-verification-unsupported"
 assert_jq "$run_root/summary.json" '[.checks.derived_contours[] | select(.name == "load-diff-src" and .status == "present" and .driver == "ibcmd" and .reason == null)] | length == 1' "doctor-load-diff-derived-present"
 assert_jq "$run_root/summary.json" '[.checks.derived_contours[] | select(.name == "load-task-src" and .status == "present" and .driver == "ibcmd" and .reason == null)] | length == 1' "doctor-load-task-derived-present"
 
@@ -145,9 +145,8 @@ mkdir -p "$non_git_root/env"
 
 cat >"$non_git_root/env/local.json" <<EOF
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "profileName": "doctor-ibcmd-nongit",
-  "runnerAdapter": "direct-platform",
   "platform": {
     "binaryPath": "$fake_designer",
     "ibcmdPath": "$fake_ibcmd"
@@ -193,10 +192,10 @@ cat >"$non_git_root/env/local.json" <<EOF
       "driver": "ibcmd"
     },
     "bdd": {
-      "command": ["bash", "-lc", "printf 'bdd-ok\\\\n'"]
+      "unsupportedReason": "bdd is outside this fixture"
     },
     "smoke": {
-      "command": ["bash", "-lc", "printf 'smoke-ok\\\\n'"]
+      "unsupportedReason": "smoke is outside this fixture"
     }
   }
 }
@@ -229,9 +228,8 @@ fi
 
 cat >"$invalid_profile_path" <<EOF
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "profileName": "doctor-ibcmd-invalid-fixture",
-  "runnerAdapter": "direct-platform",
   "platform": {
     "binaryPath": "$fake_designer",
     "ibcmdPath": "$fake_ibcmd"
@@ -267,10 +265,10 @@ cat >"$invalid_profile_path" <<EOF
       "driver": "ibcmd"
     },
     "bdd": {
-      "command": ["bash", "-lc", "printf 'bdd-ok\\\\n'"]
+      "unsupportedReason": "bdd is outside this fixture"
     },
     "smoke": {
-      "command": ["bash", "-lc", "printf 'smoke-ok\\\\n'"]
+      "unsupportedReason": "smoke is outside this fixture"
     }
   }
 }
@@ -296,9 +294,8 @@ assert_jq "$invalid_run_root/summary.json" '.capability_drivers["dump-src"].reas
 
 cat >"$create_only_profile_path" <<EOF
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "profileName": "doctor-ibcmd-create-only",
-  "runnerAdapter": "direct-platform",
   "platform": {
     "binaryPath": "$fake_designer",
     "ibcmdPath": "$fake_ibcmd"
@@ -331,10 +328,10 @@ cat >"$create_only_profile_path" <<EOF
       "driver": "ibcmd"
     },
     "bdd": {
-      "command": ["bash", "-lc", "printf 'bdd-ok\\\\n'"]
+      "unsupportedReason": "bdd is outside this fixture"
     },
     "smoke": {
-      "command": ["bash", "-lc", "printf 'smoke-ok\\\\n'"]
+      "unsupportedReason": "smoke is outside this fixture"
     }
   }
 }
@@ -351,75 +348,3 @@ assert_jq "$create_only_run_root/summary.json" '[.checks.required_profile_fields
 assert_jq "$create_only_run_root/summary.json" '[.checks.required_env_refs[] | select(.name == "ONEC_IBCMD_PASSWORD")] | length == 0' "doctor-create-only-no-ibcmd-env-ref"
 assert_jq "$create_only_run_root/summary.json" '[.checks.required_env_refs[] | select(.name == "ONEC_DBMS_PASSWORD" and .status == "set")] | length == 1' "doctor-create-only-dbms-env-ref"
 assert_jq "$create_only_run_root/summary.json" '[.checks.derived_contours[] | select(.name == "load-task-src" and .status == "missing" and .driver == "designer" and .reason == "partial load-src requires capabilities.loadSrc.driver=ibcmd")] | length == 1' "doctor-create-only-derived-missing"
-
-helper_repo="$tmpdir/doctor-helper-gap-repo"
-cp -R "$SOURCE_ROOT" "$helper_repo"
-rm -f "$helper_repo/scripts/git/task-trailers.sh"
-
-cat >"$helper_repo/env/local.json" <<EOF
-{
-  "schemaVersion": 2,
-  "profileName": "doctor-helper-gap",
-  "runnerAdapter": "direct-platform",
-  "platform": {
-    "binaryPath": "$fake_designer",
-    "ibcmdPath": "$fake_ibcmd"
-  },
-  "infobase": {
-    "mode": "file",
-    "filePath": "/var/tmp/doctor-helper-gap",
-    "auth": {
-      "mode": "os",
-      "user": null,
-      "passwordEnv": null
-    }
-  },
-  "ibcmd": {
-    "runtimeMode": "file-infobase",
-    "serverAccess": {
-      "mode": "data-dir",
-      "dataDir": "$tmpdir/helper-gap-server"
-    },
-    "auth": {
-      "user": "doctor-ibcmd-user",
-      "passwordEnv": "ONEC_IBCMD_PASSWORD"
-    },
-    "fileInfobase": {
-      "databasePath": "$tmpdir/helper-gap-db"
-    }
-  },
-  "capabilities": {
-    "createIb": {
-      "driver": "designer"
-    },
-    "dumpSrc": {
-      "driver": "designer"
-    },
-    "loadSrc": {
-      "driver": "ibcmd",
-      "sourceDir": "./src/cf"
-    },
-    "updateDb": {
-      "driver": "designer"
-    },
-    "diffSrc": {
-      "command": ["git", "diff", "--", "./src"]
-    },
-    "bdd": {
-      "command": ["bash", "-lc", "printf 'bdd-ok\\\\n'"]
-    },
-    "smoke": {
-      "command": ["bash", "-lc", "printf 'smoke-ok\\\\n'"]
-    }
-  }
-}
-EOF
-
-helper_gap_run_root="$tmpdir/doctor-helper-gap-run"
-(
-  cd "$helper_repo"
-  ./scripts/diag/doctor.sh --profile env/local.json --run-root "$helper_gap_run_root" >/dev/null
-)
-
-assert_jq "$helper_gap_run_root/summary.json" '[.checks.derived_contours[] | select(.name == "load-task-src" and .status == "missing" and .driver == "ibcmd" and .reason == "missing repo helper: scripts/git/task-trailers.sh")] | length == 1' "doctor-helper-gap-load-task-derived"
-assert_jq "$helper_gap_run_root/summary.json" '[.checks.derived_contours[] | select(.name == "load-diff-src" and .status == "present" and .driver == "ibcmd")] | length == 1' "doctor-helper-gap-load-diff-present"

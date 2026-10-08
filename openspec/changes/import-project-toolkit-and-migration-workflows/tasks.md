@@ -66,11 +66,17 @@
   - Падение `copier-update-ready.sh` на `runtime-doctor-runtime-mode` было регрессией порта doctor на Python (контекст ibcmd пустой); исправлено кодом, smoke проходит.
 - [x] 3.4 Добавить project-owned точки расширения для фрагментов `оставить в проекте` из `inventory.md`: `Makefile.project`/`make.project.ps1`, дополнительные шаги `agent-verify`, проектный блок `.gitignore`/`.gitattributes`.
   - Проверка: `template-update` копии проекта с заполненными точками расширения не меняет их, а проектные цели и шаги `agent-verify` выполняются.
-- [ ] 3.5 Закрыть остаток сверки, найденный при выполнении 3.3.
+- [x] 3.5 Закрыть остаток сверки, найденный при выполнении 3.3.
   - Перенести обобщённую Python-проверку документации из проектного `scripts/python/agent_docs.py` без проектных проверок; сейчас Python-версия `check-agent-docs` в шаблоне не ловит `missing required markdown link`, поэтому оставлен shell-вариант.
   - Обновить или удалить smoke, построенные на профиле `schemaVersion` 2 и target-matrix: `runtime-ibcmd-doctor-contract.sh`, `runtime-ibcmd-capability-contract.sh`, `manage-cfe-contract.sh`, `configure-cfe-runtime-flags-contract.sh`, `runtime-load-diff-src*`, `runtime-load-task-src*`, `runtime-profile-legacy-rejection`.
   - Убрать устаревшие `--target` и `capabilities.bdd.command` из навыка `1c-run-bdd`.
   - Проверка: перечисленные smoke проходят или удалены вместе с записями манифеста; `check-agent-docs` на Python падает при отсутствующей обязательной ссылке.
+- [ ] 3.6 Перевести оставшиеся контуры на профиль v3 и вернуть проверки, отключённые при задаче 3.5.
+  - Перевести `scripts/lib/runtime-profile.sh` (тёплый BDD-контур `run-bdd-warm-service.sh`, `run-bdd-warm-run.sh`) на `schemaVersion` 3, чтобы он работал с тем же `env/local.json`, что остальные команды; перевести фикстуру `vanessa-bdd-warm-service-contract.sh` на v3.
+  - Перевести `tests/smoke/load-cfe-contract.sh` на профиль v3.
+  - Решить, входят ли в контракт `load-diff-src`/`load-task-src` сообщение о пустой выборке в stderr и `summary.json` при ошибке профиля или аргументов (shell-версия их писала, Python-runtime — нет); при положительном решении вернуть поведение в runtime и проверки в smoke.
+  - Вернуть `validate_runtime_support_matrix` в проверку документации, когда matrix созданного проекта на Linux и Windows строится одним кодом (см. 7.1); выровнять пересоздание matrix и quickstart при `template-update` на Windows с Linux (сейчас Windows пересоздаёт project-owned файлы при каждом обновлении).
+  - Проверка: перечисленные smoke проходят на профиле v3; `check-agent-docs` созданного проекта проверяет matrix; `template-update` на Windows не меняет заполненные matrix и quickstart.
 
 ## 4. Необязательные модули: механизм
 
@@ -107,8 +113,8 @@
 
 ## 7. Поверхность создаваемого проекта и документация
 
-- [ ] 7.1 Обновить `template-managed-paths.txt`, preserve-контракт, `recommended-skills`, runtime support matrix и generated-project guidance для новых команд и модулей.
-- [ ] 7.2 Построить зеркало `.claude/skills/` командой `make sync-claude-skills` и выполнить `make export-context-write`.
+- [x] 7.1 Обновить `template-managed-paths.txt`, preserve-контракт, `recommended-skills`, runtime support matrix и generated-project guidance для новых команд и модулей.
+- [x] 7.2 Построить зеркало `.claude/skills/` командой `make sync-claude-skills` и выполнить `make export-context-write`.
 
 ## 8. Финальная проверка
 
