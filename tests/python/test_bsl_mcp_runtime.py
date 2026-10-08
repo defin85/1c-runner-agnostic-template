@@ -69,6 +69,35 @@ class BslMcpRuntimeTests(unittest.TestCase):
             self.assertEqual(captured["env"]["BSL_MCP_BROKER"], "1")
             self.assertNotIn("BSL_MCP_BROKER_REGISTRY", captured["env"])
 
+    def test_launcher_loads_shared_embedding_profile(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            source = root / "src" / "cf"
+            source.mkdir(parents=True)
+            (source / "Configuration.xml").write_text("", encoding="utf-8")
+            registry = root / "connections.json"
+            registry.write_text('{"connections": {}}', encoding="utf-8")
+            profile = root / "embedding.env"
+            profile.write_text("EMBEDDING_URL=http://127.0.0.1:9000\nEMBEDDING_MODEL=test-model\nEMBEDDING_DIM=42\n", encoding="utf-8")
+            captured: dict[str, object] = {}
+
+            def fake_run(command: list[str], **kwargs: object) -> ProcessResult:
+                captured.update(env=kwargs["env"])
+                return ProcessResult(command, 0, "", "")
+
+            with (
+                patch("scripts.python.bsl_mcp_runtime.project_root", return_value=root),
+                patch("scripts.python.bsl_mcp_runtime.resolve_analyzer_executable", return_value="bsl-analyzer-app"),
+                patch("scripts.python.bsl_mcp_runtime.embedding_is_ready", return_value=False),
+                patch("scripts.python.bsl_mcp_runtime.run_process", side_effect=fake_run),
+                patch.dict(os.environ, {"BSL_ONEC_CONNECTIONS_FILE": str(registry), "BSL_ANALYZER_EMBEDDING_ENV": str(profile)}, clear=True),
+            ):
+                self.assertEqual(run_bsl_analyzer_mcp([]), 0)
+
+            self.assertEqual(captured["env"]["EMBEDDING_URL"], "http://127.0.0.1:9000")
+            self.assertEqual(captured["env"]["EMBEDDING_MODEL"], "test-model")
+            self.assertEqual(captured["env"]["EMBEDDING_DIM"], "42")
+
     def test_windows_rejects_auto_update_launcher_as_broker_parent(self) -> None:
         with (
             patch("scripts.python.bsl_mcp_runtime.WINDOWS", True),

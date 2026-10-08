@@ -86,6 +86,8 @@ def run_bsl_analyzer_mcp(argv: list[str]) -> int:
     if argv:
         raise CommandError("bsl-analyzer-mcp does not accept positional arguments")
     root = project_root()
+    embedding_profile = Path(os.environ.get("BSL_ANALYZER_EMBEDDING_ENV", Path.home() / ".config" / "bsl-analyzer" / "embedding.env"))
+    load_dotenv(embedding_profile)
     load_dotenv(root / ".env")
     registry_path = Path(os.environ.get("BSL_ONEC_CONNECTIONS_FILE", root / "env" / ".local" / "bsl-onec-connections.json"))
     if not registry_path.is_file():
@@ -101,7 +103,7 @@ def run_bsl_analyzer_mcp(argv: list[str]) -> int:
         "BSL_MCP_BROKER": os.environ.get("BSL_MCP_BROKER", "1"),
         "BSL_MCP_IDLE_TTL_SECS": os.environ.get("BSL_MCP_IDLE_TTL_SECS", "1800"),
     }
-    if embedding_is_ready():
+    if os.environ.get("EMBEDDING_URL") or embedding_is_ready():
         child_env.update({"EMBEDDING_URL": os.environ.get("EMBEDDING_URL", "http://127.0.0.1:8000"), "EMBEDDING_MODEL": os.environ.get("EMBEDDING_MODEL", "BAAI/bge-m3"), "EMBEDDING_DIM": os.environ.get("EMBEDDING_DIM", "1024"), "EMBEDDING_BATCH_SIZE": os.environ.get("EMBEDDING_BATCH_SIZE", "32")})
     try:
         return run_process([executable, "mcp", "serve", "--profile", "workspace", "--source-dir", str(source_dir)], cwd=root, env=child_env, capture_output=False).returncode
