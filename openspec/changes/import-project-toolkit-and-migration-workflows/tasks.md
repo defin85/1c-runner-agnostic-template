@@ -39,9 +39,12 @@
 ## 3. Качество репозитория
 
 - [ ] 3.1 Добавить в `check-skill-bindings` проверку существования путей из `SKILL.md` с учётом необязательных модулей; добавить `tests/smoke/skill-bindings-paths.sh`.
-- [ ] 3.2 Добавить basedpyright gate.
-  - Состав: `pyrightconfig.json`, `basedpyright-baseline.json`, `basedpyright-baseline-count.json`, `scripts/python/type_checking.py`, `scripts/qa/type-check.sh|.ps1`, `scripts/qa/type-check-update-baseline.sh|.ps1`, `tests/smoke/python-type-checking-contract.sh`.
-  - Создать в шаблоне `pyproject.toml` и `uv.lock` (их нет) с dev-зависимостью basedpyright, сделать `requirements-dev.txt` производным export. Baseline построить по коду шаблона, а не скопировать из проекта.
+- [ ] 3.2 Добавить проверку Python-кода ruff и basedpyright (Р9, Р10).
+  - ruff: `ruff.toml` (правила `E4,E7,E9,F,B,I,UP`, `py312`, 120, `per-file-target-version = "py37"` для серверных обёрток площадки), цель `make verify-python-lint` / `./make.ps1 verify-python-lint` с `ruff check` и `ruff format --check`; исправить замечания шаблона, каждый `noqa` с причиной.
+  - basedpyright: `pyrightconfig.json` в режиме `standard`, `scripts/python/type_checking.py`, `scripts/qa/type-check.sh|.ps1`, цель `make verify-types`; baseline не поставлять, при наличии baseline-файла проверка падает; исправить ошибки шаблона кодом.
+  - Обе цели включить в `make agent-verify`; добавить `tests/smoke/python-type-checking-contract.sh`.
+  - Создать в шаблоне `pyproject.toml` и `uv.lock` (их нет) с dev-зависимостями ruff и basedpyright, сделать `requirements-dev.txt` производным export.
+  - Проверка: `ruff check`, `ruff format --check` и `basedpyright` без ошибок; после `ruff check --fix` unit-тесты проходят и diff пуст; добавленная в фикстуру ошибка типа даёт ненулевой код с файлом и строкой.
 - [ ] 3.3 Перенести общие правки template-managed сценариев по решениям `inventory.md`.
   - Для `runtime.py` — сопоставить с модулями `runtime_*`.
   - Проверка: существующие smoke runtime-контура и `copier-update-ready.sh` проходят.

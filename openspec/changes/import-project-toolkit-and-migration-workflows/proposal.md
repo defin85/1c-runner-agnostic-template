@@ -41,9 +41,11 @@
   - навыки `1c-rac-operations`, `1c-linux-crash-diagnostics`, `legacy-customization-port` в обезличенном виде.
 - Вывести из импортированного пакета `cc-1c-skills` навыки `meta-info`, `meta-compile`, `meta-edit`, `meta-remove`, `meta-validate`, `form-info`, `form-add`, `form-compile`, `form-edit`, `form-remove`, `form-validate`, `cfe-borrow`. Их заменяет CLI `metadata`, `sync-imported-skills` их пропускает (решение Р6). Навык `form-patterns` остаётся.
 - Добавить в `qa.py` / `check-skill-bindings` проверку того, что пути репозитория, упомянутые в `SKILL.md`, существуют.
-- Добавить gate статической типизации Python (basedpyright):
-  - `pyrightconfig.json`, `basedpyright-baseline.json`, `basedpyright-baseline-count.json`, `scripts/python/type_checking.py`, `scripts/qa/type-check.sh|.ps1`, `scripts/qa/type-check-update-baseline.sh|.ps1` и smoke-контракт. Проект уже добавил эти пути в свой `template-managed-paths.txt`, в шаблоне их нет;
-  - в шаблоне нет `pyproject.toml` и `uv.lock`: их нужно создать с dev-зависимостью basedpyright;
+- Добавить проверку Python-кода (решения Р9, Р10):
+  - линтер и форматирование ruff: `ruff.toml` с правилами `E4,E7,E9,F,B,I,UP`, `py312`, длина строки 120, `py37` для серверных обёрток площадки; каждый `noqa` с причиной; `ruff check --fix` не меняет поведение;
+  - типизация basedpyright в режиме `standard` без baseline: `pyrightconfig.json`, `scripts/python/type_checking.py`, `scripts/qa/type-check.sh|.ps1` и smoke-контракт. Baseline-файлы и `type-check-update-baseline.*` проекта не переносятся, ошибки шаблона исправляются кодом;
+  - цели `make verify-python-lint` и `make verify-types` (и `./make.ps1`), обе входят в `make agent-verify`;
+  - в шаблоне нет `pyproject.toml` и `uv.lock`: их нужно создать с dev-зависимостями ruff и basedpyright;
   - `requirements-dev.txt` поставлять как производный export из `uv.lock`.
 - Перенести проверенные правки проекта в template-managed сценарии, после ревью каждого файла и без проектных имён:
   - `check-agent-docs.sh`, `qa.py`, `export-context.sh`;
@@ -142,7 +144,7 @@
   - необязательные модули появляются только после явной инициализации;
   - project-owned профили, сценарии и доказательства не перезаписываются.
 - Проект `tn-bp30-sdd`: после релиза шаблона выполнить `template-update`, сверить потерю локальных правок и перенести площадочные и КД-материалы в материализованные модули. Это делается отдельным change в проекте.
-- Новые зависимости базового набора: dev-зависимость basedpyright в новых `pyproject.toml`/`uv.lock`. Модуль КД 2.01 требует `pg_dump`/`pg_restore`/`psql`, как существующий PostgreSQL golden-контур. Компилятор КД работает на стандартной библиотеке Python.
+- Новые зависимости базового набора: dev-зависимости ruff и basedpyright в новых `pyproject.toml`/`uv.lock`. Модуль КД 2.01 требует `pg_dump`/`pg_restore`/`psql`, как существующий PostgreSQL golden-контур. Компилятор КД работает на стандартной библиотеке Python.
 - Smoke-проверки:
   - `tests/smoke/observation-contract.sh`;
   - `tests/smoke/check-bsl-routing.sh`;
@@ -156,7 +158,7 @@
 
 ## Принятые решения
 
-Пользователь 2026-09-27 согласился с рекомендациями по пунктам 1–4, 2026-10-08 — по пунктам 5–8. Подробности и последствия — в `design.md`, раздел «Принятые решения».
+Пользователь 2026-09-27 согласился с рекомендациями по пунктам 1–4, 2026-10-08 — по пунктам 5–10. Подробности и последствия — в `design.md`, раздел «Принятые решения».
 
 1. Необязательные модули включаются командой `make optional-module-init MODULE=<имя>`, а не вопросом Copier.
 2. Обёртка восстановления доступа через `v8users` поставляется отдельной опцией модуля площадки с предупреждением и обязательной резервной копией.
@@ -166,3 +168,5 @@
 6. Импортированные `meta-*`, `form-*` (кроме `form-patterns`) и `cfe-borrow` выводятся из шаблона в пользу CLI `metadata`.
 7. Остановка при неизменном прогрессе — новое поведение общего адаптера; порог задаёт обёртка, по умолчанию остановка выключена.
 8. В базовый набор входят `1c-run-client` и Windows-наблюдение `observe-command`; PiP Child session не входит.
+9. Python-код проверяет ruff (`check` и `format`) с настройками из `ruff.toml`.
+10. basedpyright работает в режиме `standard` без baseline.

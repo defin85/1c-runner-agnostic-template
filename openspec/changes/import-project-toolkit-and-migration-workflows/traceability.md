@@ -101,7 +101,10 @@
 
 ## template-ci-contours
 
-- Статическая типизация Python проверяется по baseline
+- Python-код проходит линтер и форматирование ruff
+  - Code: `ruff.toml`, `make verify-python-lint`
+  - Tests: `make agent-verify`
+- Статическая типизация Python проверяется без baseline
   - Code: `scripts/qa/type-check.sh|.ps1`, `pyrightconfig.json`, `pyproject.toml`, `uv.lock`, `requirements-dev.txt`
   - Tests: `tests/smoke/python-type-checking-contract.sh`
 - Новые инструменты покрыты smoke-проверками без 1С
