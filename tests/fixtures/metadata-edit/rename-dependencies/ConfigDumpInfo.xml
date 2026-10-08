@@ -1,0 +1,11 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<ConfigDumpInfo xmlns="http://v8.1c.ru/8.3/xcf/dumpinfo" xmlns:xen="http://v8.1c.ru/8.3/xcf/enums" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" format="Hierarchical" version="2.20">
+	<ConfigVersions>
+		<Metadata name="Catalog.БанковскиеСчета" id="0ac39cee-6a19-4aa6-bc59-6cca749cdfab" configVersion="0ee9b8d8c6b04864485ff33f733550a756260cd0"/>
+		<Metadata name="Catalog.Валюты" id="5b2653bc-1f2c-47f0-a682-6b3e90e88583" configVersion="0d184a5a3f938523e4961cacc49a805bee6faef8"/>
+		<Metadata name="Catalog.ВидыНалоговИПлатежейВБюджет" id="90cc6e06-776a-414f-bb99-910e0833ab69" configVersion="0ff653e987a4c0d3e2528b91d34127cc7d021c4f"/>
+		<Metadata name="Catalog.ДоговорыКонтрагентов" id="9eadc00a-f138-4367-9a7f-94fad84793ac" configVersion="97932d593e8f3b57d4e83b51e9f8f0dc756fb06e"/>
+		<Metadata name="Catalog.ДоговорыКонтрагентов.Form.ФормаЭлемента" id="85ca078c-506c-4c4e-a732-516ee71b79d5" configVersion="417eba849a73d5f9f132db909ab4bf39fa470379"/>
+		<Metadata name="Catalog.ДоговорыКонтрагентов.Form.ФормаЭлемента.Form" id="85ca078c-506c-4c4e-a732-516ee71b79d5.0" configVersion="c5fa95c30cef4c083909b9159b1386befdfd1693"/>
+	</ConfigVersions>
+</ConfigDumpInfo>

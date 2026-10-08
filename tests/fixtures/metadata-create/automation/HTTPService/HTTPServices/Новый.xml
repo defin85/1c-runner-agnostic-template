@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<MetaDataObject xmlns="http://v8.1c.ru/8.3/MDClasses" xmlns:app="http://v8.1c.ru/8.2/managed-application/core" xmlns:cfg="http://v8.1c.ru/8.1/data/enterprise/current-config" xmlns:cmi="http://v8.1c.ru/8.2/managed-application/cmi" xmlns:ent="http://v8.1c.ru/8.1/data/enterprise" xmlns:lf="http://v8.1c.ru/8.2/managed-application/logform" xmlns:style="http://v8.1c.ru/8.1/data/ui/style" xmlns:sys="http://v8.1c.ru/8.1/data/ui/fonts/system" xmlns:v8="http://v8.1c.ru/8.1/data/core" xmlns:v8ui="http://v8.1c.ru/8.1/data/ui" xmlns:web="http://v8.1c.ru/8.1/data/ui/colors/web" xmlns:win="http://v8.1c.ru/8.1/data/ui/colors/windows" xmlns:xen="http://v8.1c.ru/8.3/xcf/enums" xmlns:xpr="http://v8.1c.ru/8.3/xcf/predef" xmlns:xr="http://v8.1c.ru/8.3/xcf/readable" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="2.17">
+	<HTTPService uuid="ff68462f-1770-4ec1-8c93-8490c632d7a2">
+		<Properties>
+			<Name>Новый</Name>
+			<Synonym>
+				<v8:item>
+					<v8:lang>ru</v8:lang>
+					<v8:content>Новый</v8:content>
+				</v8:item>
+			</Synonym>
+			<Comment/>
+			<RootURL>api</RootURL>
+			<ReuseSessions>AutoUse</ReuseSessions>
+			<SessionMaxAge>60</SessionMaxAge>
+		</Properties>
+		<ChildObjects>
+			<URLTemplate uuid="f43a55a9-6d83-423c-a141-1393d998cbbb">
+				<Properties>
+					<Name>Health</Name>
+					<Synonym>
+						<v8:item>
+							<v8:lang>ru</v8:lang>
+							<v8:content>Health</v8:content>
+						</v8:item>
+					</Synonym>
+					<Template>/health</Template>
+				</Properties>
+				<ChildObjects/>
+			</URLTemplate>
+			<URLTemplate uuid="49fb6e9d-571a-4cc9-8825-2451cb5dc20e">
+				<Properties>
+					<Name>Users</Name>
+					<Synonym>
+						<v8:item>
+							<v8:lang>ru</v8:lang>
+							<v8:content>Users</v8:content>
+						</v8:item>
+					</Synonym>
+					<Template>/users/{id}</Template>
+				</Properties>
+				<ChildObjects>
+					<Method uuid="565bcfca-6ab3-43fd-95b9-5c08de214605">
+						<Properties>
+							<Name>Read</Name>
+							<Synonym>
+								<v8:item>
+									<v8:lang>ru</v8:lang>
+									<v8:content>Read</v8:content>
+								</v8:item>
+							</Synonym>
+							<HTTPMethod>GET</HTTPMethod>
+							<Handler>UsersRead</Handler>
+						</Properties>
+					</Method>
+					<Method uuid="e0c486b5-2763-422a-bc07-f37a996e54fa">
+						<Properties>
+							<Name>Write</Name>
+							<Synonym>
+								<v8:item>
+									<v8:lang>ru</v8:lang>
+									<v8:content>Write</v8:content>
+								</v8:item>
+							</Synonym>
+							<HTTPMethod>POST</HTTPMethod>
+							<Handler>UsersWrite</Handler>
+						</Properties>
+					</Method>
+				</ChildObjects>
+			</URLTemplate>
+		</ChildObjects>
+	</HTTPService>
+</MetaDataObject>

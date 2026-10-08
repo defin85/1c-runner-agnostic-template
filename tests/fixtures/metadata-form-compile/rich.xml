@@ -1,0 +1,277 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<Form xmlns="http://v8.1c.ru/8.3/xcf/logform" xmlns:app="http://v8.1c.ru/8.2/managed-application/core" xmlns:cfg="http://v8.1c.ru/8.1/data/enterprise/current-config" xmlns:dcscor="http://v8.1c.ru/8.1/data-composition-system/core" xmlns:dcssch="http://v8.1c.ru/8.1/data-composition-system/schema" xmlns:dcsset="http://v8.1c.ru/8.1/data-composition-system/settings" xmlns:ent="http://v8.1c.ru/8.1/data/enterprise" xmlns:lf="http://v8.1c.ru/8.2/managed-application/logform" xmlns:style="http://v8.1c.ru/8.1/data/ui/style" xmlns:sys="http://v8.1c.ru/8.1/data/ui/fonts/system" xmlns:v8="http://v8.1c.ru/8.1/data/core" xmlns:v8ui="http://v8.1c.ru/8.1/data/ui" xmlns:web="http://v8.1c.ru/8.1/data/ui/colors/web" xmlns:win="http://v8.1c.ru/8.1/data/ui/colors/windows" xmlns:xr="http://v8.1c.ru/8.3/xcf/readable" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="2.17">
+	<Title>
+		<v8:item>
+			<v8:lang>ru</v8:lang>
+			<v8:content>Проверка &amp; перенос</v8:content>
+		</v8:item>
+	</Title>
+	<Width>100</Width>
+	<AutoTitle>false</AutoTitle>
+	<CommandSet>
+		<ExcludedCommand>Form.StandardCommand.Close</ExcludedCommand>
+	</CommandSet>
+	<AutoCommandBar name="ФормаКоманднаяПанель" id="-1">
+		<HorizontalAlign>Right</HorizontalAlign>
+		<Autofill>false</Autofill>
+	</AutoCommandBar>
+	<Events>
+		<Event name="OnOpen">ПриОткрытии</Event>
+	</Events>
+	<ChildItems>
+		<UsualGroup name="Группа" id="1">
+			<Group>Horizontal</Group>
+			<ShowTitle>false</ShowTitle>
+			<ExtendedTooltip name="ГруппаРасширеннаяПодсказка" id="2"/>
+			<ChildItems>
+				<InputField name="Поле" id="3">
+					<DataPath>Текст</DataPath>
+					<Title>
+						<v8:item>
+							<v8:lang>ru</v8:lang>
+							<v8:content>Текст</v8:content>
+						</v8:item>
+					</Title>
+					<ChoiceList>
+						<xr:Item>
+							<xr:Presentation/>
+							<xr:CheckState>0</xr:CheckState>
+							<xr:Value xsi:type="FormChoiceListDesTimeValue">
+								<Presentation>
+									<v8:item>
+										<v8:lang>ru</v8:lang>
+										<v8:content>Один</v8:content>
+									</v8:item>
+								</Presentation>
+								<Value xsi:type="xs:string">1</Value>
+							</xr:Value>
+						</xr:Item>
+					</ChoiceList>
+					<ContextMenu name="ПолеКонтекстноеМеню" id="4"/>
+					<ExtendedTooltip name="ПолеРасширеннаяПодсказка" id="5"/>
+					<Events>
+						<Event name="OnChange">Изменить</Event>
+					</Events>
+				</InputField>
+				<CheckBoxField name="Флаг" id="6">
+					<DataPath>Флаг</DataPath>
+					<ContextMenu name="ФлагКонтекстноеМеню" id="7"/>
+					<ExtendedTooltip name="ФлагРасширеннаяПодсказка" id="8"/>
+				</CheckBoxField>
+				<RadioButtonField name="Режим" id="9">
+					<DataPath>Режим</DataPath>
+					<RadioButtonType>Auto</RadioButtonType>
+					<ChoiceList>
+						<xr:Item>
+							<xr:Presentation/>
+							<xr:CheckState>0</xr:CheckState>
+							<xr:Value xsi:type="FormChoiceListDesTimeValue">
+								<Presentation>
+									<v8:item>
+										<v8:lang>ru</v8:lang>
+										<v8:content>Да</v8:content>
+									</v8:item>
+								</Presentation>
+								<Value xsi:type="xs:boolean">true</Value>
+							</xr:Value>
+						</xr:Item>
+					</ChoiceList>
+					<ContextMenu name="РежимКонтекстноеМеню" id="10"/>
+					<ExtendedTooltip name="РежимРасширеннаяПодсказка" id="11"/>
+				</RadioButtonField>
+				<ProgressBarField name="Ход" id="12">
+					<DataPath>Ход</DataPath>
+					<ContextMenu name="ХодКонтекстноеМеню" id="13"/>
+					<ExtendedTooltip name="ХодРасширеннаяПодсказка" id="14"/>
+				</ProgressBarField>
+				<LabelDecoration name="Надпись" id="15">
+					<Title formatted="false">
+						<v8:item>
+							<v8:lang>ru</v8:lang>
+							<v8:content>A &lt; B</v8:content>
+						</v8:item>
+					</Title>
+					<ContextMenu name="НадписьКонтекстноеМеню" id="16"/>
+					<ExtendedTooltip name="НадписьРасширеннаяПодсказка" id="17"/>
+				</LabelDecoration>
+				<LabelField name="Представление" id="18">
+					<DataPath>Текст</DataPath>
+					<ContextMenu name="ПредставлениеКонтекстноеМеню" id="19"/>
+					<ExtendedTooltip name="ПредставлениеРасширеннаяПодсказка" id="20"/>
+				</LabelField>
+				<SpreadSheetDocumentField name="Документ" id="21">
+					<DataPath>Документ</DataPath>
+					<TitleLocation>None</TitleLocation>
+					<ContextMenu name="ДокументКонтекстноеМеню" id="22"/>
+					<ExtendedTooltip name="ДокументРасширеннаяПодсказка" id="23"/>
+				</SpreadSheetDocumentField>
+			</ChildItems>
+		</UsualGroup>
+		<Pages name="Страницы" id="24">
+			<ExtendedTooltip name="СтраницыРасширеннаяПодсказка" id="25"/>
+			<ChildItems>
+				<Page name="Страница" id="26">
+					<Title>
+						<v8:item>
+							<v8:lang>ru</v8:lang>
+							<v8:content>Первая</v8:content>
+						</v8:item>
+					</Title>
+					<ExtendedTooltip name="СтраницаРасширеннаяПодсказка" id="27"/>
+					<ChildItems>
+						<Table name="Таблица" id="28">
+							<DataPath>Строки</DataPath>
+							<ContextMenu name="ТаблицаКонтекстноеМеню" id="29"/>
+							<AutoCommandBar name="ТаблицаКоманднаяПанель" id="30">
+								<ChildItems>
+									<Button name="ВыполнитьВТаблице" id="31">
+										<CommandName>Form.Command.Выполнить</CommandName>
+										<ExtendedTooltip name="ВыполнитьВТаблицеРасширеннаяПодсказка" id="32"/>
+									</Button>
+								</ChildItems>
+							</AutoCommandBar>
+							<ExtendedTooltip name="ТаблицаРасширеннаяПодсказка" id="33"/>
+							<SearchStringAddition name="ТаблицаСтрокаПоиска" id="34"/>
+							<ViewStatusAddition name="ТаблицаСостояниеПросмотра" id="35"/>
+							<SearchControlAddition name="ТаблицаУправлениеПоиском" id="36"/>
+							<ChildItems>
+								<InputField name="Колонка" id="37">
+									<DataPath>Строки.Текст</DataPath>
+									<ContextMenu name="КолонкаКонтекстноеМеню" id="38"/>
+									<ExtendedTooltip name="КолонкаРасширеннаяПодсказка" id="39"/>
+								</InputField>
+							</ChildItems>
+						</Table>
+					</ChildItems>
+				</Page>
+			</ChildItems>
+		</Pages>
+		<CommandBar name="Панель" id="40">
+			<ExtendedTooltip name="ПанельРасширеннаяПодсказка" id="41"/>
+			<ChildItems>
+				<Popup name="Меню" id="42">
+					<Title>
+						<v8:item>
+							<v8:lang>ru</v8:lang>
+							<v8:content>Действия</v8:content>
+						</v8:item>
+					</Title>
+					<ExtendedTooltip name="МенюРасширеннаяПодсказка" id="43"/>
+					<ChildItems>
+						<Button name="Выполнить" id="44">
+							<CommandName>Form.Command.Выполнить</CommandName>
+							<DefaultButton>true</DefaultButton>
+							<ExtendedTooltip name="ВыполнитьРасширеннаяПодсказка" id="45"/>
+						</Button>
+					</ChildItems>
+				</Popup>
+			</ChildItems>
+		</CommandBar>
+		<PictureDecoration name="Картинка" id="46">
+			<Picture>
+				<xr:Ref>StdPicture.SaveFile</xr:Ref>
+				<xr:LoadTransparent>true</xr:LoadTransparent>
+			</Picture>
+			<ContextMenu name="КартинкаКонтекстноеМеню" id="47"/>
+			<ExtendedTooltip name="КартинкаРасширеннаяПодсказка" id="48"/>
+		</PictureDecoration>
+		<PictureField name="ПолеКартинки" id="49">
+			<DataPath>Картинка</DataPath>
+			<ContextMenu name="ПолеКартинкиКонтекстноеМеню" id="50"/>
+			<ExtendedTooltip name="ПолеКартинкиРасширеннаяПодсказка" id="51"/>
+		</PictureField>
+		<CalendarField name="Календарь" id="52">
+			<DataPath>Дата</DataPath>
+			<ContextMenu name="КалендарьКонтекстноеМеню" id="53"/>
+			<ExtendedTooltip name="КалендарьРасширеннаяПодсказка" id="54"/>
+		</CalendarField>
+	</ChildItems>
+	<Attributes>
+		<Attribute name="Текст" id="55">
+			<Type>
+				<v8:Type>xs:string</v8:Type>
+				<v8:StringQualifiers>
+					<v8:Length>40</v8:Length>
+					<v8:AllowedLength>Variable</v8:AllowedLength>
+				</v8:StringQualifiers>
+			</Type>
+		</Attribute>
+		<Attribute name="Флаг" id="56">
+			<Type>
+				<v8:Type>xs:boolean</v8:Type>
+			</Type>
+		</Attribute>
+		<Attribute name="Режим" id="57">
+			<Type>
+				<v8:Type>xs:boolean</v8:Type>
+			</Type>
+		</Attribute>
+		<Attribute name="Ход" id="58">
+			<Type>
+				<v8:Type>xs:decimal</v8:Type>
+				<v8:NumberQualifiers>
+					<v8:Digits>10</v8:Digits>
+					<v8:FractionDigits>0</v8:FractionDigits>
+					<v8:AllowedSign>Any</v8:AllowedSign>
+				</v8:NumberQualifiers>
+			</Type>
+		</Attribute>
+		<Attribute name="Документ" id="59">
+			<Type>
+				<v8:Type xmlns:mxl="http://v8.1c.ru/8.2/data/spreadsheet">mxl:SpreadsheetDocument</v8:Type>
+			</Type>
+		</Attribute>
+		<Attribute name="Картинка" id="60">
+			<Type>
+				<v8:Type>v8ui:Picture</v8:Type>
+			</Type>
+		</Attribute>
+		<Attribute name="Дата" id="61">
+			<Type>
+				<v8:Type>xs:dateTime</v8:Type>
+				<v8:DateQualifiers>
+					<v8:DateFractions>Date</v8:DateFractions>
+				</v8:DateQualifiers>
+			</Type>
+		</Attribute>
+		<Attribute name="Строки" id="62">
+			<Type>
+				<v8:Type>v8:ValueTable</v8:Type>
+			</Type>
+			<Columns>
+				<Column name="Текст" id="63">
+					<Type>
+						<v8:Type>xs:string</v8:Type>
+						<v8:StringQualifiers>
+							<v8:Length>40</v8:Length>
+							<v8:AllowedLength>Variable</v8:AllowedLength>
+						</v8:StringQualifiers>
+					</Type>
+				</Column>
+			</Columns>
+		</Attribute>
+	</Attributes>
+	<Parameters>
+		<Parameter name="Ключ">
+			<Type>
+				<v8:Type>xs:string</v8:Type>
+				<v8:StringQualifiers>
+					<v8:Length>40</v8:Length>
+					<v8:AllowedLength>Variable</v8:AllowedLength>
+				</v8:StringQualifiers>
+			</Type>
+			<KeyParameter>true</KeyParameter>
+		</Parameter>
+	</Parameters>
+	<Commands>
+		<Command name="Выполнить" id="64">
+			<Title>
+				<v8:item>
+					<v8:lang>ru</v8:lang>
+					<v8:content>Выполнить</v8:content>
+				</v8:item>
+			</Title>
+			<Action>ВыполнитьКоманду</Action>
+		</Command>
+	</Commands>
+</Form>

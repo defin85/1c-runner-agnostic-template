@@ -1,0 +1,4 @@
+interface:
+  display_name: "Подготовка внешнего артефакта"
+  short_description: "Подготовить EPF или ERF к адаптации BSL"
+  default_prompt: "Используй $prepare-external-artifact, чтобы подготовить EPF или ERF к адаптации BSL."

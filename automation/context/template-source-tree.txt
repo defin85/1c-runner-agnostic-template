@@ -10,8 +10,10 @@
 ./.agents/skills/1c-load-diff-src
 ./.agents/skills/1c-load-src
 ./.agents/skills/1c-load-task-src
+./.agents/skills/1c-observe-run
 ./.agents/skills/1c-publish-http
 ./.agents/skills/1c-run-bdd
+./.agents/skills/1c-run-client
 ./.agents/skills/1c-run-smoke
 ./.agents/skills/1c-update-db
 ./.agents/skills/cf-edit
@@ -20,6 +22,7 @@
 ./.agents/skills/cf-validate
 ./.agents/skills/cfe-borrow
 ./.agents/skills/cfe-diff
+./.agents/skills/cfe-form-workflow
 ./.agents/skills/cfe-init
 ./.agents/skills/cfe-patch-method
 ./.agents/skills/cfe-validate
@@ -59,10 +62,14 @@
 ./.agents/skills/meta-info
 ./.agents/skills/meta-remove
 ./.agents/skills/meta-validate
+./.agents/skills/metadata-cli-development
+./.agents/skills/metadata-use
 ./.agents/skills/mxl-compile
 ./.agents/skills/mxl-decompile
 ./.agents/skills/mxl-info
 ./.agents/skills/mxl-validate
+./.agents/skills/ordinary-form-workflow
+./.agents/skills/prepare-external-artifact
 ./.agents/skills/repo-agent-verify
 ./.agents/skills/role-compile
 ./.agents/skills/role-info
@@ -77,6 +84,7 @@
 ./.agents/skills/subsystem-validate
 ./.agents/skills/template-add
 ./.agents/skills/template-remove
+./.agents/skills/v8unpack
 ./.agents/skills/web-info
 ./.agents/skills/web-publish
 ./.agents/skills/web-stop
@@ -93,8 +101,10 @@
 ./.claude/skills/1c-load-diff-src
 ./.claude/skills/1c-load-src
 ./.claude/skills/1c-load-task-src
+./.claude/skills/1c-observe-run
 ./.claude/skills/1c-publish-http
 ./.claude/skills/1c-run-bdd
+./.claude/skills/1c-run-client
 ./.claude/skills/1c-run-smoke
 ./.claude/skills/1c-update-db
 ./.claude/skills/cf-edit
@@ -103,6 +113,7 @@
 ./.claude/skills/cf-validate
 ./.claude/skills/cfe-borrow
 ./.claude/skills/cfe-diff
+./.claude/skills/cfe-form-workflow
 ./.claude/skills/cfe-init
 ./.claude/skills/cfe-patch-method
 ./.claude/skills/cfe-validate
@@ -142,6 +153,8 @@
 ./.claude/skills/meta-info
 ./.claude/skills/meta-remove
 ./.claude/skills/meta-validate
+./.claude/skills/metadata-cli-development
+./.claude/skills/metadata-use
 ./.claude/skills/mxl-compile
 ./.claude/skills/mxl-decompile
 ./.claude/skills/mxl-info
@@ -154,6 +167,8 @@
 ./.claude/skills/openspec-new-change
 ./.claude/skills/openspec-sync-specs
 ./.claude/skills/openspec-verify-change
+./.claude/skills/ordinary-form-workflow
+./.claude/skills/prepare-external-artifact
 ./.claude/skills/repo-agent-verify
 ./.claude/skills/role-compile
 ./.claude/skills/role-info
@@ -168,6 +183,7 @@
 ./.claude/skills/subsystem-validate
 ./.claude/skills/template-add
 ./.claude/skills/template-remove
+./.claude/skills/v8unpack
 ./.claude/skills/web-info
 ./.claude/skills/web-publish
 ./.claude/skills/web-stop
@@ -253,6 +269,14 @@
 ./src/erf
 ./tests
 ./tests/fixtures
+./tests/fixtures/managed-form-cli
+./tests/fixtures/metadata-create
+./tests/fixtures/metadata-edit
+./tests/fixtures/metadata-form-compile
+./tests/fixtures/metadata-info
+./tests/fixtures/metadata-template
+./tests/fixtures/metadata-validate
+./tests/fixtures/ordinary-form-conversion
 ./tests/golden
 ./tests/python
 ./tests/shell-fixtures

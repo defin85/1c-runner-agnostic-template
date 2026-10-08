@@ -1,0 +1,3 @@
+interface:
+  display_name: "Полный цикл обычных форм"
+  short_description: "Доработка Form.bin и сборка EPF/ERF через Designer"

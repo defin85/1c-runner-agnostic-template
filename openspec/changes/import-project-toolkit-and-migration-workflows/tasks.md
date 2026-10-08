@@ -14,23 +14,27 @@
 
 ## 1. Наблюдение длительных операций
 
-- [ ] 1.1 Перенести общий адаптер наблюдения и навык `1c-observe-run`: `observation.jsonl` schema v1, `progress.txt`, terminal-секция `summary.json`.
+- [x] 1.1 Перенести общий адаптер наблюдения и навык `1c-observe-run`: `observation.jsonl` schema v1, `progress.txt`, terminal-секция `summary.json`.
   - Источник: `run_observed_command` из `scripts/lib/capability.sh` (Linux) и `observe-command` из `scripts/python/runtime.py` (Windows). Windows-часть разместить в отдельном модуле `runtime_*`.
   - Добавить остановку процессной группы при неизменном прогрессе (Р7): порог передаёт обёртка, без порога остановки нет. Логику взять из `stall_timeout` в `kd_cycle_common.run`.
-- [ ] 1.2 Перенести `scripts/diag/technological-log.sh` с operation cursor и восстановлением исходного `logcfg.xml`.
+- [x] 1.2 Перенести `scripts/diag/technological-log.sh` с operation cursor и восстановлением исходного `logcfg.xml`.
 - [ ] 1.3 Подключить адаптер к `direct-platform.sh`, `db-run`, `run-client`, EPF/ERF build/dump и операциям с временными файловыми ИБ на Linux и Windows.
-- [ ] 1.4 Добавить `tests/smoke/observation-contract.sh`.
+  - Сделано: адаптер вызывается в `execute_prepared_capability_command` (`runtime.py`), поэтому наблюдаются все capability-запуски через `direct-platform.sh` и `run-client`.
+  - Осталось подключить: Designer в `cfe_runtime.py` (сейчас `run_logged`); `db-run` и сборку/выгрузку EPF/ERF, которые идут через `imported_skills.py` (вместе с задачей 2.7 и Р11).
+  - Проверка на Windows: код кроссплатформенный, но на Windows не запускался; на Windows `run-client` проверяет владельца клиента только по имени образа.
+- [x] 1.4 Добавить `tests/smoke/observation-contract.sh`.
   - Проверка на фикстурных процессах: ровно один terminal, `failed` при отсутствии результата, остановка при неизменном прогрессе с заданным порогом, отсутствие остановки без порога, восстановление `logcfg.xml` после ошибки.
-- [ ] 1.5 Перенести навык `1c-run-client`, `scripts/platform/run-client.sh|.ps1` и `run_client.py` (Р8); добавить `tests/smoke/run-client-contract.sh`.
+- [x] 1.5 Перенести навык `1c-run-client`, `scripts/platform/run-client.sh|.ps1` и `run_client.py` (Р8); добавить `tests/smoke/run-client-contract.sh`.
   - Проверка на фикстуре: пароль заменён на `***` в выводе и файлах запуска, команды `screenshot|key|click|stop` не действуют на чужой `--run-root`, `--idle-timeout` возвращает 125, запуск наблюдается адаптером.
 
 ## 2. Проверка BSL и инструментарий разработки
 
 - [ ] 2.1 Перенести навык `1c-check-bsl`, `scripts/platform/check-cf-modules.sh`, `resolve-bsl-analyzer-connections.py` и `external_bsl_check.py` с выводом версии платформы и режима совместимости в результат.
 - [ ] 2.2 Добавить `tests/smoke/check-bsl-routing.sh`: выбор модулей, маршрутизация в анализатор или платформу, итог `синтаксис: не проверен` при недоступности, без разбора BSL.
-- [ ] 2.3 Перенести `scripts/python/metadata*.py` с тестами `tests/python/` и навыки `metadata-use`, `metadata-cli-development`.
-- [ ] 2.4 Перенести `ordinary_form_conversion.py`, `v8unpack_container.py`, `v8unpack_erf_form.py`, `cfe_templates.py`, навыки `ordinary-form-workflow`, `prepare-external-artifact`, `cfe-form-workflow`, `v8unpack` и `docs/agent/ordinary-form-conversion-runbook.md`, обезличив примеры.
-- [ ] 2.5 Перенести `v8std.py`, `scripts/tools/v8std-fetch`, `v8std-search` с кешем в `.artifacts/v8std` / `V8STD_CACHE_ROOT`.
+- [x] 2.3 Перенести `scripts/python/metadata*.py` с тестами `tests/python/` и навыки `metadata-use`, `metadata-cli-development`.
+- [x] 2.4 Перенести `ordinary_form_conversion.py`, `v8unpack_container.py`, `v8unpack_erf_form.py`, `cfe_templates.py`, навыки `ordinary-form-workflow`, `prepare-external-artifact`, `cfe-form-workflow`, `v8unpack` и `docs/agent/ordinary-form-conversion-runbook.md`, обезличив примеры.
+  - Ограничение: этапы с 1С (`prepare`, `build`, `build-published`, `live-*`) вызывают `imported-skill epf-dump|epf-build -Profile` и читают `target.id`, которых нет в профиле v3 шаблона. Без 1С работают `analyze`, `convert`, `verify-remediation`. Доделать вместе с задачами 1.3 и 3.3.
+- [x] 2.5 Перенести `v8std.py`, `scripts/tools/v8std-fetch`, `v8std-search` с кешем в `.artifacts/v8std` / `V8STD_CACHE_ROOT`.
 - [ ] 2.6 Перенести `docs/agent/repository-search-runbook.md` (с учётом приоритета проектного поискового регламента в блоке `AGENTS.md` из `origin/main`), `docs/agent/bsl-analyzer-workspace-runbook.md`, навыки `1c-rac-operations`, `1c-linux-crash-diagnostics`, `legacy-customization-port`, удалив проектные имена.
 - [ ] 2.7 Вывести импортированные `meta-*`, `form-*` (кроме `form-patterns`) и `cfe-borrow` (Р6).
   - Перенести `RETIRED_METADATA_SKILLS` в `imported_skills.py` поверх версии из `origin/main`, убрать навыки из `.agents/skills`, зеркала и `template-managed-paths.txt`, добавить запись в release notes.
@@ -48,6 +52,8 @@
   - Обе цели включить в `make agent-verify`; добавить `tests/smoke/python-type-checking-contract.sh`.
   - Создать в шаблоне `pyproject.toml` и `uv.lock` (их нет) с dev-зависимостями ruff и basedpyright, сделать `requirements-dev.txt` производным export.
   - Проверка: `ruff check`, `ruff format --check` и `basedpyright` без ошибок; после `ruff check --fix` unit-тесты проходят и diff пуст; добавленная в фикстуру ошибка типа даёт ненулевой код с файлом и строкой.
+  - Добавить запуск pytest в CI и `agent-verify`: тесты `test_metadata_*.py` написаны для pytest, под `unittest discover` они не выполняются.
+  - Сделать `uv.lock` обязательным входом отпечатка движка в `metadata.py` (сейчас необязателен, потому что uv в шаблоне ещё нет).
 - [ ] 3.3 Перенести общие правки template-managed сценариев по решениям `inventory.md`.
   - Для `runtime.py` — сопоставить с модулями `runtime_*`.
   - Включить возможности по Р12 и импортированные `db-*`/`epf/erf-*` через профиль по Р11 (поведение в `imported_skills.py`, vendor-файлы не править); удалить тесты текста BSL, блок `rlm-tools` и `format-bsl` по Р14; перенести коммит `06b9155` (preserve для `tests/golden/run.sh`).

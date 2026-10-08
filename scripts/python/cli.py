@@ -57,11 +57,27 @@ def main(argv: list[str] | None = None) -> int:
         _print_usage()
         return 0
     command = args.pop(0)
+    if command == "metadata":
+        from .metadata import main as metadata_main
+
+        return metadata_main(args)
     try:
         if command == "publish-http":
             return run_publish_http(args)
         if command == "bsl-analyzer-mcp":
             return run_bsl_analyzer_mcp(args)
+        if command == "observe-command":
+            from .runtime_observation import observe_command_cli
+
+            return observe_command_cli(args)
+        if command == "technological-log":
+            from .runtime_techlog import technological_log_cli
+
+            return technological_log_cli(args)
+        if command == "run-client":
+            from .run_client import run_client
+
+            return run_client(args)
         if command in CAPABILITY_LABELS:
             return run_profile_capability(command, CAPABILITY_LABELS[command], args).exit_code
         if command in CFE_COMMANDS:
@@ -145,6 +161,10 @@ def main(argv: list[str] | None = None) -> int:
             return analyze_bsl()
         if command == "format-bsl":
             return format_bsl()
+        if command == "ordinary-form-conversion":
+            from .ordinary_form_conversion import run_ordinary_form_conversion
+
+            return run_ordinary_form_conversion(args)
         if command == "init-epf-from-template":
             return init_epf_from_template(args)
         if command == "task-trailers-render":

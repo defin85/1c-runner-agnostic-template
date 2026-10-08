@@ -10,36 +10,45 @@ from pathlib import Path
 from typing import Any
 
 from .common import (
-    CommandError,
     WINDOWS,
-    canonical_path,
-    command_display,
+    CommandError,
     die,
     ensure_dir,
     log,
     project_root,
     read_json,
-    repo_path,
     run_git,
-    run_logged,
-    run_process,
     timestamp_utc,
     unique_preserve_order,
     write_json,
 )
+from .runtime_lock import project_runtime_lock
+from .runtime_observation import (
+    PROGRESS_FILE,
+    ObservationRequest,
+    attach_observation,
+    launch_identity,
+    run_observed,
+    stall_timeout_from_env,
+)
 from .runtime_paths import resolve_project_tree_path
 from .runtime_process import run_process as run_transport_process
-from .runtime_lock import project_runtime_lock
 from .runtime_profiles import (
     RuntimeProfile,
     load_runtime_profile,
     require_runtime_profile,
     resolve_runtime_profile_path,
 )
-from .runtime_result import RunArtifacts, prepare_run_artifacts, publish_interrupted_summary, publish_summary, sanitize_artifact_logs
+from .runtime_result import (
+    RunArtifacts,
+    prepare_run_artifacts,
+    publish_interrupted_summary,
+    publish_summary,
+    sanitize_artifact_logs,
+)
 from .runtime_secrets import build_redacted_context, resolve_secret_value
 from .runtime_selection import select_source_path
-
+from .runtime_techlog import plan_from_env as techlog_plan_from_env
 
 LOCAL_SANDBOX_DIR = "env/.local/"
 RUNTIME_POLICY_PATH = "automation/context/runtime-profile-policy.json"
@@ -65,6 +74,11 @@ def capability_key(capability_id: str) -> str:
         return CAPABILITY_KEY_MAP[capability_id]
     except KeyError:
         die(f"unsupported capability id: {capability_id}")
+
+
+def _read_json_object(path: str | Path) -> dict[str, Any]:
+    payload = read_json(path)
+    return payload if isinstance(payload, dict) else {}
 
 
 def _relative_to_repo(path: Path) -> str:
@@ -147,7 +161,7 @@ def load_sanctioned_additional_root_runtime_profiles(root: Path | None = None) -
     policy_path = runtime_policy_file_path(repo_root)
     if not policy_path.is_file():
         return []
-    payload = read_json(policy_path)
+    payload = _read_json_object(policy_path)
     entries = payload.get("rootEnvProfiles", {}).get("sanctionedAdditionalProfiles", [])
     if not isinstance(entries, list):
         die("rootEnvProfiles.sanctionedAdditionalProfiles must be an array")
@@ -371,10 +385,7 @@ def profile_command(profile: RuntimeProfile, capability_id: str) -> list[str] | 
     if value is None:
         return None
     if not isinstance(value, list):
-        die(
-            "runtime profile field must be an array: "
-            f".capabilities.{capability_key(capability_id)}.command"
-        )
+        die(f"runtime profile field must be an array: .capabilities.{capability_key(capability_id)}.command")
     result = [str(item) for item in value]
     if not result:
         die(
@@ -389,15 +400,9 @@ def profile_unsupported_reason(profile: RuntimeProfile, capability_id: str) -> s
     if value is None:
         return None
     if not isinstance(value, str):
-        die(
-            "runtime profile field has invalid type: "
-            f".capabilities.{capability_key(capability_id)}.unsupportedReason"
-        )
+        die(f"runtime profile field has invalid type: .capabilities.{capability_key(capability_id)}.unsupportedReason")
     if not value:
-        die(
-            "runtime profile field must not be empty: "
-            f".capabilities.{capability_key(capability_id)}.unsupportedReason"
-        )
+        die(f"runtime profile field must not be empty: .capabilities.{capability_key(capability_id)}.unsupportedReason")
     return value
 
 
@@ -414,19 +419,13 @@ def validate_capability_command_driver_contract(profile: RuntimeProfile, capabil
         die(f"runtime profile field has invalid type: .capabilities.{key}")
     has_command = "command" in capability_payload and capability_payload["command"] is not None
     has_driver = "driver" in capability_payload and capability_payload["driver"] is not None
-    has_unsupported = (
-        "unsupportedReason" in capability_payload and capability_payload["unsupportedReason"] is not None
-    )
+    has_unsupported = "unsupportedReason" in capability_payload and capability_payload["unsupportedReason"] is not None
     if has_command and has_driver:
         die(f"capability {capability_id} must not define both driver and command in {profile.path}")
     if has_command and has_unsupported:
-        die(
-            f"capability {capability_id} must not define both command and unsupportedReason in {profile.path}"
-        )
+        die(f"capability {capability_id} must not define both command and unsupportedReason in {profile.path}")
     if has_driver and has_unsupported:
-        die(
-            f"capability {capability_id} must not define both driver and unsupportedReason in {profile.path}"
-        )
+        die(f"capability {capability_id} must not define both driver and unsupportedReason in {profile.path}")
     if has_driver and not capability_supports_driver_selection(capability_id):
         die(f"capability {capability_id} does not support driver selection in {profile.path}")
 
@@ -585,17 +584,13 @@ def ibcmd_capability_failure_reason(profile: RuntimeProfile, capability_id: str,
         return "missing ibcmd.runtimeMode"
     if runtime_mode not in {"standalone-server", "file-infobase", "dbms-infobase"}:
         return (
-            f"ibcmd.runtimeMode={runtime_mode} is unsupported; use standalone-server, "
-            "file-infobase, or dbms-infobase"
+            f"ibcmd.runtimeMode={runtime_mode} is unsupported; use standalone-server, file-infobase, or dbms-infobase"
         )
     access_mode = profile.string("ibcmd", "serverAccess", "mode")
     if not access_mode:
         return "missing ibcmd.serverAccess.mode"
     if access_mode != "data-dir":
-        return (
-            f"ibcmd.serverAccess.mode={access_mode} is unsupported in the current release; "
-            "use data-dir"
-        )
+        return f"ibcmd.serverAccess.mode={access_mode} is unsupported in the current release; use data-dir"
     if not profile.has("ibcmd", "serverAccess", "dataDir"):
         return "missing ibcmd.serverAccess.dataDir"
     if runtime_mode == "standalone-server" and not profile.has("ibcmd", "standalone", "databasePath"):
@@ -920,7 +915,12 @@ def prepare_standard_capability_command(
     if override:
         normalized = normalize_repo_command_tokens(override)
         executor = "direct"
-        if not WINDOWS and adapter == "direct-platform" and normalized and command_targets_local_platform_gui(normalized[0]):
+        if (
+            not WINDOWS
+            and adapter == "direct-platform"
+            and normalized
+            and command_targets_local_platform_gui(normalized[0])
+        ):
             executor = "adapter-wrapper"
         return PreparedCommand(
             capability_id=capability_id,
@@ -956,7 +956,11 @@ def prepare_standard_capability_command(
                 f"for adapter {adapter}"
             )
         if capability_id == "create-ib":
-            command = [platform_binary_path(profile), "CREATEINFOBASE", build_create_infobase_connection_string(profile, dry_run=dry_run)]
+            command = [
+                platform_binary_path(profile),
+                "CREATEINFOBASE",
+                build_create_infobase_connection_string(profile, dry_run=dry_run),
+            ]
         elif capability_id == "dump-src":
             output_dir = resolve_project_tree_path(
                 capability_string_or_default(profile, capability_id, "outputDir", "./src/cf")
@@ -982,9 +986,7 @@ def prepare_standard_capability_command(
             context=build_capability_context(profile, adapter, command),
         )
     if capability_id in VERIFICATION_CAPABILITIES:
-        die(
-            f"runtime profile is missing .capabilities.{capability_key(capability_id)}.command in {profile.path}"
-        )
+        die(f"runtime profile is missing .capabilities.{capability_key(capability_id)}.command in {profile.path}")
     die(f"unsupported capability id: {capability_id}")
 
 
@@ -1027,6 +1029,7 @@ def write_capability_summary(
         },
     }
     payload.update(prepared.context)
+    attach_observation(payload, run_root)
     publish_summary(
         RunArtifacts(run_root, summary_path, stdout_log, stderr_log),
         payload,
@@ -1060,11 +1063,29 @@ def execute_prepared_capability_command(
     if prepared.adapter == "remote-windows":
         suffix = ".ps1" if WINDOWS else ".sh"
         adapter_path = project_root() / "scripts" / "adapters" / f"remote-windows{suffix}"
-        adapter_command = (["powershell", "-NoLogo", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(adapter_path), "--stdio-json"] if WINDOWS else [str(adapter_path), "--stdio-json"])
-        request = json.dumps({"schemaVersion": 1, "capability": prepared.capability_id, "argv": command}, ensure_ascii=False)
+        adapter_command = (
+            [
+                "powershell",
+                "-NoLogo",
+                "-NoProfile",
+                "-ExecutionPolicy",
+                "Bypass",
+                "-File",
+                str(adapter_path),
+                "--stdio-json",
+            ]
+            if WINDOWS
+            else [str(adapter_path), "--stdio-json"]
+        )
+        request = json.dumps(
+            {"schemaVersion": 1, "capability": prepared.capability_id, "argv": command}, ensure_ascii=False
+        )
         transport = run_transport_process(adapter_command, cwd=project_root(), env=env, input_text=request, timeout=300)
         if transport.returncode != 0:
-            stderr_log.write_text("transport failure: " + (transport.stderr.strip() or f"exit code {transport.returncode}") + "\n", encoding="utf-8")
+            stderr_log.write_text(
+                "transport failure: " + (transport.stderr.strip() or f"exit code {transport.returncode}") + "\n",
+                encoding="utf-8",
+            )
             stdout_log.write_text("", encoding="utf-8")
             return 70
         try:
@@ -1086,15 +1107,11 @@ def execute_prepared_capability_command(
         if prepared.adapter == "direct-platform" and not WINDOWS:
             if direct_platform_xpra_enabled(profile):
                 env["ONEC_DIRECT_PLATFORM_XPRA_ENABLED"] = "1"
-                env["ONEC_DIRECT_PLATFORM_XPRA_XVFB_ARGS"] = " ".join(
-                    load_direct_platform_xpra_xvfb_args(profile)
-                )
+                env["ONEC_DIRECT_PLATFORM_XPRA_XVFB_ARGS"] = " ".join(load_direct_platform_xpra_xvfb_args(profile))
                 env["ONEC_DIRECT_PLATFORM_XPRA_START_CHILD"] = load_direct_platform_xpra_start_child(profile)
             elif direct_platform_xvfb_enabled(profile):
                 env["ONEC_DIRECT_PLATFORM_XVFB_ENABLED"] = "1"
-                env["ONEC_DIRECT_PLATFORM_XVFB_SERVER_ARGS"] = " ".join(
-                    load_direct_platform_xvfb_server_args(profile)
-                )
+                env["ONEC_DIRECT_PLATFORM_XVFB_SERVER_ARGS"] = " ".join(load_direct_platform_xvfb_server_args(profile))
             if direct_platform_ld_preload_enabled(profile):
                 env["ONEC_DIRECT_PLATFORM_LD_PRELOAD_ENABLED"] = "1"
                 env["ONEC_DIRECT_PLATFORM_LD_PRELOAD"] = os.pathsep.join(
@@ -1115,7 +1132,36 @@ def execute_prepared_capability_command(
             command = [str(adapter_path), *command]
     if WINDOWS:
         command = normalize_repo_command_tokens(command)
-    return run_logged(command, stdout_path=stdout_log, stderr_path=stderr_log, cwd=project_root(), env=env)
+    # Every launch of the client or Designer (and any other profile command) goes through the shared adapter.
+    progress_file = run_root / PROGRESS_FILE
+    progress_file.unlink(missing_ok=True)
+    identity_env, on_started = launch_identity(run_root, command)
+    env.update(identity_env)
+    env["ONEC_OBSERVATION_PROGRESS_FILE"] = str(progress_file)
+    result = run_observed(
+        ObservationRequest(
+            capability=prepared.capability_id,
+            target=profile.name or prepared.adapter,
+            run_root=run_root,
+            command=command,
+            stdout_log=stdout_log,
+            stderr_log=stderr_log,
+            cwd=project_root(),
+            env=env,
+            progress_file=progress_file,
+            stall_timeout_seconds=stall_timeout_from_env(),
+            techlog=techlog_plan_from_env(
+                run_root,
+                infobase_mode=profile.string("infobase", "mode"),
+                infobase_ref=profile.string("infobase", "ref"),
+                process_id_file=run_root / "process.pid",
+            ),
+            on_started=on_started,
+        )
+    )
+    if result.signal == "SIGINT":
+        raise KeyboardInterrupt
+    return result.exit_code
 
 
 def run_profile_capability(
@@ -1154,11 +1200,7 @@ def run_profile_capability(
     started_at = timestamp_utc()
     status = "dry-run" if args.dry_run else "success"
     exit_code = 0
-    resolved_secrets = [
-        os.environ[name]
-        for name in collect_required_env_refs(profile)
-        if os.environ.get(name)
-    ]
+    resolved_secrets = [os.environ[name] for name in collect_required_env_refs(profile) if os.environ.get(name)]
     if not args.dry_run:
         try:
             with project_runtime_lock(project_root(), capability_id):
@@ -1181,6 +1223,7 @@ def run_profile_capability(
                 },
             }
             interrupted.update(prepared.context)
+            attach_observation(interrupted, run_root)
             publish_interrupted_summary(
                 artifacts,
                 interrupted,
@@ -1354,11 +1397,15 @@ def run_doctor(argv: list[str]) -> int:
     status = "success"
     for tool in required_tools:
         present = shutil.which(tool) is not None
-        checks["required_tools"].append({"name": tool, "status": "present" if present else "missing", "required": True, "reason": None})
+        checks["required_tools"].append(
+            {"name": tool, "status": "present" if present else "missing", "required": True, "reason": None}
+        )
         if not present:
             status = "failed"
     for tool in optional_tools:
-        checks["optional_tools"].append({"name": tool, "status": "present" if shutil.which(tool) else "missing", "required": False, "reason": None})
+        checks["optional_tools"].append(
+            {"name": tool, "status": "present" if shutil.which(tool) else "missing", "required": False, "reason": None}
+        )
     for field_name in required_fields:
         cursor = profile.payload
         present = True
@@ -1367,12 +1414,16 @@ def run_doctor(argv: list[str]) -> int:
                 present = False
                 break
             cursor = cursor[segment]
-        checks["required_profile_fields"].append({"name": field_name, "status": "present" if present else "missing", "required": True, "reason": None})
+        checks["required_profile_fields"].append(
+            {"name": field_name, "status": "present" if present else "missing", "required": True, "reason": None}
+        )
         if not present:
             status = "failed"
     for env_name in required_env_refs:
         present = env_name in os.environ
-        checks["required_env_refs"].append({"name": env_name, "status": "set" if present else "missing", "required": True, "reason": None})
+        checks["required_env_refs"].append(
+            {"name": env_name, "status": "set" if present else "missing", "required": True, "reason": None}
+        )
         if not present:
             status = "failed"
     for capability_id in required_capabilities:
@@ -1387,7 +1438,11 @@ def run_doctor(argv: list[str]) -> int:
             status = "failed"
     for capability_id in optional_capabilities:
         reason = doctor_capability_failure_reason(profile, capability_id, adapter)
-        item_status = "unsupported" if profile_unsupported_reason(profile, capability_id) else ("present" if not reason else "missing")
+        item_status = (
+            "unsupported"
+            if profile_unsupported_reason(profile, capability_id)
+            else ("present" if not reason else "missing")
+        )
         checks["optional_capabilities"].append(
             {"name": capability_id, "status": item_status, "required": False, "reason": reason or None}
         )
@@ -1532,7 +1587,8 @@ def run_load_diff_src(argv: list[str]) -> int:
         else "4b825dc642cb6eb9a060e54bf8d69288fbee4904"
     )
     raw_paths = unique_preserve_order(
-        git_lines(["diff", "--name-only", base_ref, "--", "."], cwd=root) + git_lines(["ls-files", "--others", "--exclude-standard", "--", "."], cwd=root)
+        git_lines(["diff", "--name-only", base_ref, "--", "."], cwd=root)
+        + git_lines(["ls-files", "--others", "--exclude-standard", "--", "."], cwd=root)
     )
     selected_files: list[str] = []
     ignored_files: list[dict[str, str]] = []
@@ -1550,7 +1606,14 @@ def run_load_diff_src(argv: list[str]) -> int:
         exit_code = 65
     else:
         delegated_run_root = run_root / "load-src"
-        delegated_args = ["--profile", str(profile.path), "--run-root", str(delegated_run_root), "--files", ",".join(selected_files)]
+        delegated_args = [
+            "--profile",
+            str(profile.path),
+            "--run-root",
+            str(delegated_run_root),
+            "--files",
+            ",".join(selected_files),
+        ]
         if args.dry_run:
             delegated_args.append("--dry-run")
         result = run_profile_capability("load-src", "Load source tree", delegated_args)
@@ -1563,7 +1626,7 @@ def run_load_diff_src(argv: list[str]) -> int:
             "stderr_log": str(delegated_run_root / "stderr.log"),
         }
         if delegated and Path(delegated["summary_json"]).is_file():
-            driver = read_json(delegated["summary_json"]).get("driver")
+            driver = _read_json_object(delegated["summary_json"]).get("driver")
     selection = {
         "source_dir": source_dir,
         "base_ref": base_ref,
@@ -1592,6 +1655,7 @@ def run_load_diff_src(argv: list[str]) -> int:
     )
     log(f"summary_json={summary_path}")
     return exit_code
+
 
 def run_load_task_src(argv: list[str]) -> int:
     profile_input = ""
@@ -1667,7 +1731,14 @@ def run_load_task_src(argv: list[str]) -> int:
         exit_code = 65
     else:
         delegated_run_root = run_root / "load-src"
-        delegated_args = ["--profile", str(profile.path), "--run-root", str(delegated_run_root), "--files", ",".join(selected_files)]
+        delegated_args = [
+            "--profile",
+            str(profile.path),
+            "--run-root",
+            str(delegated_run_root),
+            "--files",
+            ",".join(selected_files),
+        ]
         if dry_run:
             delegated_args.append("--dry-run")
         result = run_profile_capability("load-src", "Load source tree", delegated_args)
@@ -1680,7 +1751,7 @@ def run_load_task_src(argv: list[str]) -> int:
             "stderr_log": str(delegated_run_root / "stderr.log"),
         }
         if Path(delegated["summary_json"]).is_file():
-            driver = read_json(delegated["summary_json"]).get("driver")
+            driver = _read_json_object(delegated["summary_json"]).get("driver")
     selection = {
         "source_dir": source_dir,
         "selector": {"mode": selector_mode, "value": selector_value},
@@ -1688,7 +1759,11 @@ def run_load_task_src(argv: list[str]) -> int:
         "selected_files": selected_files,
         "ignored_files": ignored_files,
         "deleted_paths": deleted_paths,
-        "error": None if selected_files else ("no commits matched selector" if not selected_commits else "no eligible committed files inside source tree"),
+        "error": None
+        if selected_files
+        else (
+            "no commits matched selector" if not selected_commits else "no eligible committed files inside source tree"
+        ),
     }
     _write_delegate_summary(
         summary_path,

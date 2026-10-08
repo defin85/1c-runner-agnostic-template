@@ -1,0 +1,882 @@
+{
+  "minimal/Catalog": {
+    "definition": {
+      "type": "Catalog",
+      "name": "Сравнение"
+    },
+    "source": "C:\\tmp\\metadata-identity-audit-001\\test_minimal_properties_match_0",
+    "files": {
+      "Catalogs/Сравнение.xml": {
+        "sourceSha256": "ba91d9ad6dafd6420cb7c35092dba43caf7f4fc5a7850ea07241311673ad67a1"
+      }
+    }
+  },
+  "minimal/Document": {
+    "definition": {
+      "type": "Document",
+      "name": "Сравнение"
+    },
+    "source": "C:\\tmp\\metadata-identity-audit-001\\test_minimal_properties_match_1",
+    "files": {
+      "Documents/Сравнение.xml": {
+        "sourceSha256": "5706bef618461a94e2f0bc8a1836fe8d6c093db972ababf0b925bc3724f56962"
+      }
+    }
+  },
+  "minimal/Enum": {
+    "definition": {
+      "type": "Enum",
+      "name": "Сравнение"
+    },
+    "source": "C:\\tmp\\metadata-identity-audit-001\\test_minimal_properties_match_2",
+    "files": {
+      "Enums/Сравнение.xml": {
+        "sourceSha256": "a9ed00bc37a2270037851b9a1ad57e13cc316a97eab1e75710344ab299c21e62"
+      }
+    }
+  },
+  "minimal/Constant": {
+    "definition": {
+      "type": "Constant",
+      "name": "Сравнение",
+      "valueType": "String"
+    },
+    "source": "C:\\tmp\\metadata-identity-audit-001\\test_minimal_properties_match_3",
+    "files": {
+      "Constants/Сравнение.xml": {
+        "sourceSha256": "c8acbe33f708833a62cf513a9293a8cb83d5022ce83e676c341c8e2cfb9616d5"
+      }
+    }
+  },
+  "minimal/DefinedType": {
+    "definition": {
+      "type": "DefinedType",
+      "name": "Сравнение"
+    },
+    "source": "C:\\tmp\\metadata-identity-audit-001\\test_minimal_properties_match_4",
+    "files": {
+      "DefinedTypes/Сравнение.xml": {
+        "sourceSha256": "15ef17b54c1fd6e3dbf16745dc64df8d6349a5d95df9de70917a10474975ef70"
+      }
+    }
+  },
+  "minimal/InformationRegister": {
+    "definition": {
+      "type": "InformationRegister",
+      "name": "Сравнение"
+    },
+    "source": "C:\\tmp\\metadata-identity-audit-001\\test_minimal_properties_match_5",
+    "files": {
+      "InformationRegisters/Сравнение.xml": {
+        "sourceSha256": "1e8f7a2a1c65f13f9c35338e8f5a205076ea933979cd7a0e69a74ed16bb19f46"
+      }
+    }
+  },
+  "minimal/AccumulationRegister": {
+    "definition": {
+      "type": "AccumulationRegister",
+      "name": "Сравнение"
+    },
+    "source": "C:\\tmp\\metadata-identity-audit-001\\test_minimal_properties_match_6",
+    "files": {
+      "AccumulationRegisters/Сравнение.xml": {
+        "sourceSha256": "f6c18fc5d3c07fda8cfefa6fac34142df7921736a69ab87440e3aad23430441d"
+      }
+    }
+  },
+  "minimal/AccountingRegister": {
+    "definition": {
+      "type": "AccountingRegister",
+      "name": "Сравнение"
+    },
+    "source": "C:\\tmp\\metadata-identity-audit-001\\test_minimal_properties_match_7",
+    "files": {
+      "AccountingRegisters/Сравнение.xml": {
+        "sourceSha256": "23e01affd6aaa77e371f2a9d7d7c86315a4365d5b1d3e7cec7fd46ea2fb11255"
+      }
+    }
+  },
+  "minimal/CalculationRegister": {
+    "definition": {
+      "type": "CalculationRegister",
+      "name": "Сравнение"
+    },
+    "source": "C:\\tmp\\metadata-identity-audit-001\\test_minimal_properties_match_8",
+    "files": {
+      "CalculationRegisters/Сравнение.xml": {
+        "sourceSha256": "715c5a557176d895f6a10a812f6590d7227fc60f861548dec22db7e8f00ed509"
+      }
+    }
+  },
+  "minimal/ChartOfAccounts": {
+    "definition": {
+      "type": "ChartOfAccounts",
+      "name": "Сравнение"
+    },
+    "source": "C:\\tmp\\metadata-identity-audit-001\\test_minimal_properties_match_9",
+    "files": {
+      "ChartsOfAccounts/Сравнение.xml": {
+        "sourceSha256": "d99ed2c7f3ba099a657520b1cb04edc6670a6d67e0147b28ba7a06019d1f3c49"
+      }
+    }
+  },
+  "minimal/ChartOfCharacteristicTypes": {
+    "definition": {
+      "type": "ChartOfCharacteristicTypes",
+      "name": "Сравнение"
+    },
+    "source": "C:\\tmp\\metadata-identity-audit-001\\test_minimal_properties_match_10",
+    "files": {
+      "ChartsOfCharacteristicTypes/Сравнение.xml": {
+        "sourceSha256": "8ef67adae5f4f323b5eca5c28cd3486678988335d14305d66043f954fadfe5e8"
+      }
+    }
+  },
+  "minimal/ChartOfCalculationTypes": {
+    "definition": {
+      "type": "ChartOfCalculationTypes",
+      "name": "Сравнение"
+    },
+    "source": "C:\\tmp\\metadata-identity-audit-001\\test_minimal_properties_match_11",
+    "files": {
+      "ChartsOfCalculationTypes/Сравнение.xml": {
+        "sourceSha256": "529673a86c28ddfe634781e910bedde67a17daa0eb4174e748242dcb93ffcb3d"
+      }
+    }
+  },
+  "minimal/BusinessProcess": {
+    "definition": {
+      "type": "BusinessProcess",
+      "name": "Сравнение"
+    },
+    "source": "C:\\tmp\\metadata-identity-audit-001\\test_minimal_properties_match_12",
+    "files": {
+      "BusinessProcesses/Сравнение.xml": {
+        "sourceSha256": "b73854073880cd9547e0eb0334093ce8e3548fce469c77aed9f1c69b2f7699ba"
+      }
+    }
+  },
+  "minimal/Task": {
+    "definition": {
+      "type": "Task",
+      "name": "Сравнение"
+    },
+    "source": "C:\\tmp\\metadata-identity-audit-001\\test_minimal_properties_match_13",
+    "files": {
+      "Tasks/Сравнение.xml": {
+        "sourceSha256": "7b77e5805682785a00bdba07f9c3b93e8d121e663208fd445620130225dccb16"
+      }
+    }
+  },
+  "minimal/ExchangePlan": {
+    "definition": {
+      "type": "ExchangePlan",
+      "name": "Сравнение"
+    },
+    "source": "C:\\tmp\\metadata-identity-audit-001\\test_minimal_properties_match_14",
+    "files": {
+      "ExchangePlans/Сравнение.xml": {
+        "sourceSha256": "7bf480e7cc8cc21df1d2ffb09dafd25cf7bcba20fc91fe8e97fb270a17aef996"
+      }
+    }
+  },
+  "minimal/Report": {
+    "definition": {
+      "type": "Report",
+      "name": "Сравнение"
+    },
+    "source": "C:\\tmp\\metadata-identity-audit-001\\test_minimal_properties_match_15",
+    "files": {
+      "Reports/Сравнение.xml": {
+        "sourceSha256": "62638f5ee92eef65a0779c3c259be56005a38fd46ef6cfc0f7b1f286938dccb1",
+        "restored": {
+          "reason": "original file was never committed: .gitignore \"reports/\" matched \"Reports/\" with core.ignorecase",
+          "generator": "automation/vendor/cc-1c-skills/skills/meta-compile/scripts/meta-compile.py at e412ed2b3^",
+          "check": "the same generator reproduces all other 41 recorded files equal under xml_content",
+          "sha256": "7e396882ba82899ee9510877278f5a97f01fb7710124bb66abf607d295fde7ab"
+        }
+      }
+    }
+  },
+  "minimal/DataProcessor": {
+    "definition": {
+      "type": "DataProcessor",
+      "name": "Сравнение"
+    },
+    "source": "C:\\tmp\\metadata-identity-audit-001\\test_minimal_properties_match_16",
+    "files": {
+      "DataProcessors/Сравнение.xml": {
+        "sourceSha256": "488ff510dd961f5262aa2b6f258be5490d09cdd512980c7a73d8aa2fd5ab5248"
+      }
+    }
+  },
+  "minimal/DocumentJournal": {
+    "definition": {
+      "type": "DocumentJournal",
+      "name": "Сравнение"
+    },
+    "source": "C:\\tmp\\metadata-identity-audit-001\\test_minimal_properties_match_17",
+    "files": {
+      "DocumentJournals/Сравнение.xml": {
+        "sourceSha256": "82f693ac9af84d2fe2e034588e1b5122cfdcfda037fc899d3bbad2ff177b2dc5"
+      }
+    }
+  },
+  "minimal/CommonModule": {
+    "definition": {
+      "type": "CommonModule",
+      "name": "Сравнение"
+    },
+    "source": "C:\\tmp\\metadata-identity-audit-001\\test_minimal_properties_match_18",
+    "files": {
+      "CommonModules/Сравнение.xml": {
+        "sourceSha256": "aa94f3b07ef1425f9b7db076cb35711a412961ce9ccae5e10242caef49070c03"
+      }
+    }
+  },
+  "minimal/ScheduledJob": {
+    "definition": {
+      "type": "ScheduledJob",
+      "name": "Сравнение"
+    },
+    "source": "C:\\tmp\\metadata-identity-audit-001\\test_minimal_properties_match_19",
+    "files": {
+      "ScheduledJobs/Сравнение.xml": {
+        "sourceSha256": "3cfac7001cc7c53a2576b63bee29c9776cf2ac1b3f37abcb17085a04906a026b"
+      }
+    }
+  },
+  "minimal/EventSubscription": {
+    "definition": {
+      "type": "EventSubscription",
+      "name": "Сравнение"
+    },
+    "source": "C:\\tmp\\metadata-identity-audit-001\\test_minimal_properties_match_20",
+    "files": {
+      "EventSubscriptions/Сравнение.xml": {
+        "sourceSha256": "0bf68ab19fe5774e1b3e1bf08b5292ae0ab1cd5fd3b6e1d25e4d871ccfec7efb"
+      }
+    }
+  },
+  "minimal/HTTPService": {
+    "definition": {
+      "type": "HTTPService",
+      "name": "Сравнение"
+    },
+    "source": "C:\\tmp\\metadata-identity-audit-001\\test_minimal_properties_match_21",
+    "files": {
+      "HTTPServices/Сравнение.xml": {
+        "sourceSha256": "dc6af6b270f13b6796e1134cbe49a1181579b4cc3f686af7713f984fc85936a8"
+      }
+    }
+  },
+  "minimal/WebService": {
+    "definition": {
+      "type": "WebService",
+      "name": "Сравнение"
+    },
+    "source": "C:\\tmp\\metadata-identity-audit-001\\test_minimal_properties_match_22",
+    "files": {
+      "WebServices/Сравнение.xml": {
+        "sourceSha256": "d77511bf40bb534ab78dc5379e346b48028f30e0800767d026d6f10a90dc5f7b"
+      }
+    }
+  },
+  "register/InformationRegister": {
+    "definition": {
+      "type": "InformationRegister",
+      "name": "НовыйРегистр",
+      "periodicity": "Month",
+      "writeMode": "RecorderSubordinate",
+      "dimensions": [
+        {
+          "name": "Партнер",
+          "type": "CatalogRef.Партнеры",
+          "flags": [
+            "req",
+            "index",
+            "master",
+            "mainfilter",
+            "denyincomplete"
+          ]
+        }
+      ],
+      "resources": [
+        {
+          "name": "Сумма",
+          "type": "Number(15,2,nonneg)",
+          "flags": [
+            "req"
+          ]
+        }
+      ],
+      "attributes": [
+        {
+          "name": "Описание",
+          "type": "String(25)"
+        }
+      ]
+    },
+    "source": "C:\\tmp\\metadata-identity-audit-001\\test_register_members_match_le0",
+    "files": {
+      "InformationRegisters/НовыйРегистр.xml": {
+        "sourceSha256": "33d60d7fc76fa49b4ff2ee36b4ff08213d33761b89200f23f644545c17279ce6"
+      }
+    }
+  },
+  "register/AccumulationRegister": {
+    "definition": {
+      "type": "AccumulationRegister",
+      "name": "НовыйРегистр",
+      "registerType": "Turnovers",
+      "enableTotalsSplitting": false,
+      "dimensions": [
+        {
+          "name": "Партнер",
+          "type": "CatalogRef.Партнеры",
+          "flags": [
+            "req",
+            "index",
+            "denyincomplete",
+            "nouseintotals"
+          ]
+        }
+      ],
+      "resources": [
+        {
+          "name": "Сумма",
+          "type": "Number(15,2,nonneg)",
+          "flags": [
+            "req"
+          ]
+        }
+      ],
+      "attributes": [
+        {
+          "name": "Описание",
+          "type": "String(25)"
+        }
+      ]
+    },
+    "source": "C:\\tmp\\metadata-identity-audit-001\\test_register_members_match_le1",
+    "files": {
+      "AccumulationRegisters/НовыйРегистр.xml": {
+        "sourceSha256": "b200b71f9882fc6ff4ccbc0ddba07a144dddd73d954651b24dcb3466cf83c24d"
+      }
+    }
+  },
+  "register/AccountingRegister": {
+    "definition": {
+      "type": "AccountingRegister",
+      "name": "НовыйРегистр",
+      "chartOfAccounts": "ChartOfAccounts.Хозрасчетный",
+      "correspondence": true,
+      "dimensions": [
+        {
+          "name": "Партнер",
+          "type": "CatalogRef.Партнеры",
+          "flags": [
+            "req",
+            "index"
+          ]
+        }
+      ],
+      "resources": [
+        {
+          "name": "Сумма",
+          "type": "Number(15,2,nonneg)",
+          "flags": [
+            "req"
+          ]
+        }
+      ],
+      "attributes": [
+        {
+          "name": "Описание",
+          "type": "String(25)"
+        }
+      ]
+    },
+    "source": "C:\\tmp\\metadata-identity-audit-001\\test_register_members_match_le2",
+    "files": {
+      "AccountingRegisters/НовыйРегистр.xml": {
+        "sourceSha256": "c7569c9e6ae9a159851694bf981d51442658a4a73ff835ec865d26f1651aed04"
+      }
+    }
+  },
+  "register/CalculationRegister": {
+    "definition": {
+      "type": "CalculationRegister",
+      "name": "НовыйРегистр",
+      "chartOfCalculationTypes": "ChartOfCalculationTypes.Начисления",
+      "actionPeriod": true,
+      "basePeriod": true,
+      "schedule": "InformationRegister.Графики",
+      "scheduleValue": "InformationRegister.Графики.Resource.Значение",
+      "scheduleDate": "InformationRegister.Графики.Dimension.Дата",
+      "dimensions": [
+        {
+          "name": "Партнер",
+          "type": "CatalogRef.Партнеры",
+          "flags": [
+            "req",
+            "index"
+          ]
+        }
+      ],
+      "resources": [
+        {
+          "name": "Сумма",
+          "type": "Number(15,2,nonneg)",
+          "flags": [
+            "req"
+          ]
+        }
+      ],
+      "attributes": [
+        {
+          "name": "Описание",
+          "type": "String(25)"
+        }
+      ]
+    },
+    "source": "C:\\tmp\\metadata-identity-audit-001\\test_register_members_match_le3",
+    "files": {
+      "CalculationRegisters/НовыйРегистр.xml": {
+        "sourceSha256": "f11c719199b9ea804812517f7ec5238f912983800f1b3982ed4f33ad7157604d"
+      }
+    }
+  },
+  "chart/ChartOfAccounts": {
+    "definition": {
+      "type": "ChartOfAccounts",
+      "name": "НовыйПлан",
+      "extDimensionTypes": "ChartOfCharacteristicTypes.ВидыСубконто",
+      "accountingFlags": [
+        "Количественный"
+      ],
+      "extDimensionAccountingFlags": [
+        "Суммовой"
+      ],
+      "codeMask": "##.##",
+      "maxExtDimensionCount": 3,
+      "attributes": [
+        {
+          "name": "Описание",
+          "type": "String(25)"
+        }
+      ],
+      "tabularSections": [
+        {
+          "name": "Строки",
+          "attributes": [
+            {
+              "name": "Значение",
+              "type": "Boolean"
+            }
+          ]
+        }
+      ]
+    },
+    "source": "C:\\tmp\\metadata-identity-audit-001\\test_chart_children_and_proper0",
+    "files": {
+      "ChartsOfAccounts/НовыйПлан.xml": {
+        "sourceSha256": "ea771219f79b5eb40d0bf663773eabbac6730442256ded097b55e69d73610c85"
+      }
+    }
+  },
+  "chart/ChartOfCharacteristicTypes": {
+    "definition": {
+      "type": "ChartOfCharacteristicTypes",
+      "name": "НовыйПлан",
+      "characteristicExtValues": "Catalog.Значения",
+      "valueTypes": [
+        "Boolean",
+        "String(40)",
+        "CatalogRef.Партнеры"
+      ],
+      "attributes": [
+        {
+          "name": "Описание",
+          "type": "String(25)"
+        }
+      ],
+      "tabularSections": [
+        {
+          "name": "Строки",
+          "attributes": [
+            {
+              "name": "Значение",
+              "type": "Boolean"
+            }
+          ]
+        }
+      ]
+    },
+    "source": "C:\\tmp\\metadata-identity-audit-001\\test_chart_children_and_proper1",
+    "files": {
+      "ChartsOfCharacteristicTypes/НовыйПлан.xml": {
+        "sourceSha256": "86d21c257951aea39b524f2b63162c28ec7928d7e670952f99ea78dc209f18b6"
+      }
+    }
+  },
+  "chart/ChartOfCalculationTypes": {
+    "definition": {
+      "type": "ChartOfCalculationTypes",
+      "name": "НовыйПлан",
+      "dependenceOnCalculationTypes": "RequireCalculationTypes",
+      "baseCalculationTypes": [
+        "ChartOfCalculationTypes.Базовый"
+      ],
+      "actionPeriodUse": true,
+      "attributes": [
+        {
+          "name": "Описание",
+          "type": "String(25)"
+        }
+      ],
+      "tabularSections": [
+        {
+          "name": "Строки",
+          "attributes": [
+            {
+              "name": "Значение",
+              "type": "Boolean"
+            }
+          ]
+        }
+      ]
+    },
+    "source": "C:\\tmp\\metadata-identity-audit-001\\test_chart_children_and_proper2",
+    "files": {
+      "ChartsOfCalculationTypes/НовыйПлан.xml": {
+        "sourceSha256": "fe35597429b3f2b76c5dd55e422ce8b5328e58ea0a22b93a21de48002373dda8"
+      }
+    }
+  },
+  "process/BusinessProcess": {
+    "definition": {
+      "type": "BusinessProcess",
+      "name": "Новый",
+      "task": "Task.Задача",
+      "numberLength": 12,
+      "attributes": [
+        {
+          "name": "Описание",
+          "type": "String(40)"
+        }
+      ],
+      "tabularSections": [
+        {
+          "name": "Строки",
+          "attributes": [
+            {
+              "name": "Значение",
+              "type": "Boolean"
+            }
+          ]
+        }
+      ]
+    },
+    "source": "C:\\tmp\\metadata-identity-audit-001\\test_process_task_exchange_com0",
+    "files": {
+      "BusinessProcesses/Новый.xml": {
+        "sourceSha256": "5aff7c3642107c35a81ab21a4a7def61420fb2bc39a506e2cda930fe935e6b8e"
+      },
+      "BusinessProcesses/Новый/Ext/Flowchart.xml": {
+        "sourceSha256": "f93b9931b0a42c172aff896063ccf3698910f7cff3c349277b3367261105f186"
+      }
+    }
+  },
+  "process/Task": {
+    "definition": {
+      "type": "Task",
+      "name": "Новый",
+      "addressing": "InformationRegister.Исполнители",
+      "mainAddressingAttribute": "Task.Новый.AddressingAttribute.Исполнитель",
+      "currentPerformer": "SessionParameter.Пользователь",
+      "addressingAttributes": [
+        {
+          "name": "Исполнитель",
+          "type": "CatalogRef.Пользователи",
+          "addressingDimension": "InformationRegister.Исполнители.Dimension.Пользователь"
+        }
+      ],
+      "attributes": [
+        {
+          "name": "Описание",
+          "type": "String(40)"
+        }
+      ],
+      "tabularSections": [
+        {
+          "name": "Строки",
+          "attributes": [
+            {
+              "name": "Значение",
+              "type": "Boolean"
+            }
+          ]
+        }
+      ]
+    },
+    "source": "C:\\tmp\\metadata-identity-audit-001\\test_process_task_exchange_com1",
+    "files": {
+      "Tasks/Новый.xml": {
+        "sourceSha256": "7ebc56d126a2f6fa85ebb56647ca600a1e5cefc60d3f02b8d8fa0add28b4f8da"
+      }
+    }
+  },
+  "process/ExchangePlan": {
+    "definition": {
+      "type": "ExchangePlan",
+      "name": "Новый",
+      "distributedInfoBase": true,
+      "includeConfigurationExtensions": true,
+      "attributes": [
+        {
+          "name": "Описание",
+          "type": "String(40)"
+        }
+      ],
+      "tabularSections": [
+        {
+          "name": "Строки",
+          "attributes": [
+            {
+              "name": "Значение",
+              "type": "Boolean"
+            }
+          ]
+        }
+      ]
+    },
+    "source": "C:\\tmp\\metadata-identity-audit-001\\test_process_task_exchange_com2",
+    "files": {
+      "ExchangePlans/Новый.xml": {
+        "sourceSha256": "d844505f45ab8674ee272af367f260e7de7b7e3b93c4f084440d1b1aeb815654"
+      },
+      "ExchangePlans/Новый/Ext/Content.xml": {
+        "sourceSha256": "466e24b974cf4c8282a684ff4735f836755054eadcc100affc5d92683bd4b5d3"
+      }
+    }
+  },
+  "automation/Report": {
+    "definition": {
+      "type": "Report",
+      "name": "Новый",
+      "defaultForm": "Report.Новый.Form.Основная",
+      "auxiliaryForm": "CommonForm.Дополнительная",
+      "attributes": [
+        {
+          "name": "Фильтр",
+          "type": "CatalogRef.Партнеры",
+          "flags": [
+            "req"
+          ]
+        }
+      ],
+      "tabularSections": [
+        {
+          "name": "Строки",
+          "attributes": [
+            {
+              "name": "Сумма",
+              "type": "Number(15,2)"
+            }
+          ]
+        }
+      ],
+      "mainDataCompositionSchema": "Report.Новый.Template.Схема",
+      "defaultSettingsForm": "Report.Новый.Form.Настройки"
+    },
+    "source": "C:\\tmp\\metadata-identity-audit-001\\test_reporting_and_automation_0",
+    "files": {
+      "Reports/Новый.xml": {
+        "sourceSha256": "ea05863446e928fe004fce35392159936da79bb6d42f9ebc9f0d471db162d9e3",
+        "restored": {
+          "reason": "original file was never committed: .gitignore \"reports/\" matched \"Reports/\" with core.ignorecase",
+          "generator": "automation/vendor/cc-1c-skills/skills/meta-compile/scripts/meta-compile.py at e412ed2b3^",
+          "check": "the same generator reproduces all other 41 recorded files equal under xml_content",
+          "sha256": "75b1462418233d44c6d781ae7f150bcbfe91b095c99bede94746976c197c3a4e"
+        }
+      }
+    }
+  },
+  "automation/DataProcessor": {
+    "definition": {
+      "type": "DataProcessor",
+      "name": "Новый",
+      "defaultForm": "DataProcessor.Новый.Form.Основная",
+      "auxiliaryForm": "CommonForm.Дополнительная",
+      "attributes": [
+        {
+          "name": "Фильтр",
+          "type": "CatalogRef.Партнеры",
+          "flags": [
+            "req"
+          ]
+        }
+      ],
+      "tabularSections": [
+        {
+          "name": "Строки",
+          "attributes": [
+            {
+              "name": "Сумма",
+              "type": "Number(15,2)"
+            }
+          ]
+        }
+      ]
+    },
+    "source": "C:\\tmp\\metadata-identity-audit-001\\test_reporting_and_automation_1",
+    "files": {
+      "DataProcessors/Новый.xml": {
+        "sourceSha256": "259ec0edafc6e6d5d53da9fd84cfbeb5f1fa6550552cc82fea8b72cac224b562"
+      }
+    }
+  },
+  "automation/DocumentJournal": {
+    "definition": {
+      "type": "DocumentJournal",
+      "name": "Новый",
+      "defaultForm": "DocumentJournal.Новый.Form.Основная",
+      "auxiliaryForm": "CommonForm.Дополнительная",
+      "registeredDocuments": [
+        "Document.Заказ"
+      ],
+      "columns": [
+        {
+          "name": "Партнер",
+          "indexing": "Index",
+          "references": [
+            "Document.Заказ.Attribute.Партнер"
+          ]
+        }
+      ]
+    },
+    "source": "C:\\tmp\\metadata-identity-audit-001\\test_reporting_and_automation_2",
+    "files": {
+      "DocumentJournals/Новый.xml": {
+        "sourceSha256": "7be88909ad6d42c1a2257bcb934389b389fe16f9afc5d8b8d88c0da27b11a88d"
+      }
+    }
+  },
+  "automation/CommonModule": {
+    "definition": {
+      "type": "CommonModule",
+      "name": "Новый",
+      "server": true,
+      "externalConnection": true,
+      "privileged": true,
+      "returnValuesReuse": "DuringRequest"
+    },
+    "source": "C:\\tmp\\metadata-identity-audit-001\\test_reporting_and_automation_3",
+    "files": {
+      "CommonModules/Новый.xml": {
+        "sourceSha256": "bd2589a9c91f262c7462d637d5751625f41aef1081ece94f637a3396ddc6f239"
+      }
+    }
+  },
+  "automation/ScheduledJob": {
+    "definition": {
+      "type": "ScheduledJob",
+      "name": "Новый",
+      "methodName": "Служебный.Выполнить",
+      "description": "Описание <&>",
+      "key": "Ключ <&>",
+      "use": true,
+      "predefined": true,
+      "restartCountOnFailure": 0,
+      "restartIntervalOnFailure": 20
+    },
+    "source": "C:\\tmp\\metadata-identity-audit-001\\test_reporting_and_automation_4",
+    "files": {
+      "ScheduledJobs/Новый.xml": {
+        "sourceSha256": "544f8b2a3789605b858dbdb89648416a3e57dd4fe8d68f7ce4dd7e2a5118dfbc"
+      }
+    }
+  },
+  "automation/EventSubscription": {
+    "definition": {
+      "type": "EventSubscription",
+      "name": "Новый",
+      "source": [
+        "DocumentObject.Заказ",
+        "CatalogObject.Партнеры",
+        "DocumentManager"
+      ],
+      "event": "OnWrite",
+      "handler": "CommonModule.Служебный.ПриЗаписи"
+    },
+    "source": "C:\\tmp\\metadata-identity-audit-001\\test_reporting_and_automation_5",
+    "files": {
+      "EventSubscriptions/Новый.xml": {
+        "sourceSha256": "ccb63ce6ed12ffc351b01c040c478396f4f36f03bc03e5adca37a273ad355f32"
+      }
+    }
+  },
+  "automation/HTTPService": {
+    "definition": {
+      "type": "HTTPService",
+      "name": "Новый",
+      "rootURL": "api",
+      "reuseSessions": "AutoUse",
+      "sessionMaxAge": 60,
+      "urlTemplates": {
+        "Users": {
+          "template": "/users/{id}",
+          "methods": {
+            "Read": "GET",
+            "Write": "POST"
+          }
+        },
+        "Health": {
+          "template": "/health"
+        }
+      }
+    },
+    "source": "C:\\tmp\\metadata-identity-audit-001\\test_reporting_and_automation_6",
+    "files": {
+      "HTTPServices/Новый.xml": {
+        "sourceSha256": "6bae13fbc413edf0e82e62ddec1d80359a2b69bc3a029ad397ac74f8b4fe548d"
+      }
+    }
+  },
+  "automation/WebService": {
+    "definition": {
+      "type": "WebService",
+      "name": "Новый",
+      "namespace": "https://example.test/service",
+      "xdtoPackages": "<xr:Item><xr:Presentation/><xr:CheckState>0</xr:CheckState><xr:Value xsi:type=\"xr:MDObjectRef\">XDTOPackage.Пакет</xr:Value></xr:Item>",
+      "operations": {
+        "Read": {
+          "returnType": "xs:boolean",
+          "handler": "Чтение",
+          "nillable": true,
+          "transactioned": true,
+          "parameters": {
+            "Id": {
+              "type": "xs:long",
+              "nillable": false
+            },
+            "Error": {
+              "type": "xs:string",
+              "direction": "Out"
+            }
+          }
+        },
+        "Version": {
+          "returnType": "xs:string"
+        }
+      }
+    },
+    "source": "C:\\tmp\\metadata-identity-audit-001\\test_reporting_and_automation_7",
+    "files": {
+      "WebServices/Новый.xml": {
+        "sourceSha256": "233592325d1395cf7dadf6c0916139b9e8ce6804002dffa66e42c2b2c176c49d"
+      }
+    }
+  }
+}

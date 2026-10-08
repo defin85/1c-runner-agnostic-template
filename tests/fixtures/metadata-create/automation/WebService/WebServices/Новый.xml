@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<MetaDataObject xmlns="http://v8.1c.ru/8.3/MDClasses" xmlns:app="http://v8.1c.ru/8.2/managed-application/core" xmlns:cfg="http://v8.1c.ru/8.1/data/enterprise/current-config" xmlns:cmi="http://v8.1c.ru/8.2/managed-application/cmi" xmlns:ent="http://v8.1c.ru/8.1/data/enterprise" xmlns:lf="http://v8.1c.ru/8.2/managed-application/logform" xmlns:style="http://v8.1c.ru/8.1/data/ui/style" xmlns:sys="http://v8.1c.ru/8.1/data/ui/fonts/system" xmlns:v8="http://v8.1c.ru/8.1/data/core" xmlns:v8ui="http://v8.1c.ru/8.1/data/ui" xmlns:web="http://v8.1c.ru/8.1/data/ui/colors/web" xmlns:win="http://v8.1c.ru/8.1/data/ui/colors/windows" xmlns:xen="http://v8.1c.ru/8.3/xcf/enums" xmlns:xpr="http://v8.1c.ru/8.3/xcf/predef" xmlns:xr="http://v8.1c.ru/8.3/xcf/readable" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="2.17">
+	<WebService uuid="aa0d1f3c-2f68-43c5-8dc8-c330e81c7a6e">
+		<Properties>
+			<Name>Новый</Name>
+			<Synonym>
+				<v8:item>
+					<v8:lang>ru</v8:lang>
+					<v8:content>Новый</v8:content>
+				</v8:item>
+			</Synonym>
+			<Comment/>
+			<Namespace>https://example.test/service</Namespace>
+			<XDTOPackages><xr:Item><xr:Presentation/><xr:CheckState>0</xr:CheckState><xr:Value xsi:type="xr:MDObjectRef">XDTOPackage.Пакет</xr:Value></xr:Item></XDTOPackages>
+			<ReuseSessions>DontUse</ReuseSessions>
+			<SessionMaxAge>20</SessionMaxAge>
+		</Properties>
+		<ChildObjects>
+			<Operation uuid="fff4f475-5151-43dd-8007-d7d9f3159f13">
+				<Properties>
+					<Name>Read</Name>
+					<Synonym>
+						<v8:item>
+							<v8:lang>ru</v8:lang>
+							<v8:content>Read</v8:content>
+						</v8:item>
+					</Synonym>
+					<Comment/>
+					<XDTOReturningValueType>xs:boolean</XDTOReturningValueType>
+					<Nillable>true</Nillable>
+					<Transactioned>true</Transactioned>
+					<ProcedureName>Чтение</ProcedureName>
+				</Properties>
+				<ChildObjects>
+					<Parameter uuid="ef72fd73-1489-4547-84cb-18f6c13f5386">
+						<Properties>
+							<Name>Error</Name>
+							<Synonym>
+								<v8:item>
+									<v8:lang>ru</v8:lang>
+									<v8:content>Error</v8:content>
+								</v8:item>
+							</Synonym>
+							<XDTOValueType>xs:string</XDTOValueType>
+							<Nillable>true</Nillable>
+							<TransferDirection>Out</TransferDirection>
+						</Properties>
+					</Parameter>
+					<Parameter uuid="43cfd4ba-1c89-4a1d-b27a-11e2dff15511">
+						<Properties>
+							<Name>Id</Name>
+							<Synonym>
+								<v8:item>
+									<v8:lang>ru</v8:lang>
+									<v8:content>Id</v8:content>
+								</v8:item>
+							</Synonym>
+							<XDTOValueType>xs:long</XDTOValueType>
+							<Nillable>false</Nillable>
+							<TransferDirection>In</TransferDirection>
+						</Properties>
+					</Parameter>
+				</ChildObjects>
+			</Operation>
+			<Operation uuid="ae88c43a-059c-4fd6-bf54-ee447eeea1dc">
+				<Properties>
+					<Name>Version</Name>
+					<Synonym>
+						<v8:item>
+							<v8:lang>ru</v8:lang>
+							<v8:content>Version</v8:content>
+						</v8:item>
+					</Synonym>
+					<Comment/>
+					<XDTOReturningValueType>xs:string</XDTOReturningValueType>
+					<Nillable>false</Nillable>
+					<Transactioned>false</Transactioned>
+					<ProcedureName>Version</ProcedureName>
+				</Properties>
+				<ChildObjects/>
+			</Operation>
+		</ChildObjects>
+	</WebService>
+</MetaDataObject>

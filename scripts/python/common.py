@@ -9,7 +9,7 @@ import tempfile
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Iterable, Sequence
+from typing import Iterable, NoReturn, Sequence
 
 from .runtime_errors import CommandError
 from .runtime_atomic import atomic_write_json, atomic_write_text
@@ -20,7 +20,7 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = SCRIPT_DIR.parent.parent
 
 
-def die(message: str, exit_code: int = 1) -> "CommandError":
+def die(message: str, exit_code: int = 1) -> NoReturn:
     raise CommandError(message, exit_code)
 
 

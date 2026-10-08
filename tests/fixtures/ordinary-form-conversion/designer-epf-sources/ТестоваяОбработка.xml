@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<MetaDataObject xmlns="http://v8.1c.ru/8.3/MDClasses" version="2.17">
+  <ExternalDataProcessor uuid="00000000-0000-0000-0000-000000000020">
+    <Properties><Name>ТестоваяОбработка</Name></Properties>
+    <ChildObjects>
+      <Attribute><Properties><Name>Номенклатура</Name></Properties></Attribute>
+      <TabularSection><Properties><Name>УчетМарок</Name></Properties></TabularSection>
+      <TabularSection><Properties><Name>УчетМарокИсх</Name></Properties></TabularSection>
+      <Form>Форма</Form>
+      <Template>ТабличныйМакет</Template>
+      <Template>ДвоичныйРесурс</Template>
+    </ChildObjects>
+  </ExternalDataProcessor>
+</MetaDataObject>

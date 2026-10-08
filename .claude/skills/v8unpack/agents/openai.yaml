@@ -1,0 +1,3 @@
+interface:
+  display_name: "v8unpack"
+  short_description: "Распаковка и упаковка контейнеров и обычных форм 1С"

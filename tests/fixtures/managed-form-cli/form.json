@@ -1,0 +1,40 @@
+{
+  "title": "Тестовая форма",
+  "elements": [
+    {
+      "group": "vertical",
+      "name": "Группа",
+      "children": [
+        {
+          "label": "Existing",
+          "title": "Старый элемент"
+        }
+      ]
+    }
+  ],
+  "attributes": [
+    {
+      "name": "Текст",
+      "type": "string(100)"
+    },
+    {
+      "name": "Число",
+      "type": "decimal(15,2)"
+    },
+    {
+      "name": "Флаг",
+      "type": "boolean"
+    },
+    {
+      "name": "Дата",
+      "type": "dateTime"
+    }
+  ],
+  "commands": [
+    {
+      "name": "OldCommand",
+      "title": "Старая команда",
+      "action": "OldCommand"
+    }
+  ]
+}

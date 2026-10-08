@@ -131,7 +131,7 @@ cleanup_xpra_session_processes() {
     fi
     comm="$(cat "/proc/$pid/comm" 2>/dev/null || true)"
     case "$comm" in
-      dbus-daemon|gvfsd|gvfsd-*|xpra|Xvfb|openbox)
+      1cv8|1cv8c|dbus-daemon|gvfsd|gvfsd-*|xpra|Xvfb|openbox)
         pids+=("$pid")
         ;;
     esac
@@ -169,6 +169,77 @@ stop_xpra_session() {
   cleanup_xpra_session_processes "$xpra_session_token" "$baseline_file"
 }
 
+# Записывает PID процесса платформы для наблюдения и run-client своего run-root.
+write_command_pid_file() {
+  local pid="$1"
+  local pid_file="${ONEC_DIRECT_PLATFORM_COMMAND_PID_FILE:-}"
+
+  [ -n "$pid_file" ] || return 0
+  case "$pid_file" in
+    /*) ;;
+    *)
+      printf 'ONEC_DIRECT_PLATFORM_COMMAND_PID_FILE must be absolute\n' >&2
+      exit 1
+      ;;
+  esac
+  if [ -L "$pid_file" ]; then
+    printf 'ONEC_DIRECT_PLATFORM_COMMAND_PID_FILE must not be a symlink\n' >&2
+    exit 1
+  fi
+  mkdir -p "$(dirname -- "$pid_file")"
+  # Readers accept only a complete decimal PID, so a plain write is enough and needs no extra tools.
+  printf '%s\n' "$pid" >"$pid_file"
+}
+
+# Модальное окно ошибки 1С (transient или _NET_WM_STATE_MODAL) на дисплее своего сеанса.
+find_1c_modal_window() {
+  local display_value="$1"
+  local xauth_file="$2"
+  local window_id=""
+  local properties=""
+
+  while IFS= read -r window_id; do
+    properties="$(DISPLAY="$display_value" XAUTHORITY="$xauth_file" \
+      xprop -id "$window_id" WM_TRANSIENT_FOR _NET_WM_STATE 2>/dev/null || true)"
+    if printf '%s\n' "$properties" | grep -Eq \
+      'WM_TRANSIENT_FOR.*window id # 0x[1-9a-fA-F]|_NET_WM_STATE.*_NET_WM_STATE_MODAL'; then
+      printf '%s\n' "$window_id"
+      return 0
+    fi
+  done < <(
+    DISPLAY="$display_value" XAUTHORITY="$xauth_file" xwininfo -root -tree 2>/dev/null \
+      | sed -nE 's/^[[:space:]]*(0x[[:xdigit:]]+)[[:space:]]+"(1C:Enterprise|1С:Предприятие)".*/\1/p'
+  )
+  return 1
+}
+
+# Фиксирует модальное окно в evidence; при политике fail завершает зависший процесс платформы.
+handle_modal_window() {
+  local display_value="$1"
+  local xauth_file="$2"
+  local xpra_root="$3"
+  local command_pid="$4"
+  local modal_policy="$5"
+  local modal_window=""
+
+  [ ! -f "$xpra_root/error-dialog.detected" ] || return 1
+  modal_window="$(find_1c_modal_window "$display_value" "$xauth_file")" || return 1
+  printf 'direct-platform detected a modal 1C dialog\n' >&2
+  DISPLAY="$display_value" XAUTHORITY="$xauth_file" \
+    xprop -id "$modal_window" >"$xpra_root/error-dialog-window-properties.txt" 2>&1 || true
+  if command -v import >/dev/null 2>&1 && command -v timeout >/dev/null 2>&1; then
+    (umask 077; DISPLAY="$display_value" XAUTHORITY="$xauth_file" \
+      timeout --kill-after=1s 3s import -window "$modal_window" "$xpra_root/error-dialog.png") >/dev/null 2>&1 \
+      || rm -f -- "$xpra_root/error-dialog.png" 2>/dev/null || true
+  fi
+  printf 'modal-dialog windowId=%s policy=%s\n' "$modal_window" "$modal_policy" >"$xpra_root/error-dialog.detected"
+  [ "$modal_policy" = "fail" ] || return 1
+  kill -TERM "$command_pid" 2>/dev/null || true
+  sleep 1
+  kill -KILL "$command_pid" 2>/dev/null || true
+  return 0
+}
+
 run_xpra_wrapped_command() {
   local display_number=""
   local display_value=""
@@ -182,10 +253,24 @@ run_xpra_wrapped_command() {
   local xpra_session_token="${ONEC_DIRECT_PLATFORM_XPRA_SESSION_TOKEN:-onec-xpra-$$-$(date +%s%N)}"
   local xpra_xvfb_args="${ONEC_DIRECT_PLATFORM_XPRA_XVFB_ARGS:-}"
   local xpra_start_child="${ONEC_DIRECT_PLATFORM_XPRA_START_CHILD:-openbox}"
+  local modal_policy="${ONEC_DIRECT_PLATFORM_XPRA_MODAL_POLICY:-fail}"
+  local modal_detection=0
+  local command_pid=""
   local -a xpra_args=()
   local xauth_file=""
   local exit_code=0
   local waited=0
+
+  case "$modal_policy" in
+    fail|observe) ;;
+    *)
+      printf 'ONEC_DIRECT_PLATFORM_XPRA_MODAL_POLICY must be fail or observe\n' >&2
+      exit 1
+      ;;
+  esac
+  if command -v xwininfo >/dev/null 2>&1 && command -v xprop >/dev/null 2>&1; then
+    modal_detection=1
+  fi
 
   require_command xpra
   require_command flock
@@ -269,13 +354,29 @@ run_xpra_wrapped_command() {
 
   printf 'direct-platform xpra display=%s log=%s\n' "$display_value" "$xpra_log" >&2
 
+  [ ! -e "$xpra_root/error-dialog.detected" ] || rm -f -- "$xpra_root/error-dialog.detected"
   set +e
   if [ -n "$ld_preload_value" ]; then
-    DISPLAY="$display_value" XAUTHORITY="$xauth_file" env "LD_PRELOAD=$ld_preload_value" "$@"
+    DISPLAY="$display_value" XAUTHORITY="$xauth_file" ONEC_DIRECT_PLATFORM_XPRA_SESSION_TOKEN="$xpra_session_token" \
+      env "LD_PRELOAD=$ld_preload_value" "$@" &
   else
-    DISPLAY="$display_value" XAUTHORITY="$xauth_file" "$@"
+    DISPLAY="$display_value" XAUTHORITY="$xauth_file" ONEC_DIRECT_PLATFORM_XPRA_SESSION_TOKEN="$xpra_session_token" "$@" &
   fi
-  exit_code=$?
+  command_pid=$!
+  write_command_pid_file "$command_pid"
+  while kill -0 "$command_pid" 2>/dev/null; do
+    if [ "$modal_detection" -eq 1 ] \
+      && handle_modal_window "$display_value" "$xauth_file" "$xpra_root" "$command_pid" "$modal_policy"; then
+      wait "$command_pid" 2>/dev/null
+      exit_code=86
+      break
+    fi
+    sleep 0.5
+  done
+  if [ "$exit_code" -eq 0 ]; then
+    wait "$command_pid"
+    exit_code=$?
+  fi
   set -e
 
   stop_xpra_session "$display_value" "$xpra_session_token" "$xpra_cleanup_baseline"
@@ -285,6 +386,9 @@ run_xpra_wrapped_command() {
 
 command_name="${1##*/}"
 apply_direct_platform_locale
+# Клиент 1С сравнивает своё время со временем сервера кластера в системном часовом поясе.
+# Унаследованный TZ даёт модальное окно о разнице времени, и автоматический запуск зависает.
+unset TZ
 ld_preload_value=""
 if [ "$command_name" = "1cv8" ] || [ "$command_name" = "1cv8c" ]; then
   ld_preload_value="$(build_ld_preload_value)"
@@ -317,6 +421,13 @@ if [ "${ONEC_DIRECT_PLATFORM_XVFB_ENABLED:-0}" = "1" ]; then
       ;;
   esac
 fi
+
+case "$command_name" in
+  1cv8|1cv8c)
+    # После exec PID обёртки становится PID процесса платформы.
+    write_command_pid_file "$$"
+    ;;
+esac
 
 if [ -n "$ld_preload_value" ]; then
   exec env "LD_PRELOAD=$ld_preload_value" "$@"

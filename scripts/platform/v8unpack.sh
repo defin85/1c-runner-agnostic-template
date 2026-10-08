@@ -22,7 +22,7 @@ COMMAND_TXT=""
 
 usage() {
   cat <<'EOF'
-Usage: ./scripts/platform/v8unpack.sh <extract|build|index> [options]
+Usage: ./scripts/platform/v8unpack.sh <extract|build|index|container-extract|container-build> [options]
 
 Options:
   --input <path>        Input file for extract, source dir for build/index
@@ -41,12 +41,12 @@ fail() {
 }
 
 parse_args() {
-  [ "$#" -gt 0 ] || fail "action is required: extract, build, or index"
+  [ "$#" -gt 0 ] || fail "action is required"
   ACTION="$1"
   shift
 
   case "$ACTION" in
-    extract|build|index) ;;
+    extract|build|index|container-extract|container-build) ;;
     -h|--help)
       usage
       exit 0
@@ -143,6 +143,15 @@ build_command() {
     index)
       out_ref+=("-I" "$INPUT_PATH")
       ;;
+    container-extract|container-build)
+      local tool_path=""
+      tool_path="$(readlink -f "$(command -v "$TOOL_INPUT" 2>/dev/null || printf '%s' "$TOOL_INPUT")")"
+      out_ref=(
+        "$(dirname "$tool_path")/python"
+        "$PROJECT_ROOT/scripts/python/v8unpack_container.py"
+        "$ACTION" --input "$INPUT_PATH" --output "$OUTPUT_PATH"
+      )
+      ;;
   esac
   out_ref+=("${EXTRA_ARGS[@]}")
 }
@@ -201,6 +210,8 @@ STDERR_LOG="$RUN_ROOT/stderr.log"
 COMMAND_TXT="$RUN_ROOT/command.txt"
 
 mkdir -p "$RUN_ROOT"
+TOOL_TMP="$RUN_ROOT/tmp"
+mkdir -p "$TOOL_TMP"
 : >"$STDOUT_LOG"
 : >"$STDERR_LOG"
 
@@ -216,7 +227,7 @@ if [ "$DRY_RUN" = "1" ]; then
   status="dry-run"
 else
   set +e
-  "${command[@]}" >"$STDOUT_LOG" 2>"$STDERR_LOG"
+  TMPDIR="$TOOL_TMP" "${command[@]}" >"$STDOUT_LOG" 2>"$STDERR_LOG"
   exit_code=$?
   set -e
   if [ "$exit_code" -ne 0 ]; then
