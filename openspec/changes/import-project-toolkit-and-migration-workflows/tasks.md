@@ -35,6 +35,9 @@
 - [ ] 2.7 Вывести импортированные `meta-*`, `form-*` (кроме `form-patterns`) и `cfe-borrow` (Р6).
   - Перенести `RETIRED_METADATA_SKILLS` в `imported_skills.py` поверх версии из `origin/main`, убрать навыки из `.agents/skills`, зеркала и `template-managed-paths.txt`, добавить запись в release notes.
   - Проверка: `sync-imported-skills` не создаёт выведенные навыки, `check-skill-bindings` проходит, `template-update` удаляет их в копии созданного проекта.
+- [ ] 2.8 Перенести хранилище артефактов вне checkout (Р13): `scripts/artifact_storage.py`, `scripts/artifact-storage` и `tests/test_artifact_storage.py`.
+  - Заменить `fcntl` блокировкой через `runtime_lock`, а `os.statvfs` — `shutil.disk_usage` на Windows (лимиты inode только на Linux); добавить `.ps1`-обёртку; убрать проектное имя каталога (`.tn-bp30-sdd-artifacts` → `<repo>-artifacts`).
+  - Проверка: тесты лимитов, резерва и удаления временных каталогов проходят на Linux; модуль импортируется и проверяет свободное место на Windows (тест с имитацией платформы или парная проверка).
 
 ## 3. Качество репозитория
 
@@ -47,7 +50,11 @@
   - Проверка: `ruff check`, `ruff format --check` и `basedpyright` без ошибок; после `ruff check --fix` unit-тесты проходят и diff пуст; добавленная в фикстуру ошибка типа даёт ненулевой код с файлом и строкой.
 - [ ] 3.3 Перенести общие правки template-managed сценариев по решениям `inventory.md`.
   - Для `runtime.py` — сопоставить с модулями `runtime_*`.
+  - Включить возможности по Р12 и импортированные `db-*`/`epf/erf-*` через профиль по Р11 (поведение в `imported_skills.py`, vendor-файлы не править); удалить тесты текста BSL, блок `rlm-tools` и `format-bsl` по Р14; перенести коммит `06b9155` (preserve для `tests/golden/run.sh`).
+  - Перед началом повторить сверку для файлов проекта, изменённых после коммита инвентаря `099860613`.
   - Проверка: существующие smoke runtime-контура и `copier-update-ready.sh` проходят.
+- [ ] 3.4 Добавить project-owned точки расширения для фрагментов `оставить в проекте` из `inventory.md`: `Makefile.project`/`make.project.ps1`, дополнительные шаги `agent-verify`, проектный блок `.gitignore`/`.gitattributes`.
+  - Проверка: `template-update` копии проекта с заполненными точками расширения не меняет их, а проектные цели и шаги `agent-verify` выполняются.
 
 ## 4. Необязательные модули: механизм
 

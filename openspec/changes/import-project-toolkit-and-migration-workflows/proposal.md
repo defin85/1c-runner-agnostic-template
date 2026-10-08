@@ -39,6 +39,11 @@
   - локальный кеш и поиск стандартов `v8std` (`v8std.py`, `scripts/tools/v8std-fetch`, `v8std-search`), кеш хранится вне Git;
   - единый поисковый регламент `docs/agent/repository-search-runbook.md` и регламент `docs/agent/bsl-analyzer-workspace-runbook.md`;
   - навыки `1c-rac-operations`, `1c-linux-crash-diagnostics`, `legacy-customization-port` в обезличенном виде.
+- Перевести импортированные `db-*` и `epf/erf-*` на runtime-профиль и ibcmd без перехода на Designer: `db-run` вызывает `run-client`, EPF/ERF собираются через `file-import`, пароль скрыт. Поведение задаётся в `imported_skills.py`, vendor-файлы не правятся (решение Р11).
+- Добавить хранилище артефактов вне checkout: `scripts/artifact_storage.py` и `scripts/artifact-storage` — общий каталог `<repo>-artifacts`, паспорта прогонов, проверка лимитов размера и свободного места до создания прогона, очистка командой `prune`; блокировка через `runtime_lock`, чтобы работать на Linux и Windows (решение Р13).
+- Перенести возможности из расходящихся template-managed файлов (решение Р12): `--override-unsupported-profile`, `--vendor-cf`, `--info-only`, регистрация ИБ в кластере через `rac` после `create-ib`, флаги безопасности CFE, Designer-драйвер `manage-cfe`, парная проверка Linux/Windows, `one-c-form-viewer`.
+- Удалить тесты EPF, проверяющие текст BSL, блок `rlm-tools` в `agents-overlay.sh` и `format-bsl.sh|.ps1` с целью `format-bsl` (решение Р14).
+- Добавить project-owned точки расширения для `Makefile`/`make.ps1`, шагов `agent-verify`, `.gitignore`/`.gitattributes`, чтобы проектные фрагменты не терялись при обновлении.
 - Вывести из импортированного пакета `cc-1c-skills` навыки `meta-info`, `meta-compile`, `meta-edit`, `meta-remove`, `meta-validate`, `form-info`, `form-add`, `form-compile`, `form-edit`, `form-remove`, `form-validate`, `cfe-borrow`. Их заменяет CLI `metadata`, `sync-imported-skills` их пропускает (решение Р6). Навык `form-patterns` остаётся.
 - Добавить в `qa.py` / `check-skill-bindings` проверку того, что пути репозитория, упомянутые в `SKILL.md`, существуют.
 - Добавить проверку Python-кода (решения Р9, Р10):
@@ -140,7 +145,7 @@
   - `tests/smoke/`, `tests/python/`.
 - Создаваемые проекты:
   - получают базовый инструментарий при `copier copy` и при `template-update`;
-  - при `template-update` теряют импортированные `meta-*`, `form-*` (кроме `form-patterns`) и `cfe-borrow`; это фиксируется в release notes;
+  - при `template-update` теряют импортированные `meta-*`, `form-*` (кроме `form-patterns`) и `cfe-borrow`, прямой запуск импортированных `db-*`/`epf-*` через Designer без профиля, блок `rlm-tools` и `format-bsl`; это фиксируется в release notes;
   - необязательные модули появляются только после явной инициализации;
   - project-owned профили, сценарии и доказательства не перезаписываются.
 - Проект `tn-bp30-sdd`: после релиза шаблона выполнить `template-update`, сверить потерю локальных правок и перенести площадочные и КД-материалы в материализованные модули. Это делается отдельным change в проекте.
@@ -158,7 +163,7 @@
 
 ## Принятые решения
 
-Пользователь 2026-09-27 согласился с рекомендациями по пунктам 1–4, 2026-10-08 — по пунктам 5–10. Подробности и последствия — в `design.md`, раздел «Принятые решения».
+Пользователь 2026-09-27 согласился с рекомендациями по пунктам 1–4, 2026-10-08 — по пунктам 5–14. Подробности и последствия — в `design.md`, раздел «Принятые решения».
 
 1. Необязательные модули включаются командой `make optional-module-init MODULE=<имя>`, а не вопросом Copier.
 2. Обёртка восстановления доступа через `v8users` поставляется отдельной опцией модуля площадки с предупреждением и обязательной резервной копией.
@@ -170,3 +175,7 @@
 8. В базовый набор входят `1c-run-client` и Windows-наблюдение `observe-command`; PiP Child session не входит.
 9. Python-код проверяет ruff (`check` и `format`) с настройками из `ruff.toml`.
 10. basedpyright работает в режиме `standard` без baseline.
+11. Импортированные `db-*` и `epf/erf-*` работают только через runtime-профиль; поведение задаётся в `imported_skills.py`.
+12. Возможности из расходящихся template-managed файлов входят в базовый набор.
+13. Хранилище артефактов вне checkout входит в этот change и работает на Linux и Windows.
+14. Тесты текста BSL в EPF, блок `rlm-tools` и `format-bsl` удаляются из шаблона.
