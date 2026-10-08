@@ -3,10 +3,10 @@
 ## long-operation-observation
 
 - Каждый запуск клиента и Designer наблюдается общим адаптером
-  - Code: общий адаптер наблюдения, `scripts/adapters/direct-platform.sh`, обёртки `db-run`, EPF/ERF
+  - Code: общий адаптер наблюдения (`scripts/lib/capability.sh`, модуль `runtime_*` для Windows), `scripts/adapters/direct-platform.sh`, обёртки `db-run`, `run-client`, EPF/ERF
   - Tests: `tests/smoke/observation-contract.sh`
 - Операция без прикладного прогресса останавливается
-  - Code: адаптер наблюдения (`runtimeStageTimeoutSeconds`)
+  - Code: адаптер наблюдения (порог от обёртки, без порога — только `stageAgeSeconds`)
   - Tests: `tests/smoke/observation-contract.sh`
 - Технологический журнал включается только на время точного запуска
   - Code: `scripts/diag/technological-log.sh`
@@ -17,8 +17,12 @@
 
 ## onec-development-toolkit
 
+- Клиент 1С для визуальной проверки запускается штатной обёрткой
+  - Code: `scripts/platform/run-client.sh|.ps1`, `scripts/python/run_client.py`, `.agents/skills/1c-run-client/`
+  - Tests: `tests/smoke/run-client-contract.sh`
+
 - Проверка BSL выполняется в точном контуре конфигурации
-  - Code: `scripts/platform/check-cf-modules.sh`, `.agents/skills/1c-check-bsl/`
+  - Code: `scripts/platform/check-cf-modules.sh`, `resolve-bsl-analyzer-connections.py`, `scripts/python/external_bsl_check.py`, `.agents/skills/1c-check-bsl/`
   - Tests: `tests/smoke/check-bsl-routing.sh`; live — платформенная компиляция в согласованной ИБ
 - Отсутствие авторитетной проверки фиксируется явно
   - Tests: `tests/smoke/check-bsl-routing.sh`
@@ -61,6 +65,9 @@
 - Модуль КД 2.1 материализуется только явной командой
   - Code: `automation/optional/kd21-migration/`, `make optional-module-init`
   - Tests: `tests/smoke/optional-module-init.sh`
+- Правила КД 2.01 собираются компилятором без 1С
+  - Code: `scripts/migration/kd_xml_compiler/`, `kd-rules-cycle run build-rules`
+  - Tests: тест границы ядра и повторяемости сборки, `tests/smoke/kd21-workbench-contract.sh`
 - Контур изменяет только расходуемые базы профиля
 - Прогон выполняется по стадиям с одноразовым каталогом результата
 - Итог прогона подтверждается машинным результатом и манифестом выпуска
@@ -79,8 +86,11 @@
   - Code: `scripts/python/qa.py` (`check-skill-bindings`)
   - Tests: `tests/smoke/skill-bindings-paths.sh`
 - Базовый пакет навыков включает инструментарий разработки и наблюдения
-  - Code: `.agents/skills/*`, `.claude/skills/*`
+  - Code: `.agents/skills/*`, зеркало `.claude/skills/*` (`make sync-claude-skills`)
   - Tests: `check-skill-bindings`, `make agent-verify`
+- Импортированные редакторы метаданных заменены CLI `metadata`
+  - Code: `scripts/python/imported_skills.py` (`RETIRED_METADATA_SKILLS`), `template-managed-paths.txt`
+  - Tests: `tests/python/test_imported_skills.py`, проверка 8.3
 
 ## template-overlay-delivery
 
@@ -92,7 +102,7 @@
 ## template-ci-contours
 
 - Статическая типизация Python проверяется по baseline
-  - Code: `scripts/qa/type-check.sh|.ps1`, `pyrightconfig.json`
+  - Code: `scripts/qa/type-check.sh|.ps1`, `pyrightconfig.json`, `pyproject.toml`, `uv.lock`, `requirements-dev.txt`
   - Tests: `tests/smoke/python-type-checking-contract.sh`
 - Новые инструменты покрыты smoke-проверками без 1С
   - Tests: `make agent-verify`

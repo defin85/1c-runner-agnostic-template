@@ -16,9 +16,9 @@
 
 ### Requirement: Базовый пакет навыков включает инструментарий разработки и наблюдения
 
-Пакет навыков шаблона MUST включать следующие навыки в `.agents/skills/` и зеркале `.claude/skills/`, каждый с `Repo script` на существующий сценарий или с явным указанием, что навык только маршрутизирует:
+Пакет навыков шаблона MUST включать следующие навыки в `.agents/skills/` и в зеркале `.claude/skills/`, которое строит `sync-claude-skills`, каждый с `Repo script` на существующий сценарий или с явным указанием, что навык только маршрутизирует:
 
-- `1c-observe-run`, `1c-check-bsl`;
+- `1c-observe-run`, `1c-run-client`, `1c-check-bsl`;
 - `metadata-use`, `metadata-cli-development`;
 - `ordinary-form-workflow`, `prepare-external-artifact`, `cfe-form-workflow`;
 - `v8unpack`, `1c-rac-operations`, `1c-linux-crash-diagnostics`, `legacy-customization-port`.
@@ -29,3 +29,17 @@
 
 - **WHEN** запускается проверка пакета навыков шаблона
 - **THEN** каждый из перечисленных навыков присутствует в обоих каталогах, а его пути проходят `check-skill-bindings`
+
+### Requirement: Импортированные редакторы метаданных заменены CLI `metadata`
+
+Шаблон MUST NOT поставлять импортированные навыки `meta-info`, `meta-compile`, `meta-edit`, `meta-remove`, `meta-validate`, `form-info`, `form-add`, `form-compile`, `form-edit`, `form-remove`, `form-validate` и `cfe-borrow`. Команда `sync-imported-skills` MUST пропускать их при обновлении импортированного пакета. Навык `form-patterns` MUST оставаться в пакете. Изменение метаданных MUST выполняться через CLI `metadata` и навык `metadata-use`.
+
+#### Scenario: Обновление импортированного пакета
+
+- **WHEN** выполняется `sync-imported-skills`, а манифест `cc-1c-skills` содержит `meta-edit`
+- **THEN** каталоги `.agents/skills/meta-edit` и `.claude/skills/meta-edit` не создаются
+
+#### Scenario: Обновление созданного проекта
+
+- **WHEN** проект, созданный из прежней версии шаблона, выполняет `make template-update`
+- **THEN** выведенные навыки удалены из `.agents/skills` и `.claude/skills`, а `form-patterns` и `metadata-use` присутствуют
