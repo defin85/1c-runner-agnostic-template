@@ -213,6 +213,7 @@
 ./openspec
 ./openspec/changes
 ./openspec/changes/archive
+./openspec/changes/import-project-toolkit-and-migration-workflows
 ./openspec/changes/unify-agent-skill-sources
 ./openspec/specs
 ./openspec/specs/agent-runtime-toolkit

@@ -8,7 +8,7 @@
   - Объём на 2026-10-08: 181 расходящийся файл и 70 путей, которые проект убрал из своего `template-managed-paths.txt`. В инвентаре записать коммит проекта, на котором выполнена сверка.
   - Для каждого файла записать решение `перенести|обобщить|оставить в проекте|уже есть|вывести` и причину.
   - Проверка: число записей равно числу расходящихся и удалённых путей на зафиксированном коммите; у каждой записи есть решение.
-- [ ] 0.3 Перенести ветку change на актуальный `origin/main`, где есть `unify-agent-skill-sources` (зеркало `.claude/skills` через `make sync-claude-skills`).
+- [x] 0.3 Перенести ветку change на актуальный `origin/main`, где есть `unify-agent-skill-sources` (зеркало `.claude/skills` через `make sync-claude-skills`).
   - Проверка: `git merge-base --is-ancestor origin/main HEAD` успешен, `openspec validate import-project-toolkit-and-migration-workflows --strict` проходит.
 - [x] 0.4 Актуализировать proposal, design, specs и tasks по состоянию проекта-источника на 2026-10-08 и записать решения Р5–Р8.
 
