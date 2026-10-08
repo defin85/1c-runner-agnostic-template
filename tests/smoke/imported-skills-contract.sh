@@ -42,14 +42,30 @@ from pathlib import Path
 root = Path(sys.argv[1])
 manifest = json.loads((root / "automation/vendor/cc-1c-skills/imported-skills.json").read_text(encoding="utf-8"))
 skills = manifest.get("skills", [])
-if len(skills) != 67:
-    raise SystemExit(f"expected 67 imported skills, got {len(skills)}")
+if len(skills) != 55:
+    raise SystemExit(f"expected 55 imported skills, got {len(skills)}")
+
+retired = {
+    "meta-info", "meta-compile", "meta-edit", "meta-remove", "meta-validate",
+    "form-info", "form-add", "form-compile", "form-edit", "form-remove", "form-validate", "cfe-borrow",
+}
+names = {entry["name"] for entry in skills}
+if retired & names:
+    raise SystemExit(f"retired metadata editors are still imported: {sorted(retired & names)}")
+for name in retired:
+    for folder in (root / ".agents/skills" / name, root / ".claude/skills" / name, root / "automation/vendor/cc-1c-skills/skills" / name):
+        if folder.exists():
+            raise SystemExit(f"retired metadata editor is still shipped: {folder}")
 
 required_runtime = {
     "cf-edit": "python",
     "web-test": "node",
     "form-patterns": "reference",
     "db-create": "native-alias",
+    "db-run": "native-alias",
+    "epf-build": "profile-ibcmd",
+    "erf-dump": "profile-ibcmd",
+    "db-load-cf": "profile-ibcmd",
 }
 
 for entry in skills:
@@ -77,6 +93,16 @@ PY
 reference_output="$(bash "$dispatcher" form-patterns)"
 printf '%s' "$reference_output" | grep -F "Imported skill: form-patterns" >/dev/null
 printf '%s' "$reference_output" | grep -F "Runtime kind: reference" >/dev/null
+
+if bash "$dispatcher" meta-edit --help >/dev/null 2>&1; then
+  printf 'retired imported skill meta-edit must not be dispatched\n' >&2
+  exit 1
+fi
+bash "$dispatcher" epf-build --help | grep -F -- "-Profile" >/dev/null
+if bash "$dispatcher" db-run -InfoBasePath /tmp/legacy-ib >/dev/null 2>&1; then
+  printf 'db-run must reject the legacy direct Designer launch\n' >&2
+  exit 1
+fi
 
 readiness_json="$(bash "$dispatcher" --readiness --json)"
 printf '%s' "$readiness_json" | jq -e '

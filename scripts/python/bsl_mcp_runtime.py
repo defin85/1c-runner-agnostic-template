@@ -7,6 +7,7 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
+from .bsl_connections import resolve_profile_connections
 from .common import WINDOWS, CommandError, project_root
 from .runtime_atomic import atomic_write_json
 from .runtime_process import resolve_executable, run_process
@@ -20,22 +21,35 @@ def load_dotenv(path: Path) -> None:
         if not stripped or stripped.startswith("#") or "=" not in stripped:
             continue
         name, value = stripped.split("=", 1)
-        os.environ.setdefault(name.strip(), value.strip().strip('"\''))
+        os.environ.setdefault(name.strip(), value.strip().strip("\"'"))
 
 
-def load_available_connections(path: Path) -> dict[str, Any]:
+def load_runtime_connections(path: Path, root: Path | None = None) -> tuple[dict[str, Any], dict[str, str]]:
+    """Return connections whose secret refs are available and user values resolved from runtime profiles."""
     payload = json.loads(path.read_text(encoding="utf-8"))
-    connections = payload.get("connections")
+    connections = payload.get("connections") if isinstance(payload, dict) else None
     if not isinstance(connections, dict):
         raise CommandError(f"BSL Analyzer connection registry is invalid: {path}")
+    users: dict[str, str] = {}
+    if root is not None:
+        payload, users = resolve_profile_connections(payload, root)
+        connections = payload["connections"]
     available: dict[str, Any] = {}
     for name, connection in connections.items():
         if not isinstance(connection, dict):
             raise CommandError(f"BSL Analyzer connection is invalid: {name}")
         refs = [str(connection.get(key) or "") for key in ("user_env", "password_env")]
-        if all(not ref or os.environ.get(ref) for ref in refs):
+        if all(not ref or users.get(ref) or os.environ.get(ref) for ref in refs):
             available[name] = connection
-    return available
+    return available, {
+        key: value
+        for key, value in users.items()
+        if any(key == connection.get("user_env") for connection in available.values())
+    }
+
+
+def load_available_connections(path: Path) -> dict[str, Any]:
+    return load_runtime_connections(path)[0]
 
 
 def select_source_dir(root: Path, candidates: list[str]) -> Path:
@@ -45,7 +59,7 @@ def select_source_dir(root: Path, candidates: list[str]) -> Path:
         try:
             resolved.relative_to(root.resolve(strict=False))
         except ValueError:
-            raise CommandError(f"BSL Analyzer source path escapes repository: {candidate}")
+            raise CommandError(f"BSL Analyzer source path escapes repository: {candidate}") from None
         if (resolved / "Configuration.xml").is_file():
             return path
     if (root / "bsl-analyzer.toml").is_file():
@@ -66,7 +80,9 @@ def resolve_analyzer_executable() -> str:
     if configured:
         resolved = resolve_executable(configured)
         if WINDOWS and Path(resolved).name.lower() == "bsl-analyzer.exe":
-            raise CommandError("bsl-analyzer-app.exe is required on Windows; the auto-update launcher is not a stable broker parent")
+            raise CommandError(
+                "bsl-analyzer-app.exe is required on Windows; the auto-update launcher is not a stable broker parent"
+            )
         return resolved
     if WINDOWS:
         cached_app = Path.home() / ".bsl-analyzer" / "bin" / "bsl-analyzer-app.exe"
@@ -86,26 +102,43 @@ def run_bsl_analyzer_mcp(argv: list[str]) -> int:
     if argv:
         raise CommandError("bsl-analyzer-mcp does not accept positional arguments")
     root = project_root()
-    embedding_profile = Path(os.environ.get("BSL_ANALYZER_EMBEDDING_ENV", Path.home() / ".config" / "bsl-analyzer" / "embedding.env"))
+    embedding_profile = Path(
+        os.environ.get("BSL_ANALYZER_EMBEDDING_ENV", Path.home() / ".config" / "bsl-analyzer" / "embedding.env")
+    )
     load_dotenv(embedding_profile)
     load_dotenv(root / ".env")
-    registry_path = Path(os.environ.get("BSL_ONEC_CONNECTIONS_FILE", root / "env" / ".local" / "bsl-onec-connections.json"))
+    registry_path = Path(
+        os.environ.get("BSL_ONEC_CONNECTIONS_FILE", root / "env" / ".local" / "bsl-onec-connections.json")
+    )
     if not registry_path.is_file():
         raise CommandError(f"BSL Analyzer connection registry is missing: {registry_path}")
     candidates = [item for item in os.environ.get("BSL_ANALYZER_SOURCE_CANDIDATES", "src/cf").split(os.pathsep) if item]
     source_dir = select_source_dir(root, candidates)
     executable = resolve_analyzer_executable()
-    available = load_available_connections(registry_path)
+    available, profile_users = load_runtime_connections(registry_path, root)
     runtime_registry = Path(tempfile.gettempdir()) / f"bsl-onec-connections-{os.getpid()}.json"
     atomic_write_json(runtime_registry, {"connections": available})
     child_env = {
         "BSL_ONEC_CONNECTIONS_FILE": str(runtime_registry),
         "BSL_MCP_BROKER": os.environ.get("BSL_MCP_BROKER", "1"),
         "BSL_MCP_IDLE_TTL_SECS": os.environ.get("BSL_MCP_IDLE_TTL_SECS", "1800"),
+        **profile_users,
     }
     if os.environ.get("EMBEDDING_URL") or embedding_is_ready():
-        child_env.update({"EMBEDDING_URL": os.environ.get("EMBEDDING_URL", "http://127.0.0.1:8000"), "EMBEDDING_MODEL": os.environ.get("EMBEDDING_MODEL", "BAAI/bge-m3"), "EMBEDDING_DIM": os.environ.get("EMBEDDING_DIM", "1024"), "EMBEDDING_BATCH_SIZE": os.environ.get("EMBEDDING_BATCH_SIZE", "32")})
+        child_env.update(
+            {
+                "EMBEDDING_URL": os.environ.get("EMBEDDING_URL", "http://127.0.0.1:8000"),
+                "EMBEDDING_MODEL": os.environ.get("EMBEDDING_MODEL", "BAAI/bge-m3"),
+                "EMBEDDING_DIM": os.environ.get("EMBEDDING_DIM", "1024"),
+                "EMBEDDING_BATCH_SIZE": os.environ.get("EMBEDDING_BATCH_SIZE", "32"),
+            }
+        )
     try:
-        return run_process([executable, "mcp", "serve", "--profile", "workspace", "--source-dir", str(source_dir)], cwd=root, env=child_env, capture_output=False).returncode
+        return run_process(
+            [executable, "mcp", "serve", "--profile", "workspace", "--source-dir", str(source_dir)],
+            cwd=root,
+            env=child_env,
+            capture_output=False,
+        ).returncode
     finally:
         runtime_registry.unlink(missing_ok=True)

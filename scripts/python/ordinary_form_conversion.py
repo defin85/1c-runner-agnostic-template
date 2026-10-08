@@ -1649,6 +1649,11 @@ def _object_inventory(root_xml: Path, expected_kind: str) -> list[dict[str, obje
     return result
 
 
+def _profile_target(profile: RuntimeProfile) -> str:
+    """Evidence key of the infobase a build or live check ran against: the runtime profile name."""
+    return profile.name or profile.path.stem
+
+
 def _dump_object_source(
     input_path: Path, destination: Path, profile_path: Path, run_root: Path, v8unpack: str, kind: str
 ) -> Path:
@@ -1681,8 +1686,6 @@ def _dump_object_source(
         "epf-dump",
         "-Profile",
         str(profile_path),
-        "-Target",
-        profile.require_string("target", "id"),
     ]
     command.extend(["-InputFile", str(artifact), "-OutputDir", str(destination)])
     completed = subprocess.run(
@@ -2429,8 +2432,6 @@ def _build_for_profile(
         skill,
         "-Profile",
         str(profile_path),
-        "-Target",
-        profile.require_string("target", "id"),
         "-SourceFile",
         str(roots[0]),
         "-OutputFile",
@@ -2443,7 +2444,7 @@ def _build_for_profile(
         log = completed.stdout + completed.stderr
         raise CommandError(f"platform build failed for {profile.name}: {log.strip()}", completed.returncode or 1)
     evidence = {
-        "target": profile.require_string("target", "id"),
+        "target": _profile_target(profile),
         "profile": profile.name,
         "managed": managed_relative,
         "managedTreeSha256": _managed_source_sha(roots[0], object_tree),
@@ -2495,8 +2496,6 @@ def _build_sources(output: Path, profile_path: Path, artifact: Path, run_root: P
         f"{suffix[1:]}-build",
         "-Profile",
         str(profile_path),
-        "-Target",
-        profile.require_string("target", "id"),
         "-SourceFile",
         str(roots[0]),
     ]
@@ -2520,7 +2519,7 @@ def _build_sources(output: Path, profile_path: Path, artifact: Path, run_root: P
             "repositoryName": output.name,
             "managedTreeSha256": _input_sha(output),
             "profile": profile.name,
-            "target": profile.require_string("target", "id"),
+            "target": _profile_target(profile),
             "platformVersion": binary.parent.parent.name,
             "artifact": _relative_to_repo(artifact),
             "artifactSha256": _sha(artifact),
@@ -2544,7 +2543,7 @@ def _live_start(
     profile = load_runtime_profile(profile_path)
     if profile is None:
         raise CommandError("runtime profile is required")
-    target = profile.require_string("target", "id")
+    target = _profile_target(profile)
     builds = report.get("builds")
     if not isinstance(builds, list) or not any(
         isinstance(item, dict) and item.get("target") == target and item.get("artifactSha256") == _sha(artifact)
@@ -2609,7 +2608,7 @@ def _live_confirm(
     profile = load_runtime_profile(profile_path)
     if profile is None:
         raise CommandError("runtime profile is required")
-    target = profile.require_string("target", "id")
+    target = _profile_target(profile)
     artifact_hash = _sha(artifact)
     if allow_manual_acceptance:
         builds = report.get("builds")
@@ -2660,7 +2659,7 @@ def _mark_ready(output: Path, profile_path: Path, artifact: Path, run_root: Path
     profile = load_runtime_profile(profile_path)
     if profile is None:
         raise CommandError("runtime profile is required")
-    target = profile.require_string("target", "id")
+    target = _profile_target(profile)
     artifact_hash = _sha(artifact)
     checks = report.get("agentChecks")
     if report.get("diagnostics") or not _agent_verification_accepted(checks):

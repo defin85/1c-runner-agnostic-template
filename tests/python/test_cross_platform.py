@@ -137,7 +137,7 @@ class CrossPlatformSmokeTests(unittest.TestCase):
         manifest_path = ROOT / "automation" / "vendor" / "cc-1c-skills" / "imported-skills.json"
         payload = json.loads(manifest_path.read_text(encoding="utf-8"))
         skills = payload.get("skills", [])
-        self.assertEqual(len(skills), 67)
+        self.assertEqual(len(skills), 55)
         for entry in skills:
             name = entry["name"]
             self.assertTrue((ROOT / ".agents" / "skills" / name / "SKILL.md").is_file(), f"missing Codex skill: {name}")

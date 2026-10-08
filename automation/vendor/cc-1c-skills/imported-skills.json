@@ -5,7 +5,7 @@
     "source_commit": "eebc2a06792c6c0263ce02bb6c63b8a4579134d1",
     "synced_at_utc": "2026-04-05T09:56:56Z"
   },
-  "generated_at_utc": "2026-04-05T09:56:56Z",
+  "generated_at_utc": "2026-10-08T12:19:08Z",
   "skills": [
     {
       "name": "cf-edit",
@@ -59,20 +59,6 @@
       "vendor_dir": "skills/cf-validate",
       "reference_paths": [
         "skills/cf-validate/SKILL.md"
-      ],
-      "preferred_native_skills": [],
-      "delegate_shell": "",
-      "delegate_powershell": ""
-    },
-    {
-      "name": "cfe-borrow",
-      "description": "Заимствование объектов из конфигурации 1С в расширение (CFE). Используй когда нужно перехватить метод, изменить форму или добавить реквизит к существующему объекту конфигурации",
-      "argument_hint": "-ExtensionPath <path> -ConfigPath <path> -Object \"Catalog.Контрагенты.Form.ФормаЭлемента\" -BorrowMainAttribute",
-      "runtime_kind": "python",
-      "helper_path": "skills/cfe-borrow/scripts/cfe-borrow.py",
-      "vendor_dir": "skills/cfe-borrow",
-      "reference_paths": [
-        "skills/cfe-borrow/SKILL.md"
       ],
       "preferred_native_skills": [],
       "delegate_shell": "",
@@ -137,7 +123,7 @@
     {
       "name": "db-create",
       "description": "Создание информационной базы 1С. Используй когда пользователь просит создать базу, новую ИБ, пустую базу",
-      "argument_hint": "<path|name>",
+      "argument_hint": "[--profile <json>] [--run-root <dir>]",
       "runtime_kind": "native-alias",
       "helper_path": "",
       "vendor_dir": "skills/db-create",
@@ -153,9 +139,9 @@
     {
       "name": "db-dump-cf",
       "description": "Выгрузка конфигурации 1С в CF-файл. Используй когда пользователь просит выгрузить конфигурацию в CF, сохранить конфигурацию, сделать бэкап CF",
-      "argument_hint": "[database] [output.cf]",
-      "runtime_kind": "python",
-      "helper_path": "skills/db-dump-cf/scripts/db-dump-cf.py",
+      "argument_hint": "[-Profile <json>] [-RunRoot <dir>] -OutputFile <cf/cfe> [-Extension <name>]",
+      "runtime_kind": "profile-ibcmd",
+      "helper_path": "",
       "vendor_dir": "skills/db-dump-cf",
       "reference_paths": [
         "skills/db-dump-cf/SKILL.md"
@@ -167,9 +153,9 @@
     {
       "name": "db-dump-xml",
       "description": "Выгрузка конфигурации 1С в XML-файлы. Используй когда пользователь просит выгрузить конфигурацию в файлы, XML, исходники, DumpConfigToFiles",
-      "argument_hint": "[database] [outputDir]",
-      "runtime_kind": "python",
-      "helper_path": "skills/db-dump-xml/scripts/db-dump-xml.py",
+      "argument_hint": "[-Profile <json>] [-RunRoot <dir>] -ConfigDir <dir> [-Extension <name>]",
+      "runtime_kind": "profile-ibcmd",
+      "helper_path": "",
       "vendor_dir": "skills/db-dump-xml",
       "reference_paths": [
         "skills/db-dump-xml/SKILL.md"
@@ -195,9 +181,9 @@
     {
       "name": "db-load-cf",
       "description": "Загрузка конфигурации 1С из CF-файла. Используй когда пользователь просит загрузить конфигурацию из CF, восстановить из бэкапа CF",
-      "argument_hint": "<input.cf> [database]",
-      "runtime_kind": "python",
-      "helper_path": "skills/db-load-cf/scripts/db-load-cf.py",
+      "argument_hint": "[-Profile <json>] [-RunRoot <dir>] -InputFile <cf/cfe> [-Extension <name>]",
+      "runtime_kind": "profile-ibcmd",
+      "helper_path": "",
       "vendor_dir": "skills/db-load-cf",
       "reference_paths": [
         "skills/db-load-cf/SKILL.md"
@@ -209,9 +195,9 @@
     {
       "name": "db-load-git",
       "description": "Загрузка изменений из Git в базу 1С. Используй когда пользователь просит загрузить изменения из гита, обновить базу из репозитория, partial load из коммита",
-      "argument_hint": "[database] [source]",
-      "runtime_kind": "python",
-      "helper_path": "skills/db-load-git/scripts/db-load-git.py",
+      "argument_hint": "[--profile <json>] [--run-root <dir>]",
+      "runtime_kind": "native-alias",
+      "helper_path": "",
       "vendor_dir": "skills/db-load-git",
       "reference_paths": [
         "skills/db-load-git/SKILL.md"
@@ -220,15 +206,15 @@
         "1c-load-diff-src",
         "1c-load-task-src"
       ],
-      "delegate_shell": "",
-      "delegate_powershell": ""
+      "delegate_shell": "./scripts/platform/load-diff-src.sh",
+      "delegate_powershell": "./scripts/platform/load-diff-src.ps1"
     },
     {
       "name": "db-load-xml",
       "description": "Загрузка конфигурации 1С из XML-файлов. Используй когда пользователь просит загрузить конфигурацию из файлов, XML, исходников, LoadConfigFromFiles",
-      "argument_hint": "<configDir> [database]",
-      "runtime_kind": "python",
-      "helper_path": "skills/db-load-xml/scripts/db-load-xml.py",
+      "argument_hint": "[-Profile <json>] [-RunRoot <dir>] -ConfigDir <dir> [-Extension <name>]",
+      "runtime_kind": "profile-ibcmd",
+      "helper_path": "",
       "vendor_dir": "skills/db-load-xml",
       "reference_paths": [
         "skills/db-load-xml/SKILL.md"
@@ -240,21 +226,23 @@
     {
       "name": "db-run",
       "description": "Запуск 1С:Предприятие. Используй когда пользователь просит запустить 1С, открыть базу, запустить предприятие",
-      "argument_hint": "[database]",
-      "runtime_kind": "python",
-      "helper_path": "skills/db-run/scripts/db-run.py",
+      "argument_hint": "[start] [--profile <json>] [--run-root <dir>] | screenshot|status|stop|key|click --run-root <dir>",
+      "runtime_kind": "native-alias",
+      "helper_path": "",
       "vendor_dir": "skills/db-run",
       "reference_paths": [
         "skills/db-run/SKILL.md"
       ],
-      "preferred_native_skills": [],
-      "delegate_shell": "",
-      "delegate_powershell": ""
+      "preferred_native_skills": [
+        "1c-run-client"
+      ],
+      "delegate_shell": "./scripts/platform/run-client.sh",
+      "delegate_powershell": "./scripts/platform/run-client.ps1"
     },
     {
       "name": "db-update",
       "description": "Обновление конфигурации базы данных 1С. Используй когда пользователь просит обновить БД, применить конфигурацию, UpdateDBCfg",
-      "argument_hint": "[database]",
+      "argument_hint": "[--profile <json>] [--run-root <dir>]",
       "runtime_kind": "native-alias",
       "helper_path": "",
       "vendor_dir": "skills/db-update",
@@ -312,9 +300,9 @@
     {
       "name": "epf-build",
       "description": "Собрать внешнюю обработку 1С (EPF/ERF) из XML-исходников. Используй когда пользователь просит собрать, скомпилировать обработку или получить EPF/ERF файл из исходников",
-      "argument_hint": "<ProcessorName>",
-      "runtime_kind": "python",
-      "helper_path": "skills/epf-build/scripts/epf-build.py",
+      "argument_hint": "[-Profile <json>] [-RunRoot <dir>] -SourceFile <xml> -OutputFile <artifact>",
+      "runtime_kind": "profile-ibcmd",
+      "helper_path": "",
       "vendor_dir": "skills/epf-build",
       "reference_paths": [
         "skills/epf-build/SKILL.md"
@@ -326,9 +314,9 @@
     {
       "name": "epf-dump",
       "description": "Разобрать EPF-файл обработки 1С (EPF/ERF) в XML-исходники. Используй когда пользователь просит разобрать, декомпилировать обработку, получить исходники из EPF/ERF файла",
-      "argument_hint": "<EpfFile>",
-      "runtime_kind": "python",
-      "helper_path": "skills/epf-dump/scripts/epf-dump.py",
+      "argument_hint": "[-Profile <json>] [-RunRoot <dir>] -InputFile <artifact> -OutputDir <dir>",
+      "runtime_kind": "profile-ibcmd",
+      "helper_path": "",
       "vendor_dir": "skills/epf-dump",
       "reference_paths": [
         "skills/epf-dump/SKILL.md"
@@ -368,9 +356,9 @@
     {
       "name": "erf-build",
       "description": "Собрать внешний отчёт 1С (ERF) из XML-исходников. Используй когда пользователь просит собрать, скомпилировать отчёт или получить ERF файл из исходников",
-      "argument_hint": "<ReportName>",
-      "runtime_kind": "python",
-      "helper_path": "skills/epf-build/scripts/epf-build.py",
+      "argument_hint": "[-Profile <json>] [-RunRoot <dir>] -SourceFile <xml> -OutputFile <artifact>",
+      "runtime_kind": "profile-ibcmd",
+      "helper_path": "",
       "vendor_dir": "skills/erf-build",
       "reference_paths": [
         "skills/erf-build/SKILL.md"
@@ -382,9 +370,9 @@
     {
       "name": "erf-dump",
       "description": "Разобрать ERF-файл отчёта 1С в XML-исходники. Используй когда пользователь просит разобрать, декомпилировать отчёт, получить исходники из ERF файла",
-      "argument_hint": "<ErfFile>",
-      "runtime_kind": "python",
-      "helper_path": "skills/epf-dump/scripts/epf-dump.py",
+      "argument_hint": "[-Profile <json>] [-RunRoot <dir>] -InputFile <artifact> -OutputDir <dir>",
+      "runtime_kind": "profile-ibcmd",
+      "helper_path": "",
       "vendor_dir": "skills/erf-dump",
       "reference_paths": [
         "skills/erf-dump/SKILL.md"
@@ -422,62 +410,6 @@
       "delegate_powershell": ""
     },
     {
-      "name": "form-add",
-      "description": "Добавить управляемую форму к объекту конфигурации 1С",
-      "argument_hint": "<ObjectPath> <FormName> [Purpose] [--set-default]",
-      "runtime_kind": "python",
-      "helper_path": "skills/form-add/scripts/form-add.py",
-      "vendor_dir": "skills/form-add",
-      "reference_paths": [
-        "skills/form-add/SKILL.md"
-      ],
-      "preferred_native_skills": [],
-      "delegate_shell": "",
-      "delegate_powershell": ""
-    },
-    {
-      "name": "form-compile",
-      "description": "Компиляция управляемой формы 1С из компактного JSON-определения. Используй когда нужно создать форму с нуля по описанию элементов",
-      "argument_hint": "<JsonPath> <OutputPath>",
-      "runtime_kind": "python",
-      "helper_path": "skills/form-compile/scripts/form-compile.py",
-      "vendor_dir": "skills/form-compile",
-      "reference_paths": [
-        "skills/form-compile/SKILL.md"
-      ],
-      "preferred_native_skills": [],
-      "delegate_shell": "",
-      "delegate_powershell": ""
-    },
-    {
-      "name": "form-edit",
-      "description": "Добавление элементов, реквизитов и команд в существующую управляемую форму 1С. Используй когда нужно точечно модифицировать готовую форму",
-      "argument_hint": "<FormPath> <JsonPath>",
-      "runtime_kind": "python",
-      "helper_path": "skills/form-edit/scripts/form-edit.py",
-      "vendor_dir": "skills/form-edit",
-      "reference_paths": [
-        "skills/form-edit/SKILL.md"
-      ],
-      "preferred_native_skills": [],
-      "delegate_shell": "",
-      "delegate_powershell": ""
-    },
-    {
-      "name": "form-info",
-      "description": "Анализ структуры управляемой формы 1С (Form.xml) — элементы, реквизиты, команды, события. Используй для понимания формы — при написании модуля формы, анализе обработчиков и элементов",
-      "argument_hint": "<FormPath>",
-      "runtime_kind": "python",
-      "helper_path": "skills/form-info/scripts/form-info.py",
-      "vendor_dir": "skills/form-info",
-      "reference_paths": [
-        "skills/form-info/SKILL.md"
-      ],
-      "preferred_native_skills": [],
-      "delegate_shell": "",
-      "delegate_powershell": ""
-    },
-    {
       "name": "form-patterns",
       "description": "Справочник паттернов компоновки управляемых форм 1С. Используй как справочник при проектировании форм — архетипы, конвенции, продвинутые приёмы",
       "argument_hint": "(no arguments)",
@@ -486,34 +418,6 @@
       "vendor_dir": "skills/form-patterns",
       "reference_paths": [
         "skills/form-patterns/SKILL.md"
-      ],
-      "preferred_native_skills": [],
-      "delegate_shell": "",
-      "delegate_powershell": ""
-    },
-    {
-      "name": "form-remove",
-      "description": "Удалить форму из объекта 1С (обработка, отчёт, справочник, документ и др.)",
-      "argument_hint": "<ObjectName> <FormName>",
-      "runtime_kind": "python",
-      "helper_path": "skills/form-remove/scripts/remove-form.py",
-      "vendor_dir": "skills/form-remove",
-      "reference_paths": [
-        "skills/form-remove/SKILL.md"
-      ],
-      "preferred_native_skills": [],
-      "delegate_shell": "",
-      "delegate_powershell": ""
-    },
-    {
-      "name": "form-validate",
-      "description": "Валидация управляемой формы 1С. Используй после создания или модификации формы для проверки корректности. При наличии BaseForm автоматически проверяет callType и ID расширений",
-      "argument_hint": "<FormPath> [-Detailed] [-MaxErrors 30]",
-      "runtime_kind": "python",
-      "helper_path": "skills/form-validate/scripts/form-validate.py",
-      "vendor_dir": "skills/form-validate",
-      "reference_paths": [
-        "skills/form-validate/SKILL.md"
       ],
       "preferred_native_skills": [],
       "delegate_shell": "",
@@ -570,83 +474,6 @@
       "vendor_dir": "skills/interface-validate",
       "reference_paths": [
         "skills/interface-validate/SKILL.md"
-      ],
-      "preferred_native_skills": [],
-      "delegate_shell": "",
-      "delegate_powershell": ""
-    },
-    {
-      "name": "meta-compile",
-      "description": "Создать объект метаданных 1С. Используй когда пользователь просит создать или добавить справочник, документ, регистр, перечисление, константу, общий модуль, обработку, отчёт и др.",
-      "argument_hint": "<JsonPath> <OutputDir>",
-      "runtime_kind": "python",
-      "helper_path": "skills/meta-compile/scripts/meta-compile.py",
-      "vendor_dir": "skills/meta-compile",
-      "reference_paths": [
-        "skills/meta-compile/SKILL.md",
-        "skills/meta-compile/reference/types-basic.md",
-        "skills/meta-compile/reference/types-process.md",
-        "skills/meta-compile/reference/types-registers.md",
-        "skills/meta-compile/reference/types-web.md"
-      ],
-      "preferred_native_skills": [],
-      "delegate_shell": "",
-      "delegate_powershell": ""
-    },
-    {
-      "name": "meta-edit",
-      "description": "Точечное редактирование объекта метаданных 1С. Используй когда нужно добавить, удалить или изменить реквизиты, табличные части, измерения, ресурсы или свойства существующего объекта конфигурации",
-      "argument_hint": "<ObjectPath> -Operation <op> -Value \"<val>\" | -DefinitionFile <json> [-NoValidate]",
-      "runtime_kind": "python",
-      "helper_path": "skills/meta-edit/scripts/meta-edit.py",
-      "vendor_dir": "skills/meta-edit",
-      "reference_paths": [
-        "skills/meta-edit/SKILL.md",
-        "skills/meta-edit/child-operations.md",
-        "skills/meta-edit/json-dsl.md",
-        "skills/meta-edit/properties-reference.md"
-      ],
-      "preferred_native_skills": [],
-      "delegate_shell": "",
-      "delegate_powershell": ""
-    },
-    {
-      "name": "meta-info",
-      "description": "Анализ структуры объекта метаданных 1С из XML-выгрузки — реквизиты, табличные части, формы, движения, типы. Используй для изучения структуры объектов (вместо чтения XML-файлов напрямую) и как подготовительный шаг при написании запросов и кода, работающего с объектами",
-      "argument_hint": "<ObjectPath> [-Mode overview|brief|full] [-Name <элемент>]",
-      "runtime_kind": "python",
-      "helper_path": "skills/meta-info/scripts/meta-info.py",
-      "vendor_dir": "skills/meta-info",
-      "reference_paths": [
-        "skills/meta-info/SKILL.md"
-      ],
-      "preferred_native_skills": [],
-      "delegate_shell": "",
-      "delegate_powershell": ""
-    },
-    {
-      "name": "meta-remove",
-      "description": "Удалить объект метаданных из конфигурации 1С. Используй когда пользователь просит удалить, убрать объект из конфигурации",
-      "argument_hint": "<ConfigDir> -Object <Type.Name>",
-      "runtime_kind": "python",
-      "helper_path": "skills/meta-remove/scripts/meta-remove.py",
-      "vendor_dir": "skills/meta-remove",
-      "reference_paths": [
-        "skills/meta-remove/SKILL.md"
-      ],
-      "preferred_native_skills": [],
-      "delegate_shell": "",
-      "delegate_powershell": ""
-    },
-    {
-      "name": "meta-validate",
-      "description": "Валидация объекта метаданных 1С. Используй после создания или модификации объекта конфигурации для проверки корректности",
-      "argument_hint": "<ObjectPath> [-Detailed] [-MaxErrors 30] — pipe-separated paths for batch",
-      "runtime_kind": "python",
-      "helper_path": "skills/meta-validate/scripts/meta-validate.py",
-      "vendor_dir": "skills/meta-validate",
-      "reference_paths": [
-        "skills/meta-validate/SKILL.md"
       ],
       "preferred_native_skills": [],
       "delegate_shell": "",

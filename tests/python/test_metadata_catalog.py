@@ -2,11 +2,15 @@
 
 import tests.python.metadata_test_support  # noqa: F401, I001 — runs first: skips the module without pytest, lxml, jsonschema
 import json
+from pathlib import Path
 
 import pytest
 from jsonschema import Draft202012Validator, ValidationError
 
+from scripts.python import imported_skills
 from scripts.python import metadata_ops as catalog
+
+VENDOR = Path(__file__).parents[2] / "automation/vendor/cc-1c-skills/skills"
 
 
 # Recorded by reading meta-compile.valid_types, meta-edit.valid_operations and
@@ -169,6 +173,18 @@ def test_complete_routes_and_explicit_exclusions():
     assert set(catalog.EXCLUSIONS) == {"templates", "CommonTemplate", "Force", "BaseForm"}
     assert all(name not in RECORDED_LEGACY_ROUTES for name in catalog.PRESERVED_COMMANDS)
     assert "HTTPService" in catalog.OBJECT_TYPES
+    # Import sync owns the no-return policy for every former skill (managed-form was a runner command).
+    assert imported_skills.RETIRED_METADATA_SKILLS == set(RECORDED_LEGACY_ROUTES) - {"managed-form"}
+    project = VENDOR.parents[3]
+    imported = json.loads((VENDOR.parent / "imported-skills.json").read_text(encoding="utf-8-sig"))
+    helpers = {entry["name"]: entry["helper_path"] for entry in imported["skills"]}
+    assert not set(RECORDED_LEGACY_ROUTES) & helpers.keys()
+    for command in ("template-add", "template-remove", "mxl-info", "mxl-compile", "mxl-decompile", "mxl-validate"):
+        assert (VENDOR.parent / helpers[command]).is_file()
+    for name in RECORDED_LEGACY_ROUTES:
+        assert not (VENDOR / name).exists()
+        assert not (project / ".agents/skills" / name).exists()
+        assert not (project / ".claude/skills" / name).exists()
 
 
 # Operations for catalogs, charts of accounts and exchange plans added after the initial catalog.

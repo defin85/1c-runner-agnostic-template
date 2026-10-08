@@ -143,3 +143,38 @@ def test_retired_managed_form_command_is_rejected_without_dispatch(monkeypatch, 
     output = capsys.readouterr()
     assert output.out == ""
     assert "unknown python-cli command: managed-form" in output.err
+
+
+@pytest.mark.parametrize(
+    "name",
+    sorted(
+        {
+            "meta-info",
+            "meta-compile",
+            "meta-edit",
+            "meta-remove",
+            "meta-validate",
+            "form-info",
+            "form-add",
+            "form-compile",
+            "form-edit",
+            "form-remove",
+            "form-validate",
+            "cfe-borrow",
+        }
+    ),
+)
+def test_every_retired_imported_editor_is_rejected_without_dispatch(monkeypatch, capsys, name):
+    from scripts.python import cli, imported_skills
+
+    def forbidden(*_args, **_kwargs):
+        raise AssertionError("Retired editor must not be executed")
+
+    monkeypatch.setattr(metadata, "main", forbidden)
+    monkeypatch.setattr(subprocess, "run", forbidden)
+    monkeypatch.setattr(subprocess, "Popen", forbidden)
+    assert name in imported_skills.RETIRED_METADATA_SKILLS
+    assert cli.main(["imported-skill", name, "--help"]) != 0
+    output = capsys.readouterr()
+    assert output.out == ""
+    assert f"imported skill not found in manifest: {name}" in output.err

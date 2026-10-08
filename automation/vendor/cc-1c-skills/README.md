@@ -23,7 +23,7 @@ python -m scripts.python.cli sync-imported-skills --source /path/to/cc-1c-skills
 
 ## Imported Skills
 
-- count: `67`
+- count: `55`
 - dispatcher: `./scripts/skills/run-imported-skill.sh <skill>` / `./scripts/skills/run-imported-skill.ps1 <skill>`
 
 Do not edit vendored generated skill facades manually; regenerate them from this vendor source instead.

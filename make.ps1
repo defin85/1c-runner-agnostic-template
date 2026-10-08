@@ -24,6 +24,11 @@ $targets = @{
     "qa" = @((Resolve-TargetScript "scripts\qa\agent-verify.ps1"))
     "analyze-bsl" = @((Resolve-TargetScript "scripts\qa\analyze-bsl.ps1"))
     "format-bsl" = @((Resolve-TargetScript "scripts\qa\format-bsl.ps1"))
+    "check-bsl" = @((Resolve-TargetScript "scripts\qa\check-bsl.ps1"))
+    "check-cf-modules" = @((Resolve-TargetScript "scripts\platform\check-cf-modules.ps1"))
+    "analyze-bsl-external" = @((Resolve-TargetScript "scripts\qa\analyze-bsl-external.ps1"))
+    "artifact-storage" = @((Resolve-TargetScript "scripts\artifact-storage.ps1"))
+    "run-client" = @((Resolve-TargetScript "scripts\platform\run-client.ps1"))
     "check-agent-docs" = @((Resolve-TargetScript "scripts\qa\check-agent-docs.ps1"))
     "check-skill-bindings" = @((Resolve-TargetScript "scripts\qa\check-skill-bindings.ps1"))
     "sync-claude-skills" = @((Resolve-TargetScript "scripts\skills\sync-claude-skills.ps1"))
@@ -63,6 +68,11 @@ if ($Target -eq "help") {
         "  ./make.ps1 act-preflight",
         "  ./make.ps1 qa",
         "  ./make.ps1 analyze-bsl",
+        "  ./make.ps1 check-bsl",
+        "  ./make.ps1 check-cf-modules",
+        "  ./make.ps1 analyze-bsl-external",
+        "  ./make.ps1 artifact-storage",
+        "  ./make.ps1 run-client",
         "  ./make.ps1 format-bsl",
         "  ./make.ps1 check-agent-docs",
         "  ./make.ps1 check-skill-bindings",

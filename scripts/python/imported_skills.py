@@ -1,12 +1,27 @@
 from __future__ import annotations
 
+import argparse
 import json
 import shutil
+import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
-from .common import PROJECT_ROOT, die, ensure_dir, read_json, read_text, repo_path, run_git, run_process, timestamp_utc, write_json, write_text
-
+from .common import (
+    PROJECT_ROOT,
+    die,
+    ensure_dir,
+    read_json,
+    read_text,
+    repo_path,
+    run_git,
+    run_process,
+    timestamp_utc,
+    write_json,
+    write_text,
+)
+from .runtime_profiles import RuntimeProfile, load_runtime_profile, resolve_runtime_profile_path
 
 IMPORT_ROOT = repo_path("automation", "vendor", "cc-1c-skills")
 IMPORT_SKILLS_ROOT = IMPORT_ROOT / "skills"
@@ -36,9 +51,60 @@ REFERENCE_ONLY_SKILLS = {
 }
 
 PYTHON_ALIAS_SKILLS = {
-    "erf-build": "epf-build",
-    "erf-dump": "epf-dump",
     "erf-validate": "epf-validate",
+}
+
+# Replaced by the metadata CLI (`metadata-use`); upstream sync must not restore them.
+RETIRED_METADATA_SKILLS = frozenset(
+    {
+        "meta-info",
+        "meta-compile",
+        "meta-edit",
+        "meta-remove",
+        "meta-validate",
+        "form-info",
+        "form-add",
+        "form-compile",
+        "form-edit",
+        "form-remove",
+        "form-validate",
+        "cfe-borrow",
+    }
+)
+
+# Imported platform operations run only through the runtime profile and ibcmd (no Designer fallback).
+PROFILE_OPERATION_RUNTIME = "profile-ibcmd"
+PROFILE_CONFIG_SKILLS = {
+    # skill: (path option, ibcmd config command, path kind)
+    "db-load-cf": ("-InputFile", "load", "input-file"),
+    "db-dump-cf": ("-OutputFile", "save", "output-file"),
+    "db-load-xml": ("-ConfigDir", "import", "input-dir"),
+    "db-dump-xml": ("-ConfigDir", "export", "output-dir"),
+}
+EXTERNAL_ARTIFACT_SKILLS = {"epf-build", "erf-build", "epf-dump", "erf-dump"}
+PROFILE_OPERATION_SKILLS = set(PROFILE_CONFIG_SKILLS) | EXTERNAL_ARTIFACT_SKILLS
+# Native aliases that must use the ibcmd driver of the profile capability.
+IBCMD_ALIAS_CAPABILITIES = {"db-create": "create-ib", "db-update": "update-db", "db-load-git": "load-src"}
+PLATFORM_SKILLS = PROFILE_OPERATION_SKILLS | set(IBCMD_ALIAS_CAPABILITIES) | {"db-run"}
+RUN_CLIENT_ACTIONS = {"start", "screenshot", "status", "stop", "key", "click"}
+# Documentation hints; the execution contract is the dispatcher --help.
+PROFILE_SKILL_HINTS = {
+    "db-create": "[--profile <json>] [--run-root <dir>]",
+    "db-update": "[--profile <json>] [--run-root <dir>]",
+    "db-load-git": "[--profile <json>] [--run-root <dir>]",
+    "db-run": "[start] [--profile <json>] [--run-root <dir>] | screenshot|status|stop|key|click --run-root <dir>",
+    "db-load-cf": "[-Profile <json>] [-RunRoot <dir>] -InputFile <cf/cfe> [-Extension <name>]",
+    "db-dump-cf": "[-Profile <json>] [-RunRoot <dir>] -OutputFile <cf/cfe> [-Extension <name>]",
+    "db-load-xml": "[-Profile <json>] [-RunRoot <dir>] -ConfigDir <dir> [-Extension <name>]",
+    "db-dump-xml": "[-Profile <json>] [-RunRoot <dir>] -ConfigDir <dir> [-Extension <name>]",
+    **{
+        name: "[-Profile <json>] [-RunRoot <dir>] -SourceFile <xml> -OutputFile <artifact>"
+        for name in ("epf-build", "erf-build")
+    },
+    **{
+        name: "[-Profile <json>] [-RunRoot <dir>] -InputFile <artifact> -OutputDir <dir>"
+        for name in ("epf-dump", "erf-dump")
+    },
 }
 
 NATIVE_ALIAS_SKILLS = {
@@ -52,6 +118,16 @@ NATIVE_ALIAS_SKILLS = {
         "powershell": "./scripts/platform/update-db.ps1",
         "preferred_native_skills": ["1c-update-db"],
     },
+    "db-load-git": {
+        "shell": "./scripts/platform/load-diff-src.sh",
+        "powershell": "./scripts/platform/load-diff-src.ps1",
+        "preferred_native_skills": ["1c-load-diff-src", "1c-load-task-src"],
+    },
+    "db-run": {
+        "shell": "./scripts/platform/run-client.sh",
+        "powershell": "./scripts/platform/run-client.ps1",
+        "preferred_native_skills": ["1c-run-client"],
+    },
     "web-publish": {
         "shell": "./scripts/platform/publish-http.sh",
         "powershell": "./scripts/platform/publish-http.ps1",
@@ -59,9 +135,7 @@ NATIVE_ALIAS_SKILLS = {
     },
 }
 
-PREFERRED_NATIVE_SKILLS = {
-    "db-load-git": ["1c-load-diff-src", "1c-load-task-src"],
-}
+PREFERRED_NATIVE_SKILLS: dict[str, list[str]] = {}
 
 REPO_SCRIPT_FORMAT = DISPATCHER_SHELL + " {skill}"
 
@@ -80,7 +154,7 @@ def _skill_entries() -> list[dict[str, object]]:
     skills = payload.get("skills")
     if not isinstance(skills, list):
         die(f"manifest does not contain skills[]: {IMPORT_MANIFEST}")
-    return [entry for entry in skills if isinstance(entry, dict)]
+    return [entry for entry in skills if isinstance(entry, dict) and entry.get("name") not in RETIRED_METADATA_SKILLS]
 
 
 def _find_entry(skill_name: str) -> dict[str, object]:
@@ -218,6 +292,8 @@ def _copy_skill_tree(source_root: Path) -> list[str]:
     for source_dir in sorted(source_skills.iterdir()):
         if not source_dir.is_dir() or not (source_dir / "SKILL.md").is_file():
             continue
+        if source_dir.name in RETIRED_METADATA_SKILLS:
+            continue
         shutil.copytree(
             source_dir,
             IMPORT_SKILLS_ROOT / source_dir.name,
@@ -236,6 +312,8 @@ def _preferred_native_skills(name: str) -> list[str]:
 
 
 def _select_python_helper(skill_name: str, skill_dir: Path) -> tuple[str | None, str]:
+    if skill_name in PROFILE_OPERATION_SKILLS:
+        return None, PROFILE_OPERATION_RUNTIME
     if skill_name in NATIVE_ALIAS_SKILLS:
         return None, "native-alias"
     if skill_name in PYTHON_ALIAS_SKILLS:
@@ -274,7 +352,7 @@ def _build_skill_manifest(imported_names: list[str]) -> list[dict[str, object]]:
             {
                 "name": skill_name,
                 "description": description,
-                "argument_hint": argument_hint,
+                "argument_hint": PROFILE_SKILL_HINTS.get(skill_name, argument_hint),
                 "runtime_kind": runtime_kind,
                 "helper_path": helper_path or "",
                 "vendor_dir": f"skills/{skill_name}",
@@ -318,17 +396,51 @@ def _imported_repo_script(skill_name: str) -> str:
 def _adaptation_notes(entry: dict[str, object]) -> list[str]:
     notes: list[str] = []
     runtime_kind = str(entry.get("runtime_kind") or "")
-    preferred_native = list(entry.get("preferred_native_skills") or [])
+    preferred_value = entry.get("preferred_native_skills")
+    preferred_native = [str(name) for name in preferred_value] if isinstance(preferred_value, list) else []
     if runtime_kind == "reference":
-        notes.append("Это reference-only импорт: repo script печатает адаптированную сводку и указывает на vendored upstream материалы.")
+        notes.append(
+            "Это reference-only импорт: repo script печатает адаптированную сводку и указывает на vendored upstream материалы."
+        )
     elif runtime_kind == "node":
         notes.append("Исполнение идёт через repo-owned dispatcher, который вызывает vendored Node/Playwright helper.")
     elif runtime_kind == "native-alias":
-        notes.append("Это compatibility alias: dispatcher проксирует вызов в native runner-agnostic capability шаблона.")
+        notes.append(
+            "Это compatibility alias: dispatcher проксирует вызов в native runner-agnostic capability шаблона."
+        )
+    elif runtime_kind == PROFILE_OPERATION_RUNTIME:
+        notes.append(
+            "Dispatcher выполняет операцию через ibcmd по runtime profile (`-Profile`, по умолчанию `ONEC_PROFILE` "
+            "или `env/local.json`); vendored helper и Designer не запускаются."
+        )
     else:
         notes.append("Исполнение идёт через repo-owned dispatcher, который вызывает vendored Python helper.")
+    skill_name = str(entry.get("name") or "")
+    if skill_name in PROFILE_SKILL_HINTS:
+        notes.append(
+            f"Параметры: `{PROFILE_SKILL_HINTS[skill_name]}`. Точный контракт: `{_imported_repo_script(skill_name)} --help`."
+        )
+    if skill_name in IBCMD_ALIAS_CAPABILITIES:
+        capability = IBCMD_ALIAS_CAPABILITIES[skill_name]
+        notes.append(
+            f"Запуск требует driver `ibcmd` для capability `{capability}` в runtime profile; перехода на Designer нет."
+        )
+    if skill_name in EXTERNAL_ARTIFACT_SKILLS:
+        notes.append(
+            "Сборка и выгрузка берут контекст метаданных из ИБ профиля; временная ИБ не создаётся, "
+            "параметры `-V8Path` и `-InfoBase*` не поддерживаются."
+        )
+    if skill_name == "db-run":
+        notes.append(
+            "Вызов проксируется в `./scripts/platform/run-client.sh` (навык `1c-run-client`): подключение и пароль берутся "
+            "из runtime profile. Прежняя форма с `-V8Path`/`-InfoBase*`/`-Password` отклоняется."
+        )
     if preferred_native:
-        notes.append("Для native runner-agnostic workflow предпочитайте: " + ", ".join(f"`{name}`" for name in preferred_native) + ".")
+        notes.append(
+            "Для native runner-agnostic workflow предпочитайте: "
+            + ", ".join(f"`{name}`" for name in preferred_native)
+            + "."
+        )
     return notes
 
 
@@ -525,9 +637,9 @@ def _render_agents_skill(entry: dict[str, object]) -> str:
         f"Windows launcher: `{_skill_powershell_command(skill_name)}`",
         "",
         "## Use When",
-        f"",
+        "",
         f"- {description}",
-        f"- Нужно использовать template-managed импортированный workflow без копирования inline логики из upstream `SKILL.md`.",
+        "- Нужно использовать template-managed импортированный workflow без копирования inline логики из upstream `SKILL.md`.",
         "",
         "## Usage",
         "",
@@ -557,12 +669,28 @@ def _render_agents_skill(entry: dict[str, object]) -> str:
             "## Rules",
             "",
             "- Публичный contract для этого skill находится в repo-owned dispatcher, а не в vendored markdown.",
-            "- Если нужны детали параметров, сначала читайте vendored upstream `SKILL.md`, затем helper-скрипты из `automation/vendor/cc-1c-skills/`.",
+            (
+                "- Параметры определяет `--help` repo-owned dispatcher; vendored upstream `SKILL.md` описывает исходный инструмент, а не текущий контракт."
+                if skill_name in PLATFORM_SKILLS
+                else "- Если нужны детали параметров, сначала читайте vendored upstream `SKILL.md`, затем helper-скрипты из `automation/vendor/cc-1c-skills/`."
+            ),
             "- Если dispatcher сообщает о missing dependencies, сначала используйте canonical readiness path, а не helper traceback.",
             "- Не переносите upstream PowerShell snippets в новый automation contract шаблона.",
             "",
         ]
     )
+    if skill_name in PLATFORM_SKILLS:
+        lines.extend(
+            [
+                "## Наблюдение запуска",
+                "",
+                "Запуск ibcmd или клиента наблюдается общим адаптером: run-root содержит `observation.jsonl`, `summary.json`,",
+                "`stdout.log` и `stderr.log`, пароли в них скрыты. Состояние долгого запуска смотрите через",
+                "[1c-observe-run](../1c-observe-run/SKILL.md). Остановка при неизменном прогрессе включается",
+                "только порогом `ONEC_OBSERVATION_STALL_TIMEOUT_SECONDS` вызывающей обёртки.",
+                "",
+            ]
+        )
     return "\n".join(lines)
 
 
@@ -800,7 +928,7 @@ def _refresh_overlay_manifest() -> None:
 
 def _remove_previous_generated_surfaces(previous_names: list[str]) -> None:
     for skills_root in (repo_path(".agents", "skills"), repo_path(".claude", "skills")):
-        for skill_name in previous_names:
+        for skill_name in sorted(set(previous_names) | RETIRED_METADATA_SKILLS):
             target = skills_root / skill_name
             if target.is_dir():
                 shutil.rmtree(target)
@@ -973,8 +1101,194 @@ def _render_reference(entry: dict[str, object]) -> str:
     return "\n".join(lines) + "\n"
 
 
+def _wants_help(args: list[str]) -> bool:
+    return any(arg in {"--help", "-h"} for arg in args)
+
+
+def _load_profile(profile_input: str) -> RuntimeProfile:
+    profile = load_runtime_profile(resolve_runtime_profile_path(profile_input))
+    if profile is None:
+        die("imported platform skill requires a runtime profile; pass -Profile/--profile or create env/local.json")
+    return profile
+
+
+def _option_value(args: list[str], name: str) -> str:
+    for index, value in enumerate(args[:-1]):
+        if value == name:
+            return args[index + 1]
+    return ""
+
+
+def _require_ibcmd_driver(skill_name: str, args: list[str]) -> None:
+    from .runtime import resolve_capability_driver
+
+    capability = IBCMD_ALIAS_CAPABILITIES[skill_name]
+    profile = _load_profile(_option_value(args, "--profile"))
+    if resolve_capability_driver(profile, capability) != "ibcmd":
+        die(
+            f"{skill_name} requires capabilities driver=ibcmd for {capability} in {profile.path}; Designer fallback is retired"
+        )
+
+
+def _reject_legacy_db_run(args: list[str]) -> None:
+    legacy = sorted({arg for arg in args if arg.startswith("-") and not arg.startswith("--") and arg[1:2].isupper()})
+    if legacy:
+        die(
+            "db-run no longer starts 1C from -V8Path/-InfoBase*/-Password arguments (" + ", ".join(legacy) + "); "
+            "use --profile <json> with the runtime profile or a run-client action, see 1c-run-client"
+        )
+
+
+def _parse_operation_args(skill_name: str, args: list[str]) -> argparse.Namespace | int:
+    parser = argparse.ArgumentParser(
+        prog=f"{DISPATCHER_SHELL} {skill_name}",
+        allow_abbrev=False,
+        description="Runs the imported operation through ibcmd with the runtime profile; no Designer fallback.",
+    )
+    parser.add_argument("-Profile", default="", help="runtime profile JSON (default: ONEC_PROFILE or env/local.json)")
+    parser.add_argument("-RunRoot", default="", help="evidence directory (default: new directory under .artifacts)")
+    parser.add_argument("-DryRun", action="store_true", help="publish summary.json without starting ibcmd")
+    if skill_name in PROFILE_CONFIG_SKILLS:
+        option = PROFILE_CONFIG_SKILLS[skill_name][0]
+        parser.add_argument(option, dest="path", required=True)
+        parser.add_argument("-Extension", default="")
+        if skill_name == "db-dump-xml":
+            parser.add_argument("-Mode", choices=["Full"], default="Full")
+            parser.add_argument("-Format", choices=["Hierarchical"], default="Hierarchical")
+    elif skill_name.endswith("-build"):
+        parser.add_argument("-SourceFile", dest="source", required=True, help="root XML of the external object")
+        parser.add_argument("-OutputFile", dest="output", required=True)
+    else:
+        parser.add_argument("-InputFile", dest="source", required=True)
+        parser.add_argument("-OutputDir", dest="output", required=True)
+    try:
+        return parser.parse_args(args)
+    except SystemExit as error:
+        return error.code if isinstance(error.code, int) else 2
+
+
+def _operation_run_root(skill_name: str, requested: str) -> Path:
+    if requested:
+        return Path(requested).resolve()
+    base = PROJECT_ROOT / ".artifacts" / "imported-skills"
+    base.mkdir(parents=True, exist_ok=True)
+    return Path(tempfile.mkdtemp(prefix=f"{skill_name}-", dir=base))
+
+
+def _copy_external_sources(root_xml: Path, destination: Path) -> Path:
+    """Copy the root XML and its object tree; BSL modules get the UTF-8 BOM that ibcmd import expects."""
+    object_root = root_xml.parent / root_xml.stem
+    if not root_xml.is_file() or not object_root.is_dir():
+        die(f"external artifact build requires a root XML with a matching object directory: {root_xml}")
+    shutil.copy2(root_xml, destination / root_xml.name)
+    shutil.copytree(object_root, destination / root_xml.stem)
+    for module in (destination / root_xml.stem).rglob("*.bsl"):
+        content = module.read_bytes()
+        if content.startswith(b"\xef\xbb\xbf"):
+            continue
+        try:
+            content.decode("utf-8")
+        except UnicodeDecodeError:
+            die(f"BSL source is not UTF-8: {module.relative_to(destination)}")
+        module.write_bytes(b"\xef\xbb\xbf" + content)
+    return destination
+
+
+def _run_profile_operation(skill_name: str, args: list[str]) -> int:
+    from .cfe_runtime import execute_profile_operation, ibcmd_command, validate_extension_name
+
+    parsed = _parse_operation_args(skill_name, args)
+    if isinstance(parsed, int):
+        return parsed
+    profile = _load_profile(parsed.Profile)
+    run_root = _operation_run_root(skill_name, parsed.RunRoot)
+    context: dict[str, object] = {"imported_skill": skill_name}
+    expected: Path | None = None
+    with tempfile.TemporaryDirectory(prefix=f"{skill_name}-sources-") as temp:
+        if skill_name in PROFILE_CONFIG_SKILLS:
+            _option, verb, kind = PROFILE_CONFIG_SKILLS[skill_name]
+            path = Path(parsed.path).resolve()
+            if kind == "input-file" and not path.is_file():
+                die(f"input file not found: {path}")
+            if kind == "input-dir" and not (path / "Configuration.xml").is_file():
+                die(f"configuration XML directory not found: {path}")
+            if not parsed.DryRun and kind == "output-file":
+                path.parent.mkdir(parents=True, exist_ok=True)
+            if not parsed.DryRun and kind == "output-dir":
+                path.mkdir(parents=True, exist_ok=True)
+            command = ibcmd_command(profile, "config", verb, dry_run=parsed.DryRun)
+            if parsed.Extension:
+                command.append(f"--extension={validate_extension_name(parsed.Extension)}")
+            command.append(str(path))
+            context.update(path=str(path), extension_name=parsed.Extension or None)
+            expected = path if kind == "output-file" else None
+        else:
+            source = Path(parsed.source).resolve()
+            output = Path(parsed.output).resolve()
+            if not source.is_file():
+                die(f"input file not found: {source}")
+            if skill_name.endswith("-build"):
+                sources = _copy_external_sources(source, Path(temp))
+                if not parsed.DryRun:
+                    output.parent.mkdir(parents=True, exist_ok=True)
+                command = [
+                    *ibcmd_command(profile, "config", "import", dry_run=parsed.DryRun),
+                    f"--out={output}",
+                    str(sources),
+                ]
+                expected = output
+            else:
+                if not parsed.DryRun:
+                    output.mkdir(parents=True, exist_ok=True)
+                command = [
+                    *ibcmd_command(profile, "config", "export", dry_run=parsed.DryRun),
+                    f"--file={source}",
+                    str(output),
+                ]
+            context.update(source=str(source), output=str(output))
+        exit_code = execute_profile_operation(
+            f"imported-{skill_name}",
+            profile,
+            [command],
+            run_root,
+            dry_run=parsed.DryRun,
+            context=context,
+            expected_result=expected,
+        )
+    print(f"[imported-skill] {skill_name} run_root={run_root}")
+    print(f"[imported-skill] summary={run_root / 'summary.json'}")
+    return exit_code
+
+
+def _alias_entry(skill_name: str) -> dict[str, object]:
+    alias = NATIVE_ALIAS_SKILLS[skill_name]
+    return {"name": skill_name, "delegate_shell": alias["shell"], "delegate_powershell": alias["powershell"]}
+
+
+def _run_streaming_delegate(entry: dict[str, object], args: list[str]) -> int:
+    """Proxy a long interactive delegate without capturing its output."""
+    delegate = str(entry.get("delegate_powershell") if sys.platform == "win32" else entry.get("delegate_shell") or "")
+    delegate_path = PROJECT_ROOT / delegate.lstrip("./")
+    if not delegate or not delegate_path.is_file():
+        die(f"delegate script not found for {entry['name']}: {delegate}")
+    if sys.platform == "win32":
+        command = ["pwsh", "-NoLogo", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(delegate_path), *args]
+    else:
+        command = ["bash", str(delegate_path), *args]
+    return subprocess.run(command, cwd=PROJECT_ROOT, check=False).returncode
+
+
 def run_imported_skill(skill_name: str, args: list[str]) -> int:
     entry = _find_entry(skill_name)
+    if skill_name in PROFILE_OPERATION_SKILLS:
+        return _run_profile_operation(skill_name, args)
+    if skill_name == "db-run":
+        _reject_legacy_db_run(args)
+        return _run_streaming_delegate(_alias_entry(skill_name), args)
+    if skill_name in IBCMD_ALIAS_CAPABILITIES:
+        if not _wants_help(args):
+            _require_ibcmd_driver(skill_name, args)
+        return _run_native_alias(_alias_entry(skill_name), args)
     runtime_kind = str(entry.get("runtime_kind") or "")
     if runtime_kind == "native-alias":
         return _run_native_alias(entry, args)

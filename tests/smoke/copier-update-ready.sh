@@ -160,6 +160,15 @@ resolve_existing_path() {
 
 copy_template_repo
 
+# Simulate a previous template release that still shipped a retired imported metadata editor.
+retired_skill="meta-edit"
+for skills_dir in .agents/skills .claude/skills; do
+  mkdir -p "$template_root/$skills_dir/$retired_skill"
+  sed "s/^name: form-patterns\$/name: $retired_skill/" "$template_root/.agents/skills/form-patterns/SKILL.md" \
+    >"$template_root/$skills_dir/$retired_skill/SKILL.md"
+  printf '%s\n' "$skills_dir/$retired_skill/SKILL.md" >>"$template_root/automation/context/template-managed-paths.txt"
+done
+
 mkdir -p "$template_root/src/cf/DataProcessors/TestProcessor/Ext"
 cat >"$template_root/src/cf/DataProcessors/TestProcessor/Ext/ObjectModule.bsl" <<'EOF'
 // Smoke fixture to ensure Copier does not treat raw BSL braces as Jinja syntax.
@@ -835,6 +844,10 @@ cat >"$template_root/docs/template-update-note.txt" <<'EOF'
 This file is added in template v0.2.0 to verify copier update.
 EOF
 printf '%s\n' "docs/template-update-note.txt" >>"$template_root/automation/context/template-managed-paths.txt"
+rm -rf "$template_root/.agents/skills/$retired_skill" "$template_root/.claude/skills/$retired_skill"
+grep -v -F "/skills/$retired_skill/" "$template_root/automation/context/template-managed-paths.txt" \
+  >"$tmpdir/template-managed-paths.next"
+mv "$tmpdir/template-managed-paths.next" "$template_root/automation/context/template-managed-paths.txt"
 
 python3 - <<PY
 from pathlib import Path
@@ -890,6 +903,12 @@ assert_contains "$template_update_output" "Current overlay version: v0.1.0"
 assert_contains "$template_update_output" "Target overlay release: v0.2.0"
 
 assert_exists "$rendered_root/docs/template-update-note.txt"
+assert_not_exists "$rendered_root/.agents/skills/$retired_skill"
+assert_not_exists "$rendered_root/.claude/skills/$retired_skill"
+assert_exists "$rendered_root/.agents/skills/form-patterns/SKILL.md"
+assert_exists "$rendered_root/.claude/skills/form-patterns/SKILL.md"
+assert_exists "$rendered_root/.agents/skills/metadata-use/SKILL.md"
+assert_exists "$rendered_root/.claude/skills/metadata-use/SKILL.md"
 assert_contains "$rendered_root/src/cfe/ProjectYAxUnitTests/marker.txt" "project-owned extension marker"
 assert_contains "$rendered_root/analysis/testing/campaigns/local-campaign/queue.jsonl" "project-owned campaign marker"
 assert_contains "$rendered_root/.artifacts/testing/vanessa/local/vanessa-automation-single.epf" "project-owned artifact marker"

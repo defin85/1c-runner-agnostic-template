@@ -89,7 +89,6 @@ class OrdinaryFormConversionTest(unittest.TestCase):
                 "profileName": "test",
                 "projectName": "test",
                 "projectSlug": "test",
-                "target": {"id": "test"},
                 "platform": {"binaryPath": "C:/Program Files/1cv8/8.3.27.1/bin/1cv8.exe"},
                 "infobase": {"mode": "file", "filePath": "C:/ib", "auth": {"mode": "os"}},
             },
@@ -248,7 +247,6 @@ class OrdinaryFormConversionTest(unittest.TestCase):
                             "profileName": "test",
                             "projectName": "test",
                             "projectSlug": "test",
-                            "target": {"id": "test"},
                             "platform": {"binaryPath": "C:/1cv8.exe"},
                             "infobase": infobase,
                         },
@@ -267,7 +265,7 @@ class OrdinaryFormConversionTest(unittest.TestCase):
                     )
             for index, command in enumerate(commands):
                 self.assertEqual(str(root / f"profile-{index}.json"), command[command.index("-Profile") + 1])
-                self.assertEqual("test", command[command.index("-Target") + 1])
+                self.assertNotIn("-Target", command)
                 self.assertNotIn(secret, command)
             self.assertNotIn(secret, stdout.getvalue() + stderr.getvalue())
 
@@ -820,7 +818,6 @@ class OrdinaryFormConversionTest(unittest.TestCase):
                     "profileName": "demo",
                     "projectName": "test",
                     "projectSlug": "test",
-                    "target": {"id": "demo"},
                     "platform": {"binaryPath": "C:/Program Files/1cv8/8.3.27.1989/bin/1cv8.exe"},
                     "infobase": {
                         "mode": "client-server",
@@ -2723,7 +2720,6 @@ class BuildSourcesTests(unittest.TestCase):
                 "profileName": "demo",
                 "projectName": "test",
                 "projectSlug": "test",
-                "target": {"id": "demo"},
                 "platform": {"binaryPath": "C:/Program Files/1cv8/8.3.27.1989/bin/1cv8.exe"},
                 "infobase": {
                     "mode": "client-server",

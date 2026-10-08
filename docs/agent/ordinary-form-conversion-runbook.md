@@ -2,7 +2,7 @@
 
 Перед запуском установите в используемый Python 3.12+ пакеты `v8unpack` 1.2.6, `lxml` и `jsonschema`. Без них любая подкоманда `ordinary-form-conversion` завершается ошибкой `ModuleNotFoundError` до чтения входных файлов.
 
-Этапы `analyze`, `convert` и `verify-remediation` работают без 1С. Этапы, которые получают Designer-выгрузку или собирают EPF/ERF через Конфигуратор (`prepare` и `prepare-sources` при выгрузке через Конфигуратор, `build`, `build-published`, `live-*`), вызывают `imported-skill epf-dump|epf-build -Profile <профиль> -Target <target.id>` и читают из профиля поле `target.id`. Пока в профиле шаблона нет поля `target`, а `imported-skill` не принимает `-Profile`, эти этапы завершаются ошибкой до запуска платформы; результат таких этапов считайте `not-run`.
+Этапы `analyze`, `convert` и `verify-remediation` работают без 1С. Этапы, которые получают выгрузку или собирают EPF/ERF (`prepare` и `prepare-sources` при выгрузке, `build`, `build-published`, `live-*`), вызывают `imported-skill epf-dump|epf-build -Profile <профиль>`. Цель берётся из имени профиля, поле `target` в профиле не нужно. Команда выполняется через `ibcmd` из профиля и пишет наблюдение в свой run-root; без доступной платформы такие этапы завершаются ошибкой, их результат считайте `not-run`.
 
 Штатная точка входа:
 

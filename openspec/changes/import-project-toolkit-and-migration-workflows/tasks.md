@@ -18,9 +18,9 @@
   - Источник: `run_observed_command` из `scripts/lib/capability.sh` (Linux) и `observe-command` из `scripts/python/runtime.py` (Windows). Windows-часть разместить в отдельном модуле `runtime_*`.
   - Добавить остановку процессной группы при неизменном прогрессе (Р7): порог передаёт обёртка, без порога остановки нет. Логику взять из `stall_timeout` в `kd_cycle_common.run`.
 - [x] 1.2 Перенести `scripts/diag/technological-log.sh` с operation cursor и восстановлением исходного `logcfg.xml`.
-- [ ] 1.3 Подключить адаптер к `direct-platform.sh`, `db-run`, `run-client`, EPF/ERF build/dump и операциям с временными файловыми ИБ на Linux и Windows.
+- [x] 1.3 Подключить адаптер к `direct-platform.sh`, `db-run`, `run-client`, EPF/ERF build/dump и операциям с временными файловыми ИБ на Linux и Windows.
   - Сделано: адаптер вызывается в `execute_prepared_capability_command` (`runtime.py`), поэтому наблюдаются все capability-запуски через `direct-platform.sh` и `run-client`.
-  - Осталось подключить: Designer в `cfe_runtime.py` (сейчас `run_logged`); `db-run` и сборку/выгрузку EPF/ERF, которые идут через `imported_skills.py` (вместе с задачей 2.7 и Р11).
+  - Designer в `cfe_runtime.py`, `db-*` и `epf/erf-*` наблюдаются через `execute_profile_operation`; `db-run` передаётся в `run-client`.
   - Проверка на Windows: код кроссплатформенный, но на Windows не запускался; на Windows `run-client` проверяет владельца клиента только по имени образа.
 - [x] 1.4 Добавить `tests/smoke/observation-contract.sh`.
   - Проверка на фикстурных процессах: ровно один terminal, `failed` при отсутствии результата, остановка при неизменном прогрессе с заданным порогом, отсутствие остановки без порога, восстановление `logcfg.xml` после ошибки.
@@ -29,17 +29,19 @@
 
 ## 2. Проверка BSL и инструментарий разработки
 
-- [ ] 2.1 Перенести навык `1c-check-bsl`, `scripts/platform/check-cf-modules.sh`, `resolve-bsl-analyzer-connections.py` и `external_bsl_check.py` с выводом версии платформы и режима совместимости в результат.
-- [ ] 2.2 Добавить `tests/smoke/check-bsl-routing.sh`: выбор модулей, маршрутизация в анализатор или платформу, итог `синтаксис: не проверен` при недоступности, без разбора BSL.
+- [x] 2.1 Перенести навык `1c-check-bsl`, `scripts/platform/check-cf-modules.sh`, `resolve-bsl-analyzer-connections.py` и `external_bsl_check.py` с выводом версии платформы и режима совместимости в результат.
+  - Не перенесено: MCP-клиент `analyze-bsl` из проектного `qa.py` (в шаблоне `analyze-bsl` остаётся на BSL LS jar) и `check-bsl-analyzer-connections.sh` (настройка debug-server площадки через systemd).
+  - Модули лежат в `scripts/python/`: `bsl_check.py`, `check_cf_modules.py`, `external_bsl_check.py`, `bsl_connections.py`; цели `make check-bsl|check-cf-modules|analyze-bsl-external`.
+- [x] 2.2 Добавить `tests/smoke/check-bsl-routing.sh`: выбор модулей, маршрутизация в анализатор или платформу, итог `синтаксис: не проверен` при недоступности, без разбора BSL.
 - [x] 2.3 Перенести `scripts/python/metadata*.py` с тестами `tests/python/` и навыки `metadata-use`, `metadata-cli-development`.
 - [x] 2.4 Перенести `ordinary_form_conversion.py`, `v8unpack_container.py`, `v8unpack_erf_form.py`, `cfe_templates.py`, навыки `ordinary-form-workflow`, `prepare-external-artifact`, `cfe-form-workflow`, `v8unpack` и `docs/agent/ordinary-form-conversion-runbook.md`, обезличив примеры.
-  - Ограничение: этапы с 1С (`prepare`, `build`, `build-published`, `live-*`) вызывают `imported-skill epf-dump|epf-build -Profile` и читают `target.id`, которых нет в профиле v3 шаблона. Без 1С работают `analyze`, `convert`, `verify-remediation`. Доделать вместе с задачами 1.3 и 3.3.
+  - Ограничение: этапы с 1С (`prepare`, `build`, `build-published`, `live-*`) вызывают `imported-skill epf-dump|epf-build -Profile` и читают `target.id`, которых нет в профиле v3 шаблона. Без 1С работают `analyze`, `convert`, `verify-remediation`. Сделано вместе с Р11: цель берётся из имени профиля, вызов идёт через `ibcmd` профиля.
 - [x] 2.5 Перенести `v8std.py`, `scripts/tools/v8std-fetch`, `v8std-search` с кешем в `.artifacts/v8std` / `V8STD_CACHE_ROOT`.
-- [ ] 2.6 Перенести `docs/agent/repository-search-runbook.md` (с учётом приоритета проектного поискового регламента в блоке `AGENTS.md` из `origin/main`), `docs/agent/bsl-analyzer-workspace-runbook.md`, навыки `1c-rac-operations`, `1c-linux-crash-diagnostics`, `legacy-customization-port`, удалив проектные имена.
-- [ ] 2.7 Вывести импортированные `meta-*`, `form-*` (кроме `form-patterns`) и `cfe-borrow` (Р6).
+- [x] 2.6 Перенести `docs/agent/repository-search-runbook.md` (с учётом приоритета проектного поискового регламента в блоке `AGENTS.md` из `origin/main`), `docs/agent/bsl-analyzer-workspace-runbook.md`, навыки `1c-rac-operations`, `1c-linux-crash-diagnostics`, `legacy-customization-port`, удалив проектные имена.
+- [x] 2.7 Вывести импортированные `meta-*`, `form-*` (кроме `form-patterns`) и `cfe-borrow` (Р6).
   - Перенести `RETIRED_METADATA_SKILLS` в `imported_skills.py` поверх версии из `origin/main`, убрать навыки из `.agents/skills`, зеркала и `template-managed-paths.txt`, добавить запись в release notes.
   - Проверка: `sync-imported-skills` не создаёт выведенные навыки, `check-skill-bindings` проходит, `template-update` удаляет их в копии созданного проекта.
-- [ ] 2.8 Перенести хранилище артефактов вне checkout (Р13): `scripts/artifact_storage.py`, `scripts/artifact-storage` и `tests/test_artifact_storage.py`.
+- [x] 2.8 Перенести хранилище артефактов вне checkout (Р13): `scripts/python/artifact_storage.py`, `scripts/artifact-storage` и `tests/test_artifact_storage.py`.
   - Заменить `fcntl` блокировкой через `runtime_lock`, а `os.statvfs` — `shutil.disk_usage` на Windows (лимиты inode только на Linux); добавить `.ps1`-обёртку; убрать проектное имя каталога (`.tn-bp30-sdd-artifacts` → `<repo>-artifacts`).
   - Проверка: тесты лимитов, резерва и удаления временных каталогов проходят на Linux; модуль импортируется и проверяет свободное место на Windows (тест с имитацией платформы или парная проверка).
 
@@ -59,6 +61,7 @@
   - Включить возможности по Р12 и импортированные `db-*`/`epf/erf-*` через профиль по Р11 (поведение в `imported_skills.py`, vendor-файлы не править); удалить тесты текста BSL, блок `rlm-tools` и `format-bsl` по Р14; перенести коммит `06b9155` (preserve для `tests/golden/run.sh`).
   - Перед началом повторить сверку для файлов проекта, изменённых после коммита инвентаря `099860613`.
   - Проверка: существующие smoke runtime-контура и `copier-update-ready.sh` проходят.
+  - Известное падение: `copier-update-ready.sh` останавливается на проверке `runtime-doctor-runtime-mode` (в summary doctor нет `context.runtime_mode`) до шага `template-update`; разобрать в этой задаче.
 - [ ] 3.4 Добавить project-owned точки расширения для фрагментов `оставить в проекте` из `inventory.md`: `Makefile.project`/`make.project.ps1`, дополнительные шаги `agent-verify`, проектный блок `.gitignore`/`.gitattributes`.
   - Проверка: `template-update` копии проекта с заполненными точками расширения не меняет их, а проектные цели и шаги `agent-verify` выполняются.
 

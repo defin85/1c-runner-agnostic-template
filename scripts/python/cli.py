@@ -78,6 +78,22 @@ def main(argv: list[str] | None = None) -> int:
             from .run_client import run_client
 
             return run_client(args)
+        if command == "artifact-storage":
+            from .artifact_storage import run_artifact_storage
+
+            return run_artifact_storage(args)
+        if command == "check-bsl":
+            from .bsl_check import run_check_bsl
+
+            return run_check_bsl(args)
+        if command == "check-cf-modules":
+            from .check_cf_modules import run_check_cf_modules
+
+            return run_check_cf_modules(args)
+        if command == "analyze-bsl-external":
+            from .external_bsl_check import run_external_check
+
+            return run_external_check(args)
         if command in CAPABILITY_LABELS:
             return run_profile_capability(command, CAPABILITY_LABELS[command], args).exit_code
         if command in CFE_COMMANDS:
