@@ -506,6 +506,9 @@ def dispatch(args: argparse.Namespace) -> str:
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
+    if sys.platform == "win32":
+        print("REFUSED: site-operator runs on a Linux operator host (Xpra, xdotool, bash)", file=sys.stderr)
+        return 1
     try:
         print(dispatch(args))
     except OperatorError as error:

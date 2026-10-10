@@ -9,14 +9,21 @@ import json
 import os
 import stat
 import subprocess
+import sys
 import tempfile
 import time
 import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+import pytest
+
 from scripts.python import site_operator
 from scripts.python.site_operator import OperatorError
+
+pytestmark = pytest.mark.skipif(
+    sys.platform == "win32", reason="operator tools run on a Linux host (Xpra, xdotool, bash)"
+)
 
 ROOT = Path(__file__).resolve().parents[2]
 EXAMPLE = ROOT / "automation" / "optional" / "customer-site-operations" / "files" / "infra" / "site"

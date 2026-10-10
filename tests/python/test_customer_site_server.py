@@ -47,6 +47,10 @@ PY38_NAMES = (
 
 FAKE_RAC = r"""#!/usr/bin/env python3
 import json, os, sys
+
+import pytest
+
+pytestmark = pytest.mark.skipif(sys.platform == "win32", reason="server wrappers run on Linux site servers (fcntl, rac, psql)")
 state_path = os.environ["FAKE_RAC_STATE"]
 with open(os.environ["FAKE_RAC_LOG"], "a") as log:
     log.write(json.dumps(sys.argv[2:]) + "\n")
