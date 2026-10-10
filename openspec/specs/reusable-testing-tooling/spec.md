@@ -1,7 +1,7 @@
 # reusable-testing-tooling Specification
 
 ## Purpose
-TBD - created by syncing change add-reusable-testing-campaign. Update Purpose after archive.
+Определяет переиспользуемый тестовый инструментарий 1С, который шаблон поставляет проектам: заготовки расширений Vanessa и YAxUnit, закреплённые upstream-исходники YAxUnit и VAExtension, воспроизводимую установку Vanessa Automation Single и явные команды инициализации и установки. Также задаёт границу владения между шаблоном и проектом и проверки переносимости без 1С и совместимости на реальной платформе.
 
 ## Requirements
 
@@ -24,7 +24,7 @@ TBD - created by syncing change add-reusable-testing-campaign. Update Purpose af
 - **THEN** команда создаёт самодостаточные исходники с новым именем и новыми согласованными UUID, готовые для добавления проектных тестовых модулей
 
 ### Requirement: Закреплённые upstream-source расширения
-Шаблон SHALL хранить проверенные source-only снимки YAxUnit 25.12 (Apache-2.0) и VAExtension 1.29 (BSD-3-Clause) под `automation/testing/vendor/` вместе с лицензиями, upstream NOTICE/атрибуцией при наличии и `UPSTREAM.json`. Provenance SHALL включать repository/release URL, tag, имя и SHA-256 официального CFE asset, исходный Delans Git tree id и детерминированный source-tree SHA-256 по отсортированным относительным путям и хешам файлов. YAxUnit SHALL ссылаться на CFE SHA-256 `805a2277c997a3c24be0b0d080696479e91e4a15ed7e27aaf3991a7346522d70` и Git tree `9df32496af0985735968594c126a7e4bffb54e18`; VAExtension — на CFE SHA-256 `fc557bb23371a37dbe22a7a7a83e28f6db75b57f87e8802028cf1f90c4e00605` и Git tree `2d8b3b72df05c0282403f5b0c34d2235e2369462`. `init-test-tooling` SHALL копировать эти снимки в `src/cfe/YAxUnit` и `src/cfe/VAExtension` без изменения upstream UUID.
+Шаблон SHALL хранить проверенные source-only снимки YAxUnit 25.12 (Apache-2.0) и VAExtension 1.29 (BSD-3-Clause) под `automation/testing/vendor/` вместе с лицензиями, upstream NOTICE/атрибуцией при наличии и `UPSTREAM.json`. `init-test-tooling` SHALL копировать эти снимки в `src/cfe/YAxUnit` и `src/cfe/VAExtension` без изменения upstream UUID.
 
 #### Scenario: Автономная инициализация исходников
 - **WHEN** оператор запускает `init-test-tooling` без доступа к сети и целевые каталоги отсутствуют
@@ -34,8 +34,22 @@ TBD - created by syncing change add-reusable-testing-campaign. Update Purpose af
 - **WHEN** upstream VAExtension 1.29 не проходит обязательную проверку WebClient
 - **THEN** шаблон хранит минимальный производный патч, исходный и итоговый хеши дерева и перечень отличий без изменения upstream UUID
 
+### Requirement: Provenance upstream-source расширений
+Provenance в `UPSTREAM.json` SHALL включать repository/release URL, tag, имя и SHA-256 официального CFE asset, исходный Delans Git tree id и детерминированный source-tree SHA-256 по отсортированным относительным путям и хешам файлов.
+
+#### Scenario: Проверка происхождения снимка
+- **WHEN** проверяется `UPSTREAM.json` снимка YAxUnit или VAExtension
+- **THEN** он содержит repository/release URL, tag, имя и SHA-256 официального CFE asset, исходный Delans Git tree id и source-tree SHA-256, совпадающий с пересчётом по отсортированным относительным путям и хешам файлов
+
+### Requirement: Закреплённые хеши upstream-source расширений
+YAxUnit SHALL ссылаться на CFE SHA-256 `805a2277c997a3c24be0b0d080696479e91e4a15ed7e27aaf3991a7346522d70` и Git tree `9df32496af0985735968594c126a7e4bffb54e18`; VAExtension — на CFE SHA-256 `fc557bb23371a37dbe22a7a7a83e28f6db75b57f87e8802028cf1f90c4e00605` и Git tree `2d8b3b72df05c0282403f5b0c34d2235e2369462`.
+
+#### Scenario: Сверка закреплённых идентификаторов
+- **WHEN** проверяется provenance снимков YAxUnit и VAExtension
+- **THEN** CFE SHA-256 и Git tree каждого снимка совпадают с закреплёнными значениями
+
 ### Requirement: Воспроизводимая установка Vanessa Automation Single
-Шаблон SHALL закреплять Vanessa Automation release `1.2.043.28`, asset `vanessa-automation-single.1.2.043.28.zip`, ZIP SHA-256 `cd0a017a8af69328f471f628ac1367a0e5148f790df9c28c318348b30f08f32a` и SHA-256 `97cf472753c44f3b391062ad918f01a6e0a5932f230570c3102ab22e44df7a48` для извлечённого `vanessa-automation-single.epf`. `install-test-tooling` SHALL принимать официальный URL либо `--archive <local-zip>`, безопасно извлекать ровно ожидаемый обычный файл, проверять оба хеша до атомарной публикации в `.artifacts/testing/vanessa/1.2.043.28/` и сохранять ранее установленные версии.
+`install-test-tooling` SHALL принимать официальный URL либо `--archive <local-zip>`, безопасно извлекать ровно ожидаемый обычный файл, проверять оба хеша до атомарной публикации в `.artifacts/testing/vanessa/1.2.043.28/` и сохранять ранее установленные версии.
 
 #### Scenario: Успешная установка
 - **WHEN** загруженный и извлечённый EPF соответствует закреплённой контрольной сумме
@@ -44,6 +58,13 @@ TBD - created by syncing change add-reusable-testing-campaign. Update Purpose af
 #### Scenario: Ошибка загрузки или контрольной суммы
 - **WHEN** загрузка, распаковка или проверка SHA-256 завершается ошибкой
 - **THEN** команда завершается с ошибкой и не заменяет ни один ранее проверенный EPF
+
+### Requirement: Закреплённая версия Vanessa Automation Single
+Шаблон SHALL закреплять Vanessa Automation release `1.2.043.28`, asset `vanessa-automation-single.1.2.043.28.zip`, ZIP SHA-256 `cd0a017a8af69328f471f628ac1367a0e5148f790df9c28c318348b30f08f32a` и SHA-256 `97cf472753c44f3b391062ad918f01a6e0a5932f230570c3102ab22e44df7a48` для извлечённого `vanessa-automation-single.epf`.
+
+#### Scenario: Проверка загруженного архива
+- **WHEN** `install-test-tooling` получает архив `vanessa-automation-single.1.2.043.28.zip`
+- **THEN** он сравнивает SHA-256 архива с `cd0a017a8af69328f471f628ac1367a0e5148f790df9c28c318348b30f08f32a`, а SHA-256 извлечённого `vanessa-automation-single.epf` — с `97cf472753c44f3b391062ad918f01a6e0a5932f230570c3102ab22e44df7a48`
 
 ### Requirement: Явное владение и обновление тестового инструментария
 Заготовки, vendor-source, манифест и команды SHALL быть template-managed, а созданные каталоги под `src/cfe`, состояние кампаний и `.artifacts/testing/` SHALL оставаться вне автоматического overlay-применения. Инициализация исходников и установка бинарника SHALL выполняться только явными командами и не SHALL запускаться как побочный эффект bootstrap или template update.

@@ -49,7 +49,7 @@ _AGENT_PATH_REFERENCE = re.compile(r"@/([^`\"\s,)]+)")
 # Standalone repository paths only, not suffixes of `$root/...` or other path fragments.
 _CURATED_PATH = re.compile(
     r"(?<![\w./\\$-])(?:\./)?(?:src|scripts|tests|features|automation|docs|env|openspec|\.agents|\.codex|\.claude)"
-    r"/[^`\"\s,)]+|(?<![\w./\\$-])Makefile\b"
+    r"/[^`\"\s,()\[\]]+|(?<![\w./\\$-])Makefile\b"
 )
 _REQUIRED_CONTOUR_IDS = frozenset(
     {

@@ -14,7 +14,7 @@ from .context import is_source_repo, verify_traceability
 from .imported_skills import _is_overlay_managed, imported_skill_readiness_payload
 from .optional_modules import is_unmaterialized_optional_path
 from .project_extensions import run_project_verify_steps
-from .template_tools import GENERATED_PROJECT_SEED_PATHS
+from .template_tools import GENERATED_PROJECT_SEED_PATHS, RUNTIME_SUPPORT_MATRIX_MIGRATION_COMMAND
 from .type_checking import run_python_lint, run_python_tests_fast, run_type_check
 
 
@@ -85,6 +85,8 @@ _SKILL_PATH = re.compile(
 
 
 _GENERATED_DERIVED_CONTEXT = re.compile(r"automation/context/[\w.-]+\.generated\.\w+")
+# Runtime details a skill must route through repo scripts instead of embedding; `rac` only as a word, not inside `trac`.
+_RUNTIME_DETAIL_PATTERN = re.compile(r"powershell\.exe -File|/opt/1cv8|1cv8 DESIGNER|\brac ")
 
 
 def _missing_skill_paths(repo_root: Path, text: str) -> list[str]:
@@ -139,7 +141,7 @@ def check_skill_bindings(root: Path | None = None) -> int:
                     file=sys.stderr,
                 )
                 status = 1
-            if re.search(r"powershell\.exe -File|/opt/1cv8|1cv8 DESIGNER|rac ", text):
+            if _RUNTIME_DETAIL_PATTERN.search(text):
                 print(f"skill embeds runtime implementation details: {skill_file}", file=sys.stderr)
                 status = 1
             for error in _skill_frontmatter_errors(skill_file, text):
@@ -221,7 +223,11 @@ def validate_runtime_support_matrix(root: Path) -> int:
             support = platforms.get(platform)
             pair = f"{contour_id}/{platform}"
             if not isinstance(support, dict):
-                print(f"runtime support matrix is missing capability/platform entry: {pair}", file=sys.stderr)
+                print(
+                    f"runtime support matrix is missing capability/platform entry: {pair}; "
+                    f"add absent entries with {RUNTIME_SUPPORT_MATRIX_MIGRATION_COMMAND}",
+                    file=sys.stderr,
+                )
                 return 1
             status = support.get("status")
             evidence_class = support.get("evidenceClass")
@@ -253,9 +259,17 @@ def validate_runtime_support_matrix(root: Path) -> int:
                 prefix = f"| `{contour['id']}` | `{platform}` |"
                 expected_row = next(line for line in expected_markdown.splitlines() if line.startswith(prefix))
                 if expected_row not in actual_markdown.splitlines():
-                    print(f"runtime support matrix Markdown is stale: {contour['id']}/{platform}", file=sys.stderr)
+                    print(
+                        f"runtime support matrix Markdown is stale: {contour['id']}/{platform}; "
+                        f"rebuild it from JSON with {RUNTIME_SUPPORT_MATRIX_MIGRATION_COMMAND}",
+                        file=sys.stderr,
+                    )
                     return 1
-        print("runtime support matrix Markdown has unexpected stale content", file=sys.stderr)
+        print(
+            "runtime support matrix Markdown has unexpected stale content; "
+            f"rebuild it from JSON with {RUNTIME_SUPPORT_MATRIX_MIGRATION_COMMAND}",
+            file=sys.stderr,
+        )
         return 1
     return 0
 

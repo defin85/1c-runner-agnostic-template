@@ -7,7 +7,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from scripts.python.qa import check_skill_bindings
+from scripts.python.qa import _RUNTIME_DETAIL_PATTERN, check_skill_bindings
 
 
 class SkillBindingsTests(unittest.TestCase):
@@ -25,6 +25,13 @@ class SkillBindingsTests(unittest.TestCase):
 
         self.assertEqual(status, 1)
         self.assertIn("stale Claude skill mirror: .claude/skills/demo; run make sync-claude-skills", stderr.getvalue())
+
+    def test_runtime_detail_pattern_matches_rac_only_as_a_word(self) -> None:
+        self.assertIsNone(_RUNTIME_DETAIL_PATTERN.search("Run `trac info` to inspect the ticket."))
+        self.assertIsNone(_RUNTIME_DETAIL_PATTERN.search("Use the bracket notation."))
+        self.assertIsNotNone(_RUNTIME_DETAIL_PATTERN.search("Call rac infobase summary list."))
+        self.assertIsNotNone(_RUNTIME_DETAIL_PATTERN.search("`rac cluster list`"))
+        self.assertIsNotNone(_RUNTIME_DETAIL_PATTERN.search("powershell.exe -File run.ps1"))
 
 
 if __name__ == "__main__":

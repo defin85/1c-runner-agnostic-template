@@ -556,22 +556,45 @@ POSIX_ONLY_CONTOURS = frozenset(
 )
 
 
+RUNTIME_SUPPORT_PLATFORMS = ("linux", "windows")
+RUNTIME_SUPPORT_MATRIX_MIGRATION_COMMAND = (
+    "./scripts/template/migrate-runtime-support-matrix.sh "
+    "(Windows: .\\scripts\\template\\migrate-runtime-support-matrix.ps1)"
+)
+
+
+def _unverified_platform_support(contour: dict[str, Any], platform: str) -> dict[str, Any]:
+    """Platform entry without live evidence (`evidence: null`): the platform has not been verified yet."""
+    return {
+        "status": "unsupported"
+        if platform == "windows" and contour.get("id") in POSIX_ONLY_CONTOURS
+        else contour.get("status"),
+        "evidenceClass": "contract-only" if contour.get("layer") == "safe-local" else "contract-plus-live",
+        "evidence": None,
+    }
+
+
+def add_missing_runtime_support_platforms(payload: dict[str, Any]) -> list[str]:
+    """Add only absent linux/windows entries; existing entries and fields stay untouched.
+
+    Returns the added `<contour>/<platform>` pairs in matrix order.
+    """
+    added: list[str] = []
+    for contour in payload["contours"]:
+        platforms = contour.get("platforms")
+        if not isinstance(platforms, dict):
+            platforms = {}
+            contour["platforms"] = platforms
+        for platform in RUNTIME_SUPPORT_PLATFORMS:
+            if not isinstance(platforms.get(platform), dict):
+                platforms[platform] = _unverified_platform_support(contour, platform)
+                added.append(f"{contour.get('id')}/{platform}")
+    return added
+
+
 def apply_runtime_support_platforms(payload: dict[str, Any]) -> dict[str, Any]:
     """Add the linux/windows entries without live evidence; keeps entries a project already wrote."""
-    for contour in payload["contours"]:
-        if isinstance(contour.get("platforms"), dict):
-            continue
-        evidence_class = "contract-only" if contour.get("layer") == "safe-local" else "contract-plus-live"
-        contour["platforms"] = {
-            platform: {
-                "status": "unsupported"
-                if platform == "windows" and contour["id"] in POSIX_ONLY_CONTOURS
-                else contour["status"],
-                "evidenceClass": evidence_class,
-                "evidence": None,
-            }
-            for platform in ("linux", "windows")
-        }
+    add_missing_runtime_support_platforms(payload)
     return payload
 
 
@@ -652,10 +675,56 @@ def _runtime_support_matrix_md(payload: dict[str, Any]) -> str:
 def render_runtime_support_matrix_files(json_path: Path, markdown_path: Path | None = None) -> None:
     """Add platform entries to a seeded matrix JSON and render its Markdown (used by the POSIX bootstrap)."""
     payload = json.loads(json_path.read_text(encoding="utf-8"))
-    if not all(isinstance(contour.get("platforms"), dict) for contour in payload["contours"]):
-        write_json(json_path, apply_runtime_support_platforms(payload))
+    if add_missing_runtime_support_platforms(payload):
+        write_json(json_path, payload)
     if markdown_path is not None:
         write_text(markdown_path, _runtime_support_matrix_md(payload))
+
+
+def migrate_runtime_support_matrix(root: Path) -> str:
+    """Add absent platform entries to a project's matrix JSON and rebuild its Markdown from that JSON.
+
+    Existing fields are never changed; a second run with nothing to add leaves both files byte-identical.
+    """
+    context = root / "automation" / "context"
+    json_path = context / "runtime-support-matrix.json"
+    markdown_path = context / "runtime-support-matrix.md"
+    if not json_path.is_file():
+        die(f"runtime support matrix not found: {json_path}")
+    try:
+        payload = json.loads(json_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as error:
+        die(f"runtime support matrix is not valid JSON: {json_path}: {error}")
+    contours = payload.get("contours") if isinstance(payload, dict) else None
+    if not isinstance(contours, list) or not all(isinstance(contour, dict) for contour in contours):
+        die(f"runtime support matrix must contain a contours array of objects: {json_path}")
+    incomplete = [
+        str(contour.get("id") or "<missing id>")
+        for contour in contours
+        if not all(isinstance(contour.get(key), str) for key in ("id", "status", "profileProvenance"))
+        or not all(key in contour for key in ("entrypoint", "runbookPath"))
+    ]
+    if incomplete:
+        die(
+            "runtime support matrix contours need string id/status/profileProvenance "
+            "and entrypoint/runbookPath keys: " + " ".join(incomplete)
+        )
+    added = add_missing_runtime_support_platforms(payload)
+    if added:
+        write_json(json_path, payload)
+    markdown = _runtime_support_matrix_md(payload)
+    markdown_changed = not markdown_path.is_file() or markdown_path.read_text(encoding="utf-8") != markdown
+    if markdown_changed:
+        write_text(markdown_path, markdown)
+    lines = [f"added platform entry (evidence: null): {pair}" for pair in added]
+    if markdown_changed:
+        lines.append(
+            f"rebuilt {markdown_path.relative_to(root).as_posix()} from JSON; "
+            "its previous content was replaced, review it with git diff"
+        )
+    if not lines:
+        lines.append("runtime support matrix already has linux/windows entries; nothing changed")
+    return "\n".join(lines) + "\n"
 
 
 def _operator_local_targets_json() -> dict[str, object]:

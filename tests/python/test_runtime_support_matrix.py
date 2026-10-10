@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import contextlib
+import io
 import json
 import tempfile
 import unittest
@@ -9,6 +11,7 @@ from scripts.python.qa import validate_runtime_support_matrix
 from scripts.python.template_tools import (
     _runtime_support_matrix_json,
     _runtime_support_matrix_md,
+    migrate_runtime_support_matrix,
     refresh_generated_project_surface,
     render_runtime_support_matrix_files,
     seed_generated_project_surface,
@@ -110,6 +113,121 @@ class RuntimeSupportMatrixTests(unittest.TestCase):
                 encoding="utf-8",
             )
             self.assertEqual(validate_runtime_support_matrix(root), 1)
+
+
+class RuntimeSupportMatrixMigrationTests(unittest.TestCase):
+    """Р16: the migration adds only absent platform entries and is idempotent."""
+
+    def legacy_project(self, root: Path) -> tuple[Path, Path]:
+        payload = _runtime_support_matrix_json()
+        contours = payload["contours"]
+        assert isinstance(contours, list)
+        for contour in contours:
+            del contour["platforms"]
+        # A project-owned contour, and one contour where the project already wrote a linux entry.
+        contours.append(
+            {
+                "id": "project-report",
+                "layer": "profile-required",
+                "status": "operator-local",
+                "entrypoint": "make project-report",
+                "profileProvenance": "operator-local env/local.json",
+                "runbookPath": "docs/agent/operator-local-runbook.md",
+                "summary": "Project-owned report contour.",
+                "projectNote": "kept",
+            }
+        )
+        contours[3]["platforms"] = {
+            "linux": {
+                "status": "supported",
+                "evidenceClass": "contract-plus-live",
+                "evidence": {
+                    "fingerprint": "fixture",
+                    "timestamp": "2026-01-01T00:00:00Z",
+                    "expiresAt": "2099-01-01T00:00:00Z",
+                },
+            }
+        }
+        context = root / "automation" / "context"
+        context.mkdir(parents=True)
+        json_path = context / "runtime-support-matrix.json"
+        markdown_path = context / "runtime-support-matrix.md"
+        json_path.write_text(json.dumps(payload, ensure_ascii=False, indent=4) + "\n", encoding="utf-8")
+        markdown_path.write_text("# Legacy matrix\n", encoding="utf-8")
+        return json_path, markdown_path
+
+    def test_validation_names_migration_command(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.legacy_project(root)
+            stderr = io.StringIO()
+            with contextlib.redirect_stderr(stderr):
+                self.assertEqual(validate_runtime_support_matrix(root), 1)
+            self.assertIn("missing capability/platform entry", stderr.getvalue())
+            self.assertIn("./scripts/template/migrate-runtime-support-matrix.sh", stderr.getvalue())
+
+    def test_migration_adds_only_absent_entries(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            json_path, markdown_path = self.legacy_project(root)
+            before = json.loads(json_path.read_text(encoding="utf-8"))
+
+            report = migrate_runtime_support_matrix(root)
+
+            after = json.loads(json_path.read_text(encoding="utf-8"))
+            for old, new in zip(before["contours"], after["contours"], strict=True):
+                old_platforms = old.pop("platforms", {})
+                new_platforms = new.pop("platforms")
+                self.assertEqual(old, new)
+                for platform, support in old_platforms.items():
+                    self.assertEqual(new_platforms[platform], support)
+                self.assertEqual(sorted(new_platforms), ["linux", "windows"])
+            self.assertEqual(
+                {k: v for k, v in before.items() if k != "contours"},
+                {k: v for k, v in after.items() if k != "contours"},
+            )
+            by_id = {
+                contour["id"]: contour for contour in json.loads(json_path.read_text(encoding="utf-8"))["contours"]
+            }
+            self.assertEqual(
+                by_id["project-report"]["platforms"]["windows"],
+                {"status": "operator-local", "evidenceClass": "contract-plus-live", "evidence": None},
+            )
+            self.assertEqual(by_id["bdd-warm-service"]["platforms"]["windows"]["status"], "unsupported")
+            self.assertNotIn(f"{before['contours'][3]['id']}/linux", report)
+            self.assertIn(f"added platform entry (evidence: null): {before['contours'][3]['id']}/windows", report)
+            self.assertEqual(
+                markdown_path.read_text(encoding="utf-8"),
+                _runtime_support_matrix_md(json.loads(json_path.read_text(encoding="utf-8"))),
+            )
+            self.assertEqual(validate_runtime_support_matrix(root), 0)
+
+    def test_second_run_changes_nothing(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            json_path, markdown_path = self.legacy_project(root)
+            migrate_runtime_support_matrix(root)
+            snapshot = (json_path.read_bytes(), markdown_path.read_bytes())
+
+            report = migrate_runtime_support_matrix(root)
+
+            self.assertEqual((json_path.read_bytes(), markdown_path.read_bytes()), snapshot)
+            self.assertIn("nothing changed", report)
+
+    def test_complete_matrix_json_is_not_rewritten(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            context = root / "automation" / "context"
+            context.mkdir(parents=True)
+            json_path = context / "runtime-support-matrix.json"
+            text = json.dumps(_runtime_support_matrix_json(), separators=(",", ":"))
+            json_path.write_text(text, encoding="utf-8")
+
+            report = migrate_runtime_support_matrix(root)
+
+            self.assertEqual(json_path.read_text(encoding="utf-8"), text)
+            self.assertIn("rebuilt automation/context/runtime-support-matrix.md from JSON", report)
+            self.assertEqual(validate_runtime_support_matrix(root), 0)
 
 
 class TemplateUpdateSurfaceTests(unittest.TestCase):

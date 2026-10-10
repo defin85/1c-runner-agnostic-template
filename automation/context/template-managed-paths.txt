@@ -874,6 +874,7 @@ docs/exec-plans/TEMPLATE.md
 docs/exec-plans/active/.gitkeep
 docs/exec-plans/completed/.gitkeep
 docs/migrations/imported-skills-runtime-profile.md
+docs/migrations/project-toolkit-update.md
 docs/migrations/runtime-profile-v2.md
 docs/migrations/runtime-profile-v3.md
 docs/template-maintenance.md
@@ -1064,6 +1065,8 @@ scripts/template/migrate-runtime-profile-v2.ps1
 scripts/template/migrate-runtime-profile-v2.sh
 scripts/template/migrate-runtime-profile-v3.ps1
 scripts/template/migrate-runtime-profile-v3.sh
+scripts/template/migrate-runtime-support-matrix.ps1
+scripts/template/migrate-runtime-support-matrix.sh
 scripts/template/update-template.ps1
 scripts/template/update-template.sh
 scripts/test/init-test-tooling.ps1

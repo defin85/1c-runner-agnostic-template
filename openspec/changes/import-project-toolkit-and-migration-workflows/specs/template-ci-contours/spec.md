@@ -16,12 +16,21 @@
 
 ### Requirement: Статическая типизация Python проверяется без baseline
 
-Шаблон MUST поставлять `pyproject.toml` и `uv.lock` с dev-зависимостями ruff и basedpyright. Лёгкий контур без 1С MUST выполнять `scripts/qa/type-check.sh` (и `.ps1` в Windows) через basedpyright из проектного окружения `uv`. basedpyright MUST работать в режиме `standard`. Любая ошибка типизации MUST приводить к ненулевому коду. Шаблон MUST NOT поставлять baseline принятых ошибок; если файл baseline присутствует, проверка MUST завершаться ошибкой. `requirements-dev.txt` MUST быть производным export из `uv.lock` и MUST проверяться на совпадение с ним.
+Шаблон MUST поставлять `pyproject.toml` и `uv.lock` с dev-зависимостями ruff и basedpyright. Лёгкий контур без 1С MUST выполнять `scripts/qa/type-check.sh` (и `.ps1` в Windows) через basedpyright из проектного окружения `uv`. basedpyright MUST работать в режиме `standard`. Любая ошибка типизации MUST приводить к ненулевому коду. Шаблон MUST NOT поставлять baseline принятых ошибок; если файл baseline присутствует, проверка MUST завершаться ошибкой.
 
 #### Scenario: Новая ошибка типизации
 
 - **WHEN** изменение добавляет в Python-код шаблона ошибку типа
 - **THEN** `type-check.sh` возвращает ненулевой код и называет файл и строку
+
+#### Scenario: Появился файл baseline
+
+- **WHEN** в дереве шаблона присутствует файл baseline принятых ошибок типизации
+- **THEN** проверка типизации завершается ошибкой
+
+### Requirement: Файл `requirements-dev.txt` совпадает с export из `uv.lock`
+
+`requirements-dev.txt` MUST быть производным export из `uv.lock` и MUST проверяться на совпадение с ним.
 
 #### Scenario: Устаревший export зависимостей
 

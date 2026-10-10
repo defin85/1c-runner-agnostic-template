@@ -116,6 +116,7 @@ $projectHelp += "  ./make.ps1 project-report"
 ## Перед обновлением
 
 1. Закоммитьте или хотя бы осознайте локальные project-owned изменения и держите git worktree чистым.
+   Если проект создан до точек расширения `Makefile.project`/`make.project.ps1` и записей платформ в таблице поддержки сред, сначала выполните шаги из [docs/migrations/project-toolkit-update.md](migrations/project-toolkit-update.md): иначе обновление удалит собственные цели `make` и текст внутри блока шаблона в `AGENTS.md`.
 2. Прогоните `make agent-verify`.
 3. Если меняется bootstrap/overlay surface, добавьте fixture smoke:
 
@@ -129,7 +130,7 @@ bash tests/smoke/copier-update-ready.sh
 1. Проверьте root `README.md`, `AGENTS.md` и project-owned context.
 2. Убедитесь, что `.template-overlay-version` обновился до ожидаемого release ref.
 3. Если репозиторий обновлялся со старого шаблона, подтвердите, что stale `src/cf/AGENTS.md` и `src/cf/README.md` исчезли и `src/cf` снова остаётся чистым importable source tree.
-4. Сверьте project-owned `automation/context/runtime-support-matrix.md`, `.json` и `docs/agent/runtime-quickstart.md` с новыми контурами шаблона. `template-update` на Linux создаёт эти файлы только при их отсутствии, поэтому новые контуры (`check-bsl`, `check-cf-modules`, `analyze-bsl-external`, `run-client`, `technological-log`, `artifact-storage`) нужно перенести вручную по образцу `automation/context/templates/generated-project-runtime-support-matrix.md`. Для Windows-записей не указывайте живое доказательство, пока команда не запускалась на Windows.
+4. Сверьте project-owned `automation/context/runtime-support-matrix.md`, `.json` и `docs/agent/runtime-quickstart.md` с новыми контурами шаблона. `template-update` на Linux создаёт эти файлы только при их отсутствии, поэтому новые контуры (`check-bsl`, `check-cf-modules`, `analyze-bsl-external`, `run-client`, `technological-log`, `artifact-storage`) нужно перенести вручную по образцу `automation/context/templates/generated-project-runtime-support-matrix.md`. Для Windows-записей не указывайте живое доказательство, пока команда не запускалась на Windows. Если у контуров нет записей `platforms.linux`/`platforms.windows`, добавьте их и пересоберите Markdown командой `./scripts/template/migrate-runtime-support-matrix.sh` (`.\scripts\template\migrate-runtime-support-matrix.ps1`): она дописывает только отсутствующие записи без живого доказательства и не меняет существующие поля.
 5. Убедитесь, что выведенные навыки `meta-*`, `form-*` (кроме `form-patterns`) и `cfe-borrow` и цель `format-bsl` исчезли, а проектные ссылки на них заменены на `metadata-use` и `cfe-form-workflow`.
 6. При необходимости refresh-ните generated-derived inventory:
 

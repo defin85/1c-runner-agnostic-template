@@ -1,6 +1,6 @@
 SHELL := bash
 
-.PHONY: help agent-verify verify-python-lint verify-types verify-python-tests act-preflight qa analyze-bsl check-bsl check-cf-modules analyze-bsl-external artifact-storage run-client check-agent-docs check-skill-bindings sync-claude-skills check-overlay-manifest codex-onboard imported-skills-readiness create-ib dump-src load-src load-cfe manage-cfe configure-cfe-runtime-flags check-cfe-applicability check-cfe-config load-diff-src load-task-src update-db diff-src doctor publish-http bsl-analyzer-mcp check-x11-contour test-yaxunit sync-yaxunit-runtime yaxunit-warm-service web-client-diagnostic golden-create golden-restore golden-baseline test-bdd bdd-warm-service smoke export-context export-context-preview export-context-check export-context-write verify-traceability template-check-update template-update
+.PHONY: help agent-verify verify-python-lint verify-types verify-python-tests act-preflight qa analyze-bsl check-bsl check-cf-modules analyze-bsl-external artifact-storage run-client check-agent-docs check-skill-bindings sync-claude-skills check-overlay-manifest codex-onboard imported-skills-readiness create-ib dump-src load-src load-cfe manage-cfe configure-cfe-runtime-flags check-cfe-applicability check-cfe-config load-diff-src load-task-src update-db diff-src doctor technological-log publish-http bsl-analyzer-mcp check-x11-contour test-yaxunit sync-yaxunit-runtime yaxunit-warm-service web-client-diagnostic golden-create golden-restore golden-baseline test-bdd bdd-warm-service smoke export-context export-context-preview export-context-check export-context-write verify-traceability template-check-update template-update
 
 help:
 	@printf '%s\n' \
@@ -37,6 +37,7 @@ help:
 		'  make update-db' \
 			'  make diff-src' \
 		'  make doctor' \
+		'  make technological-log ARGS=status' \
 		'  make publish-http' \
 		'  make bsl-analyzer-mcp' \
 			'  make check-x11-contour' \
@@ -154,6 +155,9 @@ diff-src:
 
 doctor:
 	@./scripts/diag/doctor.sh
+
+technological-log:
+	@./scripts/diag/technological-log.sh $(ARGS)
 
 publish-http:
 	@./scripts/platform/publish-http.sh

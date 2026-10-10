@@ -17,6 +17,7 @@ class ThinLauncherTests(unittest.TestCase):
             "scripts/python/run-python.sh",
             "scripts/platform/bsl-analyzer-mcp.sh",
             "scripts/template/migrate-runtime-profile-v3.sh",
+            "scripts/template/migrate-runtime-support-matrix.sh",
         )
         if os.name != "nt":
             for path in paths:
@@ -48,6 +49,7 @@ class ThinLauncherTests(unittest.TestCase):
             "update-db",
             "diff-src",
             "doctor",
+            "technological-log",
             "publish-http",
             "bsl-analyzer-mcp",
             "test-bdd",

@@ -106,5 +106,6 @@
 - Если root `AGENTS.md` или `README.md` отсутствует, template update должен восстановить generated-project entry surface перед refresh managed overlay/router.
 - Если в generated repo остались legacy `src/cf/AGENTS.md` или `src/cf/README.md` от старых template release, template update должен удалить эти retired template-seeded routing docs из deployable `src/cf`.
 - Project-owned identity и доменная карта не должны silently перетираться шаблоном.
+- Проект, созданный до точек расширения `Makefile.project`/`make.project.ps1` и записей платформ в таблице поддержки сред, перед первым таким обновлением проходит шаги [docs/migrations/project-toolkit-update.md](../migrations/project-toolkit-update.md).
 - Generated-derived inventory refresh-ится явной командой `./scripts/llm/export-context.sh --write`.
 - Template maintenance не является primary feature-delivery workflow и не заменяет project-owned changes.

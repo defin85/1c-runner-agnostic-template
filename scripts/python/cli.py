@@ -33,6 +33,7 @@ from .template_tools import (
     check_update,
     migrate_runtime_profile_v2,
     migrate_runtime_profile_v3,
+    migrate_runtime_support_matrix,
     new_project,
     resolve_project_template,
     update_project,
@@ -311,6 +312,11 @@ def main(argv: list[str] | None = None) -> int:
                 migrate_runtime_profile_v3(Path(positional[0]), profile_only=profile_only),
                 end="",
             )
+            return 0
+        if command == "migrate-runtime-support-matrix":
+            if args:
+                die("Usage: migrate-runtime-support-matrix")
+            print(migrate_runtime_support_matrix(project_root()), end="")
             return 0
         if command == "new-project":
             destination = "."

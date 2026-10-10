@@ -50,6 +50,7 @@ $targets = @{
     "update-db" = @((Resolve-TargetScript "scripts\platform\update-db.ps1"))
     "diff-src" = @((Resolve-TargetScript "scripts\platform\diff-src.ps1"))
     "doctor" = @((Resolve-TargetScript "scripts\diag\doctor.ps1"))
+    "technological-log" = @((Resolve-TargetScript "scripts\diag\technological-log.ps1"))
     "publish-http" = @((Resolve-TargetScript "scripts\platform\publish-http.ps1"))
     "bsl-analyzer-mcp" = @((Resolve-TargetScript "scripts\platform\bsl-analyzer-mcp.ps1"))
     "test-bdd" = @((Resolve-TargetScript "scripts\test\run-bdd.ps1"))
@@ -114,6 +115,7 @@ if ($Target -eq "help") {
         "  ./make.ps1 update-db",
         "  ./make.ps1 diff-src",
         "  ./make.ps1 doctor",
+        "  ./make.ps1 technological-log status",
         "  ./make.ps1 publish-http",
         "  ./make.ps1 bsl-analyzer-mcp",
         "  ./make.ps1 test-bdd",

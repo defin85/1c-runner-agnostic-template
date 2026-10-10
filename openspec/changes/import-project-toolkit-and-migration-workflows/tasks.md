@@ -87,13 +87,22 @@
   - Проверка: все четыре smoke проходят; `runtime-ibcmd-validation-contract.sh` и `yaxunit-contour-contract.sh` падают и на `main`, они вне этой задачи.
   - Сделано: смоуки не ослаблялись, фикстуры только переведены на профиль v3. В Python-runtime возвращено поведение из спецификаций: проверка всех расширений в `check-cfe-*` с диагностиками по каждому, `--target` у `load-src`, `update-db`, `load-diff-src`, `load-task-src`, `load-cfe` и проверок CFE, `targetMetadata` в `export-context`. `configure-cfe-runtime-flags` `--target` пока не принимает.
 
-- [ ] 3.8 Исправить сбои, найденные при обновлении копии проекта-источника (8.3), и описать миграцию существующего проекта.
+- [x] 3.8 Исправить сбои, найденные при обновлении копии проекта-источника (8.3), и описать миграцию существующего проекта.
   - Добавить команду миграции таблицы поддержки сред по Р16 (Bash и PowerShell, по образцу `migrate-runtime-profile-v3`): дописать в `automation/context/runtime-support-matrix.json` недостающие `platforms.linux`/`platforms.windows` со статусом «не проверено», не меняя существующих полей, и пересобрать Markdown-версию. Сообщение проверки документации об отсутствующей записи платформы должно называть эту команду.
   - Исправить ложное срабатывание `check_skill_bindings`: `rac ` в `scripts/python/qa.py` совпадает с `trac info`; искать `rac` как отдельное слово.
   - Исправить извлечение путей в `_CURATED_PATH` (`scripts/python/agent_docs.py`): в путь не должны попадать `]` и `(` из markdown-ссылки (`[.codex/README.md](../../.codex/README.md)` даёт `.codex/README.md](../../.codex/README.md`).
   - Вернуть цель `technological-log` в `Makefile` и `make.ps1`: проект-источник её использовал, скрипт `scripts/diag/technological-log.sh` в шаблоне есть.
   - Написать `docs/migrations/project-toolkit-update.md` для проектов, созданных до этого change: перенести собственные цели из `Makefile` в `Makefile.project` (при обновлении они удаляются без предупреждения), вынести собственный текст из блока `RUNNER_AGNOSTIC_TEMPLATE` в `AGENTS.md`, заменить `make type-check` на `make verify-types`, убрать baseline basedpyright, обновить ссылки на удалённые разделы о `meta-*`/`form-*`, внести собственные `env/*.json` в `sanctionedAdditionalProfiles`, запустить миграцию таблицы поддержки сред.
   - Проверка: unit-тесты на команду миграции (добавляет только отсутствующие записи; повторный запуск ничего не меняет), на `\brac` и на извлечение пути из markdown-ссылки; повторное обновление копии проекта-источника после шагов из миграционного документа проходит `make agent-verify`.
+
+  - Сделано: команда `scripts/template/migrate-runtime-support-matrix.{sh,ps1}` (запись платформы без доказательства запуска означает «не проверено», отдельного статуса в схеме нет), `\brac`, исправлено извлечение пути из markdown-ссылки, цель `technological-log`, документ `docs/migrations/project-toolkit-update.md`. На клоне проекта-источника после миграции таблицы ушли все сбои со стороны шаблона, кроме перечисленных в 3.9.
+
+- [ ] 3.9 Перенести недостающие функции модулей шаблона и сделать конфигурацию ruff проектной (Р18).
+  - Перенести из проекта-источника в модули шаблона функции, которые по инвентарю относятся к «обобщить», но не были перенесены: `resolve_openspec_path`, `object_dict`, `object_list` (`scripts/python/common.py`, задача 3.2); `init_launch_logs`, `reap_dead_x_displays` (`scripts/python/onec_xpra.py`); `_generated_structural_contracts` (`scripts/python/agent_docs.py`); `_analyze_bsl_standalone` (`scripts/python/qa.py`, `analyze-bsl` через MCP). Обезличить, перенести их тесты.
+  - Исправить `find_unclassified_python` в `scripts/python/type_checking.py`: каталоги из `exclude` проектного `pyrightconfig.json` не должны считаться неклассифицированными, как и обещает подсказка проверки.
+  - По Р18: перенести правила в `scripts/qa/ruff-base.toml`, сделать `ruff.toml` создаваемым один раз (preserve-контракт, исключение из манифеста, как у `pyrightconfig.json`), добавить проверку `extend` и запрета снимать правила базы для файлов шаблона; описать шаг в `docs/migrations/project-toolkit-update.md`.
+  - Перед запуском ruff проверять наличие и версию инструмента и при отсутствии печатать понятное сообщение с командой исправления вместо `Failed to spawn: ruff`.
+  - Проверка: unit-тесты перенесённых функций и проверок; на клоне проекта-источника тесты проекта, импортирующие эти функции, собираются; `ruff check` с проектным `exclude` не проверяет исключённые файлы проекта; `copier-update-ready` и `make agent-verify` проходят.
 
 ## 4. Необязательные модули: механизм
 

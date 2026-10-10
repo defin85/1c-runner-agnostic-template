@@ -7,6 +7,7 @@ import unittest
 from pathlib import Path
 
 from scripts.python.agent_docs import (
+    _CURATED_PATH,
     _command_is_repo_owned,
     _Docs,
     _jq_text,
@@ -94,6 +95,19 @@ class AgentDocsCheckTests(unittest.TestCase):
             "unexpected placeholder or template note in automation/context/project-map.md: <[[:alnum:]_][^>]*>",
             stderr,
         )
+
+    def test_curated_path_stops_at_markdown_link_brackets(self) -> None:
+        text = "See [.codex/README.md](../../.codex/README.md) and (docs/agent/index.md) or [scripts/a.sh]."
+        self.assertEqual(
+            sorted(set(_CURATED_PATH.findall(text))),
+            [".codex/README.md", "docs/agent/index.md", "scripts/a.sh"],
+        )
+
+    def test_curated_path_check_accepts_existing_markdown_link_target(self) -> None:
+        self.write(".codex/README.md", "# Codex\n")
+        self.write("docs/agent/page.md", "Read [.codex/README.md](../../.codex/README.md).\n")
+        status, stderr = self.run_docs("check_curated_paths", "docs/agent/page.md")
+        self.assertEqual((status, stderr), (0, ""))
 
     def test_posix_to_python_regex(self) -> None:
         self.assertEqual(_posix_to_python_regex("<[[:alnum:]_][^>]*>"), r"<\w[^>]*>")
