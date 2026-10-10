@@ -33,6 +33,8 @@ from .runtime_profiles import (
     load_runtime_profile,
     require_runtime_profile,
     resolve_runtime_profile_path,
+    resolve_target_extensions,
+    target_matrix_enabled,
 )
 from .runtime_result import (
     RunArtifacts,
@@ -180,6 +182,7 @@ def build_cfe_commands(
         if action not in MANAGE_CFE_ACTIONS:
             raise CommandError(f"unsupported manage-cfe action: {action}")
         return [build_manage_cfe_command(profile, action, name, options, run_root, dry_run=dry_run)]
+    out_args = ["/Out", str(run_root / DESIGNER_OUT_LOG)] if run_root is not None else []
     if command_id == "check-cfe-applicability":
         return [
             [
@@ -187,6 +190,7 @@ def build_cfe_commands(
                     profile,
                     "/DisableStartupDialogs",
                     "/DisableStartupMessages",
+                    *out_args,
                     "/CheckCanApplyConfigurationExtensions",
                     "-Extension",
                     name,
@@ -201,6 +205,7 @@ def build_cfe_commands(
                     profile,
                     "/DisableStartupDialogs",
                     "/DisableStartupMessages",
+                    *out_args,
                     "/CheckConfig",
                     "-HandlersExistence",
                     "-ThinClient",
@@ -367,6 +372,7 @@ LOAD_CFE_USAGE = """Usage: ./scripts/platform/load-cfe.sh [options]
 Options:
   --profile <file>    Runtime profile JSON (defaults to env/local.json if present)
   --run-root <dir>    Directory for the wrapper summary and per-extension artifacts
+  --target <id>       Target id from automation/context/target-matrix.json; selects the target's extension set
   --extension <name>  Load only this extension from src/cfe (repeatable); default: every directory in src/cfe
   --dry-run           Resolve ibcmd commands and write dry-run summaries only
   -h, --help          Show this help
@@ -531,6 +537,7 @@ def run_load_cfe(argv: list[str]) -> int:
     """Load extensions from src/cfe with ibcmd import, check and apply; stop at the first failed step."""
     profile_input = ""
     run_root_input = ""
+    target = ""
     explicit: list[str] = []
     dry_run = False
     index = 0
@@ -539,7 +546,7 @@ def run_load_cfe(argv: list[str]) -> int:
         if arg in {"-h", "--help"}:
             print(LOAD_CFE_USAGE, end="")
             return 0
-        if arg in {"--profile", "--run-root", "--extension"}:
+        if arg in {"--profile", "--run-root", "--extension", "--target"}:
             index += 1
             if index >= len(argv):
                 raise CommandError(f"{arg} requires a value")
@@ -547,6 +554,8 @@ def run_load_cfe(argv: list[str]) -> int:
                 profile_input = argv[index]
             elif arg == "--run-root":
                 run_root_input = argv[index]
+            elif arg == "--target":
+                target = argv[index]
             else:
                 explicit.append(argv[index])
         elif arg == "--dry-run":
@@ -556,7 +565,11 @@ def run_load_cfe(argv: list[str]) -> int:
         index += 1
     profile = require_runtime_profile(load_runtime_profile(resolve_runtime_profile_path(profile_input)))
     source_root = project_root() / "src" / "cfe"
-    names = collect_load_cfe_extensions(source_root, explicit)
+    target_id: str | None = None
+    if target_matrix_enabled(project_root()):
+        names, target_id = select_cfe_extensions(profile, source_root, target, explicit)
+    else:
+        names = collect_load_cfe_extensions(source_root, explicit)
     if not names:
         raise CommandError(f"no extensions found under {source_root}")
     run_root = Path(run_root_input) if run_root_input else project_root() / ".artifacts" / "load-cfe"
@@ -593,6 +606,7 @@ def run_load_cfe(argv: list[str]) -> int:
         "execution": {"source": "python-cfe-runtime", "strategy": LOAD_CFE_MODE, "mode": LOAD_CFE_MODE},
         "extension_source": {
             "root": str(source_root),
+            "target_id": target_id,
             "selected_names": names,
             "failed_names": [run.failed_extension] if run.failed_extension else [],
         },
@@ -609,6 +623,354 @@ def run_load_cfe(argv: list[str]) -> int:
             else None
         ),
         "results": [_load_cfe_result(run, name) for name in names],
+        "artifacts": {
+            "summary_json": str(artifacts.summary_path),
+            "stdout_log": str(artifacts.stdout_path),
+            "stderr_log": str(artifacts.stderr_path),
+        },
+    }
+    _redact_files(run.log_paths, run.secrets)
+    if interrupted:
+        publish_interrupted_summary(
+            artifacts, payload, reason="operator cancellation", cleanup=lambda: None, secrets=run.secrets
+        )
+        return 130
+    sanitize_artifact_logs(artifacts, run.secrets)
+    publish_summary(artifacts, payload, run.secrets)
+    return exit_code
+
+
+CHECK_CFE_LABELS = {
+    "check-cfe-applicability": "Check extension applicability",
+    "check-cfe-config": "Check extension config",
+}
+CHECK_CFE_STRATEGIES = {
+    "check-cfe-applicability": "designer-check-can-apply-configuration-extensions",
+    "check-cfe-config": "designer-check-config",
+}
+CHECK_CFE_FAILURES = {
+    "check-cfe-applicability": "extension-applicability failed",
+    "check-cfe-config": "extension-config-verification failed",
+}
+CHECK_CFE_USAGE = """Usage: ./scripts/platform/{command}.sh [options]
+
+Options:
+  --profile <file>       Runtime profile JSON (defaults to env/local.json if present)
+  --run-root <dir>       Directory for wrapper summary and extension-level artifacts
+  --target <id>          Target id from automation/context/target-matrix.json
+  --extension <name>     Check only the specified extension (repeatable); default: every directory in src/cfe
+  --dry-run              Resolve Designer commands and write dry-run summaries only
+  -h, --help             Show this help
+"""
+DESIGNER_NO_ERROR_LINES = {"No errors found", "Ошибок не обнаружено"}
+DESIGNER_WARNING_MARKERS = ("Handler missing:", "Cannot find method ")
+DESIGNER_ERROR_MARKERS = (
+    "Variable is not defined",
+    "Procedure or function with the specified name is not defined",
+    "Method not found",
+    "Procedure or function is not defined",
+)
+BASE_FORM_KINDS = {
+    "Документ": "Documents",
+    "Справочник": "Catalogs",
+    "Обработка": "DataProcessors",
+    "РегистрСведений": "InformationRegisters",
+}
+METADATA_REF_PREFIXES = ("Документ.", "Справочник.", "ОбщаяФорма.", "Обработка.", "РегистрСведений.")
+
+
+def designer_diagnostic_severity(raw: str, exit_code: int) -> str:
+    if any(marker in raw for marker in DESIGNER_WARNING_MARKERS):
+        return "warning"
+    if any(marker in raw for marker in DESIGNER_ERROR_MARKERS):
+        return "error"
+    return "error" if exit_code else "warning"
+
+
+def designer_out_diagnostics(out_log: Path, exit_code: int) -> list[dict[str, Any]]:
+    """One diagnostic per non-empty line of the Designer ``/Out`` log, except the no-errors marker."""
+    if not out_log.is_file():
+        return []
+    diagnostics: list[dict[str, Any]] = []
+    for line in out_log.read_text(encoding="utf-8-sig", errors="replace").splitlines():
+        raw = line.rstrip("\r")
+        if not raw or raw in DESIGNER_NO_ERROR_LINES:
+            continue
+        diagnostics.append({"severity": designer_diagnostic_severity(raw, exit_code), "message": raw, "raw": raw})
+    return diagnostics
+
+
+def _strip_extension_prefix(metadata_ref: str) -> str:
+    if metadata_ref.startswith(METADATA_REF_PREFIXES):
+        return metadata_ref
+    stripped = metadata_ref.split(" ", 1)[1] if " " in metadata_ref else metadata_ref
+    return stripped if stripped.startswith(METADATA_REF_PREFIXES) else metadata_ref
+
+
+def base_form_module_path(metadata_ref: str) -> str:
+    """Project-relative module of the base configuration form a borrowed form inherits from."""
+    parts = _strip_extension_prefix(metadata_ref).split(".")
+    if len(parts) == 3 and parts[0] == "ОбщаяФорма" and parts[2] == "Форма":
+        return f"src/cf/CommonForms/{parts[1]}/Ext/Form/Module.bsl"
+    if len(parts) == 5 and parts[0] in BASE_FORM_KINDS and parts[2] == "Форма" and parts[4] == "Форма":
+        return f"src/cf/{BASE_FORM_KINDS[parts[0]]}/{parts[1]}/Forms/{parts[3]}/Ext/Form/Module.bsl"
+    return ""
+
+
+def _bsl_symbol_exists(module_path: Path, symbol: str) -> bool:
+    if not module_path.is_file():
+        return False
+    pattern = re.compile(rf"^[ \t]*(Процедура|Функция)[ \t]+{re.escape(symbol)}[ \t]*\(", re.MULTILINE)
+    return pattern.search(module_path.read_text(encoding="utf-8-sig", errors="replace")) is not None
+
+
+def classify_config_diagnostics(root: Path, diagnostics: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Mark ``Handler missing`` diagnostics resolved by the base form module as inherited handlers."""
+    classified: list[dict[str, Any]] = []
+    for diagnostic in diagnostics:
+        raw = str(diagnostic.get("raw", ""))
+        metadata_ref = ""
+        handler_name = ""
+        base_module = ""
+        classification = "blocking"
+        resolution = "blocking_diagnostic"
+        if " Handler missing:" in raw:
+            metadata_ref = raw.split(" Handler missing:", 1)[0]
+            quoted = re.match(r'.*"([^"]*)"', raw)
+            handler_name = quoted.group(1) if quoted else ""
+            base_module = base_form_module_path(metadata_ref)
+            if handler_name and base_module and _bsl_symbol_exists(root / base_module, handler_name):
+                classification = "inherited_handler"
+                resolution = "resolved_in_base_form_module"
+            else:
+                resolution = "unresolved_handler"
+        classified.append(
+            {
+                **diagnostic,
+                "classification": classification,
+                "metadata_ref": _strip_extension_prefix(metadata_ref) or None,
+                "handler_name": handler_name or None,
+                "resolution": {"kind": resolution, "base_form_module": base_module or None},
+            }
+        )
+    return classified
+
+
+@dataclass(slots=True)
+class _CheckCfeRun:
+    command_id: str
+    profile: RuntimeProfile
+    run_root: Path
+    artifacts: RunArtifacts
+    secrets: list[str]
+    dry_run: bool
+    adapter: str
+    log_paths: list[Path] = field(default_factory=list)
+
+
+def _check_cfe_extension(run: _CheckCfeRun, name: str) -> int:
+    """Run one Designer check with ``/Out``; write the extension summary; return its exit code."""
+    extension_artifacts = prepare_run_artifacts(run.run_root / "extensions" / name)
+    extension_root = extension_artifacts.run_root
+    out_log = extension_root / DESIGNER_OUT_LOG
+    out_log.write_text("", encoding="utf-8", newline="\n")
+    run.log_paths.extend([extension_artifacts.stdout_path, extension_artifacts.stderr_path, out_log])
+    command = build_cfe_commands(run.command_id, run.profile, name, dry_run=run.dry_run, run_root=extension_root)[0]
+    _append_line(extension_artifacts.stdout_path, f"[{run.command_id}] extension={name}")
+    _append_line(run.artifacts.stdout_path, f"[{run.command_id}] extension={name}")
+    started_at = timestamp_utc()
+    designer_exit = 0
+    exit_code = 0
+    status = "dry-run" if run.dry_run else "success"
+    diagnostics: list[dict[str, Any]] = []
+    if not run.dry_run:
+        designer_exit = run_observed_step(run.command_id, run.profile, command, extension_root, extension_artifacts)
+        exit_code = designer_exit
+        status = "failed" if designer_exit else "success"
+        diagnostics = designer_out_diagnostics(out_log, designer_exit)
+    if run.command_id == "check-cfe-config":
+        diagnostics = classify_config_diagnostics(project_root(), diagnostics)
+        blocking = [item for item in diagnostics if item["classification"] == "blocking"]
+        inherited = [item for item in diagnostics if item["classification"] == "inherited_handler"]
+    else:
+        blocking, inherited = list(diagnostics), []
+    if blocking:
+        status = "failed"
+        exit_code = exit_code or 1
+    elif inherited:
+        status, exit_code = "success", 0
+    paths = {
+        "diagnostics_json": extension_root / "diagnostics.json",
+        "blocking_diagnostics_json": extension_root / "blocking-diagnostics.json",
+        "inherited_diagnostics_json": extension_root / "inherited-diagnostics.json",
+    }
+    for key, items in zip(paths, (diagnostics, blocking, inherited), strict=True):
+        write_json(paths[key], redact_payload(items, run.secrets))
+    payload: dict[str, Any] = {
+        "status": status,
+        "extension_name": name,
+        "profile_path": str(run.profile.path),
+        "run_root": str(extension_root),
+        "started_at": started_at,
+        "finished_at": timestamp_utc(),
+        "exit_code": exit_code,
+        "designer_exit_code": designer_exit,
+        "dry_run": run.dry_run,
+        "adapter": run.adapter,
+        "diagnostics_count": len(diagnostics),
+        "blocking_diagnostics_count": len(blocking),
+        "inherited_diagnostics_count": len(inherited),
+        "diagnostics": diagnostics,
+        "blocking_diagnostics": blocking,
+        "inherited_diagnostics": inherited,
+        "execution": {
+            "source": f"{run.command_id}-wrapper",
+            "executor": "python-cfe-runtime",
+            "mode": CHECK_CFE_STRATEGIES[run.command_id],
+            "command": command,
+        },
+        "artifacts": {
+            "summary_json": str(extension_artifacts.summary_path),
+            "stdout_log": str(extension_artifacts.stdout_path),
+            "stderr_log": str(extension_artifacts.stderr_path),
+            "designer_out_log": str(out_log),
+            **{key: str(path) for key, path in paths.items()},
+        },
+    }
+    if not run.dry_run:
+        attach_observation(payload, extension_root)
+    publish_summary(extension_artifacts, payload, run.secrets)
+    return exit_code if status == "failed" else 0
+
+
+def _check_cfe_result(run_root: Path, name: str) -> dict[str, Any]:
+    extension_root = run_root / "extensions" / name
+    summary_path = extension_root / "summary.json"
+    summary: dict[str, Any] = {}
+    if summary_path.is_file():
+        loaded = json.loads(summary_path.read_text(encoding="utf-8"))
+        if isinstance(loaded, dict):
+            summary = loaded
+    return {
+        "extension_name": name,
+        "run_root": str(extension_root),
+        "summary_json": str(summary_path),
+        "stdout_log": str(extension_root / "stdout.log"),
+        "stderr_log": str(extension_root / "stderr.log"),
+        "designer_out_log": str(extension_root / DESIGNER_OUT_LOG),
+        "diagnostics_count": summary.get("diagnostics_count"),
+        "blocking_diagnostics_count": summary.get("blocking_diagnostics_count"),
+        "inherited_diagnostics_count": summary.get("inherited_diagnostics_count"),
+        "status": summary.get("status"),
+    }
+
+
+def _available_extensions(source_root: Path) -> list[str]:
+    if not source_root.is_dir():
+        return []
+    return sorted(path.name for path in source_root.iterdir() if path.is_dir())
+
+
+def select_cfe_extensions(
+    profile: RuntimeProfile, source_root: Path, target: str, explicit: Sequence[str]
+) -> tuple[list[str], str | None]:
+    """Extensions for a CFE wrapper: target matrix set, explicit names, or every ``src/cfe`` directory."""
+    names: list[str] = []
+    for name in explicit:
+        validate_extension_name(name)
+        if name not in names:
+            names.append(name)
+    available = _available_extensions(source_root)
+    if not available:
+        raise CommandError(f"no extensions found under {source_root}")
+    return resolve_target_extensions(
+        project_root(), target, profile.string("target", "id"), names, available, source_root
+    )
+
+
+def run_check_cfe(command_id: str, argv: list[str]) -> int:
+    """Check every selected extension with Designer; collect all failures instead of stopping at the first."""
+    profile_input = ""
+    run_root_input = ""
+    target = ""
+    explicit: list[str] = []
+    dry_run = False
+    index = 0
+    while index < len(argv):
+        arg = argv[index]
+        if arg in {"-h", "--help"}:
+            print(CHECK_CFE_USAGE.format(command=command_id), end="")
+            return 0
+        if arg in {"--profile", "--run-root", "--extension", "--target"}:
+            index += 1
+            if index >= len(argv):
+                raise CommandError(f"{arg} requires a value")
+            if arg == "--profile":
+                profile_input = argv[index]
+            elif arg == "--run-root":
+                run_root_input = argv[index]
+            elif arg == "--target":
+                target = argv[index]
+            else:
+                explicit.append(argv[index])
+        elif arg == "--dry-run":
+            dry_run = True
+        else:
+            raise CommandError(f"unknown argument: {arg}")
+        index += 1
+    profile = require_runtime_profile(load_runtime_profile(resolve_runtime_profile_path(profile_input)))
+    source_root = project_root() / "src" / "cfe"
+    names, target_id = select_cfe_extensions(profile, source_root, target, explicit)
+    run_root = Path(run_root_input) if run_root_input else project_root() / ".artifacts" / command_id
+    artifacts = prepare_run_artifacts(run_root)
+    adapter = os.environ.get("RUNNER_ADAPTER") or profile.runner_adapter
+    run = _CheckCfeRun(
+        command_id, profile, artifacts.run_root, artifacts, profile_secret_values(profile), dry_run, adapter
+    )
+    for line in (
+        f"profile={profile.path}",
+        f"adapter={adapter}",
+        f"source_root={source_root}",
+        f"selected_extensions={' '.join(names)}",
+    ):
+        _append_line(artifacts.stdout_path, f"[{command_id}] {line}")
+    started_at = timestamp_utc()
+    exit_code = 0
+    failed: list[str] = []
+    interrupted = False
+    lock: AbstractContextManager[object] = (
+        nullcontext() if dry_run else project_runtime_lock(project_root(), command_id)
+    )
+    try:
+        with lock:
+            for name in names:
+                extension_exit = _check_cfe_extension(run, name)
+                if extension_exit:
+                    failed.append(name)
+                    exit_code = exit_code or extension_exit
+    except KeyboardInterrupt:
+        interrupted = True
+    results = [_check_cfe_result(artifacts.run_root, name) for name in names]
+    payload: dict[str, Any] = {
+        "status": "failed" if failed else ("dry-run" if dry_run else "success"),
+        "capability": {"id": command_id, "label": CHECK_CFE_LABELS[command_id]},
+        "profile_path": str(profile.path),
+        "run_root": str(artifacts.run_root),
+        "started_at": started_at,
+        "finished_at": timestamp_utc(),
+        "exit_code": exit_code,
+        "dry_run": dry_run,
+        "adapter": adapter,
+        "execution": {"source": f"{command_id}-wrapper", "strategy": CHECK_CFE_STRATEGIES[command_id]},
+        "extension_source": {
+            "root": str(source_root),
+            "target_id": target_id,
+            "selected_names": names,
+            "failed_names": failed,
+        },
+        "failure": {"classification": CHECK_CFE_FAILURES[command_id], "extensions": failed} if failed else None,
+        "diagnostics_count": sum(int(item["diagnostics_count"] or 0) for item in results),
+        "results": results,
         "artifacts": {
             "summary_json": str(artifacts.summary_path),
             "stdout_log": str(artifacts.stdout_path),
@@ -704,6 +1066,8 @@ def run_cfe_command(command_id: str, argv: list[str]) -> int:
         raise CommandError(f"unsupported CFE command: {command_id}")
     if command_id == "load-cfe":
         return run_load_cfe(argv)
+    if command_id in CHECK_CFE_LABELS:
+        return run_check_cfe(command_id, argv)
     profile_input = ""
     run_root_input = ""
     extension = ""

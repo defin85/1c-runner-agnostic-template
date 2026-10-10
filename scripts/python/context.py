@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 import sys
@@ -7,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from .common import die, ensure_dir, project_root, run_process, write_text
+from .runtime_profiles import target_metadata
 
 
 def is_source_repo(root: Path | None = None) -> bool:
@@ -249,6 +251,7 @@ def render_generated_metadata(root: Path) -> str:
             "externalProcessors": "src/epf",
             "reports": "src/erf",
         },
+        "targetMetadata": target_metadata(root),
         "entrypointInventory": {
             "configurationRoots": ["src/cf", "src/cfe", "src/epf", "src/erf"],
             "httpServices": _list_inventory(root, "src/cf/HTTPServices"),
@@ -267,7 +270,26 @@ def render_generated_metadata(root: Path) -> str:
             "erf": _list_top_level(root, "src/erf"),
         },
     }
-    return json.dumps(payload, ensure_ascii=False, indent=2) + "\n"
+    return _dump_index_json(payload) + "\n"
+
+
+def _dump_index_json(value: Any, indent: int = 0) -> str:
+    """Indented JSON with scalar lists on one line, so each inventory list stays greppable."""
+    pad = "  " * (indent + 1)
+    if isinstance(value, dict):
+        if not value:
+            return "{}"
+        items = [
+            f"{pad}{json.dumps(key, ensure_ascii=False)}: {_dump_index_json(item, indent + 1)}"
+            for key, item in value.items()
+        ]
+        return "{\n" + ",\n".join(items) + "\n" + "  " * indent + "}"
+    if isinstance(value, list):
+        if all(not isinstance(item, dict | list) for item in value):
+            return "[" + ", ".join(json.dumps(item, ensure_ascii=False) for item in value) + "]"
+        items = [f"{pad}{_dump_index_json(item, indent + 1)}" for item in value]
+        return "[\n" + ",\n".join(items) + "\n" + "  " * indent + "]"
+    return json.dumps(value, ensure_ascii=False)
 
 
 def _count_inventory(root: Path, rel: str) -> int:
@@ -427,12 +449,20 @@ def render_generated_recommended_skills(root: Path, metadata_json: str) -> str:
     return "\n".join(lines) + "\n"
 
 
+def _content_checksum(content: bytes | str) -> str:
+    """Freshness marker of a context input: ``sha256:<prefix>/<size in bytes>``."""
+    data = content.encode("utf-8") if isinstance(content, str) else content
+    return f"sha256:{hashlib.sha256(data).hexdigest()[:16]}/{len(data)}"
+
+
 def render_generated_project_delta_hotspots(root: Path, metadata_json: str) -> str:
     hints_path = root / "automation" / "context" / "project-delta-hints.json"
     if hints_path.is_file():
         hints = json.loads(hints_path.read_text(encoding="utf-8"))
+        hints_checksum = _content_checksum(hints_path.read_bytes())
     else:
         hints = {"selectors": {"pathPrefixes": [], "pathKeywords": []}, "representativePaths": []}
+        hints_checksum = "missing"
     tree_entries = render_generated_tree(root).splitlines()[2:]
     prefixes = [str(item) for item in hints.get("selectors", {}).get("pathPrefixes", [])]
     keywords = [str(item) for item in hints.get("selectors", {}).get("pathKeywords", [])]
@@ -446,6 +476,13 @@ def render_generated_project_delta_hotspots(root: Path, metadata_json: str) -> s
         "",
         "Этот файл является generated-derived bridge между curated project-owned truth и raw inventory.",
         "Source selectors живут в `automation/context/project-delta-hints.json`, а deeper narrowing при необходимости идёт дальше в `automation/context/hotspots-summary.generated.md` и `automation/context/metadata-index.generated.json`.",
+        "",
+        "## Freshness",
+        "",
+        "- Refresh command: `./scripts/llm/export-context.sh --write`",
+        "- Check command: `./scripts/llm/export-context.sh --check`",
+        f"- `project-delta-hints.json` checksum: `{hints_checksum}`",
+        f"- `metadata-index.generated.json` checksum: `{_content_checksum(metadata_json)}`",
         "",
         "## Declared Selectors",
         "",
@@ -502,6 +539,8 @@ def render_generated_hotspots_summary(root: Path, metadata_json: str, tree_text:
         "",
         "- Refresh command: `./scripts/llm/export-context.sh --write`",
         "- Check command: `./scripts/llm/export-context.sh --check`",
+        f"- `metadata-index.generated.json` checksum: `{_content_checksum(metadata_json)}`",
+        f"- `source-tree.generated.txt` checksum: `{_content_checksum(tree_text)}`",
         "",
         "## High-Signal Counts",
         "",

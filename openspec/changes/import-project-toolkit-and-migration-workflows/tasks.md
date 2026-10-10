@@ -80,11 +80,20 @@
   - Проверка: перечисленные smoke проходят на профиле v3; `check-agent-docs` созданного проекта проверяет matrix; `template-update` на Windows не меняет заполненные matrix и quickstart.
   - Сделано: shell-загрузчик профиля (`scripts/lib/runtime-profile.sh`) принимает только v3 и отклоняет v1/v2 с подсказкой миграции; на v3 переведены фикстуры тёплых BDD/YAxUnit-контуров, `golden-baseline` и `load-cfe`. `load-cfe` снова загружает все расширения из `src/cfe` или из повторяемого `--extension` и останавливается на первом сбое. Общая функция `refresh_generated_project_surface` создаёт matrix и quickstart при `template-update` только при их отсутствии на обеих ОС. На Windows не запускалось: нет `pwsh`.
 
-- [ ] 3.7 Исправить четыре smoke, которые проходят на `main` и падают на ветке change.
+- [x] 3.7 Исправить четыре smoke, которые проходят на `main` и падают на ветке change.
   - `check-cfe-applicability.sh`, `check-cfe-config.sh`: Python-версия завершается с `invalid extension name:` при пустом имени, не пишет `summary.json` и возвращает другой код выхода, чем ожидает smoke. Вернуть поведение, описанное в спецификации, или обновить smoke, если спецификация допускает новое поведение.
   - `multi-target-extension-workspace.sh`: фикстура на профиле v2, а `load-cfe` в Python не поддерживает `--target`, хотя smoke ожидает отказ `multi-target workspace requires --target <id>`. Перевести фикстуру на v3 и вернуть выбор цели либо зафиксировать в спецификации отказ от `--target`; документация созданного проекта сейчас показывает `load-cfe.sh --target <id>`.
   - `bootstrap-agents-overlay.sh`: в созданном проекте нет строки `"configurationRoots": ["src/cf", "src/cfe", "src/epf", "src/erf"]`.
   - Проверка: все четыре smoke проходят; `runtime-ibcmd-validation-contract.sh` и `yaxunit-contour-contract.sh` падают и на `main`, они вне этой задачи.
+  - Сделано: смоуки не ослаблялись, фикстуры только переведены на профиль v3. В Python-runtime возвращено поведение из спецификаций: проверка всех расширений в `check-cfe-*` с диагностиками по каждому, `--target` у `load-src`, `update-db`, `load-diff-src`, `load-task-src`, `load-cfe` и проверок CFE, `targetMetadata` в `export-context`. `configure-cfe-runtime-flags` `--target` пока не принимает.
+
+- [ ] 3.8 Исправить сбои, найденные при обновлении копии проекта-источника (8.3), и описать миграцию существующего проекта.
+  - Добавить команду миграции таблицы поддержки сред по Р16 (Bash и PowerShell, по образцу `migrate-runtime-profile-v3`): дописать в `automation/context/runtime-support-matrix.json` недостающие `platforms.linux`/`platforms.windows` со статусом «не проверено», не меняя существующих полей, и пересобрать Markdown-версию. Сообщение проверки документации об отсутствующей записи платформы должно называть эту команду.
+  - Исправить ложное срабатывание `check_skill_bindings`: `rac ` в `scripts/python/qa.py` совпадает с `trac info`; искать `rac` как отдельное слово.
+  - Исправить извлечение путей в `_CURATED_PATH` (`scripts/python/agent_docs.py`): в путь не должны попадать `]` и `(` из markdown-ссылки (`[.codex/README.md](../../.codex/README.md)` даёт `.codex/README.md](../../.codex/README.md`).
+  - Вернуть цель `technological-log` в `Makefile` и `make.ps1`: проект-источник её использовал, скрипт `scripts/diag/technological-log.sh` в шаблоне есть.
+  - Написать `docs/migrations/project-toolkit-update.md` для проектов, созданных до этого change: перенести собственные цели из `Makefile` в `Makefile.project` (при обновлении они удаляются без предупреждения), вынести собственный текст из блока `RUNNER_AGNOSTIC_TEMPLATE` в `AGENTS.md`, заменить `make type-check` на `make verify-types`, убрать baseline basedpyright, обновить ссылки на удалённые разделы о `meta-*`/`form-*`, внести собственные `env/*.json` в `sanctionedAdditionalProfiles`, запустить миграцию таблицы поддержки сред.
+  - Проверка: unit-тесты на команду миграции (добавляет только отсутствующие записи; повторный запуск ничего не меняет), на `\brac` и на извлечение пути из markdown-ссылки; повторное обновление копии проекта-источника после шагов из миграционного документа проходит `make agent-verify`.
 
 ## 4. Необязательные модули: механизм
 

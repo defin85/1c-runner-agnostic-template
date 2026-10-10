@@ -61,9 +61,8 @@ chmod +x "$fake_binary"
 
 cat >"$fixture_root/env/local.json" <<EOF
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "profileName": "check-cfe-config-fixture",
-  "runnerAdapter": "direct-platform",
   "platform": {
     "binaryPath": "$fake_binary"
   },

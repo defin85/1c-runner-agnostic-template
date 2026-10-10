@@ -26,7 +26,7 @@ def build_redacted_context(profile: ProfileView | None) -> dict[str, Any]:
     if profile is None:
         return {}
     return {
-        "runtime_profile": {"name": profile.name or None},
+        "runtime_profile": {"name": profile.name or None, "target": profile.string("target", "id") or None},
         "infobase": {
             "mode": profile.string("infobase", "mode") or None,
             "server": profile.string("infobase", "server") or None,

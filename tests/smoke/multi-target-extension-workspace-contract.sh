@@ -45,9 +45,8 @@ chmod +x "$fake_designer" "$fake_client"
 
 cat >"$fixture_root/env/local.json" <<EOF
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "profileName": "multi-target-fixture",
-  "runnerAdapter": "direct-platform",
   "target": {
     "id": "ut22"
   },

@@ -48,8 +48,10 @@ from .runtime_process import run_process as run_transport_process
 from .runtime_profiles import (
     RuntimeProfile,
     load_runtime_profile,
+    require_requested_target,
     require_runtime_profile,
     resolve_runtime_profile_path,
+    target_source_dir_or_default,
 )
 from .runtime_result import (
     RunArtifacts,
@@ -81,6 +83,10 @@ DRIVER_CAPABILITIES = {"create-ib", "dump-src", "load-src", "update-db"}
 VERIFICATION_CAPABILITIES = {"run-bdd", "run-smoke", "publish-http"}
 
 
+# Capabilities that change a target infobase: a multi-target workspace requires ``--target``.
+TARGET_AWARE_CAPABILITIES = frozenset({"load-src", "update-db"})
+
+
 def capability_key(capability_id: str) -> str:
     try:
         return CAPABILITY_KEY_MAP[capability_id]
@@ -107,6 +113,7 @@ class CapabilityArgs:
     dry_run: bool = False
     show_help: bool = False
     selected_files_input: str = ""
+    target_input: str = ""
 
 
 @dataclass(slots=True)
@@ -239,6 +246,13 @@ def parse_capability_cli_args(argv: list[str], allow_files: bool = True) -> Capa
             if index >= len(argv):
                 die("--run-root requires a value")
             result.run_root_input = argv[index]
+            index += 1
+            continue
+        if arg == "--target":
+            index += 1
+            if index >= len(argv) or not argv[index]:
+                die("--target requires a value")
+            result.target_input = argv[index]
             index += 1
             continue
         if arg == "--dry-run":
@@ -619,7 +633,9 @@ def ibcmd_topology_context(profile: RuntimeProfile) -> dict[str, Any]:
     return {}
 
 
-def build_ibcmd_driver_context(profile: RuntimeProfile, *, partial_import: bool = False) -> dict[str, Any]:
+def build_ibcmd_driver_context(
+    profile: RuntimeProfile, *, partial_import: bool = False, source_dir: Path | None = None
+) -> dict[str, Any]:
     """Shared ibcmd driver context for capability summaries and doctor capability_drivers."""
     context: dict[str, Any] = {
         "runtime_mode": profile.string("ibcmd", "runtimeMode") or None,
@@ -629,6 +645,8 @@ def build_ibcmd_driver_context(profile: RuntimeProfile, *, partial_import: bool 
         },
         "partial_import": partial_import,
     }
+    if source_dir is not None:
+        context["source_dir"] = str(source_dir)
     topology = ibcmd_topology_context(profile)
     if topology:
         context["topology"] = topology
@@ -943,6 +961,7 @@ def prepare_ibcmd_command(
     binary_path = ibcmd_binary_path(profile)
     command: list[str]
     partial_import = False
+    load_source_dir: Path | None = None
     if capability_id == "create-ib":
         command = [binary_path, "infobase", "create"]
         append_ibcmd_server_access_args(profile, command)
@@ -955,6 +974,7 @@ def prepare_ibcmd_command(
         command, _ = build_ibcmd_dump_command(profile, options, dry_run=dry_run)
     elif capability_id == "load-src":
         source_dir = capability_source_dir(profile, capability_id, options)
+        load_source_dir = source_dir
         if selected_files:
             partial_import = True
             command = [binary_path, "config", "import", "files"]
@@ -985,7 +1005,11 @@ def prepare_ibcmd_command(
         executor="adapter-wrapper" if not WINDOWS else "direct",
         command=command,
         context=build_redacted_context(profile)
-        | {"driver_context": build_ibcmd_driver_context(profile, partial_import=partial_import)},
+        | {
+            "driver_context": build_ibcmd_driver_context(
+                profile, partial_import=partial_import, source_dir=load_source_dir
+            )
+        },
     )
 
 
@@ -1334,6 +1358,15 @@ def run_profile_capability(
         raise CommandError("help-requested", 2)
     profile_path = resolve_runtime_profile_path(args.profile_input)
     profile = require_runtime_profile(load_runtime_profile(profile_path))
+    if capability_id in TARGET_AWARE_CAPABILITIES:
+        profile_target = profile.string("target", "id")
+        if capability_id == "load-src" and not options.source_dir:
+            default_source = capability_string_or_default(profile, capability_id, "sourceDir", "./src/cf")
+            options.source_dir = target_source_dir_or_default(
+                project_root(), args.target_input, profile_target, default_source
+            )
+        else:
+            require_requested_target(project_root(), args.target_input, profile_target)
     adapter = os.environ.get("RUNNER_ADAPTER") or profile.runner_adapter or "direct-platform"
     selected_files = load_capability_selected_files(args.selected_files_input)
     prepared = prepare_standard_capability_command(
@@ -1793,6 +1826,12 @@ def run_load_diff_src(argv: list[str]) -> int:
         profile_path = resolve_runtime_profile_path(args.profile_input)
         _require_git_command()
         profile = require_runtime_profile(load_runtime_profile(profile_path))
+        source_dir = target_source_dir_or_default(
+            root,
+            args.target_input,
+            profile.string("target", "id"),
+            capability_string_or_default(profile, "load-src", "sourceDir", "./src/cf"),
+        )
     except CommandError as error:
         run_root_input = _option_value(argv, "--run-root")
         if run_root is None and run_root_input:
@@ -1814,7 +1853,6 @@ def run_load_diff_src(argv: list[str]) -> int:
     stdout_log = run_root / "stdout.log"
     stderr_log = run_root / "stderr.log"
     adapter = os.environ.get("RUNNER_ADAPTER") or profile.runner_adapter
-    source_dir = capability_string_or_default(profile, "load-src", "sourceDir", "./src/cf")
     source_dir_rel = normalize_capability_selected_file(source_dir)
     if not git_is_worktree(root):
         error = "git-backed diff requires a git worktree"
@@ -1872,6 +1910,8 @@ def run_load_diff_src(argv: list[str]) -> int:
             "--files",
             ",".join(selected_files),
         ]
+        if args.target_input:
+            delegated_args.extend(["--target", args.target_input])
         if args.dry_run:
             delegated_args.append("--dry-run")
         result = run_profile_capability("load-src", "Load source tree", delegated_args)
@@ -1923,6 +1963,7 @@ def run_load_task_src(argv: list[str]) -> int:
     dry_run = os.environ.get("DRY_RUN", "0") == "1"
     selector_mode = ""
     selector_value = ""
+    target_input = ""
     root = project_root()
     started_at = timestamp_utc()
     run_root: Path | None = None
@@ -1931,7 +1972,7 @@ def run_load_task_src(argv: list[str]) -> int:
         index = 0
         while index < len(argv):
             arg = argv[index]
-            if arg in {"--profile", "--run-root", "--work-item", "--range"}:
+            if arg in {"--profile", "--run-root", "--target", "--work-item", "--range"}:
                 if index + 1 >= len(argv):
                     die(f"{arg} requires a value")
                 value = argv[index + 1]
@@ -1940,6 +1981,8 @@ def run_load_task_src(argv: list[str]) -> int:
                     profile_input = value
                 elif arg == "--run-root":
                     run_root_input = value
+                elif arg == "--target":
+                    target_input = value
                 elif selector_mode:
                     die("load-task-src requires exactly one selector")
                 else:
@@ -1960,6 +2003,12 @@ def run_load_task_src(argv: list[str]) -> int:
         profile_path = resolve_runtime_profile_path(profile_input)
         _require_git_command()
         profile = require_runtime_profile(load_runtime_profile(profile_path))
+        source_dir = target_source_dir_or_default(
+            root,
+            target_input,
+            profile.string("target", "id"),
+            capability_string_or_default(profile, "load-src", "sourceDir", "./src/cf"),
+        )
     except CommandError as error:
         run_root_input = run_root_input or _option_value(argv, "--run-root")
         if run_root is None and run_root_input:
@@ -1986,7 +2035,6 @@ def run_load_task_src(argv: list[str]) -> int:
     stdout_log = run_root / "stdout.log"
     stderr_log = run_root / "stderr.log"
     adapter = os.environ.get("RUNNER_ADAPTER") or profile.runner_adapter
-    source_dir = capability_string_or_default(profile, "load-src", "sourceDir", "./src/cf")
     source_dir_rel = normalize_capability_selected_file(source_dir)
     selected_commits = task_trailers_select_commits(selector_mode, selector_value, root)
     selected_files: list[str] = []
@@ -2028,6 +2076,8 @@ def run_load_task_src(argv: list[str]) -> int:
             "--files",
             ",".join(selected_files),
         ]
+        if target_input:
+            delegated_args.extend(["--target", target_input])
         if dry_run:
             delegated_args.append("--dry-run")
         result = run_profile_capability("load-src", "Load source tree", delegated_args)

@@ -11,6 +11,8 @@ from unittest.mock import patch
 from scripts.python.cfe_runtime import (
     CfeOptions,
     build_cfe_commands,
+    classify_config_diagnostics,
+    designer_out_diagnostics,
     read_list_file,
     run_cfe_command,
     validate_extension_name,
@@ -18,7 +20,7 @@ from scripts.python.cfe_runtime import (
 )
 from scripts.python.runtime_errors import CommandError
 from scripts.python.runtime_observation import ObservationRequest, ObservationResult
-from scripts.python.runtime_profiles import load_runtime_profile
+from scripts.python.runtime_profiles import load_runtime_profile, resolve_target_extensions
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -151,21 +153,27 @@ class CfeRuntimeTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             temp = Path(temp_dir)
             profile = self._fake_platform_profile(temp, "echo designer-ran\nexit 0\n")
+            project = self._project_with_extensions(temp, "Тест")
             run_root = temp / "run"
-            with patch.dict(os.environ, {"ONEC_OBSERVATION_INTERVAL_SECONDS": "1"}):
+            with (
+                patch.dict(os.environ, {"ONEC_OBSERVATION_INTERVAL_SECONDS": "1"}),
+                patch("scripts.python.cfe_runtime.project_root", return_value=project),
+            ):
                 exit_code = run_cfe_command(
                     "check-cfe-config", ["--profile", str(profile), "--extension", "Тест", "--run-root", str(run_root)]
                 )
+            extension_root = run_root / "extensions" / "Тест"
             events = [
-                json.loads(line) for line in (run_root / "observation.jsonl").read_text(encoding="utf-8").splitlines()
+                json.loads(line)
+                for line in (extension_root / "observation.jsonl").read_text(encoding="utf-8").splitlines()
             ]
-            summary = json.loads((run_root / "summary.json").read_text(encoding="utf-8"))
+            summary = json.loads((extension_root / "summary.json").read_text(encoding="utf-8"))
             self.assertEqual(exit_code, 0)
             self.assertEqual([events[0]["event"], events[-1]["event"]], ["started", "completed"])
             self.assertEqual(events[0]["capability"], "check-cfe-config")
             self.assertEqual(summary["observation"]["terminalEvent"], "completed")
-            self.assertIn("designer-ran", (run_root / "stdout.log").read_text(encoding="utf-8"))
-            self.assertTrue((run_root / "process.pid").is_file())
+            self.assertIn("designer-ran", (extension_root / "stdout.log").read_text(encoding="utf-8"))
+            self.assertTrue((extension_root / "process.pid").is_file())
 
     @unittest.skipIf(os.name == "nt", "POSIX shell fixture")
     def test_designer_stall_stops_only_with_wrapper_threshold(self) -> None:
@@ -174,14 +182,18 @@ class CfeRuntimeTests(unittest.TestCase):
             with self.subTest(threshold=threshold), tempfile.TemporaryDirectory() as temp_dir:
                 temp = Path(temp_dir)
                 profile = self._fake_platform_profile(temp, script)
+                project = self._project_with_extensions(temp, "Тест")
                 run_root = temp / "run"
                 env = {"ONEC_OBSERVATION_INTERVAL_SECONDS": "1", "ONEC_OBSERVATION_STALL_TIMEOUT_SECONDS": threshold}
-                with patch.dict(os.environ, env):
+                with (
+                    patch.dict(os.environ, env),
+                    patch("scripts.python.cfe_runtime.project_root", return_value=project),
+                ):
                     exit_code = run_cfe_command(
                         "check-cfe-applicability",
                         ["--profile", str(profile), "--extension", "Тест", "--run-root", str(run_root)],
                     )
-                summary = json.loads((run_root / "summary.json").read_text(encoding="utf-8"))
+                summary = json.loads((run_root / "extensions" / "Тест" / "summary.json").read_text(encoding="utf-8"))
                 self.assertEqual(exit_code, expected)
                 self.assertEqual(summary["observation"]["terminalReason"], "stalled" if expected else "completed")
 
@@ -203,6 +215,91 @@ class CfeRuntimeTests(unittest.TestCase):
             self.assertEqual(exit_code, 0)
             step_root = run_root.resolve() / "extensions" / "Тест" / "steps"
             self.assertEqual(roots, [step_root / name for name in ("import", "check", "apply")])
+
+    def test_check_collects_every_failed_extension_with_designer_out(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            project = self._project_with_extensions(Path(temp_dir), "Первое", "Второе")
+            run_root = Path(temp_dir) / "run"
+            commands: list[list[str]] = []
+
+            def fake_run(request: ObservationRequest) -> ObservationResult:
+                commands.append(list(request.command))
+                out_log = Path(request.command[request.command.index("/Out") + 1])
+                failing = request.command[-1] == "Второе"
+                out_log.write_text("Cannot find method X\n" if failing else "No errors found\n", encoding="utf-8")
+                return ObservationResult(0, "completed", "completed", request.run_root / "observation.jsonl")
+
+            with (
+                patch("scripts.python.cfe_runtime.run_observed", side_effect=fake_run),
+                patch("scripts.python.cfe_runtime.project_root", return_value=project),
+            ):
+                exit_code = run_cfe_command(
+                    "check-cfe-applicability",
+                    ["--profile", str(ROOT / "env" / "local.example.json"), "--run-root", str(run_root)],
+                )
+            summary = json.loads((run_root / "summary.json").read_text(encoding="utf-8"))
+            failed = json.loads((run_root / "extensions" / "Второе" / "summary.json").read_text(encoding="utf-8"))
+        self.assertEqual(exit_code, 1)
+        self.assertEqual([command[-1] for command in commands], ["Второе", "Первое"])
+        self.assertEqual(summary["failure"]["extensions"], ["Второе"])
+        self.assertEqual([item["status"] for item in summary["results"]], ["failed", "success"])
+        self.assertEqual(failed["diagnostics"][0]["severity"], "warning")
+        self.assertEqual(failed["blocking_diagnostics_count"], 1)
+
+    def test_config_diagnostics_separate_inherited_handlers(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            module = root / "src" / "cf" / "Documents" / "Заказ" / "Forms" / "Форма" / "Ext" / "Form" / "Module.bsl"
+            module.parent.mkdir(parents=True)
+            module.write_text("Процедура Обновить(Команда)\nКонецПроцедуры\n", encoding="utf-8")
+            out_log = root / "out.log"
+            out_log.write_text(
+                'Расш Документ.Заказ.Форма.Форма.Форма Handler missing:  Обновить "Обновить"\n'
+                'Расш Документ.Заказ.Форма.Форма.Форма Handler missing:  Нет "Нет"\n'
+                "{Расш Документ.Заказ.МодульОбъекта(1,1)}: Variable is not defined (Икс)\n",
+                encoding="utf-8",
+            )
+            diagnostics = classify_config_diagnostics(root, designer_out_diagnostics(out_log, 0))
+        self.assertEqual(
+            [item["classification"] for item in diagnostics], ["inherited_handler", "blocking", "blocking"]
+        )
+        self.assertEqual(
+            diagnostics[0]["resolution"]["base_form_module"],
+            "src/cf/Documents/Заказ/Forms/Форма/Ext/Form/Module.bsl",
+        )
+        self.assertEqual(diagnostics[1]["resolution"]["kind"], "unresolved_handler")
+        self.assertEqual(diagnostics[2]["severity"], "error")
+
+    def test_target_matrix_selects_extensions_and_fails_closed(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = self._project_with_extensions(Path(temp_dir), "Общее", "Первое", "Второе")
+            matrix = root / "automation" / "context" / "target-matrix.json"
+            matrix.parent.mkdir(parents=True)
+            matrix.write_text(
+                json.dumps(
+                    {
+                        "schemaVersion": 1,
+                        "targets": [{"id": "one"}, {"id": "two"}],
+                        "extensionMatrix": {"one": ["Общее", "Первое"], "two": ["Общее", "Второе"]},
+                    }
+                ),
+                encoding="utf-8",
+            )
+            available = ["Второе", "Общее", "Первое"]
+            source = root / "src" / "cfe"
+            selected = resolve_target_extensions(root, "one", "one", [], available, source)
+            explicit = resolve_target_extensions(root, "one", "one", ["Общее"], available, source)
+            errors = {
+                "multi-target workspace requires --target": ("", "one", []),
+                "runtime profile target.id is required": ("one", "", []),
+                "does not match requested target": ("one", "two", []),
+                "not present in target matrix for target=one: Второе": ("one", "one", ["Второе"]),
+            }
+            for message, (target, profile_target, names) in errors.items():
+                with self.subTest(message=message), self.assertRaisesRegex(CommandError, message):
+                    resolve_target_extensions(root, target, profile_target, names, available, source)
+        self.assertEqual(selected, (["Общее", "Первое"], "one"))
+        self.assertEqual(explicit, (["Общее"], "one"))
 
 
 class CfeOptionsTests(unittest.TestCase):
