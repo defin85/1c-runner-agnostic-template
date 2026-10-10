@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import os
 import re
 import shutil
 import sys
@@ -53,24 +52,6 @@ def _skill_frontmatter_errors(skill_file: Path, text: str) -> list[str]:
             if _is_unsafe_plain_yaml_scalar(match.group(1)):
                 errors.append(f"unsafe unquoted YAML scalar in {field_name}: {skill_file}:{line_number}")
     return errors
-
-
-def analyze_bsl() -> int:
-    jar = os.environ.get("BSL_LANGUAGE_SERVER_JAR", "")
-    if not jar:
-        die("required env var is not set: BSL_LANGUAGE_SERVER_JAR")
-    root = project_root()
-    src_dir = os.environ.get("BSL_SRC_DIR", str(root / "src" / "cf"))
-    output_dir = os.environ.get("BSL_REPORT_DIR", str(root / "reports" / "bsl-analysis"))
-    config_path = os.environ.get("BSL_LANGUAGE_SERVER_CONFIG", "")
-    xmx = os.environ.get("BSL_LS_XMX", "2g")
-    cmd = ["java", f"-Xmx{xmx}", "-jar", jar]
-    if config_path:
-        cmd.extend(["--configuration", config_path])
-    cmd.extend(
-        ["--analyze", "--srcDir", src_dir, "--outputDir", output_dir, "--reporter", "json", "--reporter", "junit"]
-    )
-    return run_process(cmd, cwd=root, check=False, capture_output=False).returncode
 
 
 # Repository paths named in skill text. `src/` and `features/` hold project content, so only

@@ -174,7 +174,7 @@ cleanup_xpra_session_processes() {
           ;;
       esac
     done < <(
-      ps -u "$USER" -o pid=,ppid=,comm=,cmd= \
+      ps -u "$UID" -o pid=,ppid=,comm=,cmd= \
         | awk '$2 == 1 || $2 ~ /^[0-9]+$/ { if (($3 == "dbus-daemon" && /--session/ && /--print-address/) || ($3 == "gvfsd" && $0 ~ /\/usr\/libexec\/gvfsd$/)) print $1 }'
     )
   fi
@@ -312,7 +312,7 @@ run_xpra_wrapped_command() {
   xpra_root="$run_root/xpra"
   mkdir -p "$xpra_root"
   xpra_cleanup_baseline="$xpra_root/process-cleanup-baseline.txt"
-  ps -u "$USER" -o pid=,ppid=,comm=,cmd= \
+  ps -u "$UID" -o pid=,ppid=,comm=,cmd= \
     | awk '$2 == 1 || $2 ~ /^[0-9]+$/ { if (($3 == "dbus-daemon" && /--session/ && /--print-address/) || ($3 == "gvfsd" && $0 ~ /\/usr\/libexec\/gvfsd$/)) print $1 }' \
     >"$xpra_cleanup_baseline"
   xauth_file="$run_root/home/.Xauthority"

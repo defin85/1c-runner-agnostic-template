@@ -86,6 +86,11 @@ class ThinLauncherTests(unittest.TestCase):
     def test_bsl_mcp_launcher_is_thin_and_paired(self) -> None:
         self.assert_thin_pair("bsl-analyzer-mcp")
 
+    def test_analyze_bsl_launcher_is_thin_and_paired(self) -> None:
+        self.assert_thin_pair("analyze-bsl", "qa")
+        shell = (ROOT / "scripts" / "qa" / "analyze-bsl.sh").read_text(encoding="utf-8")
+        self.assertNotIn("java", shell)
+
     def test_http_launcher_is_thin_and_paired(self) -> None:
         self.assert_thin_pair("publish-http")
 

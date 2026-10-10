@@ -52,6 +52,16 @@ def load_available_connections(path: Path) -> dict[str, Any]:
     return load_runtime_connections(path)[0]
 
 
+def connection_registry_path(root: Path) -> Path:
+    """Local connection registry of the MCP server (`BSL_ONEC_CONNECTIONS_FILE` or the default path)."""
+    return Path(os.environ.get("BSL_ONEC_CONNECTIONS_FILE", root / "env" / ".local" / "bsl-onec-connections.json"))
+
+
+def source_candidates() -> list[str]:
+    """Source roots the MCP server may index, in priority order (`BSL_ANALYZER_SOURCE_CANDIDATES`)."""
+    return [item for item in os.environ.get("BSL_ANALYZER_SOURCE_CANDIDATES", "src/cf").split(os.pathsep) if item]
+
+
 def select_source_dir(root: Path, candidates: list[str]) -> Path:
     for candidate in candidates:
         path = root / candidate
@@ -110,13 +120,10 @@ def run_bsl_analyzer_mcp(argv: list[str]) -> int:
     )
     load_dotenv(embedding_profile)
     load_dotenv(root / ".env")
-    registry_path = Path(
-        os.environ.get("BSL_ONEC_CONNECTIONS_FILE", root / "env" / ".local" / "bsl-onec-connections.json")
-    )
+    registry_path = connection_registry_path(root)
     if not registry_path.is_file():
         raise CommandError(f"BSL Analyzer connection registry is missing: {registry_path}")
-    candidates = [item for item in os.environ.get("BSL_ANALYZER_SOURCE_CANDIDATES", "src/cf").split(os.pathsep) if item]
-    source_dir = select_source_dir(root, candidates)
+    source_dir = select_source_dir(root, source_candidates())
     executable = resolve_analyzer_executable()
     available, profile_users = load_runtime_connections(registry_path, root)
     runtime_registry = Path(tempfile.gettempdir()) / f"bsl-onec-connections-{os.getpid()}.json"

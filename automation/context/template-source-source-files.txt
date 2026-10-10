@@ -1136,6 +1136,7 @@
 ./openspec/changes/import-project-toolkit-and-migration-workflows/specs/long-operation-observation/spec.md
 ./openspec/changes/import-project-toolkit-and-migration-workflows/specs/onec-development-toolkit/spec.md
 ./openspec/changes/import-project-toolkit-and-migration-workflows/specs/project-scoped-skills/spec.md
+./openspec/changes/import-project-toolkit-and-migration-workflows/specs/repository-agent-guidance/spec.md
 ./openspec/changes/import-project-toolkit-and-migration-workflows/specs/template-ci-contours/spec.md
 ./openspec/changes/import-project-toolkit-and-migration-workflows/specs/template-overlay-delivery/spec.md
 ./openspec/changes/import-project-toolkit-and-migration-workflows/tasks.md
@@ -1238,6 +1239,7 @@
 ./scripts/python/__init__.py
 ./scripts/python/agent_docs.py
 ./scripts/python/artifact_storage.py
+./scripts/python/bsl_analyze.py
 ./scripts/python/bsl_check.py
 ./scripts/python/bsl_connections.py
 ./scripts/python/bsl_mcp_runtime.py
@@ -1542,6 +1544,7 @@
 ./tests/python/test_agent_docs.py
 ./tests/python/test_agent_docs_structural_contracts.py
 ./tests/python/test_artifact_storage.py
+./tests/python/test_bsl_analyze.py
 ./tests/python/test_bsl_check.py
 ./tests/python/test_bsl_connections.py
 ./tests/python/test_bsl_mcp_runtime.py

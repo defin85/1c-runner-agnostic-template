@@ -4,6 +4,7 @@ import re
 import sys
 from pathlib import Path
 
+from .bsl_analyze import analyze_bsl
 from .bsl_mcp_runtime import run_bsl_analyzer_mcp
 from .cfe_runtime import CFE_COMMANDS, run_cfe_command
 from .common import CommandError, die, project_root
@@ -17,7 +18,7 @@ from .imported_skills import (
     sync_imported_skills,
 )
 from .project_extensions import run_project_verify_steps
-from .qa import agent_verify, analyze_bsl, check_agent_docs, check_overlay_manifest, check_skill_bindings, codex_onboard
+from .qa import agent_verify, check_agent_docs, check_overlay_manifest, check_skill_bindings, codex_onboard
 from .runtime import (
     run_doctor,
     run_load_diff_src,
@@ -199,7 +200,7 @@ def main(argv: list[str] | None = None) -> int:
                 die("sync-imported-skills requires --source")
             return sync_imported_skills(Path(source))
         if command == "analyze-bsl":
-            return analyze_bsl()
+            return analyze_bsl(args)
         if command == "ordinary-form-conversion":
             from .ordinary_form_conversion import run_ordinary_form_conversion
 

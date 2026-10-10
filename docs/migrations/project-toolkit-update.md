@@ -147,7 +147,15 @@ PowerShell: `.\scripts\template\migrate-runtime-support-matrix.ps1`.
 
 `make check-agent-docs` проверяет, что пути в документах проекта существуют в репозитории. Сообщение `representative path is missing: <документ> -> <путь>` означает, что документ называет файл, которого нет в git, например локальный файл, исключённый через `.gitignore`. Исправьте путь или перепишите фразу без пути в обратных кавычках.
 
-### 7. Обновить производный контекст и проверить проект
+### 7. Перейти с BSL Language Server на `bsl-analyzer`
+
+`make analyze-bsl` больше не запускает jar BSL Language Server: команда получает диагностики от MCP-сервера `bsl-analyzer`. Переменные `BSL_LANGUAGE_SERVER_JAR`, `BSL_LANGUAGE_SERVER_CONFIG`, `BSL_LS_XMX` и `BSL_REPORT_DIR` не читаются. Если они остались в `.env`, профиле CI или собственных целях `Makefile.project`, удалите их вместе с загрузкой jar и файлом настроек BSL Language Server.
+
+1. Настройте сервер по [bsl-analyzer-workspace-runbook.md](../agent/bsl-analyzer-workspace-runbook.md): `bsl-analyzer-app` в `PATH` или в `BSL_ANALYZER_EXECUTABLE`, реестр `env/.local/bsl-onec-connections.json` (для анализа достаточно `{"connections": {}}`) и каталог исходников с `Configuration.xml` (`BSL_ANALYZER_SOURCE_CANDIDATES`, по умолчанию `src/cf`). Без этого команда завершается с ошибкой `bsl-analyzer is not configured`.
+2. Запустите `make analyze-bsl`. Каждая диагностика, которую проект принимает осознанно, записывается точным исключением в `bsl-analyzer-exceptions.json` (формат — в том же документе). Отключения правил BSL Language Server в конфигурации и комментариях `// BSLLS:<Правило>-off` на результат `bsl-analyzer` не влияют.
+3. Если CI проекта запускал `make analyze-bsl` с BSL Language Server, перенесите шаг на машину, где установлен `bsl-analyzer-app`, или уберите его из CI.
+
+### 8. Обновить производный контекст и проверить проект
 
 ```bash
 ./scripts/llm/export-context.sh --write

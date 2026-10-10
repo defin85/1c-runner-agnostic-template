@@ -14,6 +14,37 @@
 
 `search`, `graph`, `metadata` и `diagnostics` строятся лениво и могут временно вернуть `loading`. Это не пустой результат: повторите вызов после готовности. Не запускайте отдельную индексацию на каждую сессию.
 
+## Полный анализ BSL: `make analyze-bsl`
+
+`make analyze-bsl` (Windows: `./make.ps1 analyze-bsl`) запускает тот же MCP-сервер, что `make bsl-analyzer-mcp`, запрашивает инструмент `diagnostics` для каждого модуля `.bsl` дерева исходников и завершается с кодом 1, если есть диагностика без точного исключения. Другого анализатора BSL шаблон не поставляет.
+
+- Дерево исходников: `BSL_SRC_DIR` или тот же каталог, который индексирует сервер (`BSL_ANALYZER_SOURCE_CANDIDATES`, по умолчанию `src/cf`). Каталог должен быть внутри репозитория.
+- Если не найден `bsl-analyzer-app`, реестр подключений или каталог с `Configuration.xml`, команда завершается с ошибкой `bsl-analyzer is not configured` и ссылкой на этот документ. Реестр без подключений (`{"connections": {}}`) достаточен для анализа.
+- Ожидание ответа сервера ограничено `BSL_ANALYZER_MCP_TIMEOUT` (по умолчанию 180 секунд). При завершении команда закрывает stdin сервера, через 2 секунды останавливает всё дерево его процессов: группу процессов на Linux, Job object на Windows.
+- `BSL_ANALYZER_REPORT=<путь.json>` сохраняет отчёт: версию анализатора, ревизию git, все диагностики и сводки по файлам, правилам и важности.
+- `BSL_ANALYZER_MCP_BIN` задаёт другой запускатель сервера (`.py`, `.sh`, `.ps1` или исполняемый файл).
+- `BSL_ANALYZER_MODE=standalone` вместе с `BSL_ANALYZER_REPORT` анализирует небольшое дерево командой `bsl-analyzer-app analyze` без резидентного сервера.
+
+Точные исключения хранятся в `bsl-analyzer-exceptions.json` в корне проекта (другой путь — `BSL_ANALYZER_EXCEPTIONS`). Каждая запись описывает одну диагностику и ссылается на разобранную находку (`finding` в виде `ПРЕФИКС-номер` латиницей); `fingerprint` — SHA-256 от JSON с полями `path`, `line`, `rule`, `message`:
+
+```json
+{
+  "schemaVersion": 1,
+  "exceptions": [
+    {
+      "finding": "EX-001",
+      "path": "src/cf/CommonModules/ОбщийМодуль/Ext/Module.bsl",
+      "line": 12,
+      "rule": "UnusedLocalVariable",
+      "message": "<текст диагностики>",
+      "fingerprint": "<sha256>"
+    }
+  ]
+}
+```
+
+Исключение, которому больше не соответствует ни одна диагностика, делает проверку неуспешной: удалите или обновите запись. Если диагностики только сместились по строкам, `BSL_ANALYZER_REFRESH_RELOCATED_EXCEPTIONS=1` переписывает номера строк; при изменении правил или текста диагностик обновление отклоняется.
+
 ## Реестр подключений к ИБ
 
 Локальный реестр: `env/.local/bsl-onec-connections.json` (другой путь — `BSL_ONEC_CONNECTIONS_FILE`). Реестр не коммитится. Он содержит URL HTTP-сервиса анализатора, имена переменных окружения и `allow_execute`; секреты задаются только в `.env` или окружении.
@@ -82,6 +113,7 @@ HTTP-сервис анализатора ставится в ИБ как рас�
 
 ```bash
 python -m unittest tests.python.test_bsl_mcp_runtime tests.python.test_bsl_connections
+make verify-python-tests ARGS="tests/python/test_bsl_analyze.py"
 ./scripts/qa/check-bsl.sh --mode fast <модуль.bsl>
 curl -u 'пользователь:пароль' http://127.0.0.1/<публикация>/hs/bsl-analyzer/version
 ```

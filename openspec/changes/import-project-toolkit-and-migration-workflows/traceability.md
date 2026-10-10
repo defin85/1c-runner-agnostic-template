@@ -29,6 +29,10 @@
   - Tests: `tests/smoke/check-bsl-routing.sh`; live — платформенная компиляция в согласованной ИБ
 - Отсутствие авторитетной проверки фиксируется явно
   - Tests: `tests/smoke/check-bsl-routing.sh`
+- Полный анализ BSL выполняется только через MCP `bsl-analyzer`
+  - Code: `scripts/python/bsl_analyze.py`, `scripts/qa/analyze-bsl.sh|.ps1`, `scripts/python/bsl_mcp_runtime.py`
+  - Docs: `docs/agent/bsl-analyzer-workspace-runbook.md`, `docs/migrations/project-toolkit-update.md`
+  - Tests: `tests/python/test_bsl_analyze.py`, `tests/python/test_thin_launchers.py`; остановка дерева процессов через Job object — задание `fixture (windows-latest)`
 - Метаданные меняются через CLI модели объектов
   - Code: `scripts/python/metadata*.py`, навыки `metadata-use`, `metadata-cli-development`
   - Tests: `tests/python/test_metadata*.py`; структура — `metadata verify` / загрузка платформой
@@ -138,3 +142,9 @@
   - Tests: `tests/smoke/python-type-checking-contract.sh`
 - Новые инструменты покрыты smoke-проверками без 1С
   - Tests: `make agent-verify`
+
+## repository-agent-guidance
+
+- Agent Verification Runbook
+  - Docs: `docs/agent/verify.md`
+  - Tests: `make agent-verify`, `make check-agent-docs`

@@ -20,7 +20,7 @@ make agent-verify
 Baseline intentionally не требует:
 
 - licensed 1C runtime;
-- BSL Language Server / Java;
+- MCP-сервер `bsl-analyzer` и полный анализ BSL `make analyze-bsl` (см. [bsl-analyzer-workspace-runbook.md](bsl-analyzer-workspace-runbook.md));
 - secret runtime profiles.
 
 ## Python Quality Contour

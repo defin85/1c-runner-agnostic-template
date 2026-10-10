@@ -75,6 +75,8 @@ class AnalyzerOutcome:
     problems: list[str] = field(default_factory=list)
     parse_errors: list[dict[str, Any]] = field(default_factory=list)
     covered: int = 0
+    # Every reported diagnostic as (resolved module path, raw analyzer finding), ParseError included.
+    diagnostics: list[tuple[Path, dict[str, Any]]] = field(default_factory=list)
 
 
 def analyzer_app() -> str:
@@ -312,6 +314,7 @@ def run_analyzer(
         covered.add(path.resolve())
         for value in _as_list(event.get("diagnostics")):
             finding = _as_dict(value)
+            outcome.diagnostics.append((path.resolve(), finding))
             if finding.get("code") != "ParseError":
                 continue
             line_number = finding.get("start_line")

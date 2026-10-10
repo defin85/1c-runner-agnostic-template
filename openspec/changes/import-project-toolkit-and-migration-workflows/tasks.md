@@ -30,7 +30,7 @@
 ## 2. Проверка BSL и инструментарий разработки
 
 - [x] 2.1 Перенести навык `1c-check-bsl`, `scripts/platform/check-cf-modules.sh`, `resolve-bsl-analyzer-connections.py` и `external_bsl_check.py` с выводом версии платформы и режима совместимости в результат.
-  - Не перенесено: MCP-клиент `analyze-bsl` из проектного `qa.py` (в шаблоне `analyze-bsl` остаётся на BSL LS jar) и `check-bsl-analyzer-connections.sh` (настройка debug-server площадки через systemd).
+  - Не перенесено в этой задаче: MCP-клиент `analyze-bsl` из проектного `qa.py` (перенесён задачей 3.11) и `check-bsl-analyzer-connections.sh` (настройка debug-server площадки через systemd).
   - Модули лежат в `scripts/python/`: `bsl_check.py`, `check_cf_modules.py`, `external_bsl_check.py`, `bsl_connections.py`; цели `make check-bsl|check-cf-modules|analyze-bsl-external`.
 - [x] 2.2 Добавить `tests/smoke/check-bsl-routing.sh`: выбор модулей, маршрутизация в анализатор или платформу, итог `синтаксис: не проверен` при недоступности, без разбора BSL.
 - [x] 2.3 Перенести `scripts/python/metadata*.py` с тестами `tests/python/` и навыки `metadata-use`, `metadata-cli-development`.
@@ -112,7 +112,7 @@
   - `test_run_client.py` (2 теста): на Windows профиль теста включает `xpra`, доступный только на POSIX; тест должен использовать профиль для Windows или проверять отказ.
   - Проверка: задание `fixture (windows-latest)` проходит; на Linux тесты не ослаблены.
 
-- [ ] 3.11 Перевести `make analyze-bsl` на MCP `bsl-analyzer` и удалить BSL LS из шаблона (Р19).
+- [x] 3.11 Перевести `make analyze-bsl` на MCP `bsl-analyzer` и удалить BSL LS из шаблона (Р19).
   - Перенести из `scripts/python/qa.py` проекта-источника MCP-клиент `analyze-bsl` (`_analyze_bsl_standalone`, запуск процесса MCP, остановка дерева процессов на Windows) в обезличенном виде; реестр исключений и каталог исходников по умолчанию — без проектных идентификаторов и путей.
   - Удалить запуск jar BSL LS, его загрузку, настройки, тесты и упоминания в документации, навыках и шаблонах созданного проекта; без настроенного `bsl-analyzer` команда завершается с ошибкой и ссылкой на `docs/agent/bsl-analyzer-workspace-runbook.md`.
   - Обновить спецификации change, где `analyze-bsl` описан через BSL LS, и шаг в `docs/migrations/project-toolkit-update.md`.

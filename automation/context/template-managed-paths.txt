@@ -971,6 +971,7 @@ scripts/platform/v8unpack.sh
 scripts/python/__init__.py
 scripts/python/agent_docs.py
 scripts/python/artifact_storage.py
+scripts/python/bsl_analyze.py
 scripts/python/bsl_check.py
 scripts/python/bsl_connections.py
 scripts/python/bsl_mcp_runtime.py
@@ -1265,6 +1266,7 @@ tests/python/ordinary_form_test_support.py
 tests/python/test_agent_docs.py
 tests/python/test_agent_docs_structural_contracts.py
 tests/python/test_artifact_storage.py
+tests/python/test_bsl_analyze.py
 tests/python/test_bsl_check.py
 tests/python/test_bsl_connections.py
 tests/python/test_bsl_mcp_runtime.py
