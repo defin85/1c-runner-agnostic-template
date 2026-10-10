@@ -27,7 +27,7 @@
 - проектные цели `make` и `./make.ps1` — в `Makefile.project` и `make.project.ps1`, а не в template-managed `Makefile`/`make.ps1`;
 - проектные шаги `make agent-verify` — в `scripts/qa/agent-verify.d/`;
 - проектные строки `.gitignore`, `.gitattributes`, `.contextignore` — только между маркерами project-owned блока;
-- Python-окружение проекта — `pyproject.toml`, `uv.lock`, `requirements-dev.txt`, `pyrightconfig.json`: шаблон создаёт их один раз, дальше проект сам добавляет зависимости и корни проверки типов; `pyrightconfig.json` сохраняет `extends` на `scripts/qa/pyright-base.json`;
+- Python-окружение проекта — `pyproject.toml`, `uv.lock`, `requirements-dev.txt`, `pyrightconfig.json`, `ruff.toml`: шаблон создаёт их один раз, дальше проект сам добавляет зависимости, корни проверки типов и исключения своих файлов из `ruff`; `pyrightconfig.json` сохраняет `extends` на `scripts/qa/pyright-base.json`, `ruff.toml` — `extend` на `scripts/qa/ruff-base.toml`;
 - `template-update` эти пути и блоки не перезаписывает; контракт описан в `docs/template-maintenance.md` (раздел `Project-Owned Extension Points`), а в карте проекта достаточно перечислить, какие точки команда использует и зачем.
 
 ## Инструменты разработки шаблона

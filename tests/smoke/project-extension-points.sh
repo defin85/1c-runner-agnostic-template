@@ -2,7 +2,7 @@
 # Contract: project-owned extension points survive template-update and stay wired:
 # Makefile.project / make.project.ps1, scripts/qa/agent-verify.d/, the project-owned
 # block in .gitignore, .gitattributes and .contextignore, and the seed-once Python environment
-# (pyproject.toml, uv.lock, requirements-dev.txt, pyrightconfig.json): copier copy delivers it,
+# (pyproject.toml, uv.lock, requirements-dev.txt, pyrightconfig.json, ruff.toml): copier copy delivers it,
 # template-update seeds only missing files and never overwrites project dependencies or roots.
 set -euo pipefail
 
@@ -82,9 +82,10 @@ project_owned_paths=(
   uv.lock
   requirements-dev.txt
   pyrightconfig.json
+  ruff.toml
   project_tools/greeting.py
 )
-python_seed_paths=(pyproject.toml uv.lock requirements-dev.txt pyrightconfig.json)
+python_seed_paths=(pyproject.toml uv.lock requirements-dev.txt pyrightconfig.json ruff.toml)
 
 checksum_project_owned() {
   (cd "$rendered_root" && sha256sum "${project_owned_paths[@]}")
@@ -137,6 +138,7 @@ for relpath in "${python_seed_paths[@]}"; do
   fi
 done
 assert_contains "$rendered_root/pyrightconfig.json" '"extends": "scripts/qa/pyright-base.json"'
+assert_contains "$rendered_root/ruff.toml" 'extend = "scripts/qa/ruff-base.toml"'
 
 # Fill the extension points the way a generated project would.
 cat >"$rendered_root/Makefile.project" <<'EOF'
@@ -209,6 +211,7 @@ config = json.loads(path.read_text(encoding="utf-8"))
 config["include"].append("project_tools")
 path.write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8")
 PY
+printf 'extend-exclude = ["project_tools/generated"]\n' >>"$rendered_root/ruff.toml"
 
 git -C "$rendered_root" add -A
 git -C "$rendered_root" commit -qm "fill project-owned extension points"
@@ -225,6 +228,7 @@ printf '#!/usr/bin/env bash\nexit 99\n' >"$template_root/scripts/qa/agent-verify
 printf '# template v0.2.0\n' >>"$template_root/pyproject.toml"
 printf '# template v0.2.0\n' >>"$template_root/uv.lock"
 printf '# template v0.2.0\n' >>"$template_root/requirements-dev.txt"
+printf '# template v0.2.0\n' >>"$template_root/ruff.toml"
 python3 - "$template_root/pyrightconfig.json" <<'PY'
 import json
 import sys
@@ -256,6 +260,7 @@ fi
 assert_contains "$rendered_root/Makefile" "# template v0.2.0"
 assert_contains "$rendered_root/pyproject.toml" '"pyyaml>=6"'
 assert_contains "$rendered_root/pyrightconfig.json" '"project_tools"'
+assert_contains "$rendered_root/ruff.toml" 'project_tools/generated'
 assert_contains "$rendered_root/.gitignore" "template-v2-cache/"
 assert_contains "$rendered_root/.gitattributes" "*.template-v2 text eol=lf"
 assert_in_block "$rendered_root/.gitignore" "project-local-cache/"
@@ -352,12 +357,12 @@ from scripts.python.project_extensions import seed_missing_project_files
 
 root = Path(sys.argv[1])
 seeded = seed_missing_project_files(root / "source", root / "target")
-assert seeded == ["uv.lock", "requirements-dev.txt", "pyrightconfig.json"], seeded
+assert seeded == ["uv.lock", "requirements-dev.txt", "pyrightconfig.json", "ruff.toml"], seeded
 PY
     )
   fi
   assert_contains "$seed_fixture/target/pyproject.toml" "project pyproject"
-  for relpath in uv.lock requirements-dev.txt pyrightconfig.json; do
+  for relpath in uv.lock requirements-dev.txt pyrightconfig.json ruff.toml; do
     assert_contains "$seed_fixture/target/$relpath" "template $relpath"
   done
 done

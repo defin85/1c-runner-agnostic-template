@@ -1,6 +1,6 @@
 # Обновление проекта, созданного до точек расширения и проектного Python-окружения
 
-Документ для проекта, созданного из шаблона до выпуска, в котором появились `Makefile.project`, `make.project.ps1`, проектный `pyrightconfig.json` с `extends`, записи платформ в таблице поддержки сред и цель `make verify-types`. Обновление выполняется обычной командой `make template-update` (`./make.ps1 template-update`), но часть проектных правок она удаляет без предупреждения, а часть новых проверок `make agent-verify` не проходит без действий в проекте.
+Документ для проекта, созданного из шаблона до выпуска, в котором появились `Makefile.project`, `make.project.ps1`, проектные `pyrightconfig.json` с `extends` и `ruff.toml` с `extend`, записи платформ в таблице поддержки сред и цель `make verify-types`. Обновление выполняется обычной командой `make template-update` (`./make.ps1 template-update`), но часть проектных правок она удаляет без предупреждения, а часть новых проверок `make agent-verify` не проходит без действий в проекте.
 
 Признаки такого проекта:
 
@@ -83,18 +83,35 @@ PowerShell: `./make.ps1 template-update`. До коммита просмотри
 
 - Baseline basedpyright больше не допускается. Удалите файлы `basedpyright-baseline*` и `.basedpyright/baseline*`, удалите ключи `baselineFile` и `ignore` из `pyrightconfig.json` и исправьте ошибки типов, которые скрывал baseline.
 - Добавьте в `pyrightconfig.json` строку `"extends": "scripts/qa/pyright-base.json"`. Режим проверки не ниже `standard`; понижать правила нельзя.
-- Каждый `.py`-файл проекта должен лежать внутри одного из корней `include` в `pyrightconfig.json`. Если `make verify-types` пишет `Python files outside pyrightconfig.json include roots are not type-checked`, добавьте корни перечисленных файлов в `include`.
+- Каждый `.py`-файл проекта должен лежать внутри одного из корней `include` в `pyrightconfig.json` или попадать под `exclude`. Если `make verify-types` пишет `Python files outside pyrightconfig.json include roots are not type-checked`, добавьте корни перечисленных файлов в `include` либо, если эти файлы осознанно не проверяются по типам, в `exclude`.
 
-### 2. Закрепить версии `ruff`, `basedpyright` и `pytest`
+### 2. Закрепить версии `ruff`, `basedpyright` и `pytest` и подключить базовые правила `ruff`
 
-`pyproject.toml`, `uv.lock` и `requirements-dev.txt` принадлежат проекту, а минимальные версии инструментов задаёт шаблон. `make verify-types` печатает команду исправления, если версия ниже минимальной или пакет не закреплён. Если в проекте нет `ruff`, `make verify-python-lint` завершается ошибкой `Failed to spawn: ruff`. Исправление:
+`pyproject.toml`, `uv.lock` и `requirements-dev.txt` принадлежат проекту, а минимальные версии инструментов задаёт шаблон. `make verify-types` печатает команду исправления, если версия ниже минимальной или пакет не закреплён. Если `ruff` нет в окружении `uv` проекта, `make verify-python-lint` до запуска `ruff` завершается ошибкой `ruff is not installed in the project uv environment (uv.lock)` и печатает ту же команду исправления. Исправление:
 
 ```bash
-uv add --dev "ruff>=<минимальная версия из сообщения make verify-types>"
+uv add --dev "ruff>=<минимальная версия из сообщения>"
 uv export --locked --format requirements-txt --no-hashes --no-emit-project --no-annotate --output-file requirements-dev.txt
 ```
 
-Правила `ruff` лежат в `ruff.toml` шаблона и применяются ко всему Python-коду проекта. Автоматически исправимые нарушения устраняют `uv run --locked ruff check --fix .` и `uv run --locked ruff format .`; остальные исправьте вручную.
+`ruff.toml` теперь тоже принадлежит проекту (Р18), а правила `ruff` лежат в template-managed `scripts/qa/ruff-base.toml`. Если `ruff.toml` в проекте не было, `template-update` создаёт его со строкой `extend = "scripts/qa/ruff-base.toml"`. Существующий `ruff.toml` обновление не меняет, поэтому прежний файл без `extend` `make verify-python-lint` отклоняет с ошибкой `ruff.toml must keep extend = "scripts/qa/ruff-base.toml"`. Исправление:
+
+1. Сохраните из прежнего `ruff.toml` только собственные настройки проекта: исключения файлов проекта и исключения правил для них. Настройки, которые совпадают с базой шаблона (`target-version`, `line-length`, `select`, исключение `automation/vendor` и `.artifacts`), удалите.
+2. Запишите `ruff.toml` в таком виде, заменив пути примера путями проекта:
+
+   ```toml
+   extend = "scripts/qa/ruff-base.toml"
+   extend-exclude = ["tests/contract"]
+
+   [lint.per-file-ignores]
+   "scripts/project/legacy/**" = ["E402"]
+   ```
+
+   Используйте `extend-exclude`, а не `exclude`: `exclude` заменяет стандартный список исключений `ruff` (`.git`, `.venv` и другие). Новые правила добавляйте через `extend-select`; `select` заменяет правила базы.
+3. Если настройки `ruff` лежали в разделе `[tool.ruff]` файла `pyproject.toml`, перенесите их в `ruff.toml` и удалите раздел: при наличии `ruff.toml` `ruff` раздел `[tool.ruff]` не читает.
+4. Запустите `make verify-python-lint`. Проверка отклоняет `ruff.toml`, если `ignore` или `extend-ignore` отключает правило базы, или если шаблон пути в `exclude`, `extend-exclude`, `lint.exclude`, `format.exclude`, `include` или `per-file-ignores` с правилом базы захватывает Python-файл из `automation/context/template-managed-paths.txt`. Сообщение называет ключ, шаблон пути и примеры таких файлов; сузьте шаблон до файлов проекта.
+
+Правила базы применяются ко всему Python-коду проекта, кроме исключённых проектом файлов. Автоматически исправимые нарушения устраняют `uv run --locked ruff check --fix .` и `uv run --locked ruff format .`; остальные исправьте вручную.
 
 ### 3. Обновить ссылки на удалённые разделы о `meta-*` и `form-*`
 

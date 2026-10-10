@@ -892,7 +892,6 @@ env/wsl.example.json
 features/README.md
 features/examples/tdd-starter.feature
 make.ps1
-ruff.toml
 scripts/AGENTS.md
 scripts/__init__.py
 scripts/adapters/direct-platform.ps1
@@ -1052,6 +1051,7 @@ scripts/qa/python-lint.ps1
 scripts/qa/python-lint.sh
 scripts/qa/python-tests.ps1
 scripts/qa/python-tests.sh
+scripts/qa/ruff-base.toml
 scripts/qa/type-check.ps1
 scripts/qa/type-check.sh
 scripts/skills/run-imported-skill.ps1
@@ -1263,12 +1263,14 @@ tests/python/__init__.py
 tests/python/metadata_test_support.py
 tests/python/ordinary_form_test_support.py
 tests/python/test_agent_docs.py
+tests/python/test_agent_docs_structural_contracts.py
 tests/python/test_artifact_storage.py
 tests/python/test_bsl_check.py
 tests/python/test_bsl_connections.py
 tests/python/test_bsl_mcp_runtime.py
 tests/python/test_cfe_init_from_template_command.py
 tests/python/test_cfe_runtime.py
+tests/python/test_common_helpers.py
 tests/python/test_context_generated_tree.py
 tests/python/test_cross_platform.py
 tests/python/test_epf_init_from_template_command.py
@@ -1299,6 +1301,7 @@ tests/python/test_metadata_template_ops.py
 tests/python/test_metadata_template_xlsx.py
 tests/python/test_metadata_type_dependencies.py
 tests/python/test_metadata_validate.py
+tests/python/test_onec_xpra_display_reaper.py
 tests/python/test_ordinary_form_conversion.py
 tests/python/test_qa_skill_bindings.py
 tests/python/test_remote_transport.py
@@ -1317,6 +1320,7 @@ tests/python/test_runtime_result.py
 tests/python/test_runtime_selection.py
 tests/python/test_runtime_support_matrix.py
 tests/python/test_thin_launchers.py
+tests/python/test_type_checking_contracts.py
 tests/python/test_v8std.py
 tests/shell-fixtures/README.md
 tests/smoke/README.md
@@ -1336,6 +1340,7 @@ tests/smoke/new-1c-project-current-dir-defaults.sh
 tests/smoke/observation-contract.sh
 tests/smoke/onec-port-lease-contract.sh
 tests/smoke/project-extension-points.sh
+tests/smoke/python-ruff-config-contract.sh
 tests/smoke/python-type-checking-contract.sh
 tests/smoke/reusable-testing-contract.sh
 tests/smoke/reusable_testing_contract.py

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import shutil
 import subprocess
 import tempfile
@@ -30,6 +31,38 @@ def log(message: str, script_name: str | None = None) -> None:
 
 def project_root() -> Path:
     return PROJECT_ROOT
+
+
+_CHANGE_NAME = re.compile(r"[a-z0-9][a-z0-9-]*")
+
+
+def resolve_openspec_path(path: Path, *, root: Path = PROJECT_ROOT) -> Path:
+    """Locate evidence of an archived OpenSpec change without rewriting its recorded path.
+
+    Evidence records keep the path `openspec/changes/<change>/...` they had while the change was
+    active. After `openspec archive` the change lives in `openspec/changes/archive/<date>-<change>/`;
+    this returns that location when the recorded path no longer exists. Any other path is returned
+    unchanged. Two archived copies of one change are ambiguous and raise `ValueError`.
+    """
+    if path.exists() or path.is_symlink() or not path.is_relative_to(root):
+        return path
+    parts = path.relative_to(root).parts
+    if (
+        len(parts) < 3
+        or parts[:2] != ("openspec", "changes")
+        or parts[2] == "archive"
+        or ".." in parts
+        or not _CHANGE_NAME.fullmatch(parts[2])
+    ):
+        return path
+    active = root.joinpath(*parts[:3])
+    if active.exists() or active.is_symlink():
+        return path
+    archive = root / "openspec" / "changes" / "archive"
+    matches = list(archive.glob(f"[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]-{parts[2]}"))
+    if len(matches) > 1:
+        raise ValueError(f"ambiguous archived change: {parts[2]}")
+    return matches[0].joinpath(*parts[3:]) if matches else path
 
 
 def canonical_path(value: str | os.PathLike[str]) -> Path:
@@ -75,6 +108,18 @@ def write_json(path: str | os.PathLike[str], payload: object) -> None:
 def read_json(path: str | os.PathLike[str]) -> object:
     with Path(path).open("r", encoding="utf-8") as stream:
         return json.load(stream)
+
+
+def object_dict(value: object) -> dict[str, object]:
+    """Narrow parsed JSON to a mapping with string keys; anything else becomes an empty dict."""
+    if not isinstance(value, dict):
+        return {}
+    return {key: item for key, item in value.items() if isinstance(key, str)}
+
+
+def object_list(value: object) -> list[object]:
+    """Narrow parsed JSON to a list; anything else becomes an empty list."""
+    return list(value) if isinstance(value, list) else []
 
 
 def relative_repo_path(path: str | os.PathLike[str]) -> str:

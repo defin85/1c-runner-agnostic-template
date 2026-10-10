@@ -22,13 +22,18 @@ PASSWORD_ENV = "RUN_CLIENT_FIXTURE_PASSWORD"
 
 
 def write_profile(root: Path) -> Path:
+    platform: dict[str, Any] = {"binaryPath": str(root / "bin" / "1cv8")}
+    if os.name != "nt":
+        # run-client on Linux requires xpra; a Windows profile must not enable this POSIX-only feature.
+        platform["xpra"] = {
+            "enabled": True,
+            "startChild": "openbox",
+            "xvfbArgs": ["Xvfb", "-screen", "0", "1024x768x24"],
+        }
     profile = {
         "schemaVersion": 3,
         "profileName": "run-client-fixture",
-        "platform": {
-            "binaryPath": str(root / "bin" / "1cv8"),
-            "xpra": {"enabled": True, "startChild": "openbox", "xvfbArgs": ["Xvfb", "-screen", "0", "1024x768x24"]},
-        },
+        "platform": platform,
         "infobase": {
             "mode": "file",
             "filePath": str(root / "infobase"),
@@ -52,7 +57,8 @@ def call(argv: list[str]) -> tuple[int, dict[str, Any]]:
 class RunClientTestCase(unittest.TestCase):
     def setUp(self) -> None:
         self._tmp = tempfile.TemporaryDirectory()
-        self.root = Path(self._tmp.name)
+        # run-client canonicalizes the run root; resolve here so Windows 8.3 temp aliases compare equal.
+        self.root = Path(self._tmp.name).resolve()
         self.profile = write_profile(self.root)
         self.run_root = self.root / "run"
         patcher = mock.patch.dict(

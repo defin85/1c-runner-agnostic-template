@@ -54,6 +54,9 @@ log "Python unit tests (pytest, fast subset; the full suite runs in CI)"
 log "Check Python type checking contract"
 "$root/tests/smoke/python-type-checking-contract.sh"
 
+log "Check project-owned ruff config contract"
+"$root/tests/smoke/python-ruff-config-contract.sh"
+
 log "Run project-owned agent-verify steps (scripts/qa/agent-verify.d)"
 "$root/scripts/python/run-python.sh" agent-verify-project-steps
 

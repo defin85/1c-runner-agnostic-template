@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import argparse
+import io
 import json
 import shutil
+import sys
 import tempfile
 from pathlib import Path
 from xml.etree import ElementTree
@@ -92,7 +94,15 @@ def convert(designer_root: Path, destination: Path) -> None:
         )
 
 
+def _use_utf8_output() -> None:
+    # v8unpack prints Cyrillic progress; the parent decodes UTF-8, and a Windows pipe defaults to the ANSI code page.
+    for stream in (sys.stdout, sys.stderr):
+        if isinstance(stream, io.TextIOWrapper):
+            stream.reconfigure(encoding="utf-8", errors="replace")
+
+
 def main() -> int:
+    _use_utf8_output()
     parser = argparse.ArgumentParser()
     parser.add_argument("designer_root", type=Path)
     parser.add_argument("destination", type=Path)

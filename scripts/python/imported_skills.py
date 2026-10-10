@@ -919,7 +919,7 @@ def _is_overlay_managed(rel: str) -> bool:
         "docs/work-items/TEMPLATE.md",
         "tests/smoke/template-release-workflow.sh",
         "tests/golden/run.sh",
-        # Seed-once Python environment (design decision R15): copier copy delivers them,
+        # Seed-once Python environment (design decisions R15, R18): copier copy delivers them,
         # afterwards the generated project owns them and template-update never overwrites them.
         *PROJECT_OWNED_PYTHON_SEED_PATHS,
     }

@@ -16,6 +16,11 @@ from scripts.python.runtime_process import ProcessResult
 PASSWORD_ENV = "BSL_CONNECTIONS_FIXTURE_PASSWORD"
 
 
+def isolated_home(root: Path) -> dict[str, str]:
+    """Point the home directory at the fixture on POSIX (HOME) and Windows (USERPROFILE)."""
+    return {"HOME": str(root), "USERPROFILE": str(root)}
+
+
 def write_json(path: Path, payload: object) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload), encoding="utf-8")
@@ -91,7 +96,7 @@ class ResolveProfileConnectionsTests(unittest.TestCase):
             patch("scripts.python.bsl_mcp_runtime.run_process", side_effect=fake_run),
             patch.dict(
                 os.environ,
-                {"BSL_ONEC_CONNECTIONS_FILE": str(registry), PASSWORD_ENV: "secret-value"},
+                {"BSL_ONEC_CONNECTIONS_FILE": str(registry), PASSWORD_ENV: "secret-value", **isolated_home(self.root)},
                 clear=True,
             ),
         ):

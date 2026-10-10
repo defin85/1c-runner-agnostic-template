@@ -1,16 +1,6 @@
-# Template-managed ruff settings (design decision R9). Keep them out of pyproject.toml so a
-# generated project can own pyproject.toml dependencies without conflicting with template-update.
-target-version = "py312"
-line-length = 120
-extend-exclude = [
-    "automation/vendor",
-    ".artifacts",
-]
-
-# Server-side wrappers of the optional customer-site module run on the site's system Python 3.7.
-# The path matches nothing until that optional module is materialized.
-[per-file-target-version]
-"automation/optional/customer-site-operations/server/**/*.py" = "py37"
-
-[lint]
-select = ["E4", "E7", "E9", "F", "B", "I", "UP"]
+# Project-owned ruff settings (design decision R18): created once, template-update never overwrites it.
+# The rules come from the template-managed base below; keep the `extend` line.
+# Add project paths with `extend-exclude`, project rules with `extend-select` and project-only
+# exceptions with `[lint.per-file-ignores]`. Patterns that switch base rules off for template-managed
+# files (automation/context/template-managed-paths.txt) make `make verify-python-lint` fail.
+extend = "scripts/qa/ruff-base.toml"

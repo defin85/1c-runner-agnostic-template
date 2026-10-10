@@ -645,7 +645,7 @@ class OrdinaryFormConversionTest(unittest.TestCase):
                 patch.object(conversion, "_build_for_profile", return_value={"status": "passed"}) as build,
             ):
                 conversion._build_published_sources(managed, profile, control, root / ".artifacts/build-published")
-            self.assertEqual(root / "src/epf/managed/ТестоваяОбработка100000153", build.call_args.args[0])
+            self.assertEqual((root / "src/epf/managed/ТестоваяОбработка100000153").resolve(), build.call_args.args[0])
             self.assertEqual(control, build.call_args.args[2])
             self.assertEqual("ТестоваяОбработка", build.call_args.kwargs["object_name"])
 
@@ -784,7 +784,7 @@ class OrdinaryFormConversionTest(unittest.TestCase):
             ):
                 conversion._build_published_sources(managed, profile, control, root / ".artifacts/build-published")
 
-            self.assertEqual(published, build.call_args.args[0])
+            self.assertEqual(published.resolve(), build.call_args.args[0])
             self.assertEqual(control, build.call_args.args[2])
 
     def test_package_build_records_managed_hash_and_sanitized_relative_paths(self) -> None:

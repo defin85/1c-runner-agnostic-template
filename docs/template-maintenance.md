@@ -69,7 +69,7 @@ make template-update
 
 ### Python-окружение проекта (seed-once)
 
-`pyproject.toml`, `uv.lock`, `requirements-dev.txt` и `pyrightconfig.json` шаблон кладёт в проект один раз, после этого ими владеет проект:
+`pyproject.toml`, `uv.lock`, `requirements-dev.txt`, `pyrightconfig.json` и `ruff.toml` шаблон кладёт в проект один раз, после этого ими владеет проект:
 
 - при `copier copy` файлы приходят из шаблона вместе с остальным деревом;
 - `template-update` их не перезаписывает и не удаляет: они перечислены в `automation/context/template-update-preserve-paths.txt` и не входят в `template-managed-paths.txt`. Если в проекте какого-то файла нет (проект создан до появления Python-окружения), `template-update` один раз копирует его из release шаблона, существующие файлы не трогает;
@@ -79,7 +79,8 @@ make template-update
   uv export --locked --format requirements-txt --no-hashes --no-emit-project --no-annotate --output-file requirements-dev.txt
   ```
 
-- проект добавляет свои корни проверки типов в `include` (и при необходимости в `exclude`) своего `pyrightconfig.json`.
+- проект добавляет свои корни проверки типов в `include` (и при необходимости в `exclude`) своего `pyrightconfig.json`; файлы из `exclude` проверка типов не считает неклассифицированными;
+- проект добавляет в свой `ruff.toml` исключения своих файлов (`extend-exclude`), свои правила (`extend-select`) и исключения правил для своих файлов (`[lint.per-file-ignores]`).
 
 Что остаётся за шаблоном и проверяется `make verify-types` (`scripts/python/type_checking.py`):
 
@@ -87,7 +88,13 @@ make template-update
 - эффективный режим не ниже `standard`; проект может только ужесточать правила (`"error"`/`true`), значения `"none"`, `false`, `"warning"` и другие понижения отклоняются; `baselineFile` и `ignore` запрещены, baseline-файлы тоже;
 - `requirements-dev.txt` закрепляет `ruff`, `basedpyright` и `pytest` не ниже минимальных версий шаблона и совпадает с `uv export` из `uv.lock` проекта. При нарушении проверка печатает команду исправления (`uv add --dev "<пакет>>=<версия>"`, затем `uv export ...`).
 
-Когда шаблон поднимает минимальные версии инструментов, `template-update` файлы проекта не меняет: `make verify-types` сообщает, какой пин поднять.
+Что остаётся за шаблоном и проверяется `make verify-python-lint` до запуска `ruff`:
+
+- правила `ruff` (`E4`, `E7`, `E9`, `F`, `B`, `I`, `UP`, `target-version = "py312"`, длина строки 120, исключение `automation/vendor/` и `.artifacts/`) лежат в template-managed `scripts/qa/ruff-base.toml`; проектный `ruff.toml` обязан подключать его строкой `extend = "scripts/qa/ruff-base.toml"`;
+- проверка завершается ошибкой, если `ruff.toml` заменяет `select` без какого-либо правила базы (добавляйте правила через `extend-select`), отключает правило базы через `ignore` или `extend-ignore` (они действуют на все файлы), или если шаблон `exclude`, `extend-exclude`, `lint.exclude`, `format.exclude`, `include` или `per-file-ignores` с правилом базы захватывает Python-файл из `automation/context/template-managed-paths.txt`. Сообщение называет ключ, шаблон пути и примеры захваченных файлов;
+- `ruff` должен быть установлен в окружении `uv` проекта в версии не ниже минимальной; иначе проверка печатает команду исправления `uv add --dev "ruff>=<версия>"` и команду перегенерации `requirements-dev.txt`.
+
+Когда шаблон поднимает минимальные версии инструментов или меняет базовые правила, `template-update` файлы проекта не меняет: `make verify-types` и `make verify-python-lint` сообщают, какой пин поднять, а новые правила базы применяются к проекту сразу.
 
 Пример `Makefile.project`:
 

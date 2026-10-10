@@ -8,8 +8,8 @@
 The template never ships these project-owned paths; they are listed in
 `automation/context/template-update-preserve-paths.txt` so overlay sync never writes them.
 
-Seed-once Python environment (design decision R15): `pyproject.toml`, `uv.lock`,
-`requirements-dev.txt` and `pyrightconfig.json` ship with the template, reach a generated
+Seed-once Python environment (design decisions R15, R18): `pyproject.toml`, `uv.lock`,
+`requirements-dev.txt`, `pyrightconfig.json` and `ruff.toml` ship with the template, reach a generated
 project through `copier copy` (or through `template-update` when the project lacks them),
 and afterwards belong to the project: overlay sync never overwrites them.
 """
@@ -29,7 +29,13 @@ PROJECT_BLOCK_END = "# <<< project-owned block <<<"
 PROJECT_BLOCK_FILES = frozenset({".gitignore", ".gitattributes", ".contextignore"})
 _IGNORED_STEP_SUFFIXES = frozenset({".md", ".txt"})
 # Keep in sync with PROJECT_OWNED_PYTHON_SEED_PATHS in scripts/template/lib-overlay.sh.
-PROJECT_OWNED_PYTHON_SEED_PATHS = ("pyproject.toml", "uv.lock", "requirements-dev.txt", "pyrightconfig.json")
+PROJECT_OWNED_PYTHON_SEED_PATHS = (
+    "pyproject.toml",
+    "uv.lock",
+    "requirements-dev.txt",
+    "pyrightconfig.json",
+    "ruff.toml",
+)
 
 
 def _block_bounds(lines: list[str], label: str) -> tuple[int, int] | None:

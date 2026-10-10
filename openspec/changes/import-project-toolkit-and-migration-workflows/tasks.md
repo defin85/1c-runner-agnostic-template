@@ -97,12 +97,26 @@
 
   - Сделано: команда `scripts/template/migrate-runtime-support-matrix.{sh,ps1}` (запись платформы без доказательства запуска означает «не проверено», отдельного статуса в схеме нет), `\brac`, исправлено извлечение пути из markdown-ссылки, цель `technological-log`, документ `docs/migrations/project-toolkit-update.md`. На клоне проекта-источника после миграции таблицы ушли все сбои со стороны шаблона, кроме перечисленных в 3.9.
 
-- [ ] 3.9 Перенести недостающие функции модулей шаблона и сделать конфигурацию ruff проектной (Р18).
+- [x] 3.9 Перенести недостающие функции модулей шаблона и сделать конфигурацию ruff проектной (Р18).
   - Перенести из проекта-источника в модули шаблона функции, которые по инвентарю относятся к «обобщить», но не были перенесены: `resolve_openspec_path`, `object_dict`, `object_list` (`scripts/python/common.py`, задача 3.2); `init_launch_logs`, `reap_dead_x_displays` (`scripts/python/onec_xpra.py`); `_generated_structural_contracts` (`scripts/python/agent_docs.py`); `_analyze_bsl_standalone` (`scripts/python/qa.py`, `analyze-bsl` через MCP). Обезличить, перенести их тесты.
   - Исправить `find_unclassified_python` в `scripts/python/type_checking.py`: каталоги из `exclude` проектного `pyrightconfig.json` не должны считаться неклассифицированными, как и обещает подсказка проверки.
   - По Р18: перенести правила в `scripts/qa/ruff-base.toml`, сделать `ruff.toml` создаваемым один раз (preserve-контракт, исключение из манифеста, как у `pyrightconfig.json`), добавить проверку `extend` и запрета снимать правила базы для файлов шаблона; описать шаг в `docs/migrations/project-toolkit-update.md`.
   - Перед запуском ruff проверять наличие и версию инструмента и при отсутствии печатать понятное сообщение с командой исправления вместо `Failed to spawn: ruff`.
   - Проверка: unit-тесты перенесённых функций и проверок; на клоне проекта-источника тесты проекта, импортирующие эти функции, собираются; `ruff check` с проектным `exclude` не проверяет исключённые файлы проекта; `copier-update-ready` и `make agent-verify` проходят.
+  - Сделано: перенесены `resolve_openspec_path`, `object_dict`, `object_list`, `reap_dead_x_displays` (с вызовом из `direct-platform.sh`), `_generated_structural_contracts`; `find_unclassified_python` учитывает `exclude`; Р18 реализовано (`scripts/qa/ruff-base.toml`, seed-once `ruff.toml`, `check_ruff_config`, smoke `python-ruff-config-contract.sh`); перед ruff проверяется наличие инструмента. `init_launch_logs` не переносится: механизм заменён адаптером наблюдения (Р11), проект переписывает свой тест. `_analyze_bsl_standalone` вынесен в задачу 3.11 по Р19.
+
+- [ ] 3.10 Исправить 15 тестов, упавших в первом Windows-прогоне CI (задание `fixture (windows-latest)`, ручной запуск на ветке change).
+  - `test_bsl_connections.py`, `test_bsl_mcp_runtime.py`: при очищенном окружении `Path.home()` падает с `Could not determine home directory`; код не должен требовать домашний каталог, когда путь задан явно, а тест — задавать `USERPROFILE` на Windows.
+  - `test_metadata_template_ops.py`, `test_metadata_template_xlsx.py`: макет с LF записывается с CRLF; запись должна сохранять исходные концы строк на любой ОС.
+  - `test_ordinary_form_conversion.py` (6 тестов): сравнение короткого (`RUNNER~1`) и длинного пути, `UnicodeEncodeError: 'charmap'` при выводе дочернего процесса, поиск `src/epf/managed` с разделителями Windows.
+  - `test_run_client.py` (2 теста): на Windows профиль теста включает `xpra`, доступный только на POSIX; тест должен использовать профиль для Windows или проверять отказ.
+  - Проверка: задание `fixture (windows-latest)` проходит; на Linux тесты не ослаблены.
+
+- [ ] 3.11 Перевести `make analyze-bsl` на MCP `bsl-analyzer` и удалить BSL LS из шаблона (Р19).
+  - Перенести из `scripts/python/qa.py` проекта-источника MCP-клиент `analyze-bsl` (`_analyze_bsl_standalone`, запуск процесса MCP, остановка дерева процессов на Windows) в обезличенном виде; реестр исключений и каталог исходников по умолчанию — без проектных идентификаторов и путей.
+  - Удалить запуск jar BSL LS, его загрузку, настройки, тесты и упоминания в документации, навыках и шаблонах созданного проекта; без настроенного `bsl-analyzer` команда завершается с ошибкой и ссылкой на `docs/agent/bsl-analyzer-workspace-runbook.md`.
+  - Обновить спецификации change, где `analyze-bsl` описан через BSL LS, и шаг в `docs/migrations/project-toolkit-update.md`.
+  - Проверка: unit-тесты MCP-клиента на фиктивном MCP-сервере (успех, диагностики, отказ без настройки, таймаут); в шаблоне не остаётся ссылок на BSL LS (`rg -i "bsl-language-server|bsl ls|BSLLS jar"` вне истории и архива); `make agent-verify` проходит.
 
 ## 4. Необязательные модули: механизм
 

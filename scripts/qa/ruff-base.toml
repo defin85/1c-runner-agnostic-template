@@ -1,0 +1,21 @@
+# Template-managed ruff rules (design decision R18). template-update replaces this file.
+# The project-owned ruff.toml extends it with `extend = "scripts/qa/ruff-base.toml"` and may add its
+# own excludes, per-file-ignores and extend-select; switching base rules off for template-managed
+# files is refused by `make verify-python-lint` (scripts/python/type_checking.py).
+#
+# Ruff resolves relative paths of an extended file from that file's directory (scripts/qa/),
+# hence the `../../` prefix of every path below.
+target-version = "py312"
+line-length = 120
+extend-exclude = [
+    "../../automation/vendor",
+    "../../.artifacts",
+]
+
+# Server-side wrappers of the optional customer-site module run on the site's system Python 3.7.
+# The path matches nothing until that optional module is materialized.
+[per-file-target-version]
+"../../automation/optional/customer-site-operations/server/**/*.py" = "py37"
+
+[lint]
+select = ["E4", "E7", "E9", "F", "B", "I", "UP"]

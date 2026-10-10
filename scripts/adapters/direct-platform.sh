@@ -98,7 +98,7 @@ pick_unused_xpra_display_number() {
   fi
 
   for display_number in $(seq "$min_display" "$max_display"); do
-    if [ -S "/tmp/.X11-unix/X${display_number}" ]; then
+    if [ -S "${ONEC_DIRECT_PLATFORM_X11_TMP_ROOT:-/tmp}/.X11-unix/X${display_number}" ]; then
       continue
     fi
     if DISPLAY=":${display_number}" xdpyinfo >/dev/null 2>&1; then
@@ -110,6 +110,30 @@ pick_unused_xpra_display_number() {
 
   printf 'failed to pick a free xpra display in range %s..%s\n' "$min_display" "$max_display" >&2
   exit 1
+}
+
+# An Xvfb killed with SIGKILL leaves .X<N>-lock and its socket behind; without cleanup the display
+# range runs out. Only provably dead entries of the current user are removed
+# (scripts/python/onec_xpra.py reap_dead_x_displays); a failed check removes nothing.
+reap_dead_x_displays() {
+  local owner_directory="$1"
+  local min_display="${ONEC_DIRECT_PLATFORM_XPRA_DISPLAY_MIN:-120}"
+  local max_display="${ONEC_DIRECT_PLATFORM_XPRA_DISPLAY_MAX:-179}"
+  local min_age="${ONEC_DIRECT_PLATFORM_X11_REAP_MIN_AGE:-10}"
+  local reaped=""
+  local display_number=""
+
+  case "$min_display:$max_display:$min_age" in *[!0-9:]*|:*|*::*|*:) return 0 ;; esac
+  [ "$min_display" -le "$max_display" ] || return 0
+  reaped="$(cd -- "$(project_root)" && "${ONEC_PYTHON:-python3}" -m scripts.python.onec_xpra reap-x-displays \
+    "${ONEC_DIRECT_PLATFORM_X11_TMP_ROOT:-/tmp}" "$min_display" "$max_display" \
+    "$owner_directory" "$min_age")" || {
+    printf 'direct-platform: dead X display cleanup skipped\n' >&2
+    return 0
+  }
+  for display_number in $reaped; do
+    printf 'direct-platform removed dead X display entries: :%s\n' "$display_number" >&2
+  done
 }
 
 cleanup_xpra_session_processes() {
@@ -299,6 +323,7 @@ run_xpra_wrapped_command() {
   xpra_lock_file="$xpra_lock_dir/display.lock"
   (
     flock -x 9
+    reap_dead_x_displays "$xpra_lock_dir"
     display_number="$(pick_unused_xpra_display_number)"
     display_value=":${display_number}"
     xpra_log="$xpra_root/xpra-${display_number}.log"

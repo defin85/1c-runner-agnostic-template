@@ -47,8 +47,8 @@ Project-owned шаги самого `agent-verify`:
 Python-окружение проекта:
 
 - `make verify-python-lint`, `make verify-types` и быстрый pytest входят в `make agent-verify` и запускают инструменты только через `uv run --locked`; без `uv` они завершаются ошибкой;
-- `pyproject.toml`, `uv.lock`, `requirements-dev.txt` и `pyrightconfig.json` принадлежат проекту: добавляйте свои зависимости (`uv add --dev ...`, затем перегенерация `requirements-dev.txt`) и корни проверки типов (`include` в `pyrightconfig.json`); `template-update` их не перезаписывает;
-- `pyrightconfig.json` должен сохранять `"extends": "scripts/qa/pyright-base.json"`, режим не ниже `standard` и не отключать правила; минимальные версии `ruff`, `basedpyright`, `pytest` задаёт шаблон. Подробности: [docs/template-maintenance.md](../template-maintenance.md#project-owned-extension-points).
+- `pyproject.toml`, `uv.lock`, `requirements-dev.txt`, `pyrightconfig.json` и `ruff.toml` принадлежат проекту: добавляйте свои зависимости (`uv add --dev ...`, затем перегенерация `requirements-dev.txt`), корни проверки типов (`include` в `pyrightconfig.json`) и исключения своих файлов из `ruff` (`extend-exclude`, `[lint.per-file-ignores]` в `ruff.toml`); `template-update` их не перезаписывает;
+- `pyrightconfig.json` должен сохранять `"extends": "scripts/qa/pyright-base.json"`, режим не ниже `standard` и не отключать правила; `ruff.toml` должен сохранять `extend = "scripts/qa/ruff-base.toml"` и не отключать правила базы для файлов шаблона; минимальные версии `ruff`, `basedpyright`, `pytest` задаёт шаблон. Подробности: [docs/template-maintenance.md](../template-maintenance.md#project-owned-extension-points).
 
 ## Инструменты разработки
 

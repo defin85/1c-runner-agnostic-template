@@ -150,6 +150,10 @@ jobs:
         if: runner.os != 'Windows'
         run: bash tests/smoke/python-type-checking-contract.sh
 
+      - name: Python ruff config contract
+        if: runner.os != 'Windows'
+        run: bash tests/smoke/python-ruff-config-contract.sh
+
       - name: Agent docs contract
         if: runner.os != 'Windows'
         run: bash tests/smoke/agent-docs-contract.sh

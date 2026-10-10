@@ -205,10 +205,10 @@ preserve_manifest_has_entry() {
   return 1
 }
 
-# Seed-once Python environment (design decision R15): delivered only when the project lacks it,
+# Seed-once Python environment (design decisions R15, R18): delivered only when the project lacks it,
 # never overwritten afterwards. Keep in sync with PROJECT_OWNED_PYTHON_SEED_PATHS in
 # scripts/python/project_extensions.py.
-PROJECT_OWNED_PYTHON_SEED_PATHS=(pyproject.toml uv.lock requirements-dev.txt pyrightconfig.json)
+PROJECT_OWNED_PYTHON_SEED_PATHS=(pyproject.toml uv.lock requirements-dev.txt pyrightconfig.json ruff.toml)
 
 seed_missing_project_files() {
   local source_root="$1"

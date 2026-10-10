@@ -15,7 +15,7 @@ make agent-verify
 - целостность skill bindings;
 - целостность agent-facing docs и live context;
 - Python-код проходит `ruff check`, `ruff format --check` и basedpyright (режим `standard`, без baseline);
-- быстрый набор pytest-тестов `tests/python` и smoke `tests/smoke/python-type-checking-contract.sh`.
+- быстрый набор pytest-тестов `tests/python` и smoke `tests/smoke/python-type-checking-contract.sh`, `tests/smoke/python-ruff-config-contract.sh`.
 
 Baseline intentionally не требует:
 
@@ -33,13 +33,14 @@ make verify-types           # scripts/qa/type-check.sh -> basedpyright  (Windows
 make verify-python-tests    # полный pytest по tests/python            (Windows: ./make.ps1 verify-python-tests)
 make verify-python-tests ARGS="--fast"   # быстрый набор, который запускает agent-verify
 bash tests/smoke/python-type-checking-contract.sh
+bash tests/smoke/python-ruff-config-contract.sh
 ```
 
-- Настройки: `ruff.toml` (правила `E4,E7,E9,F,B,I,UP`, `py312`, длина строки 120) и `pyrightconfig.json`, который через `extends` подключает базовые правила `scripts/qa/pyright-base.json` (`standard`) и задаёт только `include`/`exclude`. Каталог `automation/vendor/` исключён из обеих проверок.
-- `pyproject.toml`, `uv.lock`, `requirements-dev.txt` и `pyrightconfig.json` в созданном проекте seed-once и project-owned (Р15); проверка типов требует пины `ruff`, `basedpyright`, `pytest` не ниже минимальных версий шаблона и печатает команду исправления. Подробности: [docs/template-maintenance.md](../template-maintenance.md#project-owned-extension-points).
+- Настройки: `ruff.toml`, который через `extend` подключает базовые правила `scripts/qa/ruff-base.toml` (`E4,E7,E9,F,B,I,UP`, `py312`, длина строки 120), и `pyrightconfig.json`, который через `extends` подключает базовые правила `scripts/qa/pyright-base.json` (`standard`) и задаёт только `include`/`exclude`. Каталог `automation/vendor/` исключён из обеих проверок.
+- `pyproject.toml`, `uv.lock`, `requirements-dev.txt`, `pyrightconfig.json` и `ruff.toml` в созданном проекте seed-once и project-owned (Р15, Р18); `make verify-python-lint` до запуска `ruff` проверяет, что `ruff.toml` расширяет базу и не отключает её правила для файлов шаблона, и что `ruff` установлен в окружении `uv`; проверка типов требует пины `ruff`, `basedpyright`, `pytest` не ниже минимальных версий шаблона и печатает команду исправления. Подробности: [docs/template-maintenance.md](../template-maintenance.md#project-owned-extension-points).
 - Каждый `# noqa` и `# pyright: ignore[...]` содержит причину; правила в конфиге не отключаются.
 - Baseline basedpyright запрещён: при наличии `basedpyright-baseline*` или `.basedpyright/baseline*` проверка типов падает. Ошибки исправляются кодом.
-- Python-файл вне корней `include` из `pyrightconfig.json` делает проверку типов неуспешной: добавьте корень в `include` или осознанно в `exclude`.
+- Python-файл вне корней `include` из `pyrightconfig.json` делает проверку типов неуспешной: добавьте корень в `include` или осознанно в `exclude`; файлы и каталоги из `exclude` проверка не считает неклассифицированными.
 - `requirements-dev.txt` — производный export из `uv.lock`; проверка типов сравнивает его с `uv export` и при расхождении печатает команду перегенерации. После `uv lock` выполните:
 
   ```bash

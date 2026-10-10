@@ -102,8 +102,11 @@ def run_bsl_analyzer_mcp(argv: list[str]) -> int:
     if argv:
         raise CommandError("bsl-analyzer-mcp does not accept positional arguments")
     root = project_root()
-    embedding_profile = Path(
-        os.environ.get("BSL_ANALYZER_EMBEDDING_ENV", Path.home() / ".config" / "bsl-analyzer" / "embedding.env")
+    explicit_embedding_profile = os.environ.get("BSL_ANALYZER_EMBEDDING_ENV")
+    embedding_profile = (
+        Path(explicit_embedding_profile)
+        if explicit_embedding_profile
+        else Path.home() / ".config" / "bsl-analyzer" / "embedding.env"
     )
     load_dotenv(embedding_profile)
     load_dotenv(root / ".env")

@@ -320,7 +320,12 @@ def _generated_private_leaks(d: _Docs) -> None:
         if not line.startswith("./"):
             continue
         rel = line.removeprefix("./")
-        if _is_local_private_profile(rel) or (rel.startswith(".codex/") and rel not in _GENERATED_CODEX_PATHS):
+        if (
+            _is_local_private_profile(rel)
+            or (rel.startswith(".codex/") and rel not in _GENERATED_CODEX_PATHS)
+            or rel == ".venv"
+            or rel.startswith(".venv/")
+        ):
             d.fail(f"local-private path leaked into generated context: {rel}")
     if re.search(
         r'"env/(local|wsl|ci|windows-executor)\.json"|env/\.local/',
@@ -534,18 +539,29 @@ def _generated_assertions(d: _Docs) -> None:
     d.require_absent_regex(
         "README.md", r"docs/agent/index\.md", "generated README must not route to source-repo-centric onboarding"
     )
-    _generated_private_leaks(d)
     _apply(d, (), _GEN_FUNCS_CONTAINS)
-    _generated_metadata_presence(d)
-    _generated_project_delta(d)
-    _generated_runtime_profile_policy(d)
-    matrix = _generated_runtime_support_matrix(d)
+    _generated_structural_contracts(d)
     # Linux and Windows render the matrix with the same template_tools code, so the platform
     # entries, live-evidence expiry and Markdown freshness are checked on both.
     from .qa import validate_runtime_support_matrix
 
     if validate_runtime_support_matrix(d.root) != 0:
         d.status = 1
+
+
+def _generated_structural_contracts(d: _Docs) -> None:
+    """Structural contracts of a generated project's derived context and project-owned JSON.
+
+    Covers private-path leaks into the generated context, metadata presence, project-delta hints,
+    the runtime profile policy, the runtime support matrix with its quick reference and
+    project-specific baseline extension, curated paths and closeout guidance. Platform entries and
+    Markdown freshness of the matrix are checked separately by `validate_runtime_support_matrix`.
+    """
+    _generated_private_leaks(d)
+    _generated_metadata_presence(d)
+    _generated_project_delta(d)
+    _generated_runtime_profile_policy(d)
+    matrix = _generated_runtime_support_matrix(d)
     for rel in (
         "automation/context/project-map.md",
         "docs/agent/architecture-map.md",

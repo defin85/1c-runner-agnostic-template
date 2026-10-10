@@ -1709,7 +1709,7 @@ def _dump_object_source(
 
 
 def _relative_to_repo(path: Path) -> str:
-    return path.relative_to(project_root()).as_posix()
+    return canonical_path(path).relative_to(canonical_path(project_root())).as_posix()
 
 
 def _validate_designer_epf(root_xml: Path) -> tuple[str, Path, list[dict[str, object]]]:
@@ -2474,6 +2474,8 @@ def _build_for_profile(
 
 
 def _build_sources(output: Path, profile_path: Path, artifact: Path, run_root: Path) -> dict[str, object]:
+    # Boundaries are compared with canonical project paths; Windows 8.3 aliases must not differ.
+    output, artifact, run_root = canonical_path(output), canonical_path(artifact), canonical_path(run_root)
     suffix = artifact.suffix.lower()
     if suffix not in {".epf", ".erf"}:
         raise CommandError("build-sources artifact must be .epf or .erf")
@@ -2726,6 +2728,8 @@ def _publish_sources(
     profile_path: Path | None = None,
     repository_name: str | None = None,
 ) -> dict[str, object]:
+    # Package identity is compared with canonical paths; Windows 8.3 aliases must not differ.
+    input_path, output, run_root = canonical_path(input_path), canonical_path(output), canonical_path(run_root)
     report_path, report = _conversion_report(output)
     _require_resolved_dependencies(report, "publish")
     coverage = report.get("coverage")

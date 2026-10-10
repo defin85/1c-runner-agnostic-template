@@ -4,6 +4,9 @@ On Linux the platform process runs inside an own Xpra session of
 ``scripts/adapters/direct-platform.sh`` that belongs to one run-root. On Windows
 the platform binary is started directly. Either way the launch is observed by
 ``runtime_observation`` and the password never appears in output or artifacts.
+
+``python -m scripts.python.onec_xpra reap-x-displays`` removes the X display entries of a killed
+Xvfb so the adapter's display range does not run out; see ``reap_dead_x_displays``.
 """
 
 from __future__ import annotations
@@ -12,7 +15,10 @@ import glob
 import json
 import os
 import shutil
+import socket
+import stat
 import sys
+import time
 from pathlib import Path
 from typing import Any
 
@@ -190,5 +196,116 @@ def launch_from_stdin() -> int:
     return result.exit_code
 
 
+def _x_socket_state(address: str) -> bool | None:
+    """True: the socket has a listener; False: provably no listener; None: state not proven."""
+    probe = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    probe.settimeout(1.0)
+    try:
+        probe.connect(address)
+    except (ConnectionRefusedError, FileNotFoundError):
+        return False
+    except OSError:
+        return None
+    else:
+        return True
+    finally:
+        probe.close()
+
+
+def _owned_entry(path: Path, kind: int) -> os.stat_result | None:
+    """lstat of a file of the given type owned by the current user; None for anything else."""
+    try:
+        info = path.lstat()
+    except OSError:
+        return None
+    if stat.S_IFMT(info.st_mode) != kind or info.st_uid != os.getuid():
+        return None
+    return info
+
+
+def _lock_pid(path: Path) -> int | None:
+    try:
+        text = path.read_text(encoding="ascii")
+    except (OSError, UnicodeDecodeError):
+        return None
+    value = text.strip()
+    return int(value) if value.isdigit() and int(value) > 1 else None
+
+
+def _pid_alive(pid: int) -> bool:
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        # A PID from another PID namespace may match a live host process.
+        return Path(f"/proc/{pid}").exists()
+    except OSError:
+        return True
+    return True
+
+
+def reap_dead_x_displays(
+    x_root: Path, minimum: int, maximum: int, owner_dir: Path, min_age: float, now: float | None = None
+) -> list[int]:
+    """Remove only provably dead ``.X<N>-lock`` / ``.X11-unix/X<N>`` pairs of the current user.
+
+    An Xvfb killed with SIGKILL leaves both entries behind, and the adapter then treats the display
+    as busy forever. A display is reaped only when all of these hold: the lock is a regular file of
+    the current user, no ``<owner_dir>/session-<N>.owner`` reserves it, both entries are older than
+    ``min_age`` seconds, the PID in the lock is dead, and neither the path socket nor the abstract
+    socket of that display has a listener. Displays 0 and 1 are never touched. Returns the reaped
+    display numbers.
+    """
+    reaped: list[int] = []
+    current = time.time() if now is None else now
+    for number in range(max(minimum, 2), maximum + 1):
+        lock = x_root / f".X{number}-lock"
+        sock = x_root / ".X11-unix" / f"X{number}"
+        lock_info = _owned_entry(lock, stat.S_IFREG)
+        if lock_info is None:
+            continue  # no lock, a symlink or a file of another user
+        if (owner_dir / f"session-{number}.owner").exists():
+            continue  # reserved by a running launch
+        sock_info = _owned_entry(sock, stat.S_IFSOCK)
+        if sock_info is None and os.path.lexists(sock):
+            continue  # the socket belongs to another user or is not a socket
+        newest = max(lock_info.st_mtime, sock_info.st_mtime if sock_info else 0.0)
+        if current - newest < min_age:
+            continue  # the X server may have just started
+        pid = _lock_pid(lock)
+        if pid is None or _pid_alive(pid):
+            continue
+        if sock_info is not None and _x_socket_state(str(sock)) is not False:
+            continue
+        if _x_socket_state("\0" + str(sock)) is not False:
+            continue  # abstract socket of the same display
+        # Make sure a new X server did not replace the entries before removing them.
+        again = _owned_entry(lock, stat.S_IFREG)
+        if again is None or (again.st_ino, again.st_mtime) != (lock_info.st_ino, lock_info.st_mtime):
+            continue
+        if _lock_pid(lock) != pid:
+            continue
+        if sock_info is not None:
+            sock_again = _owned_entry(sock, stat.S_IFSOCK)
+            if sock_again is None or sock_again.st_ino != sock_info.st_ino:
+                continue
+            sock.unlink()
+        lock.unlink()
+        reaped.append(number)
+    return reaped
+
+
+def reap_x_displays_cli(arguments: list[str]) -> int:
+    """``reap-x-displays <x-root> <min> <max> <owner-dir> <min-age-seconds>``: print reaped numbers."""
+    if len(arguments) != 5:
+        print("usage: reap-x-displays <x-root> <min> <max> <owner-dir> <min-age-seconds>", file=sys.stderr)
+        return 2
+    x_root, minimum, maximum, owner_dir, min_age = arguments
+    for number in reap_dead_x_displays(Path(x_root), int(minimum), int(maximum), Path(owner_dir), float(min_age)):
+        print(number)
+    return 0
+
+
 if __name__ == "__main__":
+    if sys.argv[1:2] == ["reap-x-displays"]:
+        raise SystemExit(reap_x_displays_cli(sys.argv[2:]))
     raise SystemExit(launch_from_stdin())
