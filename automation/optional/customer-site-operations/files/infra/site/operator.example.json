@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "display": ":100",
+  "screen": "1920x1080",
+  "vdi_client": "/opt/vdi-client/bin/client",
+  "client_timezone": "UTC",
+  "view_display": ":0",
+  "view_scaling": 0.85,
+  "typing_delay_ms": 20,
+  "keepalive": {
+    "window_class": "VdiClient",
+    "points": [[950, 700], [952, 700]],
+    "interval_seconds": 60
+  }
+}

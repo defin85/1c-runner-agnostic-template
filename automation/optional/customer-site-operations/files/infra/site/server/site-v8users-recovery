@@ -1,0 +1,407 @@
+#!/usr/bin/env python3
+"""Guarded PostgreSQL stages of the 1C users-list recovery (UNDOCUMENTED method, separate module option).
+
+Read docs/infra/site/v8users-recovery.md first. The method is not documented by the platform
+vendor: it temporarily hides the `v8users` table and the `users.usr` row of `params`, so the
+platform starts with an empty users list. The order is fixed:
+
+    backup -> hide -> (operator opens Designer without a password and keeps it open) -> restore -> verify
+
+No users are created while the list is hidden; the password is changed in 1C after restore.
+
+`hide` refuses without a verified backup of this database. The option is disabled until the
+site profile sets `v8users_recovery.enabled` to true and lists the database in
+`v8users_recovery.databases`.
+"""
+
+import argparse
+import fcntl
+import importlib.machinery
+import importlib.util
+import json
+import os
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+sys.dont_write_bytecode = True
+HERE = Path(__file__).resolve().parent
+
+
+def load_common():
+    """Load `site-common` once per process, so every wrapper shares one `Refused` class."""
+    if "site_common" in sys.modules:
+        return sys.modules["site_common"]
+    loader = importlib.machinery.SourceFileLoader("site_common", str(HERE / "site-common"))
+    spec = importlib.util.spec_from_loader("site_common", loader)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules["site_common"] = module
+    loader.exec_module(module)
+    return module
+
+
+S = load_common()
+need = S.need
+q = S.sql_string
+
+OLD_TABLE = "v8users_site_recovery"
+NEW_TABLE = "v8users_site_created"
+OLD_FILE = "users.usr_site_recovery"
+NEW_FILE = "users.usr_site_created"
+# Light scope: only the data the method changes, for databases too large for a full dump.
+TABLE_FILES = ("schema.sql", "v8users.bin", "users-usr.bin")
+SYSTEM_DATABASES = ("postgres", "template0", "template1")
+
+
+def allowed(profile, database):
+    """Refuse unless the option is enabled and the database is listed (before any DBMS access)."""
+    section = profile.get("v8users_recovery")
+    need(
+        isinstance(section, dict) and section.get("enabled") is True,
+        "v8users recovery is disabled; enable v8users_recovery in the site profile after reading the regulation",
+    )
+    databases = section.get("databases")
+    need(isinstance(databases, list), "v8users_recovery.databases must be a list")
+    need(S.valid_name(database) and database not in SYSTEM_DATABASES, "Unsafe database name")
+    need(database in databases, "Database is not listed in v8users_recovery.databases: " + database)
+
+
+class Recovery:
+    def __init__(self, args, profile):
+        self.a = args
+        self.bin = Path(profile.get("pg_bin") or "")
+        need(self.bin.is_absolute(), "pg_bin is required in the site profile")
+        self.env = {k: v for k, v in os.environ.items() if not k.startswith("PG")}
+        self.env.update(PGCONNECT_TIMEOUT="10", PGAPPNAME="site-v8users-recovery")
+        # Use peer/trust or the operator's protected .pgpass; never secrets in argv.
+        port = str(args.port or profile["db_port"])
+        self.connection = ["-w", "-h", args.host, "-p", port, "-U", args.user, "-d", args.database]
+
+    def run(self, program, arguments, sql=None):
+        result = subprocess.run(
+            [str(self.bin / program)] + arguments,
+            input=sql,
+            text=True,
+            capture_output=True,
+            env=self.env,
+        )
+        need(
+            result.returncode == 0,
+            program + " failed; no subsequent stage executed (rc=" + str(result.returncode) + ")",
+        )
+        return result.stdout
+
+    def sql(self, sql):
+        return self.run("psql", self.connection + ["-X", "-qAt", "-v", "ON_ERROR_STOP=1"], sql)
+
+    def status(self):
+        sql = (
+            "SELECT json_build_object("
+            "'database',current_database(),"
+            "'database_oid',(SELECT oid FROM pg_database WHERE datname=current_database()),"
+            "'system_id',(SELECT system_identifier::text FROM pg_control_system()),"
+            "'server_version',current_setting('server_version'),"
+            "'bytes',pg_database_size(current_database()),"
+            "'active_clients',(SELECT count(*) FROM pg_stat_activity WHERE datname=current_database()"
+            " AND pid<>pg_backend_pid() AND backend_type='client backend' AND state<>'idle'),"
+            "'users_oid',to_regclass('public.v8users')::oid,"
+            "'old_oid',to_regclass('public." + OLD_TABLE + "')::oid,"
+            "'new_oid',to_regclass('public." + NEW_TABLE + "')::oid,"
+            "'files',(SELECT json_object_agg(filename,n) FROM"
+            " (SELECT filename,count(*) n FROM public.params WHERE filename IN"
+            " ('users.usr'," + q(OLD_FILE) + "," + q(NEW_FILE) + ") GROUP BY filename) s));"
+        )
+        state = json.loads(self.sql(sql))
+        need(isinstance(state, dict) and state.get("database") == self.a.database, "Unexpected database")
+        for key in ("database_oid", "users_oid", "old_oid", "new_oid"):
+            state[key] = int(state[key]) if state[key] is not None else None
+        return state
+
+    @staticmethod
+    def fingerprint(table, where=""):
+        return (
+            "(SELECT md5(coalesce(string_agg(row_to_json(t)::text,E'\\n' ORDER BY row_to_json(t)::text),''))"
+            " FROM public." + table + " t " + where + ")"
+        )
+
+    def original(self):
+        return json.loads(
+            self.sql(
+                "SELECT json_build_object('users',"
+                + self.fingerprint("v8users")
+                + ",'params',"
+                + self.fingerprint("params", "WHERE filename='users.usr'")
+                + ");"
+            )
+        )
+
+    def check_backup(self, state):
+        expected = state["files"] if state.get("scope") == "tables" else {"database.dump": state["sha256"]}
+        for name, sha256 in expected.items():
+            path = self.a.work / name
+            need(path.is_file() and not path.is_symlink() and S.digest(path) == sha256, "Backup missing or changed")
+
+    def copy_path(self, name):
+        path = str(self.a.work / name)
+        need("'" not in path and "\\" not in path, "Work path must not contain quotes or backslashes")
+        return path
+
+    def load_copy(self, users_table, params_filename):
+        # psql \copy runs client-side inside the surrounding transaction; each must stay on its own line.
+        return (
+            "CREATE TEMP TABLE recovery_users (LIKE public." + users_table + ");\n"
+            "CREATE TEMP TABLE recovery_params (LIKE public.params);\n"
+            "\\copy recovery_users FROM '" + self.copy_path("v8users.bin") + "' WITH (FORMAT binary)\n"
+            "\\copy recovery_params FROM '" + self.copy_path("users-usr.bin") + "' WITH (FORMAT binary)\n"
+            "UPDATE recovery_params SET filename=" + q(params_filename) + ";\n"
+        )
+
+    @staticmethod
+    def mismatch(users_table, params_filename):
+        def differs(left, right):
+            return (
+                "EXISTS((SELECT row_to_json(t)::text FROM " + left + " t EXCEPT ALL"
+                " SELECT row_to_json(t)::text FROM " + right + " t)"
+                " UNION ALL (SELECT row_to_json(t)::text FROM " + right + " t EXCEPT ALL"
+                " SELECT row_to_json(t)::text FROM " + left + " t))"
+            )
+
+        params = "(SELECT * FROM public.params WHERE filename=" + q(params_filename) + ")"
+        return (
+            "(" + differs("public." + users_table, "recovery_users") + " OR " + differs(params, "recovery_params") + ")"
+        )
+
+    def compare_copy(self):
+        self.sql(
+            "BEGIN; SET LOCAL lock_timeout='5s'; SET LOCAL statement_timeout='300s';\n"
+            + self.load_copy("v8users", "users.usr")
+            + "DO $verify$ BEGIN IF "
+            + self.mismatch("v8users", "users.usr")
+            + " THEN RAISE EXCEPTION 'backup mismatch'; END IF; END $verify$;\nROLLBACK;\n"
+        )
+
+    def backup(self):
+        before = self.status()
+        need(before["users_oid"] and not before["old_oid"] and not before["new_oid"], "Unexpected users tables")
+        need(before["files"] == {"users.usr": 1}, "Unexpected users.usr rows")
+        need(before["active_clients"] == 0, "Other active clients; close them first")
+        light = self.a.scope == "tables"
+        size = int(self.sql("SELECT pg_total_relation_size('public.v8users');").strip()) if light else before["bytes"]
+        need(shutil.disk_usage(str(self.a.work.parent)).free > size * 2, "Insufficient backup space")
+        self.a.work.mkdir(mode=0o700)
+        original = self.original()
+        state = {"identity": before, "original": original, "scope": self.a.scope, "stage": "backed-up"}
+        if light:
+            self.run(
+                "pg_dump",
+                self.connection
+                + ["--schema-only", "-t", "public.v8users", "-t", "public.params"]
+                + ["--file=" + str(self.a.work / "schema.sql")],
+            )
+            self.sql(
+                "BEGIN; SET LOCAL lock_timeout='5s'; LOCK TABLE public.v8users, public.params IN SHARE MODE;\n"
+                "\\copy public.v8users TO '" + self.copy_path("v8users.bin") + "' WITH (FORMAT binary)\n"
+                "\\copy (SELECT * FROM public.params WHERE filename='users.usr') TO '"
+                + self.copy_path("users-usr.bin")
+                + "' WITH (FORMAT binary)\n"
+                "COMMIT;\n"
+            )
+            # Read the copy back into temporary tables and compare it with the live rows.
+            self.compare_copy()
+            state["files"] = {name: S.digest(self.a.work / name) for name in TABLE_FILES}
+        else:
+            archive = self.a.work / "database.dump"
+            self.run("pg_dump", self.connection + ["-Fc", "-Z1", "--file=" + str(archive)])
+            need(archive.stat().st_size > 0, "Empty dump")
+            # Reads every archive data block; this is NOT a restore acceptance test.
+            self.run("pg_restore", ["--file=/dev/null", str(archive)])
+            state["sha256"] = S.digest(archive)
+        after = self.status()
+        # Database size is not compared: the temporary tables of the check leave dead catalog rows.
+        stable = [key for key in before if key != "bytes"]
+        need(
+            self.original() == original and all(before[key] == after[key] for key in stable),
+            "Database changed during backup",
+        )
+        S.atomic_json(self.a.work / "state.json", state)
+        print(
+            "BACKUP_VERIFIED; copy of v8users and users.usr matches"
+            if light
+            else "BACKUP_READABLE; restore acceptance not performed"
+        )
+
+    def verify(self):
+        state = self.load_state()
+        need(state["stage"] == "restored", "Verify requires the restored stage")
+        need(self.original() == state["original"], "Original users data differs after return")
+        if state.get("scope") == "tables":
+            self.compare_copy()
+        print("BACKUP_RESTORE_VERIFIED")
+
+    def load_state(self):
+        state = S.read_json(self.a.work / "state.json")
+        need(isinstance(state, dict) and state.get("stage") in ("backed-up", "hidden", "restored"), "Invalid state")
+        self.check_backup(state)
+        return state
+
+    def hide_guard(self, state, oid, light):
+        guard = (
+            "IF EXISTS(SELECT 1 FROM pg_stat_activity WHERE datname=current_database()"
+            " AND pid<>pg_backend_pid() AND backend_type='client backend' AND state<>'idle')"
+            " THEN RAISE EXCEPTION 'active clients'; END IF; "
+            "IF to_regclass('public." + OLD_TABLE + "') IS NOT NULL OR "
+            "to_regclass('public." + NEW_TABLE + "') IS NOT NULL OR "
+            "(SELECT count(*) FROM public.params WHERE filename IN (" + q(OLD_FILE) + "," + q(NEW_FILE) + "))<>0"
+            " THEN RAISE EXCEPTION 'recovery objects exist'; END IF; "
+            "LOCK TABLE public.v8users IN ACCESS EXCLUSIVE MODE; "
+        )
+        guard += (
+            "IF 'public.v8users'::regclass::oid<>" + str(oid)
+            + " OR " + self.fingerprint("v8users") + "<>" + q(state["original"]["users"])
+            + " OR " + self.fingerprint("params", "WHERE filename='users.usr'") + "<>" + q(state["original"]["params"])
+            + " THEN RAISE EXCEPTION 'original changed'; END IF; "
+        )  # fmt: skip
+        if light:
+            guard += "IF " + self.mismatch("v8users", "users.usr") + " THEN RAISE EXCEPTION 'backup mismatch'; END IF; "
+        change = (
+            "ALTER TABLE public.v8users RENAME TO " + OLD_TABLE + "; "
+            "CREATE TABLE public.v8users (LIKE public." + OLD_TABLE + " INCLUDING ALL); "
+            "UPDATE public.params SET filename=" + q(OLD_FILE) + " WHERE filename='users.usr';"
+        )
+        return guard, change
+
+    def restore_guard(self, state, oid, light):
+        guard = (
+            "IF to_regclass('public." + OLD_TABLE + "')::oid IS DISTINCT FROM " + str(oid)
+            + " THEN RAISE EXCEPTION 'original table mismatch'; END IF; "
+            "LOCK TABLE public." + OLD_TABLE + " IN ACCESS EXCLUSIVE MODE; "
+            "IF " + self.fingerprint(OLD_TABLE) + "<>" + q(state["original"]["users"])
+            + " THEN RAISE EXCEPTION 'original users changed'; END IF; "
+        )  # fmt: skip
+        if light:
+            guard += "IF " + self.mismatch(OLD_TABLE, OLD_FILE) + " THEN RAISE EXCEPTION 'backup mismatch'; END IF; "
+        guard += (
+            "IF (SELECT count(*) FROM public.params WHERE filename=" + q(OLD_FILE) + ")<>1"
+            " OR (SELECT count(*) FROM public.params WHERE filename='users.usr')>1"
+            " OR EXISTS(SELECT 1 FROM public.params WHERE filename=" + q(NEW_FILE) + ")"
+            " OR to_regclass('public." + NEW_TABLE + "') IS NOT NULL"
+            " THEN RAISE EXCEPTION 'unexpected Params or created table'; END IF; "
+            "IF to_regclass('public.v8users') IS NOT NULL THEN "
+            "LOCK TABLE public.v8users IN ACCESS EXCLUSIVE MODE; "
+            "IF EXISTS(SELECT 1 FROM public.v8users) THEN RAISE EXCEPTION 'new users exist; preserve and inspect'; "
+            "END IF; ALTER TABLE public.v8users RENAME TO " + NEW_TABLE + "; END IF; "
+        )
+        change = (
+            "ALTER TABLE public." + OLD_TABLE + " RENAME TO v8users; "
+            "UPDATE public.params SET filename=" + q(NEW_FILE) + " WHERE filename='users.usr'; "
+            "UPDATE public.params SET filename='users.usr' WHERE filename=" + q(OLD_FILE) + "; "
+            "IF " + self.fingerprint("params", "WHERE filename='users.usr'") + "<>" + q(state["original"]["params"])
+            + " THEN RAISE EXCEPTION 'original Params changed'; END IF; "
+        )  # fmt: skip
+        return guard, change
+
+    def mutate(self, action):
+        state = self.load_state()
+        if action == "hide":
+            need(state["stage"] == "backed-up", "Hide requires the backed-up stage; inspect status after interruption")
+        else:
+            need(state["stage"] in ("backed-up", "hidden"), "Restore requires a pending recovery")
+        light = state.get("scope") == "tables"
+        current = self.status()
+        expected = state["identity"]
+        for key in ("database", "database_oid", "system_id", "server_version"):
+            need(current[key] == expected[key], "Database identity changed: " + key)
+        oid = int(expected["users_oid"])
+        if action == "restore" and current["users_oid"] == oid and current["old_oid"] is None:
+            need(self.original() == state["original"], "Original data changed; not an interrupted restoration")
+            state["stage"] = "restored"
+            S.atomic_json(self.a.work / "state.json", state)
+            print("RESTORED; original data already present")
+            return
+        common = (
+            "BEGIN; SET LOCAL lock_timeout='5s'; SET LOCAL statement_timeout='30s';\n"
+            "SELECT pg_advisory_xact_lock(hashtext(current_database()),hashtext('site-v8users-recovery'));\n"
+            "LOCK TABLE public.params IN ACCESS EXCLUSIVE MODE;\n"
+        )
+        if light:
+            source = ("v8users", "users.usr") if action == "hide" else (OLD_TABLE, OLD_FILE)
+            common += "SET LOCAL statement_timeout='300s';\n" + self.load_copy(*source)
+        common += "DO $recovery$ BEGIN "
+        guard = "IF current_database()<>" + q(self.a.database) + " THEN RAISE EXCEPTION 'wrong database'; END IF; "
+        extra, change = (self.hide_guard if action == "hide" else self.restore_guard)(state, oid, light)
+        self.sql(common + guard + extra + change + " END $recovery$; COMMIT;")
+        after = self.status()
+        if action == "hide":
+            need(
+                after["old_oid"] == oid
+                and after["users_oid"] is not None
+                and after["users_oid"] != oid
+                and self.sql("SELECT count(*) FROM public.v8users;").strip() == "0",
+                "Hidden state not confirmed",
+            )
+            state["stage"] = "hidden"
+        else:
+            need(
+                after["users_oid"] == oid and after["old_oid"] is None and self.original() == state["original"],
+                "Restoration not confirmed",
+            )
+            state["stage"] = "restored"
+        S.atomic_json(self.a.work / "state.json", state)
+        print(state["stage"].upper() + "; password and login acceptance is a separate 1C step")
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("action", choices=("status", "backup", "hide", "restore", "verify"))
+    parser.add_argument("--database", required=True)
+    parser.add_argument("--host", required=True, help="Explicit PostgreSQL host or socket directory")
+    parser.add_argument("--port", type=int, help="Default: db_port of the site profile")
+    parser.add_argument("--user", default="postgres")
+    parser.add_argument("--work", type=Path, required=True, help="New private directory for this recovery")
+    parser.add_argument("--confirm", help="Exact database name for backup, hide, restore and verify")
+    parser.add_argument(
+        "--scope",
+        choices=("full", "tables"),
+        default="full",
+        help="Backup scope: full dump, or only v8users and users.usr (hide and restore read it from state)",
+    )
+    parser.add_argument("--profile", type=Path, default=S.default_profile(__file__))
+    args = parser.parse_args(argv)
+    profile = S.load_profile(args.profile)
+    allowed(profile, args.database)
+    need(args.work.is_absolute() and args.work.resolve() == args.work, "Work path must be canonical and absolute")
+    os.umask(0o077)
+    if args.action != "status":
+        need(args.confirm == args.database, "Exact --confirm <database> required")
+    if args.action == "backup":
+        need(not args.work.exists(), "Backup needs a new work directory")
+    else:
+        # Hide, restore and verify need the verified backup of this database; check before any DBMS access.
+        need(
+            args.action == "status" or (args.work / "state.json").is_file(),
+            "No verified backup in the work directory; run backup first",
+        )
+    recovery = Recovery(args, profile)
+    if args.action == "status":
+        print(json.dumps(recovery.status(), sort_keys=True))
+        return
+    # Local per-database lock; the SQL advisory lock also serializes each mutation.
+    with open(str(args.work.parent / (".site-v8users-recovery-" + args.database + ".lock")), "a") as lock:
+        try:
+            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            raise S.Refused("Another recovery stage for this database is running") from None
+        if args.action == "backup":
+            recovery.backup()
+            return
+        info = args.work.stat()
+        need(info.st_mode & 0o777 == 0o700 and info.st_uid == os.getuid(), "Work directory must be owned, mode 0700")
+        if args.action == "verify":
+            recovery.verify()
+        else:
+            recovery.mutate(args.action)
+
+
+if __name__ == "__main__":
+    S.run(main)

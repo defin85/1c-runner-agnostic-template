@@ -57,22 +57,26 @@
 - Поставляемые материалы площадки обезличены
   - Tests: `tests/smoke/customer-site-deidentified.sh`, ручная проверка 8.4
 - Ввод команды в удалённый терминал проверяется до выполнения
-  - Code: инструмент ввода команды оператора
-  - Tests: тест инструмента на фикстурах
+  - Code: `scripts/python/site_operator.py` (`type`, `verify`, `enter`), `scripts/site/site-operator.sh`
+  - Tests: `tests/python/test_customer_site_operator.py`
 - Передача файла на сервер подтверждается SHA-256 до установки
-  - Code: инструмент передачи файла оператора
-  - Tests: тест сборки и сверки на фикстурах
+  - Code: `scripts/python/site_operator.py` (`transfer`)
+  - Tests: `tests/python/test_customer_site_operator.py`
 - Изменяющие операции серверных обёрток выполняются только для явно разрешённой базы
+  - Code: `automation/optional/customer-site-operations/files/infra/site/server/`
+  - Tests: `tests/python/test_customer_site_server.py`
 - Серверные обёртки работают на системном Python площадки
-  - Code: серверные обёртки `site-*`
-  - Tests: запуск read-only команд на Python 3.7, отказ `Refused`
+  - Code: `automation/optional/customer-site-operations/files/infra/site/server/site-*`, `scripts/qa/ruff-base.toml` (цель py37)
+  - Tests: `tests/python/test_customer_site_server.py` (`SITE_SERVER_PYTHON` = Python 3.7: read-only команды и отказ `Refused`; разбор синтаксиса 3.7)
 - VDI-клиент работает в изолированном сеансе Xpra
-  - Code: сценарий запуска VDI-клиента, навык `site-vdi-xpra`
-  - Tests: тест окружения дочернего процесса
+  - Code: `scripts/python/site_operator.py` (`xpra-start`, `vdi-connect`), `automation/optional/customer-site-operations/files/.agents/skills/site-vdi-xpra/`
+  - Tests: `tests/python/test_customer_site_operator.py`
 - Регламент восстановления доступа указывает границы применимости метода
+  - Code: `automation/optional/customer-site-operations/files/docs/infra/site/v8users-recovery.md`
+  - Tests: ручная проверка 8.4
 - Восстановление доступа к ИБ требует резервной копии и проверки возврата
-  - Code: обёртка восстановления (опция модуля, Р2)
-  - Tests: отказ `hide` без `backup` на фикстуре
+  - Code: `automation/optional/customer-site-operations/files/infra/site/server/site-v8users-recovery` (опция модуля, Р2)
+  - Tests: `tests/python/test_customer_site_server.py` (отказ `hide` без `backup`; полный цикл на временном PostgreSQL)
 
 ## kd21-migration-rules-workbench
 

@@ -1,0 +1,3 @@
+# Real site and operator profiles hold site data; only the invented examples are tracked.
+*.json
+!*.example.json

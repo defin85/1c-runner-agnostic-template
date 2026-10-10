@@ -91,8 +91,11 @@ write_blueprint() {
   printf '# Site runbook v1\n' >"$files/docs/infra/site/README.md"
   printf -- '---\nname: site-smoke\ndescription: Smoke fixture skill.\n---\n\nRepo script: `./infra/site/server/wrapper.py`\n' \
     >"$files/.agents/skills/site-smoke/SKILL.md"
-  (cd "$template_root" && find "$blueprint_rel" -type f | LC_ALL=C sort) \
-    >>"$template_root/automation/context/template-managed-paths.txt"
+  # The fixture replaces the shipped blueprint, so its manifest entries replace the shipped ones too.
+  local manifest="$template_root/automation/context/template-managed-paths.txt"
+  grep -v -F -- "$blueprint_rel/" "$manifest" >"$manifest.tmp" || true
+  (cd "$template_root" && find "$blueprint_rel" -type f | LC_ALL=C sort) >>"$manifest.tmp"
+  mv "$manifest.tmp" "$manifest"
 }
 
 cat >"$bindir/openspec" <<'EOF'

@@ -1,0 +1,833 @@
+#!/usr/bin/env python3
+"""DB host: sequential PostgreSQL archives of databases listed in `archive.databases` of the site profile.
+
+Read docs/infra/site/archiving.md before any destructive action. Every mutating step needs an
+explicit `--confirm` phrase; the source database is dropped only after a verified test restore.
+"""
+
+import argparse
+import datetime
+import hashlib
+import importlib.machinery
+import importlib.util
+import json
+import os
+import re
+import shutil
+import subprocess
+import sys
+import tempfile
+import time
+import uuid
+from pathlib import Path
+
+sys.dont_write_bytecode = True
+HERE = Path(__file__).resolve().parent
+
+
+def load_common():
+    """Load `site-common` once per process, so every wrapper shares one `Refused` class."""
+    if "site_common" in sys.modules:
+        return sys.modules["site_common"]
+    loader = importlib.machinery.SourceFileLoader("site_common", str(HERE / "site-common"))
+    spec = importlib.util.spec_from_loader("site_common", loader)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules["site_common"] = module
+    loader.exec_module(module)
+    return module
+
+
+S = load_common()
+need = S.need
+ident = S.ident
+sql_string = S.sql_string
+
+SYSTEM_DATABASES = {"postgres", "template0", "template1"}
+PREFIX = "site_archive_"
+RESERVE = 4 * S.GIB
+
+
+def protected(config):
+    """System databases, every infobase of the site profile and the golden bases are never archived."""
+    names = set(SYSTEM_DATABASES) | set(config["infobases"])
+    golden = config.get("golden")
+    if isinstance(golden, dict):
+        names |= set(golden.get("bases") or [])
+    return names
+
+
+def allowed(name, config):
+    need(isinstance(name, str) and name and len(name.encode("utf-8")) <= 63, "Invalid database name")
+    need(
+        re.fullmatch(r"[A-Za-z0-9_-]+", name) is not None,
+        "Only simple database names from the approved list are supported",
+    )
+    need(name not in protected(config) and not name.startswith(PREFIX), "Protected database")
+    need(name in config["archive"]["databases"], "Database is not listed in archive.databases")
+    return name
+
+
+def fingerprint_hash(value):
+    text = json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+# Hash complete row values without exporting customer data to logs.
+# Two independent 64-bit halves, row count and catalog checks; not a byte-for-byte physical comparison.
+FINGERPRINT = """
+SET timezone='UTC';
+SET datestyle='ISO, YMD';
+SET intervalstyle='postgres';
+SET extra_float_digits=3;
+SET bytea_output='hex';
+CREATE TEMP TABLE site_fp (name text, kind text, value jsonb);
+DO $fp$
+DECLARE r record; v jsonb; done integer := 0;
+BEGIN
+ FOR r IN SELECT n.nspname, c.relname, c.relkind, count(*) OVER () AS total
+          FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+          WHERE n.nspname NOT IN ('pg_catalog','information_schema')
+            AND n.nspname NOT LIKE 'pg_toast%' AND n.nspname NOT LIKE 'pg_temp_%'
+            AND c.relkind IN ('r','m','S') ORDER BY 1,2
+ LOOP
+  RAISE NOTICE 'SITE_PROGRESS % %', done, r.total;
+  IF r.relkind='S' THEN
+   EXECUTE format('SELECT jsonb_build_array(last_value,is_called) FROM %I.%I',r.nspname,r.relname) INTO v;
+  ELSE
+   EXECUTE format('SELECT jsonb_build_array(count(*),coalesce(sum((''x''||substr(h,1,16))::bit(64)::bigint),0)::text,coalesce(sum((''x''||substr(h,17,16))::bit(64)::bigint),0)::text) FROM (SELECT md5(row(t.*)::text) h FROM ONLY %I.%I t) q',r.nspname,r.relname) INTO v;
+  END IF;
+  INSERT INTO site_fp VALUES (format('%I.%I',r.nspname,r.relname),r.relkind,v);
+  done := done + 1;
+  RAISE NOTICE 'SITE_PROGRESS % %', done, r.total;
+ END LOOP;
+END $fp$;
+INSERT INTO site_fp
+SELECT 'large_object_pages','L',jsonb_build_array(count(*),
+ coalesce(sum(('x'||substr(md5(loid::text||':'||pageno::text||':'||encode(data,'hex')),1,16))::bit(64)::bigint),0)::text,
+ coalesce(sum(('x'||substr(md5(loid::text||':'||pageno::text||':'||encode(data,'hex')),17,16))::bit(64)::bigint),0)::text)
+FROM pg_largeobject;
+INSERT INTO site_fp
+SELECT 'large_object_metadata','L',coalesce(jsonb_agg(jsonb_build_array(oid,pg_get_userbyid(lomowner),lomacl::text) ORDER BY oid),'[]')
+FROM pg_largeobject_metadata;
+INSERT INTO site_fp
+SELECT 'columns','C',coalesce(jsonb_agg(jsonb_build_array(n.nspname,c.relname,a.attname,a.attnum,
+ format_type(a.atttypid,a.atttypmod),a.attnotnull,pg_get_expr(d.adbin,d.adrelid))
+ ORDER BY n.nspname,c.relname,a.attnum),'[]')
+FROM pg_attribute a JOIN pg_class c ON c.oid=a.attrelid JOIN pg_namespace n ON n.oid=c.relnamespace
+LEFT JOIN pg_attrdef d ON d.adrelid=c.oid AND d.adnum=a.attnum
+WHERE a.attnum>0 AND NOT a.attisdropped AND n.nspname NOT IN ('pg_catalog','information_schema')
+AND n.nspname NOT LIKE 'pg_toast%' AND n.nspname NOT LIKE 'pg_temp_%';
+INSERT INTO site_fp
+SELECT 'indexes','I',coalesce(jsonb_agg(jsonb_build_array(n.nspname,c.relname,pg_get_indexdef(i.indexrelid),i.indisvalid,i.indisready)
+ ORDER BY n.nspname,c.relname),'[]')
+FROM pg_index i JOIN pg_class c ON c.oid=i.indexrelid JOIN pg_namespace n ON n.oid=c.relnamespace
+WHERE n.nspname NOT IN ('pg_catalog','information_schema') AND n.nspname NOT LIKE 'pg_toast%'
+AND n.nspname NOT LIKE 'pg_temp_%';
+SELECT coalesce(jsonb_agg(jsonb_build_array(name,kind,value) ORDER BY name,kind),'[]') FROM site_fp;
+"""
+
+LABELS = {
+    "copy-frozen-database": "Copying the frozen database",
+    "create-restore-database": "Creating the restore database",
+    "scan-table-data-and-catalogs": "Checking data",
+    "dump": "Compressing and writing the archive",
+    "restore": "Test restore",
+    "schema-check": "Checking schema",
+    "archive-check": "Checking archive",
+    "drop-temporary-database": "Dropping the temporary copy",
+    "drop-source-database": "Dropping the source database",
+    "wait-temporary-connections": "Waiting for the temporary database to be released",
+}
+
+
+class Archive(S.Runner):
+    def __init__(self, config):
+        archive = S.section(config, "archive")
+        super().__init__(config, S.storage_dir(archive.get("storage"), config, "archive.storage"))
+        self.jobs = archive.get("jobs", 1)
+        need(type(self.jobs) is int and 1 <= self.jobs <= 4, "archive.jobs must be an integer from 1 to 4")
+        self.benchmark = archive.get("benchmark", False)
+        need(type(self.benchmark) is bool and (not self.benchmark or self.jobs == 4), "Benchmark requires jobs=4")
+        self.env.update(PGAPPNAME="site-archive", PGOPTIONS=self.env["PGOPTIONS"] + " -c lock_timeout=10s")
+        self.op = None
+        self.state = None
+        self.server = None
+        self.monitored = False
+
+    def tool(self, name):
+        return str(Path(self.c["pg_bin"]) / name)
+
+    def emit(self, stage, **fields):
+        event = {"time": datetime.datetime.now(datetime.timezone.utc).isoformat(), "stage": stage}
+        event.update(fields)
+        line = json.dumps(event, ensure_ascii=False)
+        if self.events_path:
+            with self.events_path.open("a", encoding="utf-8") as stream:
+                stream.write(line + "\n")
+        if fields.get("status") in ("started", "running", "completed"):
+            if sys.stdout.isatty():
+                message = LABELS.get(stage, stage)
+                if "elapsed_seconds" in fields:
+                    message += " | {} s".format(fields["elapsed_seconds"])
+                if "objects_total" in fields:
+                    message += " | objects {}/{}".format(fields["objects_done"], fields["objects_total"])
+                if "archive_bytes" in fields:
+                    message += " | archive %.1f MiB" % (fields["archive_bytes"] / (1024**2))
+                width = max(20, shutil.get_terminal_size((100, 24)).columns - 1)
+                print("\r\033[K" + message[:width], end="", flush=True)
+        else:
+            if sys.stdout.isatty():
+                print("\r\033[K", end="")
+            print(line, flush=True)
+
+    def progress(self, argv, errors):
+        result = {"remaining_seconds": None}
+        output = next((str(x).split("=", 1)[1] for x in argv if str(x).startswith("--file=")), None)
+        if output and Path(output).is_file():
+            result["archive_bytes"] = Path(output).stat().st_size
+        elif output and Path(output).is_dir():
+            result["archive_bytes"] = sum(p.stat().st_size for p in Path(output).iterdir() if p.is_file())
+        size = os.fstat(errors.fileno()).st_size
+        tail = os.pread(errors.fileno(), min(size, 65536), max(0, size - 65536))
+        matches = re.findall(rb"(?m)^NOTICE:[ \t]+SITE_PROGRESS ([0-9]+) ([0-9]+)\r?$", tail)
+        if matches:
+            done, total = map(int, matches[-1])
+            if 0 <= done <= total:
+                result.update(objects_done=done, objects_total=total)
+        return result
+
+    def command(self, argv, label):
+        # The disk guard is specific to bulk archiving; the shared Runner has no such hook.
+        with tempfile.TemporaryFile(dir=str(self.root)) as out, tempfile.TemporaryFile(dir=str(self.root)) as err:
+            self.emit(label, status="started")
+            process = subprocess.Popen([str(x) for x in argv], stdout=out, stderr=err, env=self.env)
+            started = time.monotonic()
+            next_report = started + 10
+            try:
+                while process.poll() is None:
+                    if self.monitored:
+                        self.space(0, 0)
+                    if time.monotonic() >= next_report:
+                        self.emit(
+                            label,
+                            status="running",
+                            elapsed_seconds=int(time.monotonic() - started),
+                            **self.progress(argv, err),
+                        )
+                        next_report += 10
+                    time.sleep(0.2)
+                if process.returncode:
+                    err.seek(0)
+                    codes = re.findall(rb"ERROR:\s+([0-9A-Z]{5})(?:\s|$)", err.read())
+                    need(
+                        False,
+                        "{} failed (rc={}, SQLSTATE={}); raw output withheld".format(
+                            label, process.returncode, ",".join(x.decode("ascii") for x in codes)
+                        ),
+                    )
+                self.emit(label, status="completed", rc=0, elapsed_seconds=round(time.monotonic() - started, 1))
+                out.seek(0)
+                return out.read().decode("utf-8")
+            except BaseException:
+                if sys.stdout.isatty():
+                    print(flush=True)
+                raise
+            finally:
+                if process.poll() is None:
+                    process.terminate()
+                    try:
+                        process.wait(timeout=10)
+                    except subprocess.TimeoutExpired:
+                        process.kill()
+                        process.wait()
+
+    def connection(self):
+        return ["--host=127.0.0.1", "--port=" + str(self.c["db_port"]), "--username=postgres", "--no-password"]
+
+    def pg(self, database, sql):
+        label = "sql"
+        if sql == FINGERPRINT:
+            label = "scan-table-data-and-catalogs"
+        elif sql.startswith("CREATE DATABASE "):
+            label = "copy-frozen-database" if "STRATEGY FILE_COPY" in sql else "create-restore-database"
+        elif sql.startswith("DROP DATABASE "):
+            label = "drop-temporary-database" if database == "postgres" and PREFIX in sql else "drop-source-database"
+        verbosity = "terse" if sql == FINGERPRINT else "sqlstate"
+        argv = [self.tool("psql"), "-X", "-q", "-A", "-t"] + self.connection()
+        argv += ["--dbname=" + database, "-v", "ON_ERROR_STOP=1", "-v", "VERBOSITY=" + verbosity, "-c", sql]
+        return self.command(argv, label)
+
+    def query(self, sql, database="postgres"):
+        return json.loads(self.pg(database, sql))
+
+    def prerequisites(self):
+        self.check_host("db")
+        major = self.c["pg_major"]
+        # CREATE DATABASE ... STRATEGY FILE_COPY and datlocprovider appeared in PostgreSQL 15.
+        need(major >= 15, "Archiving requires PostgreSQL 15 or newer")
+        need(bool(self.c.get("pg_bin")), "pg_bin is required in the site profile")
+        for name in ("psql", "pg_dump", "pg_restore"):
+            path = Path(self.tool(name))
+            need(path.is_file() and os.access(str(path), os.X_OK), "Missing executable: " + name)
+            need(
+                re.search(r"\b" + str(major) + r"\.\d+", self.command([str(path), "--version"], name)) is not None,
+                "PostgreSQL tools must match pg_major",
+            )
+        server = self.query(
+            "SELECT json_build_object('version',current_setting('server_version_num')::int,"
+            "'data',current_setting('data_directory'),'address',host(inet_server_addr()),"
+            "'system_identifier',system_identifier::text) FROM pg_control_system();"
+        )
+        need(
+            server["version"] // 10000 == major
+            and server["data"] == self.c["db_data_directory"]
+            and server["address"] == "127.0.0.1",
+            "Wrong PostgreSQL server",
+        )
+        server["version"] //= 10000
+        self.server = server
+        data = Path(server["data"])
+        need(data.is_dir() and (data / "pg_wal").is_dir(), "Local PGDATA/WAL unavailable")
+
+    def info(self, name):
+        return self.query(
+            "SELECT row_to_json(d) FROM (SELECT oid,datname name,"
+            "pg_get_userbyid(datdba) owner,pg_database_size(oid) bytes,pg_encoding_to_char(encoding) encoding,"
+            'datcollate AS "collate",datctype ctype,datlocprovider provider,'
+            "(SELECT spcname FROM pg_tablespace WHERE oid=dattablespace) tablespace,"
+            "datallowconn allow_connections,datconnlimit connection_limit,datacl::text acl,datistemplate is_template,"
+            "shobj_description(oid,'pg_database') comment FROM pg_database WHERE datname=" + sql_string(name) + ") d;"
+        )
+
+    def exists(self, name):
+        return self.query("SELECT to_json(EXISTS(SELECT FROM pg_database WHERE datname=" + sql_string(name) + "));")
+
+    def quiet(self, name):
+        deadline = time.monotonic() + (30 if name.startswith(PREFIX) else 0)
+        while True:
+            counts = self.query(
+                "SELECT json_build_array((SELECT count(*) FROM pg_stat_activity WHERE datname="
+                + sql_string(name)
+                + "),"
+                "(SELECT count(*) FROM pg_prepared_xacts WHERE database=" + sql_string(name) + "),"
+                "(SELECT count(*) FROM pg_replication_slots WHERE database=" + sql_string(name) + "));"
+            )
+            need(
+                isinstance(counts, list) and len(counts) == 3 and all(type(n) is int and n >= 0 for n in counts),
+                "Invalid activity counters",
+            )
+            need(counts[1:] == [0, 0], "Prepared transactions or replication slots remain: " + name)
+            if counts[0] == 0:
+                return
+            need(time.monotonic() < deadline, "Connections remain: " + name)
+            self.emit("wait-temporary-connections", status="running", connections=counts[0], remaining_seconds=None)
+            time.sleep(1)
+
+    def space(self, archive_bytes, database_bytes):
+        required = {}
+        data = Path(self.c["db_data_directory"])
+        for path, extra in ((self.root, archive_bytes), (data, database_bytes), (data / "pg_wal", database_bytes)):
+            dev = path.stat().st_dev
+            # PGDATA and WAL share the database reserve; archive storage is additive when colocated.
+            old_path, old_need = required.get(dev, (path, 0))
+            if path == self.root:
+                required[dev] = (path, old_need + extra)
+            else:
+                colocated = archive_bytes if self.root.stat().st_dev == dev else 0
+                required[dev] = (old_path, max(old_need, database_bytes + colocated))
+        for path, extra in required.values():
+            need(shutil.disk_usage(str(path)).free >= RESERVE + extra, "Insufficient space on " + str(path))
+
+    def save(self):
+        S.atomic_json(self.op / "state.json", self.state)
+
+    def load(self, operation):
+        need(re.fullmatch(r"a-[0-9a-f]{32}", operation) is not None, "Invalid operation ID")
+        self.op = self.root / operation
+        need(self.op.is_dir() and not self.op.is_symlink(), "Unknown operation")
+        self.state = S.read_json(self.op / "state.json")
+        need(self.state.get("schema") == 1, "Unsupported archive state schema")
+        need(
+            self.state["operation"] == operation and self.state["server"] == self.server,
+            "Archive contour mismatch",
+        )
+        allowed(self.state["source"]["name"], self.c)
+
+    def source_guard(self):
+        source = self.state["source"]
+        current = self.info(source["name"])
+        need(current["oid"] == source["oid"] and not current["allow_connections"], "Source was replaced or reopened")
+        keys = ("name", "owner", "encoding", "collate", "ctype", "provider", "tablespace", "connection_limit", "acl")
+        need(all(current[k] == source[k] for k in keys + ("comment",)), "Source database metadata changed")
+        self.quiet(source["name"])
+
+    def load_database(self, name):
+        allowed(name, self.c)
+        matches = []
+        for path in self.root.glob("a-*/state.json"):
+            state = S.read_json(path)
+            need(isinstance(state, dict) and isinstance(state.get("source"), dict), "Invalid archive state")
+            if state["source"].get("name") == name:
+                matches.append(path.parent.name)
+        need(len(matches) == 1, "Expected one archive for the database; use --operation if ambiguous")
+        self.load(matches[0])
+
+    def archive_guard(self):
+        size, checksum = self.archive_signature()
+        need(size == self.state["dump_bytes"], "Archive size mismatch")
+        need(checksum == self.state["sha256"], "Archive checksum mismatch")
+        self.command([self.tool("pg_restore"), "--list", str(self.op / "database.dump")], "archive-check")
+
+    def archive_signature(self):
+        path = self.op / "database.dump"
+        need(not path.is_symlink(), "Archive symlink refused")
+        fmt = self.state.get("archive_format", "custom")
+        need(fmt in ("custom", "directory"), "Unknown archive format")
+        if fmt == "custom":
+            need(path.is_file(), "Archive file missing")
+            return path.stat().st_size, S.digest(path)
+        need(path.is_dir(), "Archive directory missing")
+        files = sorted(path.iterdir())
+        need(files and (path / "toc.dat").is_file(), "Archive TOC missing")
+        need(all(f.is_file() and not f.is_symlink() for f in files), "Unexpected archive entry")
+        manifest = [[f.name, f.stat().st_size, S.digest(f)] for f in files]
+        return sum(row[1] for row in manifest), fingerprint_hash(manifest)
+
+    def schema_hash(self, database):
+        sql = self.command(
+            [self.tool("pg_dump")] + self.connection() + ["--schema-only", "--dbname=" + database],
+            "schema-check",
+        )
+        # Newer clients add a fresh psql restrict token to each plain dump.
+        sql = re.sub(r"(?m)^\\(?:un)?restrict [A-Za-z0-9]+\n", "", sql)
+        return hashlib.sha256(sql.encode("utf-8")).hexdigest()
+
+    def new_temp(self, template=None):
+        need(self.state.get("temporary") is None, "Temporary database remains; run cleanup-temp first")
+        name = PREFIX + uuid.uuid4().hex
+        self.state["temporary"] = {"name": name, "oid": None}
+        self.save()
+        source = self.state["source"]
+        sql = "CREATE DATABASE " + ident(name)
+        if template:
+            sql += " TEMPLATE " + ident(template) + " STRATEGY FILE_COPY"
+        else:
+            sql += (
+                " TEMPLATE template0 ENCODING "
+                + sql_string(source["encoding"])
+                + " LOCALE_PROVIDER libc LC_COLLATE "
+                + sql_string(source["collate"])
+                + " LC_CTYPE "
+                + sql_string(source["ctype"])
+            )
+        self.pg("postgres", sql + " OWNER postgres CONNECTION LIMIT 0;")
+        self.state["temporary"]["oid"] = self.info(name)["oid"]
+        self.save()
+        self.pg("postgres", "REVOKE CONNECT ON DATABASE " + ident(name) + " FROM PUBLIC;")
+        return name
+
+    def cleanup_temp(self):
+        temp = self.state.get("temporary")
+        need(
+            temp is not None and temp["name"].startswith(PREFIX) and temp["oid"] is not None,
+            "No identified temporary database; manual inspection required",
+        )
+        if self.exists(temp["name"]):
+            need(self.info(temp["name"])["oid"] == temp["oid"], "Temporary database OID changed")
+            self.quiet(temp["name"])
+            self.pg("postgres", "DROP DATABASE " + ident(temp["name"]) + ";")
+        self.state["temporary"] = None
+        self.save()
+
+    def freeze(self, name):
+        self.quiet(name)
+        self.pg("postgres", "ALTER DATABASE " + ident(name) + " ALLOW_CONNECTIONS false;")
+        self.source_guard()
+
+    def archive(self, name):
+        allowed(name, self.c)
+        need(not self.state_path.exists(), "Another operation is pending; finish or cancel it first")
+        source = self.info(name)
+        need(not source["is_template"], "Template databases are protected")
+        need(
+            source["owner"] == "postgres" and source["provider"] == "c" and source["tablespace"] == "pg_default",
+            "Only postgres-owned libc databases in pg_default are supported",
+        )
+        need(source["allow_connections"], "Source is already blocked")
+        # Template copying does not copy database ACL or settings. Fail closed instead of losing them silently.
+        extra = self.query(
+            "SELECT json_build_object('settings',(SELECT count(*) FROM pg_db_role_setting WHERE setdatabase="
+            + str(source["oid"])
+            + "),'labels',(SELECT count(*) FROM pg_shseclabel WHERE classoid='pg_database'::regclass AND objoid="
+            + str(source["oid"])
+            + "));"
+        )
+        need(
+            source["acl"] is None and extra == {"settings": 0, "labels": 0},
+            "Non-default database ACL, settings or security labels need a separate recovery procedure",
+        )
+        self.quiet(name)
+        extra = self.query(
+            "SELECT json_build_object('foreign',(SELECT count(*) FROM pg_foreign_table),"
+            "'subscriptions',(SELECT count(*) FROM pg_subscription WHERE subdbid="
+            "(SELECT oid FROM pg_database WHERE datname=current_database())),"
+            "'tablespaces',(SELECT count(*) FROM pg_class WHERE reltablespace<>0 AND reltablespace NOT IN "
+            "(SELECT oid FROM pg_tablespace WHERE spcname IN ('pg_default','pg_global'))));",
+            name,
+        )
+        need(
+            extra == {"foreign": 0, "subscriptions": 0, "tablespaces": 0},
+            "Foreign tables, subscriptions and tablespaces are unsupported",
+        )
+        # One physical clone and possible WAL; the reserve is based on the uncompressed source size.
+        self.space(source["bytes"] * (4 if self.benchmark else 2), source["bytes"] * 2)
+        operation = "a-" + uuid.uuid4().hex
+        self.op = self.root / operation
+        self.op.mkdir(mode=0o700)
+        self.state = {
+            "schema": 1,
+            "operation": operation,
+            "server": self.server,
+            "source": source,
+            "status": "preparing",
+            "temporary": None,
+            "created_utc": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+            "archive_format": "directory" if self.jobs > 1 else "custom",
+            "jobs": self.jobs,
+        }
+        self.save()
+        S.atomic_json(self.state_path, {"operation": operation})
+        self.emit("operation", operation=operation, database=name)
+        self.monitored = True
+        self.freeze(name)
+        clone = self.new_temp(name)
+        fingerprint = self.query(FINGERPRINT, clone)
+        S.atomic_json(
+            self.op / "fingerprint.json",
+            {"sha256": fingerprint_hash(fingerprint), "schema_sha256": self.schema_hash(clone)},
+        )
+        self.state["fingerprint_sha256"] = S.digest(self.op / "fingerprint.json")
+        dump_args = [self.tool("pg_dump")] + self.connection()
+        dump_args += ["--format=" + self.state["archive_format"], "--compress=6", "--dbname=" + clone]
+        if self.benchmark:
+            # Fixed order 1 then 4 workers; report the warm-cache bias, never flush production caches.
+            with tempfile.TemporaryDirectory(prefix="benchmark-", dir=str(self.op)) as folder:
+                serial = Path(folder) / "database.dump"
+                started = time.monotonic()
+                self.command(dump_args + ["--jobs=1", "--file=" + str(serial)], "dump-benchmark-1")
+                serial_seconds = time.monotonic() - started
+                self.command([self.tool("pg_restore"), "--list", str(serial)], "archive-check")
+                serial_bytes = sum(p.stat().st_size for p in serial.iterdir())
+                started = time.monotonic()
+                self.command(dump_args + ["--jobs=4", "--file=" + str(self.op / "database.dump")], "dump-benchmark-4")
+                parallel_seconds = time.monotonic() - started
+                result = {
+                    "jobs_1_seconds": round(serial_seconds, 2),
+                    "jobs_4_seconds": round(parallel_seconds, 2),
+                    "jobs_1_bytes": serial_bytes,
+                    "ratio": round(serial_seconds / parallel_seconds, 2),
+                    "order": [1, 4],
+                    "cache_reset": False,
+                    "format": "directory",
+                    "compression": 6,
+                }
+                S.atomic_json(self.op / "benchmark.json", result)
+                self.emit("benchmark", **result)
+        else:
+            self.command(dump_args + ["--jobs=" + str(self.jobs), "--file=" + str(self.op / "database.dump")], "dump")
+        dump = self.op / "database.dump"
+        for path in sorted(dump.iterdir()) if dump.is_dir() else [dump]:
+            with path.open("rb") as stream:
+                os.fsync(stream.fileno())
+        if dump.is_dir():
+            S.fsync_dir(dump)
+        self.state["dump_bytes"], self.state["sha256"] = self.archive_signature()
+        self.archive_guard()
+        self.cleanup_temp()
+        self.source_guard()
+        self.state["status"] = "archived"
+        self.save()
+        self.emit("archived", operation=operation, dump_bytes=self.state["dump_bytes"])
+
+    def restored_temp(self):
+        self.archive_guard()
+        fingerprint = self.op / "fingerprint.json"
+        need(S.digest(fingerprint) == self.state["fingerprint_sha256"], "Fingerprint checksum mismatch")
+        self.space(0, self.state["source"]["bytes"] * 2)
+        self.monitored = True
+        temp = self.new_temp()
+        workers = ["--jobs=" + str(self.jobs)] if self.jobs > 1 else ["--single-transaction"]
+        self.command(
+            [self.tool("pg_restore")]
+            + self.connection()
+            + ["--exit-on-error"]
+            + workers
+            + ["--dbname=" + temp, str(self.op / "database.dump")],
+            "restore",
+        )
+        self.check_restored(temp)
+        return temp
+
+    def check_restored(self, temp):
+        saved = self.state.get("temporary")
+        need(
+            isinstance(saved, dict) and saved["name"] == temp and temp.startswith(PREFIX),
+            "Untracked temporary database",
+        )
+        need(self.info(temp)["oid"] == saved["oid"], "Temporary database OID changed")
+        self.quiet(temp)
+        fingerprint = self.op / "fingerprint.json"
+        need(S.digest(fingerprint) == self.state["fingerprint_sha256"], "Fingerprint checksum mismatch")
+        need(
+            fingerprint_hash(self.query(FINGERPRINT, temp)) == S.read_json(fingerprint)["sha256"],
+            "Restored data or catalog fingerprint mismatch",
+        )
+        need(self.schema_hash(temp) == S.read_json(fingerprint)["schema_sha256"], "Restored schema mismatch")
+        self.quiet(temp)
+
+    def verify(self):
+        need(self.state["status"] in ("archived", "verified"), "Archive is not complete")
+        self.source_guard()
+        if self.state.get("temporary"):
+            self.archive_guard()
+            self.monitored = True
+            self.check_restored(self.state["temporary"]["name"])
+        else:
+            self.restored_temp()
+        self.cleanup_temp()
+        self.source_guard()
+        self.state["status"] = "verified"
+        self.state["verified_utc"] = datetime.datetime.now(datetime.timezone.utc).isoformat()
+        self.save()
+        self.emit("verified", operation=self.state["operation"])
+
+    def clear_pending(self):
+        if self.state_path.exists():
+            need(S.read_json(self.state_path)["operation"] == self.state["operation"], "Different pending operation")
+            self.state_path.unlink()
+            S.fsync_dir(self.root)
+
+    def drop_source(self):
+        need(
+            self.state["status"] == "verified" and self.state.get("temporary") is None,
+            "A successful restore verification is required",
+        )
+        self.archive_guard()
+        self.source_guard()
+        self.state["status"] = "dropping"
+        self.save()
+        self.pg("postgres", "DROP DATABASE " + ident(self.state["source"]["name"]) + ";")
+        need(not self.exists(self.state["source"]["name"]), "Source still exists")
+        self.state["status"] = "deleted"
+        self.save()
+        self.clear_pending()
+        self.emit("deleted", database=self.state["source"]["name"], operation=self.state["operation"])
+
+    def cancel(self):
+        need(self.state["status"] in ("preparing", "archived", "verified", "cancelled"), "Cannot cancel this operation")
+        need(self.state.get("temporary") is None, "Run cleanup-temp first")
+        source = self.state["source"]
+        need(self.info(source["name"])["oid"] == source["oid"], "Source OID changed")
+        # Invalidate deletion eligibility durably before reopening the source.
+        self.state["status"] = "cancelled"
+        self.save()
+        self.pg("postgres", "ALTER DATABASE " + ident(source["name"]) + " ALLOW_CONNECTIONS true;")
+        self.clear_pending()
+        self.emit("cancelled", database=source["name"])
+
+    def restore_source(self):
+        need(self.state["status"] == "deleted", "Restore requires a deleted source")
+        if self.state_path.exists():
+            need(S.read_json(self.state_path)["operation"] == self.state["operation"], "Another operation pending")
+        source = self.state["source"]
+        need(not self.exists(source["name"]), "Original database name is occupied")
+        S.atomic_json(self.state_path, {"operation": self.state["operation"]})
+        temp = self.restored_temp()
+        self.pg("postgres", "ALTER DATABASE " + ident(temp) + " ALLOW_CONNECTIONS false;")
+        self.quiet(temp)
+        # Persist the intended rename before SQL, so an interrupted recovery can be inspected.
+        self.state["status"] = "restoring-name"
+        self.save()
+        self.finish_restore()
+
+    def finish_restore(self):
+        source = self.state["source"]
+        temp = self.state["temporary"]["name"]
+        oid = self.state["temporary"]["oid"]
+        if self.exists(source["name"]):
+            current = self.info(source["name"])
+            need(
+                not self.exists(temp) and current["oid"] == oid and not current["allow_connections"],
+                "Unexpected database after rename",
+            )
+            self.quiet(source["name"])
+        else:
+            need(
+                self.exists(temp) and self.info(temp)["oid"] == oid and not self.info(temp)["allow_connections"],
+                "Missing blocked restore temporary database",
+            )
+            self.quiet(temp)
+            self.pg("postgres", "ALTER DATABASE " + ident(temp) + " RENAME TO " + ident(source["name"]) + ";")
+        comment = "NULL" if source["comment"] is None else sql_string(source["comment"])
+        self.pg(
+            "postgres",
+            "ALTER DATABASE " + ident(source["name"]) + " CONNECTION LIMIT " + str(source["connection_limit"]) + ";"
+            "COMMENT ON DATABASE " + ident(source["name"]) + " IS " + comment + ";"
+            "GRANT CONNECT ON DATABASE " + ident(source["name"]) + " TO PUBLIC;",
+        )
+        self.state["restored_oid"] = self.info(source["name"])["oid"]
+        self.state["temporary"] = None
+        self.state["status"] = "restored-blocked"
+        self.save()
+        self.emit("restored-blocked", database=source["name"])
+
+    def reconcile(self):
+        status = self.state["status"]
+        if status == "preparing":
+            need(self.state.get("temporary") is None, "Temporary database remains; inspect before reconciliation")
+            need(
+                all(k in self.state for k in ("dump_bytes", "sha256", "fingerprint_sha256")),
+                "Archive creation did not finish",
+            )
+            self.archive_guard()
+            need(S.digest(self.op / "fingerprint.json") == self.state["fingerprint_sha256"], "Fingerprint mismatch")
+            self.source_guard()
+            self.state["status"] = "archived"
+            self.save()
+        elif status == "dropping":
+            self.archive_guard()
+            if self.exists(self.state["source"]["name"]):
+                self.source_guard()
+                self.state["status"] = "verified"
+                self.save()
+            else:
+                self.state["status"] = "deleted"
+                self.save()
+                self.clear_pending()
+        elif status == "restoring-name":
+            self.archive_guard()
+            self.finish_restore()
+        elif status == "deleted":
+            need(
+                not self.exists(self.state["source"]["name"]) and self.state.get("temporary") is None,
+                "Inspect the unfinished restore before clearing pending",
+            )
+            self.archive_guard()
+            self.clear_pending()
+        else:
+            need(False, "No supported interrupted transition; use status, cleanup-temp or cancel")
+        self.emit("reconciled", status=self.state["status"])
+
+    def reopen(self):
+        need(self.state["status"] == "restored-blocked", "No restored database ready to open")
+        name = self.state["source"]["name"]
+        need(self.info(name)["oid"] == self.state["restored_oid"], "Restored database OID changed")
+        self.pg("postgres", "ALTER DATABASE " + ident(name) + " ALLOW_CONNECTIONS true;")
+        self.state["status"] = "restored"
+        self.save()
+        self.clear_pending()
+        self.emit("restored", database=name)
+
+
+ACTIONS = (
+    "plan",
+    "archive",
+    "status",
+    "verify-restore",
+    "drop-source",
+    "cleanup-temp",
+    "cancel",
+    "restore-source",
+    "reopen",
+    "reconcile",
+)
+
+
+def check_archive_section(config):
+    archive = S.section(config, "archive")
+    databases = archive.get("databases")
+    need(
+        type(databases) is list and databases and len(databases) == len(set(databases)),
+        "archive.databases must be an explicit unique list",
+    )
+    for name in databases:
+        need(isinstance(name, str) and name not in protected(config), "archive.databases lists a protected name")
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("action", choices=ACTIONS)
+    parser.add_argument("--profile", type=Path, default=S.default_profile(__file__))
+    target = parser.add_mutually_exclusive_group(required=True)
+    target.add_argument("--database")
+    target.add_argument("--operation")
+    parser.add_argument("--confirm")
+    parser.add_argument("--jobs", type=int, choices=range(1, 5), help="Parallel dump/restore workers")
+    parser.add_argument("--benchmark", action="store_true", help="Compare directory dumps with 1 then 4 workers")
+    args = parser.parse_args(argv)
+    config = S.load_profile(args.profile)
+    check_archive_section(config)
+    if args.database is not None:
+        # Refuse an unlisted or protected database before any DBMS access.
+        allowed(args.database, config)
+    if args.benchmark:
+        need(args.action == "archive" and args.jobs == 4, "Use archive --jobs 4 --benchmark")
+        config["archive"]["benchmark"] = True
+    if args.jobs is not None:
+        need(args.action in ("archive", "verify-restore", "restore-source"), "--jobs applies only to dump and restore")
+        config["archive"]["jobs"] = args.jobs
+    need(os.geteuid() == 0, "Run as root")
+    tool = Archive(config)
+    with tool.workspace():
+        tool.prerequisites()
+        if args.action in ("plan", "archive"):
+            need(args.database is not None, "plan and archive need --database")
+            name = allowed(args.database, config)
+            if args.action == "plan":
+                need(args.confirm is None, "Unexpected confirmation")
+                info = tool.info(name)
+                tool.quiet(name)
+                tool.emit(
+                    "plan",
+                    database=name,
+                    bytes=info["bytes"],
+                    archive_free_bytes=shutil.disk_usage(str(tool.root)).free,
+                    pgdata_free_bytes=shutil.disk_usage(config["db_data_directory"]).free,
+                    archive_required_bytes=2 * info["bytes"] + RESERVE,
+                    pgdata_required_bytes=2 * info["bytes"] + RESERVE,
+                )
+            else:
+                need(args.confirm == "ARCHIVE " + name, "Use --confirm 'ARCHIVE <database>'")
+                tool.archive(name)
+            return
+        if args.database is not None:
+            tool.load_database(args.database)
+        else:
+            tool.load(args.operation)
+        if args.action == "status":
+            need(args.confirm is None, "Unexpected confirmation")
+            tool.emit(
+                "status",
+                operation=tool.state["operation"],
+                database=tool.state["source"]["name"],
+                status=tool.state["status"],
+                temporary=tool.state.get("temporary"),
+            )
+            return
+        confirmation = args.action.upper() + " " + (args.database or args.operation)
+        if not (args.database and args.action == "verify-restore" and args.confirm is None):
+            need(args.confirm == confirmation, "Use --confirm '" + confirmation + "'")
+        handlers = {
+            "verify-restore": tool.verify,
+            "drop-source": tool.drop_source,
+            "cleanup-temp": tool.cleanup_temp,
+            "cancel": tool.cancel,
+            "restore-source": tool.restore_source,
+            "reopen": tool.reopen,
+            "reconcile": tool.reconcile,
+        }
+        handlers[args.action]()
+
+
+if __name__ == "__main__":
+    S.run(main)

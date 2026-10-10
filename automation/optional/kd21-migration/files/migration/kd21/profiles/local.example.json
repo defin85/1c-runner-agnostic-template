@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "profileId": "local-kd21-workbench",
+  "releasePublishRoot": "/var/tmp/kd21-release-publish",
+  "limits": {
+    "runtimeStageTimeoutSeconds": 900,
+    "stageTimeoutSeconds": 300,
+    "minFreeBytes": 10737418240,
+    "maxReleaseBytes": 268435456
+  },
+  "references": [
+    {"role": "source", "database": "source_reference", "snapshot": ".artifacts/golden/source-reference.dump"},
+    {"role": "target", "database": "target_reference", "snapshot": ".artifacts/golden/target-reference.dump"}
+  ],
+  "workbases": [
+    {"role": "source", "database": "source_copy", "runtimeProfile": "env/kd21-source-copy.json", "target": "source-copy"},
+    {"role": "target", "database": "target_copy", "runtimeProfile": "env/kd21-target-copy.json", "target": "target-copy"}
+  ],
+  "expendableDatabases": ["source_copy", "target_copy"],
+  "requiredEnv": ["ONEC_KD21_DB_PASSWORD"],
+  "commands": {
+    "load": [
+      "{python}", "migration/kd21/bin/load_rules.py",
+      "--role", "{role}",
+      "--runtime-profile", "{runtimeProfile}",
+      "--release", "{release}",
+      "--result", "{resultFile}"
+    ]
+  }
+}

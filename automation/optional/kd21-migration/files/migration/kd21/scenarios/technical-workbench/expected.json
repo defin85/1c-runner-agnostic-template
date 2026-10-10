@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "scenarioType": "workbench",
+  "status": "workbench-run-passed",
+  "files": [
+    "source/ExchangeRules.xml",
+    "source/RegistrationRules.xml",
+    "target/CorrespondentExchangeRules.xml",
+    "target/ExchangeRules.xml",
+    "target/RegistrationRules.xml"
+  ],
+  "archives": [
+    "source/ExchangeRules.zip",
+    "source/RegistrationRules.zip",
+    "target/Rules.zip"
+  ]
+}

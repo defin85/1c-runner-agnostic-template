@@ -1,0 +1,519 @@
+"""Shared code of the site server wrappers: site profile, checks, durable files, safe subprocess.
+
+Installed next to the wrappers on the site servers and loaded by them with `load_common()`.
+Only the Python standard library is used, and the code must run on Python 3.7: the wrappers
+run on the system Python of the customer servers.
+"""
+
+import contextlib
+import datetime
+import fcntl
+import getpass
+import hashlib
+import json
+import os
+import re
+import signal
+import socket
+import stat
+import subprocess
+import sys
+import tempfile
+import time
+import uuid
+from pathlib import Path
+
+GIB = 1024**3
+PROFILE_NAME = "site.json"
+NAME_PATTERN = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,62}")
+INFOBASE_KEYS = {"user", "password_file", "auth_base", "disposable"}
+
+
+class Refused(RuntimeError):
+    pass
+
+
+def need(condition, message):
+    if not condition:
+        raise Refused(message)
+
+
+def read_json(path):
+    path = Path(path)
+    need(path.is_file() and not path.is_symlink(), "Missing or symbolic JSON file: " + path.name)
+    need(path.stat().st_size <= 1024 * 1024, "JSON file exceeds the 1 MiB metadata limit")
+    value = json.loads(path.read_text(encoding="utf-8"))
+    need(isinstance(value, dict), "Expected a JSON object")
+    return value
+
+
+def fsync_dir(path):
+    fd = os.open(str(path), os.O_RDONLY | os.O_DIRECTORY)
+    try:
+        os.fsync(fd)
+    finally:
+        os.close(fd)
+
+
+def atomic_json(path, value):
+    path = Path(path)
+    fd, name = tempfile.mkstemp(prefix=".json-", dir=str(path.parent))
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as stream:
+            json.dump(value, stream, ensure_ascii=False, indent=2)
+            stream.write("\n")
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(name, str(path))
+        fsync_dir(path.parent)
+    finally:
+        if os.path.exists(name):
+            os.unlink(name)
+
+
+def digest(path):
+    result = hashlib.sha256()
+    with Path(path).open("rb") as stream:
+        for block in iter(lambda: stream.read(8 * 1024 * 1024), b""):
+            result.update(block)
+    return result.hexdigest()
+
+
+def blocks(text):
+    """Parse `rac` output: blank-line separated records of `key : value` lines."""
+    result, item = [], {}
+    for line in text.splitlines() + [""]:
+        if not line.strip():
+            if item:
+                result.append(item)
+                item = {}
+        else:
+            key, sep, value = line.partition(":")
+            if sep:
+                item[key.strip()] = value.strip().strip('"')
+    return result
+
+
+def sql_string(value):
+    return "'" + str(value).replace("'", "''") + "'"
+
+
+def ident(value):
+    return '"' + str(value).replace('"', '""') + '"'
+
+
+def generation_id():
+    return "g-" + datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%dT%H%M%SZ-") + uuid.uuid4().hex[:12]
+
+
+def valid_generation(value):
+    return isinstance(value, str) and re.fullmatch(r"g-\d{8}T\d{6}Z-[0-9a-f]{12}", value) is not None
+
+
+def valid_operation(value):
+    return isinstance(value, str) and re.fullmatch(r"[0-9a-f]{32}", value) is not None
+
+
+def valid_name(value):
+    return isinstance(value, str) and NAME_PATTERN.fullmatch(value) is not None
+
+
+def canonical_uuid(value):
+    need(isinstance(value, str), "Invalid UUID")
+    try:
+        result = str(uuid.UUID(value))
+    except ValueError:
+        raise Refused("Invalid UUID") from None
+    need(result == value, "UUID must be in canonical lower-case form")
+    return result
+
+
+def password_from(path, prompt):
+    """Read a one-line secret from a root:root 0600 file, or ask interactively when no file is set."""
+    if not path:
+        need(sys.stdin.isatty(), "No password file in the site profile and no terminal to ask for it")
+        value = getpass.getpass(prompt)
+    else:
+        try:
+            source = Path(path)
+            need(
+                source.is_absolute() and source.resolve() == source, "Password file must have a canonical absolute path"
+            )
+            fd = os.open(str(source), os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+            with os.fdopen(fd, "rb") as stream:
+                info = os.fstat(stream.fileno())
+                need(
+                    stat.S_ISREG(info.st_mode)
+                    and info.st_uid == 0
+                    and info.st_gid == 0
+                    and stat.S_IMODE(info.st_mode) == 0o600,
+                    "Password file must be regular, root:root, mode 0600",
+                )
+                data = stream.read(65537)
+                need(len(data) <= 65536, "Password file is too large")
+            value = data.decode("utf-8")
+            if value.endswith("\n"):
+                value = value[:-1]
+                if value.endswith("\r"):
+                    value = value[:-1]
+        except (OSError, UnicodeError):
+            raise Refused("Cannot read password file; check its path, access and UTF-8 encoding") from None
+    need(bool(value) and not any(c in value for c in ("\n", "\r", "\x00")), "Password must be one nonempty line")
+    return value
+
+
+def _string(value, key, allow_empty=True):
+    need(
+        isinstance(value, str) and not any(ord(c) < 32 for c in value) and (allow_empty or bool(value)),
+        "Invalid site profile string: " + key,
+    )
+    return value
+
+
+def _path(value, key, allow_empty=False):
+    _string(value, key, allow_empty)
+    need((allow_empty and not value) or Path(value).is_absolute(), "Site profile path must be absolute: " + key)
+    return value
+
+
+def default_profile(script):
+    """Default profile path: `site.json` next to the installed wrapper."""
+    return Path(script).resolve().parent / PROFILE_NAME
+
+
+def load_profile(path):
+    """Read and validate the site profile.
+
+    The profile is project-owned and not tracked by Git; `site.example.json` documents its fields
+    with invented values. It is the allowlist of infobases: mutating commands refuse any infobase
+    that is not listed in `infobases`.
+    """
+    profile = read_json(path)
+    need(profile.get("schema") == 1, "Unsupported site profile schema; expected 1")
+    for key in ("app_host", "db_host", "db_user"):
+        _string(profile.get(key), key, allow_empty=False)
+    need(type(profile.get("db_port")) is int and 1 <= profile["db_port"] <= 65535, "Invalid db_port")
+    need(type(profile.get("pg_major")) is int and profile["pg_major"] >= 10, "Invalid pg_major")
+    _path(profile.get("db_data_directory"), "db_data_directory")
+    _path(profile.get("db_password_file", ""), "db_password_file", allow_empty=True)
+    _path(profile.get("pg_bin", ""), "pg_bin", allow_empty=True)
+    platform = profile.get("platform")
+    need(isinstance(platform, dict), "Site profile needs a platform section")
+    _string(platform.get("version"), "platform.version", allow_empty=False)
+    _path(platform.get("rac"), "platform.rac")
+    _path(platform.get("ibcmd", ""), "platform.ibcmd", allow_empty=True)
+    _string(platform.get("ras"), "platform.ras", allow_empty=False)
+    cluster = profile.get("cluster")
+    need(isinstance(cluster, dict), "Site profile needs a cluster section")
+    canonical_uuid(cluster.get("uuid"))
+    _string(cluster.get("user", ""), "cluster.user")
+    _path(cluster.get("password_file", ""), "cluster.password_file", allow_empty=True)
+    need(not cluster.get("password_file") or cluster.get("user"), "Cluster password file requires cluster.user")
+    infobases = profile.get("infobases")
+    need(isinstance(infobases, dict) and infobases, "Site profile must list the allowed infobases")
+    for name, item in infobases.items():
+        need(valid_name(name), "Invalid infobase name in site profile: " + name)
+        need(isinstance(item, dict) and set(item) <= INFOBASE_KEYS, "Unexpected keys for infobase " + name)
+        _string(item.get("user", ""), "infobases." + name + ".user")
+        _path(item.get("password_file", ""), "infobases." + name + ".password_file", allow_empty=True)
+        need(not item.get("password_file") or item.get("user"), "Password file requires a user: " + name)
+        need(type(item.get("disposable", False)) is bool, "disposable must be true or false: " + name)
+        source = item.get("auth_base")
+        if source is not None:
+            need(not item.get("user"), "Use either user or auth_base for " + name)
+            need(source in infobases and infobases[source].get("auth_base") is None, "Invalid auth_base for " + name)
+    return profile
+
+
+def section(profile, name):
+    value = profile.get(name)
+    need(isinstance(value, dict), "Site profile has no " + name + " section")
+    return value
+
+
+def allowed_infobase(profile, name, disposable=False):
+    """Refuse an infobase that the site profile does not list (before any cluster or DBMS access)."""
+    need(valid_name(name), "Invalid infobase name")
+    need(name in profile["infobases"], "Infobase is not listed in the site profile: " + name)
+    item = profile["infobases"][name]
+    if disposable:
+        need(item.get("disposable") is True, "Infobase is not marked disposable in the site profile: " + name)
+    return item
+
+
+def infobase_credentials(profile, name):
+    """Return `(user, password_file)` of an infobase, following its `auth_base`."""
+    item = profile["infobases"][name]
+    source = profile["infobases"][item.get("auth_base") or name]
+    return source.get("user", ""), source.get("password_file", "")
+
+
+def storage_dir(value, profile, key):
+    _path(value, key)
+    storage = Path(value)
+    need(
+        not storage.is_symlink() and storage.resolve() == storage and len(storage.parts) > 2,
+        "Storage must be a canonical dedicated absolute directory: " + key,
+    )
+    need(
+        storage.parts[1] not in ("tmp", "run", "dev", "proc", "sys") and not str(storage).startswith("/var/tmp/"),
+        "Storage must be persistent: " + key,
+    )
+    data = Path(profile["db_data_directory"])
+    need(
+        storage != data and data not in storage.parents and storage not in data.parents,
+        "Storage and the DBMS data directory must be separate: " + key,
+    )
+    return storage
+
+
+def binding(profile):
+    return {
+        "app_host": profile["app_host"],
+        "db_host": profile["db_host"],
+        "db_port": profile["db_port"],
+        "db_data_directory": profile["db_data_directory"],
+        "pg_major": profile["pg_major"],
+        "cluster_uuid": profile["cluster"]["uuid"],
+    }
+
+
+def golden_bases(profile):
+    bases = section(profile, "golden").get("bases")
+    need(isinstance(bases, list) and bases and len(bases) == len(set(bases)), "golden.bases must be a unique list")
+    for base in bases:
+        allowed_infobase(profile, base)
+        need(not profile["infobases"][base].get("disposable"), "A golden base cannot be disposable: " + base)
+    return tuple(bases)
+
+
+def validate_ticket(ticket, profile):
+    bases = golden_bases(profile)
+    need(
+        ticket.get("schema") == 1 and ticket.get("kind") == "prepared" and ticket.get("status") == "blocked",
+        "Expected a completed application-server preparation ticket",
+    )
+    need(
+        valid_operation(ticket.get("run_id")) and ticket.get("binding") == binding(profile),
+        "Ticket operation or site contour mismatch",
+    )
+    need(ticket.get("action") in ("capture", "restore"), "Invalid ticket action")
+    source = ticket.get("source_generation")
+    need(
+        source is None if ticket["action"] == "capture" else valid_generation(source),
+        "Invalid ticket source generation",
+    )
+    rows = ticket.get("registrations")
+    need(isinstance(rows, dict) and set(rows) == set(bases), "Ticket must contain every golden base")
+    for row in rows.values():
+        need(isinstance(row, dict), "Invalid ticket registration")
+        canonical_uuid(row.get("uuid"))
+        need(row.get("sessions") == "on" and row.get("jobs") == "on", "Ticket does not confirm session and job blocks")
+    need(len({r["uuid"] for r in rows.values()}) == len(bases), "Duplicate registration UUID")
+    return ticket
+
+
+class Runner:
+    """Run tools without logging argv (it may hold secrets) and keep a JSON event journal."""
+
+    def __init__(self, profile, storage=None):
+        self.c = profile
+        self.root = Path(storage) if storage else None
+        self.env = {k: v for k, v in os.environ.items() if not k.startswith("PG")}
+        self.env["PGCONNECT_TIMEOUT"] = "10"
+        self.env["PGOPTIONS"] = "-c standard_conforming_strings=on -c search_path=pg_catalog"
+        self.env["LC_ALL"] = "C"
+        self.auth = {}
+        self.cluster_auth = []
+        self.tools = {}
+        self.state_path = self.root / "pending.json" if self.root else None
+        self.events_path = None
+
+    def emit(self, stage, **fields):
+        event = {"time": datetime.datetime.now(datetime.timezone.utc).isoformat(), "stage": stage}
+        event.update(fields)
+        line = json.dumps(event, ensure_ascii=False)
+        print(line, flush=True)
+        if self.events_path:
+            with self.events_path.open("a", encoding="utf-8") as stream:
+                stream.write(line + "\n")
+
+    def command(self, argv, label):
+        # Never log argv or raw output: authentication travels in argv of rac and ibcmd.
+        with tempfile.TemporaryFile() as output, tempfile.TemporaryFile() as errors:
+            self.emit(label, status="started")
+            process = subprocess.Popen([str(a) for a in argv], stdout=output, stderr=errors, env=self.env)
+            started = time.monotonic()
+            try:
+                while True:
+                    try:
+                        process.wait(timeout=5)
+                        break
+                    except subprocess.TimeoutExpired:
+                        archive = next((str(x).split("=", 1)[1] for x in argv if str(x).startswith("--file=")), None)
+                        progress = (
+                            {"archive_bytes": os.path.getsize(archive)} if archive and os.path.isfile(archive) else {}
+                        )
+                        self.emit(
+                            label,
+                            status="running",
+                            elapsed_seconds=int(time.monotonic() - started),
+                            stdout_bytes=os.fstat(output.fileno()).st_size,
+                            stderr_bytes=os.fstat(errors.fileno()).st_size,
+                            **progress,
+                        )
+            except BaseException:
+                process.terminate()
+                try:
+                    process.wait(timeout=15)
+                except subprocess.TimeoutExpired:
+                    process.kill()
+                    process.wait()
+                raise
+            self.emit(label, status="completed" if process.returncode == 0 else "failed", rc=process.returncode)
+            if process.returncode and self.events_path:
+                self._save_failure(argv, label, output, errors)
+            need(process.returncode == 0, f"{label} failed (rc={process.returncode}); raw output withheld")
+            output.seek(0)
+            return output.read().decode("utf-8", errors="replace")
+
+    def _save_failure(self, argv, label, output, errors):
+        secrets = [
+            str(a).split("=", 1)[1]
+            for a in argv
+            if "=" in str(a) and any(k in str(a).split("=", 1)[0].lower() for k in ("password", "pwd"))
+        ]
+        for stream, suffix in ((output, "stdout"), (errors, "stderr")):
+            stream.seek(0)
+            detail = stream.read().decode("utf-8", errors="replace")
+            for secret in secrets:
+                if secret:
+                    detail = detail.replace(secret, "[REDACTED]")
+            path = self.events_path.parent / (label + "." + suffix + ".txt")
+            with open(str(path), "w", encoding="utf-8") as log:
+                os.chmod(str(path), 0o600)
+                log.write(detail[-16000:])
+
+    def binding(self):
+        return binding(self.c)
+
+    def check_host(self, role):
+        expected = self.c["app_host"] if role == "app" else self.c["db_host"]
+        actual = socket.gethostname().split(".")[0].lower()
+        need(actual == expected.split(".")[0].lower(), "Wrong execution host for the " + role + " role")
+        need(sys.version_info >= (3, 7), "Python 3.7 or newer is required")
+
+    @contextlib.contextmanager
+    def workspace(self):
+        need(self.root is not None, "No storage directory configured for this operation")
+        self.root.mkdir(mode=0o700, parents=True, exist_ok=True)
+        need(
+            not self.root.is_symlink()
+            and self.root.stat().st_uid == os.geteuid()
+            and self.root.stat().st_mode & 0o077 == 0,
+            "Storage must belong to the operator and have mode 0700",
+        )
+        self.events_path = self.root / ("events-" + uuid.uuid4().hex + ".jsonl")
+        with (self.root / ".lock").open("a") as lock:
+            try:
+                fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except BlockingIOError:
+                raise Refused("Another operation on this storage is running") from None
+            yield
+
+
+class Cluster(Runner):
+    """Application-server access to the 1C cluster through RAS with exact infobase selection."""
+
+    def prerequisites(self):
+        self.check_host("app")
+        rac = self.c["platform"]["rac"]
+        need(os.path.isfile(rac) and os.access(rac, os.X_OK), "rac is not executable")
+
+    def login_cluster(self):
+        cluster = self.c["cluster"]
+        if cluster.get("user"):
+            self.cluster_auth = [
+                "--cluster-user=" + cluster["user"],
+                "--cluster-pwd="
+                + password_from(cluster.get("password_file", ""), "1C cluster administrator password: "),
+            ]
+
+    def login_infobase(self, base):
+        user, secret = infobase_credentials(self.c, base)
+        self.auth[base] = (
+            ["--infobase-user=" + user, "--infobase-pwd=" + password_from(secret, base + " administrator password: ")]
+            if user
+            else []
+        )
+
+    def rac(self, mode, action, *args):
+        if (mode, action) == ("infobase", "create"):
+            need(
+                not any(arg.split("=", 1)[0] in ("--infobase-user", "--infobase-pwd") for arg in args),
+                "rac infobase create does not accept infobase authentication",
+            )
+        prefix = [self.c["platform"]["rac"], self.c["platform"]["ras"], mode, action]
+        if (mode, action) == ("infobase", "summary"):
+            prefix.append(args[0])
+            args = args[1:]
+        argv = prefix + ["--cluster=" + self.c["cluster"]["uuid"]] + self.cluster_auth + list(args)
+        return blocks(self.command(argv, "rac-" + mode + "-" + action))
+
+    def registration(self, base):
+        rows = self.rac("infobase", "summary", "list")
+        matches = [row for row in rows if row.get("name") == base]
+        need(len(matches) == 1, "Expected exactly one registration with this name: " + base)
+        return canonical_uuid(matches[0].get("infobase"))
+
+    def absent_registration(self, base):
+        need(
+            not any(row.get("name", "").lower() == base.lower() for row in self.rac("infobase", "summary", "list")),
+            "Registration already exists: " + base,
+        )
+
+    def same_address(self, short, full):
+        def addresses(name):
+            return {r[4][0] for r in socket.getaddrinfo(name, self.c["db_port"], socket.AF_INET, socket.SOCK_STREAM)}
+
+        need(addresses(short) == addresses(full), "Short DBMS host name resolves differently from db_host")
+
+    def info(self, base, identifier):
+        rows = self.rac("infobase", "info", "--infobase=" + identifier, *self.auth.get(base, []))
+        need(len(rows) == 1, "Cannot read registration: " + base)
+        row = rows[0]
+        host = re.sub(r" port=\d+$", "", row.get("db-server", "").lower())
+        expected = self.c["db_host"].lower()
+        need(
+            row.get("dbms") == "PostgreSQL"
+            and row.get("db-name") == base
+            and host in (expected, expected.split(".")[0]),
+            "Infobase and database binding mismatch: " + base,
+        )
+        if host != expected:
+            self.same_address(host, expected)
+        need(
+            row.get("sessions-deny") in ("on", "off") and row.get("scheduled-jobs-deny") in ("on", "off"),
+            "Unknown session or job denial state",
+        )
+        return {"sessions": row["sessions-deny"], "jobs": row["scheduled-jobs-deny"]}
+
+
+def run(main):
+    def interrupted(signum, frame):
+        raise KeyboardInterrupt()
+
+    signal.signal(signal.SIGTERM, interrupted)
+    signal.signal(signal.SIGHUP, interrupted)
+    os.umask(0o077)
+    try:
+        main()
+    except KeyboardInterrupt:
+        print("INTERRUPTED: inspect pending.json before resuming", file=sys.stderr)
+        sys.exit(130)
+    except Refused as error:
+        print("REFUSED: " + str(error), file=sys.stderr)
+        sys.exit(1)
+    except (OSError, ValueError, KeyError, TypeError) as error:
+        print(f"FAILED: {type(error).__name__}; inspect profile and state (raw details withheld)", file=sys.stderr)
+        sys.exit(1)

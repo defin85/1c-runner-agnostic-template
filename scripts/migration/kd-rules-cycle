@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# KD 2.01 rules workbench executor; the logic lives in scripts/migration/kd_cycle_*.py.
+set -euo pipefail
+
+script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+exec "$script_dir/../python/run-python.sh" "kd-rules-cycle" "$@"

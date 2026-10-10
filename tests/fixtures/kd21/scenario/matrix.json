@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "files": [
+    {"path": "source/ExchangeRules.xml", "role": "source-exchange"},
+    {"path": "source/RegistrationRules.xml", "role": "source-registration"},
+    {"path": "target/ExchangeRules.xml", "role": "target-exchange"},
+    {"path": "target/CorrespondentExchangeRules.xml", "role": "correspondent-exchange"},
+    {"path": "target/RegistrationRules.xml", "role": "target-registration"}
+  ],
+  "archives": [
+    {"path": "source/ExchangeRules.zip", "members": ["ExchangeRules.xml"]},
+    {"path": "source/RegistrationRules.zip", "members": ["RegistrationRules.xml"]},
+    {"path": "target/Rules.zip", "members": ["ExchangeRules.xml", "CorrespondentExchangeRules.xml", "RegistrationRules.xml"]}
+  ]
+}

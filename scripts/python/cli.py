@@ -98,6 +98,14 @@ def main(argv: list[str] | None = None) -> int:
             from .artifact_storage import run_artifact_storage
 
             return run_artifact_storage(args)
+        if command == "site-operator":
+            from .site_operator import main as site_operator_main
+
+            return site_operator_main(args)
+        if command == "kd-rules-cycle":
+            from scripts.migration.kd_rules_cycle import main as kd_rules_cycle_main
+
+            return kd_rules_cycle_main(args)
         if command == "check-bsl":
             from .bsl_check import run_check_bsl
 

@@ -1,0 +1,248 @@
+#!/usr/bin/env python3
+"""Named-infobase cluster commands through RAS; mutations only for infobases listed in the site profile."""
+
+import argparse
+import importlib.machinery
+import importlib.util
+import json
+import sys
+import time
+from pathlib import Path
+
+sys.dont_write_bytecode = True
+HERE = Path(__file__).resolve().parent
+
+
+def load_common():
+    """Load `site-common` once per process, so every wrapper shares one `Refused` class."""
+    if "site_common" in sys.modules:
+        return sys.modules["site_common"]
+    loader = importlib.machinery.SourceFileLoader("site_common", str(HERE / "site-common"))
+    spec = importlib.util.spec_from_loader("site_common", loader)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules["site_common"] = module
+    loader.exec_module(module)
+    return module
+
+
+S = load_common()
+need = S.need
+
+READ_ONLY = ("list", "info", "sessions", "perf")
+MUTATING = ("lock", "unlock", "license-on", "jobs-on", "jobs-off", "unregister")
+
+SERVER_PERF_FIELDS = (
+    "name",
+    "using",
+    "connections-limit",
+    "infobases-limit",
+    "dedicate-managers",
+    "memory-limit",
+    "safe-working-processes-memory-limit",
+    "safe-call-memory-limit",
+    "critical-total-memory",
+)
+PROCESS_PERF_FIELDS = (
+    "pid",
+    "running",
+    "connections",
+    "memory-size",
+    "avg-threads",
+    "avg-call-time",
+    "avg-server-call-time",
+    "avg-db-call-time",
+    "avg-lock-call-time",
+    "avg-back-call-time",
+    "available-perfomance",
+    "capacity",
+)
+# Accumulated session counter = completed calls + the call in progress (milliseconds).
+SESSION_PERF_COUNTERS = {
+    "wall": ("duration-all", "duration-current"),
+    "dbms": ("duration-all-dbms", "duration-current-dbms"),
+    "service": ("duration-all-service", "duration-current-service"),
+    "cpu": ("cpu-time-total", "cpu-time-current"),
+}
+
+
+def number(value):
+    try:
+        return float((value or "0").replace(",", "."))
+    except ValueError:
+        return 0.0
+
+
+def session_load(before, after, seconds):
+    """Split session time between two rac snapshots into DBMS, cluster services, CPU and the rest."""
+    previous = {row.get("session"): row for row in before}
+    rows, totals = [], dict.fromkeys(SESSION_PERF_COUNTERS, 0.0)
+    persisted = 0
+    for row in after:
+        # A session started inside the window contributes all of its counters.
+        old = previous.get(row.get("session"), {})
+        persisted += bool(old)
+        delta = {
+            name: max(0.0, sum(number(row.get(k)) for k in keys) - sum(number(old.get(k)) for k in keys))
+            for name, keys in SESSION_PERF_COUNTERS.items()
+        }
+        for name in totals:
+            totals[name] += delta[name]
+        item = {"session-id": row.get("session-id"), "app-id": row.get("app-id"), "started-at": row.get("started-at")}
+        item.update({name + "-ms": round(value) for name, value in delta.items()})
+        item.update(
+            {
+                "blocked-by-ls": row.get("blocked-by-ls"),
+                "blocked-by-dbms": row.get("blocked-by-dbms"),
+                "service": row.get("current-service-name") or "",
+            }
+        )
+        rows.append(item)
+    # Shares are of in-call time; CPU partly overlaps DBMS time (client-side driver work).
+    wall = totals["wall"]
+    other = max(0.0, wall - totals["dbms"] - totals["service"] - totals["cpu"])
+    share = {
+        name: round(100 * value / wall, 1) if wall else 0.0
+        for name, value in (
+            ("dbms", totals["dbms"]),
+            ("service", totals["service"]),
+            ("cpu", totals["cpu"]),
+            ("other", other),
+        )
+    }
+    current = {row.get("session") for row in after}
+    return {
+        "seconds": seconds,
+        "sessions": len(rows),
+        "started": len(rows) - persisted,
+        "ended": sum(1 for key in previous if key not in current),
+        "in-call-ms": round(wall),
+        "share-of-call-percent": share,
+        "blocked-by-ls": sum(1 for row in rows if row["blocked-by-ls"] not in (None, "", "0")),
+        "blocked-by-dbms": sum(1 for row in rows if row["blocked-by-dbms"] not in (None, "", "0")),
+        "rows": rows,
+    }
+
+
+def perf(cluster, identifier, base, seconds):
+    need(1 <= seconds <= 600, "--sample must be between 1 and 600 seconds")
+    before = cluster.rac("session", "list", "--infobase=" + identifier)
+    started = time.monotonic()
+    time.sleep(seconds)
+    after = cluster.rac("session", "list", "--infobase=" + identifier)
+    elapsed = round(time.monotonic() - started, 1)
+    result = {"name": base}
+    for key, mode, fields in (("servers", "server", SERVER_PERF_FIELDS), ("processes", "process", PROCESS_PERF_FIELDS)):
+        try:
+            result[key] = [{k: row[k] for k in fields if k in row} for row in cluster.rac(mode, "list")]
+        except S.Refused as error:  # another rac version may reject the listing; sessions stay useful
+            result[key] = {"unavailable": type(error).__name__}
+    result["load"] = session_load(before, after, elapsed)
+    return result
+
+
+def license_distribution(cluster, base, identifier):
+    rows = cluster.rac("infobase", "info", "--infobase=" + identifier, *cluster.auth.get(base, []))
+    need(len(rows) == 1 and rows[0].get("db-name") == base, "Infobase binding mismatch")
+    value = rows[0].get("license-distribution")
+    need(value in ("allow", "deny"), "Unknown license-distribution value")
+    return value
+
+
+def set_flag(cluster, base, identifier, before, option, key, desired):
+    """Change one denial flag, then confirm it and the unchanged other flag."""
+    after = before
+    if before[key] != desired:
+        cluster.rac("infobase", "update", "--infobase=" + identifier, option + "=" + desired, *cluster.auth[base])
+        after = cluster.info(base, identifier)
+    other = "jobs" if key == "sessions" else "sessions"
+    need(
+        after[key] == desired and after[other] == before[other], "Requested flag or unchanged other flag not confirmed"
+    )
+    return after
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("command", choices=READ_ONLY + MUTATING)
+    parser.add_argument("base", nargs="?", help="exact registered infobase name")
+    parser.add_argument("--profile", type=Path, default=S.default_profile(__file__))
+    parser.add_argument("--sample", type=float, default=5.0, help="perf: seconds between session snapshots")
+    parser.add_argument("--auth-base", help="read-only commands: listed infobase whose credentials to use")
+    parser.add_argument("--confirm", help="unregister: exact phrase 'UNREGISTER <base>'")
+    args = parser.parse_args(argv)
+    if (args.command == "list") != (args.base is None):
+        parser.error("list takes no base; other commands require an exact base name")
+    profile = S.load_profile(args.profile)
+    if args.command in MUTATING:
+        # Refuse an unlisted target before any cluster access.
+        need(args.auth_base is None, "Mutating commands take credentials from the site profile, not --auth-base")
+        S.allowed_infobase(profile, args.base, disposable=args.command == "unregister")
+    if args.command == "unregister":
+        need(args.confirm == "UNREGISTER " + args.base, "unregister requires --confirm 'UNREGISTER <base>'")
+    cluster = S.Cluster(profile)
+    cluster.prerequisites()
+    cluster.login_cluster()
+    if args.command == "list":
+        rows = cluster.rac("infobase", "summary", "list")
+        print(json.dumps([{k: row.get(k) for k in ("name", "infobase")} for row in rows], ensure_ascii=False))
+        return
+    identifier = cluster.registration(args.base)
+    if args.command == "sessions":
+        rows = cluster.rac("session", "list", "--infobase=" + identifier)
+        print(
+            json.dumps(
+                [{k: row[k] for k in ("session", "session-id", "app-id") if k in row} for row in rows],
+                ensure_ascii=False,
+            )
+        )
+        return
+    if args.command == "perf":
+        print(json.dumps(perf(cluster, identifier, args.base, args.sample), ensure_ascii=False))
+        return
+    source = args.auth_base or args.base
+    S.allowed_infobase(profile, source)
+    user, secret = S.infobase_credentials(profile, source)
+    cluster.auth[args.base] = (
+        ["--infobase-user=" + user, "--infobase-pwd=" + S.password_from(secret, "Infobase password: ")] if user else []
+    )
+    before = cluster.info(args.base, identifier)
+    after = before
+    if args.command == "unregister":
+        need(before["jobs"] == "on", "Disable scheduled jobs before unregister")
+        need(not cluster.rac("session", "list", "--infobase=" + identifier), "Close all 1C sessions before unregister")
+        cluster.rac("infobase", "drop", "--infobase=" + identifier, *cluster.auth[args.base])
+        need(
+            not any(
+                row.get("name", "").lower() == args.base.lower() for row in cluster.rac("infobase", "summary", "list")
+            ),
+            "Registration still present after drop",
+        )
+        print(json.dumps({"name": args.base, "infobase": identifier, "unregistered": True}, ensure_ascii=False))
+        return
+    if args.command in ("lock", "unlock"):
+        desired = "on" if args.command == "lock" else "off"
+        after = set_flag(cluster, args.base, identifier, before, "--sessions-deny", "sessions", desired)
+    if args.command in ("jobs-on", "jobs-off"):
+        desired = "off" if args.command == "jobs-on" else "on"
+        after = set_flag(cluster, args.base, identifier, before, "--scheduled-jobs-deny", "jobs", desired)
+    if args.command in ("info", "license-on"):
+        value = license_distribution(cluster, args.base, identifier)
+        if args.command == "license-on" and value != "allow":
+            cluster.rac(
+                "infobase",
+                "update",
+                "--infobase=" + identifier,
+                "--license-distribution=allow",
+                *cluster.auth[args.base],
+            )
+            after = cluster.info(args.base, identifier)
+            value = license_distribution(cluster, args.base, identifier)
+            need(value == "allow" and after == before, "License enable or unchanged denial flags not confirmed")
+        after = dict(after, **{"license-distribution": value})
+    result = {"name": args.base, "infobase": identifier}
+    result.update(after)
+    print(json.dumps(result, ensure_ascii=False))
+
+
+if __name__ == "__main__":
+    S.run(main)

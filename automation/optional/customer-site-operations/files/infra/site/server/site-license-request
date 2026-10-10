@@ -1,0 +1,180 @@
+#!/usr/bin/env python3
+"""Offline 1C licence: check the saved PIN and owner data, then prepare a request file with `ring`.
+
+Secrets stay in two root:root 0600 files under `license.base_dir`:
+`recovery-pins.env` (`<KIND>_PREVIOUS_PIN`, `<KIND>_NEW_PIN`) and `owner-data.env` (owner fields).
+This tool never prints their values, never passes them through the environment of other tools and
+never sends anything to the licensing centre: the operator carries the request file out by hand.
+"""
+
+import argparse
+import datetime
+import importlib.machinery
+import importlib.util
+import os
+import re
+import shutil
+import stat
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
+
+sys.dont_write_bytecode = True
+HERE = Path(__file__).resolve().parent
+
+
+def load_common():
+    """Load `site-common` once per process, so every wrapper shares one `Refused` class."""
+    if "site_common" in sys.modules:
+        return sys.modules["site_common"]
+    loader = importlib.machinery.SourceFileLoader("site_common", str(HERE / "site-common"))
+    spec = importlib.util.spec_from_loader("site_common", loader)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules["site_common"] = module
+    loader.exec_module(module)
+    return module
+
+
+S = load_common()
+need = S.need
+
+KINDS = ("server", "client")
+OWNER_REQUIRED = ("COMPANY", "COUNTRY", "ZIP_CODE", "TOWN", "STREET", "HOUSE", "REGISTRATION_NUMBER", "EMAIL")
+OWNER_OPTIONAL = ("FIRST_NAME", "MIDDLE_NAME", "LAST_NAME")
+RING_OPTIONS = (
+    ("FIRST_NAME", "--first-name"),
+    ("MIDDLE_NAME", "--middle-name"),
+    ("LAST_NAME", "--last-name"),
+    ("EMAIL", "--email"),
+    ("COMPANY", "--company"),
+    ("COUNTRY", "--country"),
+    ("ZIP_CODE", "--zip-code"),
+    ("TOWN", "--town"),
+    ("STREET", "--street"),
+    ("HOUSE", "--house"),
+    ("REGISTRATION_NUMBER", "--serial"),
+)
+
+
+def secret_file(path):
+    """Read `KEY=value` lines of a root:root 0600 file; report problems without values."""
+    try:
+        fd = os.open(str(path), os.O_RDONLY | os.O_NOFOLLOW)
+    except OSError:
+        raise S.Refused("Cannot open " + path.name) from None
+    with os.fdopen(fd, "rb") as stream:
+        info = os.fstat(stream.fileno())
+        need(
+            stat.S_ISREG(info.st_mode)
+            and info.st_uid == 0
+            and info.st_gid == 0
+            and stat.S_IMODE(info.st_mode) == 0o600,
+            path.name + " must be a regular root:root 0600 file",
+        )
+        try:
+            text = stream.read(65537).decode("utf-8")
+        except UnicodeError:
+            raise S.Refused(path.name + " is not UTF-8") from None
+    need(len(text) <= 65536, path.name + " is too large")
+    values = {}
+    for number, line in enumerate(text.splitlines(), 1):
+        if not line.strip() or line.lstrip().startswith("#"):
+            continue
+        match = re.fullmatch(r"([A-Z_]+)=(.*)", line)
+        need(match is not None, f"{path.name} line {number} is not KEY=value")
+        need(match.group(1) not in values, f"{path.name} repeats key {match.group(1)}")
+        values[match.group(1)] = match.group(2)
+    return values
+
+
+def check_pins(values, kind):
+    keys = (kind.upper() + "_PREVIOUS_PIN", kind.upper() + "_NEW_PIN")
+    for key in keys:
+        value = values.get(key, "")
+        need(value != "" and not re.search(r"\s", value), key + " must be set without spaces")
+    need(values[keys[0]] != values[keys[1]], "The new PIN must differ from the previous PIN")
+    return values[keys[0]], values[keys[1]]
+
+
+def check_owner(values):
+    unknown = sorted(set(values) - set(OWNER_REQUIRED) - set(OWNER_OPTIONAL))
+    need(not unknown, "owner-data.env has unknown keys: " + ", ".join(unknown))
+    for key in OWNER_REQUIRED:
+        need(values.get(key, "") != "", "owner-data.env needs " + key)
+    need(
+        re.fullmatch(r"[^\s@]+@[^\s@]+\.[^\s@]+", values["EMAIL"]) is not None,
+        "owner-data.env EMAIL is not an address",
+    )
+    return values
+
+
+class License:
+    def __init__(self, profile):
+        section = S.section(profile, "license")
+        self.ring = Path(section.get("ring", ""))
+        self.base = Path(section.get("base_dir", ""))
+        need(self.ring.is_absolute() and self.base.is_absolute(), "license.ring and license.base_dir must be absolute")
+        self.pins_path = self.base / "recovery-pins.env"
+        self.owner_path = self.base / "owner-data.env"
+
+    def check(self, kind):
+        need(os.geteuid() == 0, "Run as root")
+        need(self.ring.is_file() and os.access(str(self.ring), os.X_OK), "license.ring is not executable")
+        info = self.base.lstat()
+        need(stat.S_ISDIR(info.st_mode) and info.st_uid == 0, "license.base_dir must be a root-owned directory")
+        need(stat.S_IMODE(info.st_mode) & 0o077 == 0, "license.base_dir must have mode 0700")
+        pins = check_pins(secret_file(self.pins_path), kind)
+        owner = check_owner(secret_file(self.owner_path))
+        return pins, owner
+
+    def prepare(self, kind, download):
+        (previous, new), owner = self.check(kind)
+        stamp = datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%d-%H%M%S")
+        out = Path(tempfile.mkdtemp(prefix="offline-request-" + stamp + "-", dir=str(self.base)))
+        request, log = out / (kind + ".req"), out / (kind + ".log")
+        argv = [str(self.ring), "license", "prepare-request"]
+        for key, option in RING_OPTIONS:
+            if owner.get(key):
+                argv += [option, owner[key]]
+        argv += ["--previous-pin", previous, "--pin", new, "--request", str(request)]
+        argv += ["--validate", "true", "--send-statistics", "false"]
+        env = {"PATH": "/usr/sbin:/usr/bin:/sbin:/bin", "LC_ALL": "C.UTF-8"}
+        with open(str(log), "wb") as stream:
+            os.chmod(str(log), 0o600)
+            rc = subprocess.call(argv, stdout=stream, stderr=subprocess.STDOUT, env=env)
+        del argv, previous, new
+        need(rc == 0, f"prepare_request_rc={rc} protected_log={log}")
+        need(request.is_file() and request.stat().st_size > 0, "ring did not write the request file")
+        os.chmod(str(request), 0o600)
+        result = (
+            f"prepare_request_rc=0 kind={kind} request={request} request_mode=600 request_size={request.stat().st_size}"
+        )
+        if download:
+            # A world-readable copy outside the protected directory, for transfer to the operator.
+            descriptor, copy = tempfile.mkstemp(prefix=kind + "-request.", suffix=".req", dir="/tmp")
+            os.close(descriptor)
+            shutil.copyfile(str(request), copy)
+            os.chmod(copy, 0o644)
+            need(S.digest(Path(copy)) == S.digest(request), "Download copy differs from the request")
+            result += f" download_path={copy} download_mode=644 match=yes"
+        return result
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("action", choices=("check", "prepare"))
+    parser.add_argument("--kind", choices=KINDS, default="server", help="Licence whose PIN pair to use")
+    parser.add_argument("--profile", type=Path, default=S.default_profile(__file__))
+    parser.add_argument("--download-copy", action="store_true", help="prepare: also write a 0644 copy to /tmp")
+    args = parser.parse_args(argv)
+    tool = License(S.load_profile(args.profile))
+    if args.action == "check":
+        tool.check(args.kind)
+        print("pin_data=valid owner_data=valid kind=" + args.kind)
+        return
+    print(tool.prepare(args.kind, args.download_copy))
+
+
+if __name__ == "__main__":
+    S.run(main)

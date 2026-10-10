@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "scenarioId": "technical-workbench",
+  "type": "workbench",
+  "releaseId": "technical-demo-source-1.0.0.1-demo-target-2.0.0.1-v1",
+  "createdAt": "2026-01-15T12:00:00+03:00",
+  "versions": {
+    "source": "1.0.0.1",
+    "target": "2.0.0.1"
+  },
+  "conversion": {
+    "namespace": "DEMO_SOURCE_TARGET_TECHNICAL",
+    "comment": "Технический выпуск",
+    "forwardUuid": "0b6f8c2e-5d41-4a7e-9c3b-1f2e3d4c5b01",
+    "reverseUuid": "0b6f8c2e-5d41-4a7e-9c3b-1f2e3d4c5b02",
+    "sourceExchangePlan": "ОбменИсточникПриемник",
+    "sourceRegistrationUuid": "0b6f8c2e-5d41-4a7e-9c3b-1f2e3d4c5b03",
+    "targetExchangePlan": "ОбменИсточникПриемник",
+    "targetRegistrationUuid": "0b6f8c2e-5d41-4a7e-9c3b-1f2e3d4c5b04"
+  },
+  "inputs": {
+    "sourceStructure": "migration/kd21/scenarios/technical-workbench/structures/source.xml",
+    "sourceStructureSha256": "1e049c3852cfcad7eb436a878b403c1f08de36bfef77c3db67119605e2ca0cf3",
+    "targetStructure": "migration/kd21/scenarios/technical-workbench/structures/target.xml",
+    "targetStructureSha256": "38903f22cacb409bf73078b9d054194302b366ccf67e7dd449abfb832278a05b"
+  },
+  "matrix": "matrix.json",
+  "expected": "expected.json"
+}

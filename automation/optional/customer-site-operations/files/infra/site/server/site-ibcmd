@@ -1,0 +1,195 @@
+#!/usr/bin/env python3
+"""Qualified ibcmd operations: config-info and DT dump of a listed infobase; never restore or apply."""
+
+import argparse
+import importlib.machinery
+import importlib.util
+import os
+import shutil
+import sys
+import time
+from pathlib import Path
+
+sys.dont_write_bytecode = True
+HERE = Path(__file__).resolve().parent
+
+
+def load_common():
+    """Load `site-common` once per process, so every wrapper shares one `Refused` class."""
+    if "site_common" in sys.modules:
+        return sys.modules["site_common"]
+    loader = importlib.machinery.SourceFileLoader("site_common", str(HERE / "site-common"))
+    spec = importlib.util.spec_from_loader("site_common", loader)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules["site_common"] = module
+    loader.exec_module(module)
+    return module
+
+
+S = load_common()
+need = S.need
+
+DEST_RESERVE = 20 * S.GIB
+RUNTIME_RESERVE = 5 * S.GIB
+
+
+def ibcmd_path(profile):
+    path = profile["platform"].get("ibcmd", "")
+    need(path and os.path.isfile(path) and os.access(path, os.X_OK), "platform.ibcmd is not set or not executable")
+    return path
+
+
+def check_version(runner, profile):
+    version = runner.command([ibcmd_path(profile), "--version"], "version").strip()
+    need(version == profile["platform"]["version"], "ibcmd version differs from platform.version in the site profile")
+
+
+def command_args(profile, action, connection, auth, output):
+    ibcmd = ibcmd_path(profile)
+    if action == "config-info":
+        return [ibcmd, "config"] + connection + auth + ["export", "info", "--out=" + str(output)]
+    need(action == "dump", "Unsupported operation")
+    # Infobase credentials belong to the dump subcommand, unlike config mode.
+    return [ibcmd, "infobase"] + connection + ["dump"] + auth + [str(output)]
+
+
+def connection_args(profile, base, db_password, data_dir):
+    return [
+        "--dbms=PostgreSQL",
+        "--db-server=" + profile["db_host"] + " port=" + str(profile["db_port"]),
+        "--db-name=" + base,
+        "--db-user=" + profile["db_user"],
+        "--db-pwd=" + db_password,
+        "--data=" + str(data_dir),
+    ]
+
+
+def user_activity(mode, rows):
+    # The RAS service connection (session-number 0) is not a user session.
+    return [
+        row
+        for row in rows
+        if not (mode == "connection" and row.get("application") == "RAS" and row.get("session-number") == "0")
+    ]
+
+
+def dt_share(runner, profile):
+    """Return the DT mount point after checking it is mounted from the configured share."""
+    dt = S.section(profile, "dt")
+    mount = Path(dt.get("mount", ""))
+    need(mount.is_absolute(), "dt.mount must be absolute")
+    source = runner.command(["findmnt", "-n", "-M", str(mount), "-o", "SOURCE,FSTYPE"], "dt-mount").split()
+    need(source == [dt.get("source"), dt.get("fstype")], "DT share is not mounted from the configured source")
+    return mount
+
+
+def watch_reserves(runner, destination, runtime):
+    """Stop the running tool once either reserve is exhausted; Runner terminates the child."""
+    emit = runner.emit
+
+    def guarded(stage, **fields):
+        need(shutil.disk_usage(str(destination)).free > DEST_RESERVE, "Destination reserve exhausted")
+        need(shutil.disk_usage(str(runtime)).free > RUNTIME_RESERVE, "Runtime reserve exhausted")
+        emit(stage, **fields)
+
+    runner.emit = guarded
+
+
+def perform(runner, action, connection, auth, root, base, dt_dir=None):
+    # The SQL-only search_path of Runner hides 1C tables from ibcmd.
+    runner.env.pop("PGOPTIONS", None)
+    runner.env["TMPDIR"] = str(root)  # ibcmd temporary files stay in the run directory.
+    info = root / "config-info"
+    info.mkdir(mode=0o700)  # ibcmd requires an existing directory, not an XML file name.
+    runner.command(command_args(runner.c, "config-info", connection, auth, info), "config-info")
+    xml = info / "ConfigDumpInfo.xml"
+    need(xml.is_file() and xml.stat().st_size > 0, "Missing ConfigDumpInfo.xml")
+    if action == "config-info":
+        return xml
+    output = (dt_dir or root) / (base + ".dt")
+    need(not output.exists(), "DT target already exists")
+    watch_reserves(runner, output.parent, root)
+    runner.emit("reserves", status="checked")
+    runner.command(command_args(runner.c, "dump", connection, auth, output), "dump")
+    need(output.is_file() and output.stat().st_size > 0, "DT is missing or empty")
+    with output.open("rb") as stream:
+        os.fsync(stream.fileno())
+    return output
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("action", choices=("config-info", "dump"))
+    parser.add_argument("--base", required=True, help="Infobase listed in the site profile; same PostgreSQL name")
+    parser.add_argument("--output", type=Path, required=True, help="New, absent run directory")
+    parser.add_argument("--dt-dir", type=Path, help="New, absent DT directory directly under dt.mount")
+    parser.add_argument("--profile", type=Path, default=S.default_profile(__file__))
+    args = parser.parse_args(argv)
+    c = S.load_profile(args.profile)
+    S.allowed_infobase(c, args.base)
+    need(args.dt_dir is None or args.action == "dump", "--dt-dir applies to dump only")
+    need(args.output.is_absolute() and args.output.resolve() == args.output, "Output must be canonical and absolute")
+    runner = S.Cluster(c)
+    runner.prerequisites()
+    check_version(runner, c)
+    if args.dt_dir:
+        mount = dt_share(runner, c)
+        need(
+            args.dt_dir.is_absolute() and args.dt_dir.resolve() == args.dt_dir and args.dt_dir.parent == mount,
+            "DT directory must be a canonical child of dt.mount",
+        )
+    args.output.mkdir(mode=0o700)  # Fails if anything exists there; never overwrite a dump.
+    runner.events_path = args.output / "events.jsonl"
+    started = time.monotonic()
+    result = {"database": args.base, "action": args.action, "platform": c["platform"]["version"], "status": "failed"}
+    try:
+        user, secret = S.infobase_credentials(c, args.base)
+        need(user and secret and c.get("db_password_file"), "Saved infobase and DBMS credentials are required")
+        password = S.password_from(secret, "")
+        db_password = S.password_from(c["db_password_file"], "")
+        runner.login_cluster()
+        identifier = runner.registration(args.base)
+        details = runner.rac(
+            "infobase",
+            "info",
+            "--infobase=" + identifier,
+            "--infobase-user=" + user,
+            "--infobase-pwd=" + password,
+        )
+        need(len(details) == 1, "Expected one infobase detail record")
+        row = details[0]
+        host = row.get("db-server", "").lower()
+        need(
+            row.get("dbms") == "PostgreSQL"
+            and row.get("db-name") == args.base
+            and host in (c["db_host"].lower(), c["db_host"].split(".")[0].lower())
+            and row.get("db-user") == c["db_user"],
+            "Database binding changed",
+        )
+        if args.action == "dump":
+            need(
+                row.get("sessions-deny") == "on" and row.get("scheduled-jobs-deny") == "on",
+                "Block sessions and scheduled jobs before dump",
+            )
+            # No infobase info after this point: its authentication reopens an SQL connection.
+            for mode in ("session", "connection"):
+                need(
+                    not user_activity(mode, runner.rac(mode, "list", "--infobase=" + identifier)),
+                    "Active " + mode + " exists",
+                )
+            if args.dt_dir:
+                args.dt_dir.mkdir(mode=0o700)
+        connection = connection_args(c, args.base, db_password, args.output / "data")
+        auth = ["--user=" + user, "--password=" + password]
+        output = perform(runner, args.action, connection, auth, args.output, args.base, args.dt_dir)
+        result.update(status="completed", file=output.name, bytes=output.stat().st_size, sha256=S.digest(output))
+    finally:
+        result["elapsed_seconds"] = round(time.monotonic() - started, 2)
+        S.atomic_json(args.output / "result.json", result)
+        if args.dt_dir and args.dt_dir.is_dir():
+            S.atomic_json(args.dt_dir / "result.json", result)
+    print("DONE: " + str(args.output / "result.json"), flush=True)
+
+
+if __name__ == "__main__":
+    S.run(main)

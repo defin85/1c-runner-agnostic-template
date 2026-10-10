@@ -1,0 +1,231 @@
+#!/usr/bin/env python3
+"""Restore a checked DT into a listed infobase, or create a consistent disposable copy from DT.
+
+Default: preflight only. `--execute` replaces the target data; `--create` creates a new database from
+the DT and registers it with scheduled jobs denied. A failed copy is removed separately:
+`site-rac unregister` on the application host, then `site-golden-db discard-copy` on the DB host.
+"""
+
+import argparse
+import fcntl
+import importlib.machinery
+import importlib.util
+import os
+import re
+import runpy
+import shutil
+import sys
+import time
+from pathlib import Path
+
+sys.dont_write_bytecode = True
+HERE = Path(__file__).resolve().parent
+
+
+def load_common():
+    """Load `site-common` once per process, so every wrapper shares one `Refused` class."""
+    if "site_common" in sys.modules:
+        return sys.modules["site_common"]
+    loader = importlib.machinery.SourceFileLoader("site_common", str(HERE / "site-common"))
+    spec = importlib.util.spec_from_loader("site_common", loader)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules["site_common"] = module
+    loader.exec_module(module)
+    return module
+
+
+S = load_common()
+need = S.need
+IB = runpy.run_path(str(HERE / "site-ibcmd"), run_name="site_ibcmd")
+LOCK_PATH = "/run/lock/site-dt-restore.lock"
+
+
+def check_source(dt, sums):
+    need(dt.is_absolute() and dt.resolve() == dt and dt.is_file(), "DT must be a canonical absolute file")
+    need(dt.suffix.lower() == ".dt" and dt.stat().st_size > 0, "Empty or invalid DT")
+    rows = [line.split() for line in sums.read_text(encoding="utf-8").splitlines()]
+    matches = [row[0] for row in rows if len(row) == 2 and row[1].lstrip("*") == dt.name]
+    need(len(matches) == 1 and re.fullmatch(r"[0-9a-fA-F]{64}", matches[0]), "Expected one checksum for DT basename")
+    actual = S.digest(dt)
+    need(actual == matches[0].lower(), "DT checksum mismatch")
+    return actual
+
+
+def quiet(cluster, identifier):
+    need(not cluster.rac("session", "list", "--infobase=" + identifier), "Close target sessions before restore")
+
+
+def no_ibcmd():
+    for path in Path("/proc").glob("[0-9]*/comm"):
+        try:
+            need(path.read_text().strip() != "ibcmd", "Another ibcmd is running")
+        except (FileNotFoundError, ProcessLookupError):
+            pass  # A process may finish between enumeration and reading.
+
+
+def set_sessions(cluster, base, identifier, value):
+    cluster.rac("infobase", "update", "--infobase=" + identifier, "--sessions-deny=" + value, *cluster.auth[base])
+    need(cluster.info(base, identifier) == {"sessions": value, "jobs": "on"}, "Denial verification failed")
+
+
+def config_info(cluster, connection, auth, folder, expected=None):
+    folder.mkdir(mode=0o700)
+    cluster.command(IB["command_args"](cluster.c, "config-info", connection, auth, folder), folder.name)
+    xml = folder / "ConfigDumpInfo.xml"
+    need(xml.is_file() and xml.stat().st_size > 0, "Empty configuration info")
+    if expected is not None:
+        # A consistent copy has exactly the configuration recorded when the DT was dumped.
+        need(xml.read_bytes() == expected.read_bytes(), "ConfigDumpInfo.xml differs from the DT dump record")
+
+
+def create(cluster, base, connection, auth, dt, output, db_secret, expected):
+    cluster.absent_registration(base)
+    cluster.env.pop("PGOPTIONS", None)
+    cluster.env["TMPDIR"] = str(output / "tmp")
+    (output / "tmp").mkdir(mode=0o700)
+    locale = S.section(cluster.c, "dt").get("locale", "ru_RU")
+    cluster.command(
+        [IB["ibcmd_path"](cluster.c), "infobase"]
+        + connection
+        + ["create", "--locale=" + locale, "--create-database", "--restore=" + str(dt)],
+        "create-restore",
+    )
+    config_info(cluster, connection, auth, output / "config-info", expected)
+    cluster.absent_registration(base)
+    cluster.rac(
+        "infobase",
+        "create",
+        "--name=" + base,
+        "--dbms=PostgreSQL",
+        "--db-server=" + cluster.c["db_host"],
+        "--db-name=" + base,
+        "--db-user=" + cluster.c["db_user"],
+        "--db-pwd=" + db_secret,
+        "--locale=" + locale,
+        "--scheduled-jobs-deny=on",
+        "--license-distribution=allow",
+    )
+    identifier = cluster.registration(base)
+    need(cluster.info(base, identifier) == {"sessions": "off", "jobs": "on"}, "New registration verification failed")
+    return identifier
+
+
+def restore(cluster, base, identifier, before, connection, auth, dt, output, expected):
+    if before["sessions"] != "on":
+        set_sessions(cluster, base, identifier, "on")
+    quiet(cluster, identifier)  # Close the race with clients connecting before the lock.
+    cluster.env.pop("PGOPTIONS", None)
+    cluster.env["TMPDIR"] = str(output / "tmp")
+    (output / "tmp").mkdir(mode=0o700)
+    config_info(cluster, connection, auth, output / "before-info")
+    # No --force: an unexpected competing connection must cause refusal.
+    cluster.command([IB["ibcmd_path"](cluster.c), "infobase"] + connection + ["restore"] + auth + [str(dt)], "restore")
+    config_info(cluster, connection, auth, output / "config-info", expected)
+    # Recheck binding before restoring entry access. On failure keep the base closed.
+    need(cluster.info(base, identifier) == {"sessions": "on", "jobs": "on"}, "Post-restore binding or denial mismatch")
+    if before["sessions"] == "off":
+        set_sessions(cluster, base, identifier, "off")
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--base", required=True, help="Infobase listed in the site profile; same PostgreSQL name")
+    parser.add_argument("--dt", required=True, type=Path)
+    parser.add_argument("--checksums", type=Path, help="Default: SHA256SUMS beside DT; entries use basenames")
+    parser.add_argument("--expect-config-info", type=Path, help="ConfigDumpInfo.xml recorded by the DT dump run")
+    parser.add_argument("--output", required=True, type=Path, help="New local run directory")
+    parser.add_argument("--profile", type=Path, default=S.default_profile(__file__))
+    parser.add_argument("--execute", action="store_true", help="Run the restore or the creation")
+    parser.add_argument("--create", action="store_true", help="Create a new disposable database from DT, then register")
+    parser.add_argument("--confirm-db-absent", help="create: exact name checked absent on the DB server just before")
+    args = parser.parse_args(argv)
+    c = S.load_profile(args.profile)
+    # Refuse an unlisted target before any cluster or DBMS access; a new copy must be disposable.
+    S.allowed_infobase(c, args.base, disposable=args.create)
+    dt_section = S.section(c, "dt")
+    reserve_gib = dt_section.get("db_reserve_gib", 70)
+    need(type(reserve_gib) is int and reserve_gib >= 20, "dt.db_reserve_gib must be an integer of at least 20")
+    need(
+        (args.confirm_db_absent == args.base) if args.create else args.confirm_db_absent is None,
+        "--create requires --confirm-db-absent with the exact target name; restore forbids it",
+    )
+    need(
+        args.output.is_absolute() and args.output.resolve() == args.output and not args.output.exists(),
+        "Run directory must be new and canonical",
+    )
+    need(args.output.parent.is_dir(), "Run directory parent must exist")
+    need(args.dt.parent not in [args.output] + list(args.output.parents), "Keep run files outside the DT directory")
+    expected = args.expect_config_info
+    need(expected is None or (expected.is_file() and expected.stat().st_size > 0), "Missing expected config info")
+    cluster = S.Cluster(c)
+    cluster.prerequisites()
+    IB["check_version"](cluster, c)
+    user, secret_file = S.infobase_credentials(c, args.base)
+    need(user and secret_file and c.get("db_password_file"), "Saved infobase and DBMS credentials are required")
+    secret = S.password_from(secret_file, "")
+    db_secret = S.password_from(c["db_password_file"], "")
+    cluster.auth[args.base] = ["--infobase-user=" + user, "--infobase-pwd=" + secret]
+    cluster.login_cluster()
+    if args.create:
+        cluster.absent_registration(args.base)
+        identifier, before = None, {"sessions": "off", "jobs": "on"}
+    else:
+        identifier = cluster.registration(args.base)
+        before = cluster.info(args.base, identifier)
+        need(before["jobs"] == "on", "Deny scheduled jobs before restore")
+        quiet(cluster, identifier)
+    storage = IB["dt_share"](cluster, c)
+    sha = check_source(args.dt, args.checksums or args.dt.parent / "SHA256SUMS")
+    need(shutil.disk_usage(str(storage)).free > reserve_gib * S.GIB, "Insufficient initial database reserve")
+    need(shutil.disk_usage(str(args.output.parent)).free > 5 * S.GIB, "Insufficient local reserve")
+    no_ibcmd()
+    if not args.execute:
+        print("PREFLIGHT_PASS: " + args.base)
+        return
+    os.umask(0o077)
+    with open(LOCK_PATH, "a") as lock:
+        try:
+            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            raise S.Refused("Another DT restore is running on this host") from None
+        no_ibcmd()
+        if args.create:
+            cluster.absent_registration(args.base)
+        else:
+            need(cluster.info(args.base, identifier) == before, "Target denial state changed during preflight")
+            quiet(cluster, identifier)
+        args.output.mkdir(mode=0o700)
+        cluster.events_path = args.output / "events.jsonl"
+        emit = cluster.emit
+
+        def guarded_emit(stage, **fields):
+            need(shutil.disk_usage(str(storage)).free > 20 * S.GIB, "Database reserve exhausted")
+            need(shutil.disk_usage(str(args.output)).free > 5 * S.GIB, "Local reserve exhausted")
+            emit(stage, **fields)
+
+        cluster.emit = guarded_emit
+        result = {"database": args.base, "source": str(args.dt), "source_sha256": sha, "status": "failed"}
+        started = time.monotonic()
+        try:
+            connection = IB["connection_args"](c, args.base, db_secret, args.output / "data")
+            auth = ["--user=" + user, "--password=" + secret]
+            if args.create:
+                result["infobase"] = create(
+                    cluster, args.base, connection, auth, args.dt, args.output, db_secret, expected
+                )
+            else:
+                restore(cluster, args.base, identifier, before, connection, auth, args.dt, args.output, expected)
+            result.update(
+                status="created" if args.create else "restored",
+                config_info_matches_dump=expected is not None,
+                sessions=before["sessions"],
+                jobs="on",
+            )
+        finally:
+            result["elapsed_seconds"] = round(time.monotonic() - started, 2)
+            S.atomic_json(args.output / "result.json", result)
+        print(result["status"].upper() + ": " + str(args.output / "result.json"))
+
+
+if __name__ == "__main__":
+    S.run(main)

@@ -81,7 +81,7 @@
 
 ### Requirement: Итог прогона подтверждается машинным результатом и манифестом выпуска
 
-Исполнитель MUST записывать `<run-root>/result.json` со статусом `in-progress`, `failed`, `rules-built`, `workbench-run-passed` или `workbench-ready`, поколениями баз `source` и `target` и результатами стадий. Он MUST публиковать `release/manifest.json` со списком выпущенных XML и ZIP и их SHA-256. Статус `workbench-ready` MUST выдаваться только при прогоне с `--baseline-result`: второе поколение с другими UUID баз должно побайтно совпасть с первым по всем файлам манифеста.
+Исполнитель MUST записывать `<run-root>/result.json` со статусом `in-progress`, `failed`, `rules-built`, `workbench-run-passed` или `workbench-ready`, поколениями баз `source` и `target` и результатами стадий. Он MUST публиковать `release/manifest.json` со списком выпущенных XML и ZIP и их SHA-256. Статус `workbench-ready` MUST выдаваться только при прогоне с `--baseline-result`: поколение баз с новым `generationId` от `reset` должно побайтно совпасть с базовым по всем файлам манифеста.
 
 #### Scenario: Один успешный прогон
 
@@ -95,7 +95,7 @@
 
 #### Scenario: Поколение не обновилось
 
-- **WHEN** прогон с `--baseline-result` использует базы с теми же UUID поколения, что и базовый результат
+- **WHEN** прогон с `--baseline-result` использует базы с тем же `generationId`, что и базовый результат
 - **THEN** статус `failed` с причиной `same generation`
 
 ### Requirement: Длительные стадии КД наблюдаются общим адаптером

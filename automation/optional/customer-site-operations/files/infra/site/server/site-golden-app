@@ -1,0 +1,277 @@
+#!/usr/bin/env python3
+"""Application host: block the golden infobases for a DB-host operation and release them after its receipt."""
+
+import argparse
+import contextlib
+import datetime
+import importlib.machinery
+import importlib.util
+import sys
+import uuid
+from pathlib import Path
+
+sys.dont_write_bytecode = True
+HERE = Path(__file__).resolve().parent
+
+
+def load_common():
+    """Load `site-common` once per process, so every wrapper shares one `Refused` class."""
+    if "site_common" in sys.modules:
+        return sys.modules["site_common"]
+    loader = importlib.machinery.SourceFileLoader("site_common", str(HERE / "site-common"))
+    spec = importlib.util.spec_from_loader("site_common", loader)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules["site_common"] = module
+    loader.exec_module(module)
+    return module
+
+
+S = load_common()
+need = S.need
+
+
+class Application(S.Cluster):
+    def __init__(self, profile):
+        golden = S.section(profile, "golden")
+        super().__init__(profile, S.storage_dir(golden.get("app_storage"), profile, "golden.app_storage"))
+        self.bases = S.golden_bases(profile)
+
+    @contextlib.contextmanager
+    def credentials(self):
+        try:
+            self.login_cluster()
+            for base in self.bases:
+                self.login_infobase(base)
+            yield
+        finally:
+            self.auth.clear()
+            self.cluster_auth = []
+
+    def registrations(self, with_info=True):
+        rows = self.rac("infobase", "summary", "list")
+        result = {}
+        for base in self.bases:
+            matches = [row for row in rows if row.get("name", "").lower() == base.lower()]
+            need(len(matches) == 1 and matches[0].get("name") == base, "Expected one exact registration: " + base)
+            result[base] = {"uuid": S.canonical_uuid(matches[0].get("infobase"))}
+            if with_info:
+                result[base].update(self.info(base, result[base]["uuid"]))
+        return result
+
+    def set_denial(self, base, identifier, blocked):
+        self.rac(
+            "infobase",
+            "update",
+            "--infobase=" + identifier,
+            "--sessions-deny=" + ("on" if blocked else "off"),
+            "--scheduled-jobs-deny=on",
+            *self.auth[base],
+        )
+        state = self.info(base, identifier)
+        need(
+            state["sessions"] == ("on" if blocked else "off") and state["jobs"] == "on",
+            "Denial update did not take effect: " + base,
+        )
+
+    def denials(self, registrations, blocked):
+        for base in self.bases:
+            self.set_denial(base, registrations[base]["uuid"], blocked)
+
+    def quiet(self, registrations):
+        # Operators close clients first. This script never terminates a user's 1C session.
+        for base in self.bases:
+            identifier = registrations[base]["uuid"]
+            need(not self.rac("session", "list", "--infobase=" + identifier), "Close all 1C sessions first: " + base)
+            for row in self.rac("connection", "list", "--infobase=" + identifier, *self.auth[base]):
+                if row.get("application", "").upper() == "RAS":
+                    continue
+                self.rac(
+                    "connection",
+                    "disconnect",
+                    "--process=" + S.canonical_uuid(row["process"]),
+                    "--connection=" + S.canonical_uuid(row["connection"]),
+                    *self.auth[base],
+                )
+
+    def same_registrations(self, ticket):
+        current = self.registrations()
+        need(
+            all(current[b]["uuid"] == ticket["registrations"][b]["uuid"] for b in self.bases),
+            "Registration UUID changed",
+        )
+        return current
+
+    def reblock(self, ticket):
+        for base in self.bases:
+            try:
+                self.set_denial(base, ticket["registrations"][base]["uuid"], True)
+            except Exception:
+                self.emit("block-unconfirmed", database=base)
+
+    def prepare(self, action, generation=None, resume=False):
+        need(
+            action in ("capture", "restore")
+            and (generation is None if action == "capture" else S.valid_generation(generation)),
+            "Invalid preparation action or generation",
+        )
+        need(not resume or self.state_path.exists(), "No preparation to resume")
+        if self.state_path.exists():
+            need(resume, "Pending operation exists; use its documented resume or release procedure")
+            state = S.read_json(self.state_path)
+            ticket = state["ticket"]
+            need(
+                ticket["action"] == action
+                and ticket["source_generation"] == generation
+                and ticket["binding"] == self.binding()
+                and state["status"] in ("preparing", "blocked", "prepare-failed"),
+                "Resume must use the original preparation; a release cannot be prepared again",
+            )
+            self.same_registrations(ticket)
+        else:
+            current = self.registrations()
+            need(all(r["sessions"] == "off" for r in current.values()), "Existing session block requires investigation")
+            ticket = {
+                "schema": 1,
+                "kind": "prepared",
+                "status": "blocked",
+                "run_id": uuid.uuid4().hex,
+                "created_utc": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                "binding": self.binding(),
+                "action": action,
+                "source_generation": generation,
+                "registrations": {b: {"uuid": current[b]["uuid"], "sessions": "on", "jobs": "on"} for b in self.bases},
+            }
+            state = {"schema": 1, "status": "preparing", "ticket": ticket}
+            S.atomic_json(self.state_path, state)
+        try:
+            self.denials(ticket["registrations"], True)
+            current = self.same_registrations(ticket)
+            need(all(r["sessions"] == "on" and r["jobs"] == "on" for r in current.values()), "Blocks must stay active")
+            # Full infobase info may authenticate through the DBMS; drain connections last.
+            self.quiet(current)
+            summaries = self.registrations(with_info=False)
+            need(
+                all(summaries[b]["uuid"] == current[b]["uuid"] for b in self.bases),
+                "Registration changed while draining connections",
+            )
+            S.validate_ticket(ticket, self.c)
+            path = self.root / ("ticket-" + ticket["run_id"] + ".json")
+            if path.exists():
+                need(S.read_json(path) == ticket, "Existing preparation ticket differs")
+            else:
+                S.atomic_json(path, ticket)
+            state["status"] = "blocked"
+            state["ticket_sha256"] = S.digest(path)
+            S.atomic_json(self.state_path, state)
+            self.emit("prepared", operation=ticket["run_id"], ticket=str(path), ticket_sha256=state["ticket_sha256"])
+            return path
+        except BaseException:
+            self.reblock(ticket)
+            state["status"] = "prepare-failed"
+            S.atomic_json(self.state_path, state)
+            self.emit("prepare-failed", operation=ticket["run_id"])
+            raise
+
+    def release(self, receipt_path, operation):
+        need(self.state_path.exists(), "No pending application operation")
+        state = S.read_json(self.state_path)
+        ticket = S.validate_ticket(state["ticket"], self.c)
+        need(state["status"] in ("blocked", "releasing", "release-failed"), "Preparation is not complete")
+        need(operation == ticket["run_id"], "Operation does not match pending preparation")
+        receipt = S.read_json(receipt_path)
+        ticket_path = self.root / ("ticket-" + operation + ".json")
+        need(
+            S.digest(ticket_path) == state["ticket_sha256"] and S.read_json(ticket_path) == ticket,
+            "Local preparation ticket changed",
+        )
+        need(
+            receipt.get("schema") == 1
+            and receipt.get("kind") == "db-result"
+            and receipt.get("status") == "db-complete",
+            "A successful database-server receipt is required",
+        )
+        need(
+            receipt.get("ticket_sha256") == state["ticket_sha256"], "Receipt belongs to a different preparation ticket"
+        )
+        for key in ("run_id", "binding", "action", "source_generation", "registrations"):
+            need(receipt.get(key) == ticket[key], "Receipt mismatch: " + key)
+        need(S.valid_generation(receipt.get("generation")), "Missing completed generation")
+        if ticket["action"] == "restore":
+            need(
+                receipt["generation"] == ticket["source_generation"]
+                and S.valid_generation(receipt.get("safety_generation")),
+                "Restore receipt does not confirm source and safety generations",
+            )
+        current = self.same_registrations(ticket)
+        if state["status"] == "blocked":
+            need(
+                all(r["sessions"] == "on" and r["jobs"] == "on" for r in current.values()),
+                "Blocks changed outside this operation",
+            )
+        state["status"] = "releasing"
+        S.atomic_json(self.state_path, state)
+        try:
+            # Reassert the blocks before a retry of a partially completed release.
+            self.denials(current, True)
+            self.quiet(current)
+            self.denials(current, False)
+            final = self.same_registrations(ticket)
+            need(
+                all(r["sessions"] == "off" and r["jobs"] == "on" for r in final.values()), "Final denial state mismatch"
+            )
+            S.atomic_json(
+                self.root / ("result-" + operation + ".json"),
+                {"status": "released", "ticket": ticket, "receipt": receipt},
+            )
+            self.state_path.unlink()
+            S.fsync_dir(self.root)
+            self.emit("released", operation=operation, scheduled_jobs="blocked")
+        except BaseException:
+            self.reblock(ticket)
+            state["status"] = "release-failed"
+            S.atomic_json(self.state_path, state)
+            self.emit("release-failed", operation=operation)
+            raise
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("action", choices=("check", "prepare", "release"))
+    parser.add_argument("--profile", type=Path, default=S.default_profile(__file__))
+    parser.add_argument("--for", dest="db_action", choices=("capture", "restore"))
+    parser.add_argument("--generation")
+    parser.add_argument("--resume", action="store_true")
+    parser.add_argument("--receipt", type=Path)
+    parser.add_argument("--operation")
+    parser.add_argument("--confirm")
+    args = parser.parse_args(argv)
+    app = Application(S.load_profile(args.profile))
+    phrase = "BLOCK " + "+".join(app.bases)
+    if args.action == "prepare":
+        need(
+            args.db_action is not None and bool(args.generation) == (args.db_action == "restore"),
+            "prepare requires --for capture|restore and a generation only for restore",
+        )
+        need(not args.receipt and not args.operation, "prepare does not accept a receipt or operation")
+        need(args.confirm == phrase, "Explicit --confirm required: " + phrase)
+    elif args.action == "release":
+        need(args.receipt is not None and args.operation is not None, "release requires --receipt and --operation")
+        need(not args.db_action and not args.generation and not args.resume, "Unexpected release option")
+        need(args.confirm == "RELEASE " + args.operation, "Explicit --confirm required: RELEASE <operation>")
+    else:
+        need(
+            not any((args.db_action, args.generation, args.resume, args.receipt, args.operation, args.confirm)),
+            "check does not accept mutation options",
+        )
+    app.prerequisites()
+    with app.workspace(), app.credentials():
+        if args.action == "check":
+            app.emit("checked", registrations=app.registrations(), recovery_pending=app.state_path.exists())
+        elif args.action == "prepare":
+            app.prepare(args.db_action, args.generation, args.resume)
+        else:
+            app.release(args.receipt, args.operation)
+
+
+if __name__ == "__main__":
+    S.run(main)

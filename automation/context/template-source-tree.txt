@@ -192,6 +192,9 @@
 ./automation/checklists
 ./automation/context
 ./automation/context/templates
+./automation/optional
+./automation/optional/customer-site-operations
+./automation/optional/kd21-migration
 ./automation/prompts
 ./automation/testing
 ./automation/testing/templates
@@ -236,10 +239,13 @@
 ./scripts/git
 ./scripts/lib
 ./scripts/llm
+./scripts/migration
+./scripts/migration/kd_xml_compiler
 ./scripts/platform
 ./scripts/python
 ./scripts/qa
 ./scripts/release
+./scripts/site
 ./scripts/skills
 ./scripts/template
 ./scripts/test
@@ -253,6 +259,7 @@
 ./src/erf
 ./tests
 ./tests/fixtures
+./tests/fixtures/kd21
 ./tests/fixtures/managed-form-cli
 ./tests/fixtures/metadata-create
 ./tests/fixtures/metadata-edit

@@ -12,10 +12,16 @@ extend-exclude = [
     "../../.artifacts",
 ]
 
-# Server-side wrappers of the optional customer-site module run on the site's system Python 3.7.
-# The path matches nothing until that optional module is materialized.
+# Server-side wrappers of the optional customer-site module are extensionless Python scripts that run
+# on the site's system Python 3.7: the blueprint copy and, once the module is materialized, infra/site/.
+extend-include = [
+    "../../automation/optional/customer-site-operations/files/infra/site/server/site-*",
+    "../../infra/site/server/site-*",
+]
+
 [per-file-target-version]
-"../../automation/optional/customer-site-operations/server/**/*.py" = "py37"
+"../../automation/optional/customer-site-operations/files/infra/site/server/site-*" = "py37"
+"../../infra/site/server/site-*" = "py37"
 
 [lint]
 select = ["E4", "E7", "E9", "F", "B", "I", "UP"]

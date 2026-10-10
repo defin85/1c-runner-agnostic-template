@@ -1,0 +1,101 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<Конфигурация xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Имя="ДемоИсточник">
+	<CatalogObject.Конфигурации>
+		<Ref>00dce98c-cff1-4956-b9e2-4306585cb08b</Ref>
+		<Parent>00000000-0000-0000-0000-000000000000</Parent>
+		<Description>ДемоИсточник</Description>
+		<Имя>ДемоИсточник</Имя>
+		<Синоним>Демонстрационная конфигурация-источник</Синоним>
+		<Версия>1.0.0.1</Версия>
+	</CatalogObject.Конфигурации>
+	<CatalogObject.Объекты>
+		<Ref>e7c36b4d-7ad3-455e-a277-cce23ba4d866</Ref>
+		<Owner xsi:type="CatalogRef.Конфигурации">00dce98c-cff1-4956-b9e2-4306585cb08b</Owner>
+		<Parent>00000000-0000-0000-0000-000000000000</Parent>
+		<Description>Строка</Description>
+		<Имя>Строка</Имя>
+		<Синоним>Строка</Синоним>
+		<Тип>Строка</Тип>
+	</CatalogObject.Объекты>
+	<CatalogObject.Объекты>
+		<Ref>26a0f6de-f662-4b98-a5fd-708d091f30c2</Ref>
+		<Owner xsi:type="CatalogRef.Конфигурации">00dce98c-cff1-4956-b9e2-4306585cb08b</Owner>
+		<Parent>00000000-0000-0000-0000-000000000000</Parent>
+		<Description>Число</Description>
+		<Имя>Число</Имя>
+		<Синоним>Число</Синоним>
+		<Тип>Число</Тип>
+	</CatalogObject.Объекты>
+	<CatalogObject.Объекты>
+		<Ref>553d2308-1b5a-465b-8272-4e13929053c6</Ref>
+		<Owner xsi:type="CatalogRef.Конфигурации">00dce98c-cff1-4956-b9e2-4306585cb08b</Owner>
+		<Parent>00000000-0000-0000-0000-000000000000</Parent>
+		<Description>ВидыТоваров</Description>
+		<Имя>ВидыТоваров</Имя>
+		<Синоним>Виды товаров</Синоним>
+		<Тип>Перечисление</Тип>
+	</CatalogObject.Объекты>
+	<CatalogObject.Объекты>
+		<Ref>6730c121-0c89-46de-870a-0ff5c94978cb</Ref>
+		<Owner xsi:type="CatalogRef.Конфигурации">00dce98c-cff1-4956-b9e2-4306585cb08b</Owner>
+		<Parent>00000000-0000-0000-0000-000000000000</Parent>
+		<Description>Товары</Description>
+		<Имя>Товары</Имя>
+		<Синоним>Товары</Синоним>
+		<Тип>Справочник</Тип>
+	</CatalogObject.Объекты>
+	<CatalogObject.Свойства>
+		<Ref>075b0ff3-9966-45a5-b712-f35a26eaf3b3</Ref>
+		<Owner xsi:type="CatalogRef.Объекты">6730c121-0c89-46de-870a-0ff5c94978cb</Owner>
+		<Parent>00000000-0000-0000-0000-000000000000</Parent>
+		<Code>1</Code>
+		<Description>Артикул</Description>
+		<Синоним>Артикул</Синоним>
+		<КвалификаторыЧисла_Длина>0</КвалификаторыЧисла_Длина>
+		<КвалификаторыЧисла_Точность>0</КвалификаторыЧисла_Точность>
+		<КвалификаторыСтроки_Длина>25</КвалификаторыСтроки_Длина>
+		<Вид>Реквизит</Вид>
+		<Типы>
+			<Row>
+				<Тип>e7c36b4d-7ad3-455e-a277-cce23ba4d866</Тип>
+			</Row>
+		</Типы>
+	</CatalogObject.Свойства>
+	<CatalogObject.Свойства>
+		<Ref>16e82349-39ea-4d30-8200-35f69c8fac77</Ref>
+		<Owner xsi:type="CatalogRef.Объекты">6730c121-0c89-46de-870a-0ff5c94978cb</Owner>
+		<Parent>00000000-0000-0000-0000-000000000000</Parent>
+		<Code>2</Code>
+		<Description>ВидТовара</Description>
+		<Синоним>Вид товара</Синоним>
+		<КвалификаторыЧисла_Длина>0</КвалификаторыЧисла_Длина>
+		<КвалификаторыЧисла_Точность>0</КвалификаторыЧисла_Точность>
+		<КвалификаторыСтроки_Длина>0</КвалификаторыСтроки_Длина>
+		<Вид>Реквизит</Вид>
+		<Типы>
+			<Row>
+				<Тип>553d2308-1b5a-465b-8272-4e13929053c6</Тип>
+			</Row>
+		</Типы>
+	</CatalogObject.Свойства>
+	<CatalogObject.Значения>
+		<Ref>968f67f7-a526-4a8e-87c7-929c6bc06ff4</Ref>
+		<DeletionMark>false</DeletionMark>
+		<Owner xsi:type="CatalogRef.Объекты">553d2308-1b5a-465b-8272-4e13929053c6</Owner>
+		<Parent>00000000-0000-0000-0000-000000000000</Parent>
+		<Code>0</Code>
+		<Description>Товар</Description>
+		<Синоним>Товар</Синоним>
+		<Предопределенное>true</Предопределенное>
+	</CatalogObject.Значения>
+	<CatalogObject.Значения>
+		<Ref>0ceff1d7-902b-4412-aebb-664aa8805cbc</Ref>
+		<DeletionMark>false</DeletionMark>
+		<Owner xsi:type="CatalogRef.Объекты">553d2308-1b5a-465b-8272-4e13929053c6</Owner>
+		<Parent>00000000-0000-0000-0000-000000000000</Parent>
+		<Code>1</Code>
+		<Description>Услуга</Description>
+		<Синоним>Услуга</Синоним>
+		<Предопределенное>true</Предопределенное>
+	</CatalogObject.Значения>
+</Конфигурация>

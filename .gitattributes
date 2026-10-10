@@ -4,6 +4,10 @@
 tests/fixtures/metadata-template/** -text
 # Raw v8unpack output is compared byte for byte with the conversion result.
 tests/fixtures/ordinary-form-conversion/** -text
+# KD 2.01 metadata structures are pinned in scenarios by SHA-256 of their bytes.
+tests/fixtures/kd21/structures/** -text
+automation/optional/kd21-migration/files/migration/kd21/scenarios/*/structures/** -text
+migration/kd21/scenarios/*/structures/** -text
 
 # Project-specific lines belong between the markers below; template-update keeps them as is.
 # >>> project-owned block: template-update keeps the lines up to the closing marker >>>

@@ -1,0 +1,280 @@
+#!/usr/bin/env python3
+"""Application host: start, stop and report a bounded 1C technological log owned by this tool.
+
+`start` writes a licence-diagnostics logcfg.xml (events lic, hasp, excp); `locks-start` adds a
+separate lock-wait log (tlock with waits, ttimeout, tdeadlock). The tool changes logcfg.xml only
+when it is absent or equals the copy this tool installed; anything else is a conflict. Logs are kept
+on stop. The 1C server rereads logcfg.xml within a minute.
+"""
+
+import argparse
+import collections
+import filecmp
+import importlib.machinery
+import importlib.util
+import os
+import re
+import shutil
+import sys
+import tempfile
+import time
+from pathlib import Path
+
+sys.dont_write_bytecode = True
+HERE = Path(__file__).resolve().parent
+
+
+def load_common():
+    """Load `site-common` once per process, so every wrapper shares one `Refused` class."""
+    if "site_common" in sys.modules:
+        return sys.modules["site_common"]
+    loader = importlib.machinery.SourceFileLoader("site_common", str(HERE / "site-common"))
+    spec = importlib.util.spec_from_loader("site_common", loader)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules["site_common"] = module
+    loader.exec_module(module)
+    return module
+
+
+S = load_common()
+need = S.need
+
+LOG_BLOCK = """  <log location="{location}" history="1">
+    <event><eq property="name" value="lic"/></event>
+    <event><eq property="name" value="hasp"/></event>
+    <event><eq property="name" value="excp"/></event>
+    <property name="all"/>
+  </log>
+"""
+LOCKS_BLOCK = """  <log location="{location}" history="1">
+    <event><eq property="name" value="tlock"/><ne property="waitconnections" value=""/></event>
+    <event><eq property="name" value="ttimeout"/></event>
+    <event><eq property="name" value="tdeadlock"/></event>
+    <property name="all"/>
+  </log>
+"""
+
+
+class Techlog:
+    def __init__(self, profile):
+        section = S.section(profile, "techlog")
+        self.profile = profile
+        paths = {}
+        for key in ("config_dir", "log_dir", "locks_dir", "state_dir"):
+            value = section.get(key, "")
+            need(isinstance(value, str) and Path(value).is_absolute(), "techlog." + key + " must be absolute")
+            paths[key] = Path(value)
+        self.config = paths["config_dir"] / "logcfg.xml"
+        self.log_dir = paths["log_dir"]
+        self.locks_dir = paths["locks_dir"]
+        self.state_dir = paths["state_dir"]
+        self.owned = self.state_dir / "owned-logcfg.xml"
+        self.locks_mode = self.state_dir / "locks-mode"
+        self.user = section.get("service_user", "")
+        self.group = section.get("service_group", "")
+        self.min_free = section.get("min_free_mib", 512)
+        need(type(self.min_free) is int and self.min_free > 0, "techlog.min_free_mib must be a positive integer")
+
+    def check(self):
+        actual = os.uname().nodename.split(".")[0].lower()
+        need(actual == self.profile["app_host"].split(".")[0].lower(), "Wrong execution host for the app role")
+        need(self.config.parent.is_dir(), "techlog.config_dir does not exist")
+
+    def render(self, locks=False):
+        text = '<?xml version="1.0" encoding="UTF-8"?>\n<config xmlns="http://v8.1c.ru/v8/tech-log">\n'
+        text += LOG_BLOCK.format(location=self.log_dir)
+        if locks:
+            text += LOCKS_BLOCK.format(location=self.locks_dir)
+        return text + "</config>\n"
+
+    def owned_config(self):
+        return self.owned.is_file() and self.config.is_file() and filecmp.cmp(str(self.config), str(self.owned), False)
+
+    def reserve(self, path):
+        while not path.exists():
+            path = path.parent
+        need(shutil.disk_usage(str(path)).free >= self.min_free * 1024 * 1024, "Insufficient free space for logs")
+
+    def directory(self, path, mode, service_owned):
+        path.mkdir(mode=mode, parents=True, exist_ok=True)
+        os.chmod(str(path), mode)
+        if os.geteuid() == 0:
+            if service_owned:
+                need(bool(self.user and self.group), "techlog.service_user and service_group are required as root")
+                shutil.chown(str(path), self.user, self.group)
+            else:
+                os.chown(str(path), 0, 0)
+
+    def install(self, text):
+        self.directory(self.state_dir, 0o700, False)
+        for target, mode in ((self.owned, 0o600), (self.config, 0o644)):
+            descriptor, temporary = tempfile.mkstemp(dir=str(target.parent), prefix=".logcfg.")
+            with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
+                stream.write(text)
+                stream.flush()
+                os.fsync(stream.fileno())
+            os.chmod(temporary, mode)
+            if os.geteuid() == 0:
+                os.chown(temporary, 0, 0)
+            os.replace(temporary, str(target))
+
+    def start(self):
+        if self.config.exists():
+            if self.owned_config():
+                return "techlog_state=active config_owned=1"
+            raise S.Refused("techlog_state=conflict config_owned=0")
+        self.reserve(self.log_dir)
+        self.directory(self.log_dir, 0o750, True)
+        self.install(self.render())
+        return "techlog_state=started config_owned=1 reload_within_seconds=60"
+
+    def stop(self):
+        need(not self.locks_mode.exists(), "techlog_state=locks-active use=locks-stop")
+        if not self.config.exists():
+            return "techlog_state=stopped config_present=0 logs_preserved=1"
+        need(self.owned_config(), "techlog_state=conflict config_owned=0")
+        self.config.unlink()
+        self.owned.unlink()
+        return "techlog_state=stopped config_present=0 logs_preserved=1 reload_within_seconds=60"
+
+    def status(self):
+        state, owned = "stopped", 0
+        if self.config.exists():
+            state = "conflict"
+            if self.owned_config():
+                state, owned = "active", 1
+        files = size = 0
+        if self.log_dir.is_dir():
+            for path in self.log_dir.rglob("*"):
+                if path.is_file():
+                    size += path.stat().st_size
+                    files += path.suffix == ".log"
+        locks = "active" if self.locks_mode.exists() else "stopped"
+        return f"techlog_state={state} config_owned={owned} log_files={files} log_size_kb={size // 1024} techlog_locks={locks}"
+
+    def locks_start(self):
+        if self.locks_mode.exists():
+            return "techlog_locks=active"
+        previous = "stopped"
+        if self.config.exists():
+            need(self.owned_config(), "techlog_locks=conflict config_owned=0")
+            previous = "active"
+        self.reserve(self.locks_dir)
+        self.directory(self.locks_dir, 0o750, True)
+        self.directory(self.log_dir, 0o750, True)
+        self.directory(self.state_dir, 0o700, False)
+        self.locks_mode.write_text(previous + "\n", encoding="utf-8")
+        self.install(self.render(locks=True))
+        return f"techlog_locks=started previous={previous} reload_within_seconds=60"
+
+    def locks_stop(self):
+        if not self.locks_mode.exists():
+            return "techlog_locks=stopped"
+        need(self.owned_config(), "techlog_locks=conflict config_owned=0")
+        previous = self.locks_mode.read_text(encoding="utf-8").strip()
+        need(previous in ("active", "stopped"), "Unknown saved techlog state")
+        if previous == "active":
+            self.install(self.render())
+        else:
+            self.config.unlink()
+            self.owned.unlink()
+        self.locks_mode.unlink()
+        return f"techlog_locks=stopped restored={previous} logs_preserved=1 reload_within_seconds=60"
+
+    def locks_report(self, minutes):
+        need(1 <= minutes <= 7 * 24 * 60, "--minutes must be between 1 and 10080")
+        return report(self.locks_dir, minutes)
+
+
+# Event header: minutes:seconds.microseconds-duration,EVENT,level, then the properties.
+START = re.compile(r"^\d\d:\d\d\.\d+-(\d+),(\w+),\d+,")
+
+
+def properties(text):
+    """Parse `key=value` pairs of a technological log event, with quoted values."""
+    result, index = {}, 0
+    while index < len(text):
+        equals = text.find("=", index)
+        if equals < 0:
+            break
+        key = text[index:equals].strip(",")
+        index = equals + 1
+        if index < len(text) and text[index] in "'\"":
+            quote, cursor, value = text[index], index + 1, []
+            while cursor < len(text):
+                if text[cursor] == quote and cursor + 1 < len(text) and text[cursor + 1] == quote:
+                    value.append(quote)
+                    cursor += 2
+                    continue
+                if text[cursor] == quote:
+                    break
+                value.append(text[cursor])
+                cursor += 1
+            result[key] = "".join(value)
+            index = cursor + 2
+        else:
+            end = text.find(",", index)
+            end = len(text) if end < 0 else end
+            result[key] = text[index:end]
+            index = end + 1
+    return result
+
+
+def report(root, minutes, now=None):
+    """Aggregate lock waits by region: counts, durations and one shortened key sample per region."""
+    cutoff = (now or time.time()) - minutes * 60
+    events, current = [], None
+    for folder, _, files in os.walk(str(root)):
+        for name in sorted(files):
+            path = os.path.join(folder, name)
+            if not name.endswith(".log") or os.path.getmtime(path) < cutoff:
+                continue
+            with open(path, encoding="utf-8-sig", errors="replace") as handle:
+                for line in handle:
+                    match = START.match(line)
+                    if match:
+                        current = [int(match.group(1)), match.group(2), line[match.end() :]]
+                        events.append(current)
+                    elif current:
+                        current[2] += line
+    kinds = collections.Counter(event[1] for event in events)
+    regions = collections.defaultdict(lambda: [0, 0, ""])
+    for duration, kind, body in events:
+        if kind != "TLOCK":
+            continue
+        values = properties(body.rstrip("\n"))
+        item = regions[values.get("Regions", "?")]
+        item[0] += 1
+        item[1] += duration
+        if not item[2]:
+            item[2] = values.get("Locks", "")[:240]
+    lines = ["events " + " ".join(f"{kind}={count}" for kind, count in sorted(kinds.items()))]
+    for region, (count, total, sample) in sorted(regions.items(), key=lambda pair: -pair[1][1])[:10]:
+        lines.append(f"region={region} waits={count} wait_s={total / 1e6:.1f}")
+        lines.append("  locks=" + sample.replace("\n", " "))
+    return "\n".join(lines)
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("action", choices=("start", "stop", "status", "locks-start", "locks-stop", "locks-report"))
+    parser.add_argument("--profile", type=Path, default=S.default_profile(__file__))
+    parser.add_argument("--minutes", type=int, default=10, help="locks-report: look back this many minutes")
+    args = parser.parse_args(argv)
+    tool = Techlog(S.load_profile(args.profile))
+    tool.check()
+    if args.action == "locks-report":
+        print(tool.locks_report(args.minutes))
+        return
+    handlers = {
+        "start": tool.start,
+        "stop": tool.stop,
+        "status": tool.status,
+        "locks-start": tool.locks_start,
+        "locks-stop": tool.locks_stop,
+    }
+    print(handlers[args.action]())
+
+
+if __name__ == "__main__":
+    S.run(main)

@@ -1,0 +1,460 @@
+#!/usr/bin/env python3
+"""Database host: capture or restore the golden PostgreSQL databases with an application-host ticket."""
+
+import argparse
+import contextlib
+import datetime
+import importlib.machinery
+import importlib.util
+import json
+import os
+import re
+import shutil
+import sys
+import tempfile
+from pathlib import Path
+
+sys.dont_write_bytecode = True
+HERE = Path(__file__).resolve().parent
+
+
+def load_common():
+    """Load `site-common` once per process, so every wrapper shares one `Refused` class."""
+    if "site_common" in sys.modules:
+        return sys.modules["site_common"]
+    loader = importlib.machinery.SourceFileLoader("site_common", str(HERE / "site-common"))
+    spec = importlib.util.spec_from_loader("site_common", loader)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules["site_common"] = module
+    loader.exec_module(module)
+    return module
+
+
+S = load_common()
+need = S.need
+
+
+class Database(S.Runner):
+    def __init__(self, profile):
+        golden = S.section(profile, "golden")
+        super().__init__(profile, S.storage_dir(golden.get("db_storage"), profile, "golden.db_storage"))
+        self.bases = S.golden_bases(profile)
+        self.major = profile["pg_major"]
+
+    def prerequisites(self):
+        self.check_host("db")
+        data = Path(self.c["db_data_directory"])
+        need(data.is_dir() and (data / "pg_wal").is_dir(), "Local PGDATA or pg_wal is missing or inaccessible")
+        for name in ("psql", "pg_dump", "pg_restore"):
+            path = str(Path(self.c["pg_bin"]) / name) if self.c.get("pg_bin") else shutil.which(name)
+            need(path and os.path.isfile(path) and os.access(path, os.X_OK), "Missing executable: " + name)
+            self.tools[name] = path
+            version = self.command([path, "--version"], name + "-version")
+            need(re.search(r"\b" + str(self.major) + r"\.\d+", version) is not None, name + " must match pg_major")
+
+    @contextlib.contextmanager
+    def credentials(self):
+        with tempfile.TemporaryDirectory(prefix="site-golden-auth-") as directory:
+            password = S.password_from(self.c.get("db_password_file", ""), "PostgreSQL password: ")
+            fields = ["127.0.0.1", str(self.c["db_port"]), "*", self.c["db_user"], password]
+            line = ":".join(x.replace("\\", "\\\\").replace(":", "\\:") for x in fields)
+            pgpass = Path(directory) / "pgpass"
+            pgpass.write_text(line + "\n", encoding="utf-8")
+            pgpass.chmod(0o600)
+            self.env["PGPASSFILE"] = str(pgpass)
+            try:
+                yield
+            finally:
+                self.env.pop("PGPASSFILE", None)
+
+    def pg(self, tool, database, *args):
+        argv = [
+            self.tools[tool],
+            "--host=127.0.0.1",
+            "--port=" + str(self.c["db_port"]),
+            "--username=" + self.c["db_user"],
+            "--no-password",
+            "--dbname=" + database,
+        ] + list(args)
+        return self.command(argv, tool + "-" + database)
+
+    def query(self, sql):
+        return json.loads(self.pg("psql", "postgres", "-X", "-A", "-t", "-v", "ON_ERROR_STOP=1", "-c", sql))
+
+    def server_identity(self):
+        server = self.query(
+            "SELECT json_build_object('version',current_setting('server_version_num')::int,"
+            "'address',host(inet_server_addr()),'data',current_setting('data_directory'));"
+        )
+        need(
+            server["version"] // 10000 == self.major
+            and server["address"] == "127.0.0.1"
+            and server["data"] == self.c["db_data_directory"],
+            "PostgreSQL server identity mismatch",
+        )
+
+    def names_sql(self):
+        return ",".join(S.sql_string(b) for b in self.bases)
+
+    def discard_copy(self, name):
+        S.allowed_infobase(self.c, name, disposable=True)
+        need(name not in self.bases, "A golden database is never discarded")
+        self.server_identity()
+        name_sql = S.sql_string(name)
+        need(
+            self.query("SELECT count(*) FROM pg_database WHERE datname=" + name_sql) == 1, "Expected one existing copy"
+        )
+        need(
+            self.query("SELECT count(*) FROM pg_stat_activity WHERE datname=" + name_sql) == 0,
+            "Copy has active connections",
+        )
+        self.pg("psql", "postgres", "-X", "-v", "ON_ERROR_STOP=1", "-c", "DROP DATABASE " + S.ident(name))
+        need(self.query("SELECT count(*) FROM pg_database WHERE datname=" + name_sql) == 0, "Copy still exists")
+        self.emit("copy-discarded", database=name)
+
+    def inventory(self, allow_missing=False):
+        self.server_identity()
+        rows = self.query(
+            "SELECT coalesce(json_agg(row_to_json(d)),'[]') FROM (SELECT datname AS name, "
+            "pg_get_userbyid(datdba) AS owner, pg_database_size(oid) AS bytes, "
+            "pg_encoding_to_char(encoding) AS encoding, datcollate AS collate, datctype AS ctype, "
+            "datlocprovider AS provider, (SELECT spcname FROM pg_tablespace WHERE oid=dattablespace) AS tablespace "
+            "FROM pg_database WHERE datname IN (" + self.names_sql() + ")) d;"
+        )
+        need(isinstance(rows, list) and all(isinstance(x, dict) for x in rows), "Invalid database inventory")
+        result = {row["name"]: row for row in rows}
+        need(
+            set(result).issubset(self.bases) and (allow_missing or set(result) == set(self.bases)),
+            "Every golden database must exist",
+        )
+        for row in rows:
+            need(
+                row["owner"] == self.c["db_user"] and row["provider"] == "c" and row["tablespace"] == "pg_default",
+                "Only databases owned by db_user with libc locale in pg_default are supported",
+            )
+        return result
+
+    def quiet(self):
+        rows = self.query(
+            "SELECT coalesce(json_agg(json_build_object('database',datname,'state',state)),'[]') "
+            "FROM pg_stat_activity WHERE datname IN (" + self.names_sql() + ");"
+        )
+        need(isinstance(rows, list) and not rows, "Database connections remain; keep 1C blocked and stop writers")
+
+    def verify(self, identifier):
+        need(S.valid_generation(identifier), "Invalid generation identifier")
+        directory = self.root / identifier
+        need(directory.is_dir() and not directory.is_symlink(), "Generation directory is missing or symbolic")
+        manifest = S.read_json(directory / "manifest.json")
+        need(
+            manifest.get("schema") == 1
+            and manifest.get("generation") == identifier
+            and manifest.get("pg_major") == self.major
+            and manifest.get("format") == "postgresql-custom",
+            "Invalid generation manifest",
+        )
+        need(manifest.get("binding") == self.binding(), "Snapshot belongs to a different site contour")
+        need(
+            isinstance(manifest.get("databases"), dict) and set(manifest["databases"]) == set(self.bases),
+            "Incomplete golden set",
+        )
+        for base in self.bases:
+            item = manifest["databases"][base]
+            need(
+                isinstance(item, dict)
+                and item.get("name") == base
+                and item.get("owner") == self.c["db_user"]
+                and item.get("provider") == "c"
+                and item.get("tablespace") == "pg_default",
+                "Invalid snapshot database metadata",
+            )
+            need(type(item.get("bytes")) is int and item["bytes"] > 0, "Invalid database size")
+            for key in ("encoding", "collate", "ctype", "uuid"):
+                need(isinstance(item.get(key), str) and item[key], "Missing snapshot metadata: " + key)
+            S.canonical_uuid(item["uuid"])
+            path = directory / (base + ".dump")
+            need(
+                path.is_file() and not path.is_symlink() and path.stat().st_size == item.get("dump_bytes"),
+                "Snapshot size mismatch: " + base,
+            )
+            with path.open("rb") as stream:
+                need(stream.read(5) == b"PGDMP", "Not a PostgreSQL custom archive: " + base)
+            need(S.digest(path) == item.get("sha256"), "Snapshot checksum mismatch: " + base)
+            self.command([self.tools["pg_restore"], "--list", str(path)], "archive-check-" + base)
+        return manifest
+
+    def space(self, databases):
+        required = sum(item["bytes"] for item in databases.values()) * 2 + S.GIB
+        need(
+            shutil.disk_usage(str(self.root)).free >= required,
+            f"Insufficient golden storage: require {required} free bytes",
+        )
+
+    def dump_set(self, registrations, databases, purpose):
+        self.space(databases)
+        identifier = S.generation_id()
+        candidate = self.root / (".incomplete-" + identifier)
+        candidate.mkdir(mode=0o700)
+        manifest = {
+            "schema": 1,
+            "generation": identifier,
+            "pg_major": self.major,
+            "format": "postgresql-custom",
+            "binding": self.binding(),
+            "purpose": purpose,
+            "databases": {},
+            "created_utc": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        }
+        for base in self.bases:
+            path = candidate / (base + ".dump")
+            self.quiet()
+            self.pg("pg_dump", base, "--verbose", "--format=custom", "--file=" + str(path))
+            self.command([self.tools["pg_restore"], "--list", str(path)], "archive-check-" + base)
+            with path.open("rb") as stream:
+                os.fsync(stream.fileno())
+            item = dict(databases[base])
+            item.update(uuid=registrations[base]["uuid"], dump_bytes=path.stat().st_size, sha256=S.digest(path))
+            manifest["databases"][base] = item
+        self.quiet()
+        S.atomic_json(candidate / "manifest.json", manifest)
+        candidate.rename(self.root / identifier)
+        S.fsync_dir(self.root)
+        self.verify(identifier)
+        return identifier
+
+    def restore_space(self, manifest, safety_databases=None):
+        required = int(sum(x["bytes"] for x in manifest["databases"].values()) * 1.5) + S.GIB
+        safety = (sum(x["bytes"] for x in safety_databases.values()) * 2 + S.GIB) if safety_databases else 0
+        data = Path(self.c["db_data_directory"])
+        for path in (data, data / "pg_wal"):
+            extra = safety if path.stat().st_dev == self.root.stat().st_dev else 0
+            need(
+                shutil.disk_usage(str(path)).free >= required + extra,
+                "Insufficient PostgreSQL or WAL space: require %s free bytes" % (required + extra),
+            )
+        if safety_databases:
+            self.space(safety_databases)
+
+    def finish(self, state):
+        self.quiet()
+        self.verify(state["generation"])
+        state["status"] = "db-complete"
+        S.atomic_json(self.state_path, state)
+        ticket = state["ticket"]
+        receipt = {key: ticket[key] for key in ("run_id", "binding", "action", "source_generation", "registrations")}
+        receipt.update(
+            schema=1,
+            kind="db-result",
+            status="db-complete",
+            ticket_sha256=state["ticket_sha256"],
+            generation=state["generation"],
+            safety_generation=state.get("safety_generation"),
+        )
+        path = self.root / ("result-" + ticket["run_id"] + ".json")
+        S.atomic_json(path, receipt)
+        self.state_path.unlink()
+        S.fsync_dir(self.root)
+        self.emit(
+            "db-complete",
+            operation=ticket["run_id"],
+            receipt=str(path),
+            generation=state["generation"],
+            safety_generation=state.get("safety_generation"),
+            application_blocks="operator-must-preserve",
+        )
+        return path
+
+    def operate(self, ticket_path, operation, action, generation=None, resume=False):
+        ticket = S.validate_ticket(S.read_json(ticket_path), self.c)
+        need(
+            ticket["run_id"] == operation and ticket["action"] == action and ticket["source_generation"] == generation,
+            "Ticket does not match the selected operation, action and generation",
+        )
+        ticket_sha = S.digest(ticket_path)
+        result_path = self.root / ("result-" + operation + ".json")
+        if result_path.exists():
+            # A completed ticket is consumed forever; --resume cannot repeat a destructive restore.
+            receipt = S.read_json(result_path)
+            need(
+                receipt.get("ticket_sha256") == ticket_sha and receipt.get("status") == "db-complete",
+                "Existing result does not match ticket",
+            )
+            if self.state_path.exists():
+                state = S.read_json(self.state_path)
+                need(
+                    state.get("ticket") == ticket and state.get("status") == "db-complete",
+                    "Another or incomplete operation is pending",
+                )
+                self.state_path.unlink()
+                S.fsync_dir(self.root)
+            self.emit("already-complete", operation=operation, receipt=str(result_path))
+            return result_path
+        need(not resume or self.state_path.exists(), "No interrupted DB operation to resume")
+        manifest = self.verify(generation) if action == "restore" else None
+        if manifest:
+            need(
+                all(manifest["databases"][b]["uuid"] == ticket["registrations"][b]["uuid"] for b in self.bases),
+                "Snapshot registration UUID differs from preparation ticket",
+            )
+        if self.state_path.exists():
+            need(resume, "An interrupted DB operation exists; use its original ticket and --resume")
+            state = S.read_json(self.state_path)
+            need(
+                state.get("ticket") == ticket and state.get("ticket_sha256") == ticket_sha,
+                "Resume requires the original unchanged ticket",
+            )
+            if manifest:
+                need(
+                    state.get("source_manifest_sha256") == S.digest(self.root / generation / "manifest.json"),
+                    "Restore source manifest changed",
+                )
+        else:
+            databases = self.inventory()
+            self.quiet()
+            self.space(databases)
+            if manifest:
+                self.restore_space(manifest, databases)
+            state = {
+                "schema": 1,
+                "status": "started",
+                "ticket": ticket,
+                "ticket_sha256": ticket_sha,
+                "generation": generation,
+                "source_manifest_sha256": S.digest(self.root / generation / "manifest.json") if generation else None,
+            }
+            S.atomic_json(self.state_path, state)
+        try:
+            self.inventory(allow_missing=bool(state.get("safety_generation")))
+            self.quiet()
+            if state["status"] == "db-complete":
+                return self.finish(state)
+            if action == "capture":
+                if not state.get("generation"):
+                    state["generation"] = self.dump_set(ticket["registrations"], self.inventory(), "golden")
+                    S.atomic_json(self.state_path, state)
+                return self.finish(state)
+            if not state.get("safety_generation"):
+                self.restore_space(manifest, self.inventory())
+                state["safety_generation"] = self.dump_set(ticket["registrations"], self.inventory(), "before-restore")
+                S.atomic_json(self.state_path, state)
+            self.verify(state["safety_generation"])
+            self.verify(generation)
+            need(
+                S.digest(self.root / generation / "manifest.json") == state["source_manifest_sha256"],
+                "Restore source changed before DROP",
+            )
+            self.restore_space(manifest)
+            state["status"] = "restoring"
+            S.atomic_json(self.state_path, state)
+            for base in self.bases:
+                self.quiet()
+                self.restore_space(manifest)
+                self.emit("restore", database=base)
+                item = manifest["databases"][base]
+                self.pg(
+                    "psql", "postgres", "-X", "-v", "ON_ERROR_STOP=1", "-c", "DROP DATABASE IF EXISTS " + S.ident(base)
+                )
+                create = (
+                    "CREATE DATABASE "
+                    + S.ident(base)
+                    + " OWNER "
+                    + S.ident(self.c["db_user"])
+                    + " TEMPLATE template0 LOCALE_PROVIDER libc ENCODING "
+                    + S.sql_string(item["encoding"])
+                    + " LC_COLLATE "
+                    + S.sql_string(item["collate"])
+                    + " LC_CTYPE "
+                    + S.sql_string(item["ctype"])
+                    + ";"
+                )
+                self.pg("psql", "postgres", "-X", "-v", "ON_ERROR_STOP=1", "-c", create)
+                self.pg(
+                    "pg_restore",
+                    base,
+                    "--verbose",
+                    "--exit-on-error",
+                    "--no-owner",
+                    str(self.root / generation / (base + ".dump")),
+                )
+            after = self.inventory()
+            for base in self.bases:
+                for key in ("owner", "encoding", "collate", "ctype", "provider", "tablespace"):
+                    need(after[base][key] == manifest["databases"][base][key], "Restored metadata differs: " + base)
+            return self.finish(state)
+        except BaseException:
+            # No RAS access here: this script cannot remove or reassert the application blocks.
+            # Once the set is complete, retry only receipt publication and cleanup, never DROP.
+            if state["status"] != "db-complete":
+                state["status"] = "recovery-required"
+            S.atomic_json(self.state_path, state)
+            self.emit(
+                "recovery-required",
+                operation=operation,
+                safety_generation=state.get("safety_generation"),
+                application_blocks="operator-must-preserve",
+            )
+            raise
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("action", choices=("check", "verify", "capture", "restore", "discard-copy"))
+    parser.add_argument("--profile", type=Path, default=S.default_profile(__file__))
+    parser.add_argument("--database", help="discard-copy: disposable copy listed in the site profile")
+    parser.add_argument("--generation")
+    parser.add_argument("--ticket", type=Path)
+    parser.add_argument("--operation")
+    parser.add_argument("--confirm")
+    parser.add_argument("--confirm-blocked", help="Repeat the operation ID after checking the 1C blocks stay active")
+    parser.add_argument("--resume", action="store_true")
+    args = parser.parse_args(argv)
+    profile = S.load_profile(args.profile)
+    need(bool(args.database) == (args.action == "discard-copy"), "--database is required only for discard-copy")
+    need(
+        (args.action in ("verify", "restore")) == bool(args.generation),
+        "verify and restore require --generation; other actions forbid it",
+    )
+    if args.action in ("capture", "restore"):
+        need(args.ticket is not None and args.operation is not None, "Mutation requires --ticket and --operation")
+        need(args.confirm_blocked == args.operation, "Explicit --confirm-blocked <operation> required")
+        phrase = (
+            "CAPTURE " + "+".join(S.golden_bases(profile)) if args.action == "capture" else "RESTORE " + args.generation
+        )
+        need(args.confirm == phrase, "Explicit --confirm required: " + phrase)
+    elif args.action == "discard-copy":
+        # Refuse an unlisted or non-disposable target before any DBMS access.
+        S.allowed_infobase(profile, args.database, disposable=True)
+        need(
+            args.confirm == "DROP " + args.database
+            and not any((args.ticket, args.operation, args.confirm_blocked, args.resume)),
+            "Explicit --confirm 'DROP <database>' required",
+        )
+    else:
+        need(
+            not any((args.ticket, args.operation, args.confirm, args.confirm_blocked, args.resume)),
+            "Unexpected mutation option",
+        )
+    db = Database(profile)
+    db.prerequisites()
+    with db.workspace():
+        if args.action == "verify":
+            db.verify(args.generation)
+            db.emit("verified", generation=args.generation)
+            return
+        with db.credentials():
+            if args.action == "discard-copy":
+                db.discard_copy(args.database)
+            elif args.action == "check":
+                db.emit(
+                    "checked",
+                    databases=db.inventory(),
+                    storage_free_bytes=shutil.disk_usage(str(db.root)).free,
+                    pgdata_free_bytes=shutil.disk_usage(db.c["db_data_directory"]).free,
+                    recovery_pending=db.state_path.exists(),
+                )
+            else:
+                db.operate(args.ticket, args.operation, args.action, args.generation, args.resume)
+
+
+if __name__ == "__main__":
+    S.run(main)

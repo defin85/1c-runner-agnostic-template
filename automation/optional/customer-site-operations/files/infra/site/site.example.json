@@ -1,0 +1,70 @@
+{
+  "schema": 1,
+  "app_host": "site-app-01.example",
+  "db_host": "site-db-01.example",
+  "db_port": 5432,
+  "db_user": "onec",
+  "db_password_file": "/etc/site-ops/secrets/db-password",
+  "pg_major": 16,
+  "pg_bin": "/usr/lib/postgresql/16/bin",
+  "db_data_directory": "/var/lib/postgresql/16/main",
+  "platform": {
+    "version": "8.3.27.0000",
+    "rac": "/opt/1cv8/x86_64/8.3.27.0000/rac",
+    "ibcmd": "/opt/1cv8/x86_64/8.3.27.0000/ibcmd",
+    "ras": "site-app-01.example:1545"
+  },
+  "cluster": {
+    "uuid": "00000000-0000-4000-8000-000000000000",
+    "user": "cluster-admin",
+    "password_file": "/etc/site-ops/secrets/cluster-password"
+  },
+  "infobases": {
+    "app_main": {
+      "user": "Administrator",
+      "password_file": "/etc/site-ops/secrets/app_main-password"
+    },
+    "app_reference": {
+      "user": "Administrator",
+      "password_file": "/etc/site-ops/secrets/app_reference-password"
+    },
+    "app_main_copy": {
+      "auth_base": "app_main",
+      "disposable": true
+    }
+  },
+  "golden": {
+    "bases": ["app_main", "app_reference"],
+    "app_storage": "/var/lib/site-ops/golden-app",
+    "db_storage": "/srv/site-ops/golden"
+  },
+  "dt": {
+    "mount": "/mnt/site-dt",
+    "source": "//site-db-01.example/dt",
+    "fstype": "cifs",
+    "db_reserve_gib": 70,
+    "locale": "ru_RU"
+  },
+  "archive": {
+    "storage": "/srv/site-ops/archive",
+    "databases": ["old_trial_base"],
+    "jobs": 1
+  },
+  "techlog": {
+    "config_dir": "/opt/1cv8/x86_64/8.3.27.0000/conf",
+    "log_dir": "/var/log/site-techlog",
+    "locks_dir": "/var/log/site-techlog-locks",
+    "state_dir": "/var/lib/site-techlog-control",
+    "service_user": "usr1cv8",
+    "service_group": "grp1cv8",
+    "min_free_mib": 512
+  },
+  "license": {
+    "ring": "/opt/1C/1CE/components/1c-enterprise-ring-0.0.0+0-x86_64/ring",
+    "base_dir": "/var/backups/site-licenses"
+  },
+  "v8users_recovery": {
+    "enabled": false,
+    "databases": []
+  }
+}
