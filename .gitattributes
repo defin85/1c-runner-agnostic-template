@@ -2,6 +2,8 @@
 *.ps1 text eol=lf
 # Byte-exact 1C XML fixtures: tests check that original line endings survive edits.
 tests/fixtures/metadata-template/** -text
+# Raw v8unpack output is compared byte for byte with the conversion result.
+tests/fixtures/ordinary-form-conversion/** -text
 
 # Project-specific lines belong between the markers below; template-update keeps them as is.
 # >>> project-owned block: template-update keeps the lines up to the closing marker >>>
