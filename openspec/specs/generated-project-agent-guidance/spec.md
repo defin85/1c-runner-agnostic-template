@@ -2,7 +2,9 @@
 
 ## Purpose
 Define how a generated 1C project routes agents from a short root entry point to project-owned context, runbooks, verification matrix and workflow guides, while keeping template-managed and project-owned agent artifacts update-safe.
+
 ## Requirements
+
 ### Requirement: Generated Project Instruction Routing
 
 The template SHALL ship generated-project-safe routing in shared docs and directory-local instruction files so that generated repos do not start from a source-repo-centric onboarding path.
@@ -193,3 +195,18 @@ The template SHALL route generated repositories through one canonical AI-readine
 - **WHEN** `copier copy` или equivalent bootstrap path рендерит generated repository
 - **THEN** template MUST NOT помещать `AGENTS.md`, `README.md` или аналогичные routing-only markdown artifacts внутрь deployable `src/cf`
 - **AND** полезный routing/context для dense main configuration tree ДОЛЖЕН быть доступен через `src/AGENTS.md` и generated-project docs вне `src/cf`
+
+### Requirement: Publication On Request
+
+The generated `AGENTS.md` template block SHALL NOT make push a mandatory closeout step and SHALL defer search routing to a project-owned search runbook when one exists.
+
+#### Scenario: Agent finishes code changes in a remote-backed repository
+
+- **WHEN** the verified changes are ready in a repository with a writable remote
+- **THEN** the guidance MUST allow push only when the user or the selected publication process asks for it
+- **AND** it MUST still distinguish local-only and remote-backed repositories
+
+#### Scenario: Project defines its own search runbook
+
+- **WHEN** the project documents a search runbook
+- **THEN** the template Search Playbook MUST state that the project runbook takes precedence

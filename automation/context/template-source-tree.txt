@@ -216,7 +216,6 @@
 ./openspec
 ./openspec/changes
 ./openspec/changes/archive
-./openspec/changes/unify-agent-skill-sources
 ./openspec/specs
 ./openspec/specs/agent-runtime-toolkit
 ./openspec/specs/customer-site-operations

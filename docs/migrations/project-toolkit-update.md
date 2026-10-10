@@ -189,9 +189,12 @@ PowerShell: `.\scripts\template\migrate-runtime-support-matrix.ps1`.
 2. Запустите `make analyze-bsl`. Каждая диагностика, которую проект принимает осознанно, записывается точным исключением в `bsl-analyzer-exceptions.json` (формат — в том же документе). Отключения правил BSL Language Server в конфигурации и комментариях `// BSLLS:<Правило>-off` на результат `bsl-analyzer` не влияют.
 3. Если CI проекта запускал `make analyze-bsl` с BSL Language Server, перенесите шаг на машину, где установлен `bsl-analyzer-app`, или уберите его из CI.
 
-### 8. Обновить производный контекст и проверить проект
+### 8. Обновить копию навыков, производный контекст и проверить проект
+
+Единственный источник навыков теперь `.agents/skills/<имя>`, а `.claude/skills/<имя>` — его точная копия для Claude Code. Обновление шаблона эту копию не пересобирает, и пока она устарела, `make agent-verify` завершается ошибкой `check-skill-bindings`. Первая команда ниже пересоздаёт копию: собственные навыки проекта из `.agents/skills` появятся в Claude Code, а удалённые из `.agents/skills` пропадут из `.claude/skills`. Навыки `openspec-*` и `.claude/skills/README.md` команда не трогает. Если проект правил навык только в `.claude/skills`, перенесите правку в `.agents/skills` до запуска, иначе она будет перезаписана.
 
 ```bash
+make sync-claude-skills
 ./scripts/llm/export-context.sh --write
 make agent-verify
 ```

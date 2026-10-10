@@ -1183,11 +1183,11 @@
 ./openspec/changes/archive/2026-10-10-import-project-toolkit-and-migration-workflows/specs/template-overlay-delivery/spec.md
 ./openspec/changes/archive/2026-10-10-import-project-toolkit-and-migration-workflows/tasks.md
 ./openspec/changes/archive/2026-10-10-import-project-toolkit-and-migration-workflows/traceability.md
-./openspec/changes/unify-agent-skill-sources/proposal.md
-./openspec/changes/unify-agent-skill-sources/specs/generated-project-agent-guidance/spec.md
-./openspec/changes/unify-agent-skill-sources/specs/project-scoped-skills/spec.md
-./openspec/changes/unify-agent-skill-sources/tasks.md
-./openspec/changes/unify-agent-skill-sources/traceability.md
+./openspec/changes/archive/2026-10-10-unify-agent-skill-sources/proposal.md
+./openspec/changes/archive/2026-10-10-unify-agent-skill-sources/specs/generated-project-agent-guidance/spec.md
+./openspec/changes/archive/2026-10-10-unify-agent-skill-sources/specs/project-scoped-skills/spec.md
+./openspec/changes/archive/2026-10-10-unify-agent-skill-sources/tasks.md
+./openspec/changes/archive/2026-10-10-unify-agent-skill-sources/traceability.md
 ./openspec/config.yaml
 ./openspec/project.md
 ./openspec/specs/agent-runtime-toolkit/spec.md
