@@ -77,9 +77,14 @@ log "Apply template overlay release"
 printf 'Current overlay version: %s\n' "$current_version"
 printf 'Target overlay release: %s\n' "$target_ref"
 
+up_to_date=0
 if [ "$current_version" = "$target_ref" ]; then
   log "Overlay is already up-to-date"
-  exit 0
+  # A repeated run still adds seed-once files the project lacks (e.g. after an update by older code).
+  if [ "$pretend" -eq 1 ] || ! missing_project_seed_files "$root"; then
+    exit 0
+  fi
+  up_to_date=1
 fi
 
 tmpdir="$(mktemp -d)"
@@ -89,6 +94,17 @@ release_root="$tmpdir/release"
 mkdir -p "$release_root"
 
 materialize_overlay_source "$source_path" "$target_ref" "$release_root"
+
+if [ "$up_to_date" -eq 1 ]; then
+  seed_missing_project_files "$release_root" "$root"
+  exit 0
+fi
+
+# R22: check the target matrix with the release code before any project file changes.
+if [ -f "$release_root/scripts/python/cli.py" ] \
+  && grep -Fq 'template-update-preflight' "$release_root/scripts/python/cli.py"; then
+  bash "$release_root/scripts/python/run-python.sh" template-update-preflight --root "$root"
+fi
 
 if [ "$pretend" -eq 1 ]; then
   DRY_RUN=1 sync_overlay_manifests \
@@ -111,8 +127,7 @@ sync_overlay_manifests \
   "$(overlay_preserve_manifest_file "$release_root")" \
   "$(overlay_preserve_manifest_file "$root")"
 
-seed_missing_project_files "$release_root" "$root"
-
+# overlay-post-apply.sh of the release seeds missing seed-once files.
 write_overlay_version "$root" "$target_ref"
 write_overlay_source "$root" "$source_path"
 

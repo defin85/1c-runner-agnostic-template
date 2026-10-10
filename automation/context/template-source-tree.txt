@@ -260,6 +260,7 @@
 ./tests
 ./tests/fixtures
 ./tests/fixtures/kd21
+./tests/fixtures/legacy-update-template
 ./tests/fixtures/managed-form-cli
 ./tests/fixtures/metadata-create
 ./tests/fixtures/metadata-edit

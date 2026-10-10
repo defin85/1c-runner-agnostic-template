@@ -9,9 +9,25 @@ from collections.abc import Callable, Sequence
 from pathlib import Path
 from typing import Any
 
-from .common import canonical_path, die, ensure_dir, project_root, run_git, run_process, write_json, write_text
+from .common import (
+    CommandError,
+    canonical_path,
+    die,
+    ensure_dir,
+    project_root,
+    run_git,
+    run_process,
+    write_json,
+    write_text,
+)
 from .context import export_context
-from .project_extensions import copy_with_project_block, is_preserved, seed_missing_project_files
+from .project_extensions import (
+    PROJECT_OWNED_PYTHON_SEED_PATHS,
+    copy_with_project_block,
+    is_preserved,
+    seed_missing_project_files,
+)
+from .runtime_profiles import validate_runtime_support_matrix_targets, validate_target_matrix
 
 DEFAULT_TEMPLATE_GIT_URL = "https://github.com/defin85/1c-runner-agnostic-template.git"
 MANIFEST_RELPATH = "automation/context/template-managed-paths.txt"
@@ -952,6 +968,62 @@ def resolve_target_overlay_ref(source: str, requested_ref: str = "") -> str:
     return sorted(tags, reverse=True)[0]
 
 
+TARGET_MATRIX_MIGRATION_HINT = (
+    "fix automation/context/target-matrix.json before template-update: "
+    "docs/migrations/project-toolkit-update.md, section 'До обновления', step 6"
+)
+
+
+def template_update_preflight(root: Path, *, restore_on_failure: bool = False) -> None:
+    """Refuse template-update while the target matrix names a missing source path or extension (R22).
+
+    Before the overlay is applied nothing has changed yet. When the overlay is already applied (the first
+    update from v0.3.36 runs the previous update-template.sh of the project and only then the release's
+    overlay-post-apply), `restore_on_failure` returns the work tree to HEAD: template-update starts only
+    from a clean work tree, so tracked files go back to HEAD and untracked non-ignored files are removed;
+    ignored files stay untouched."""
+    try:
+        validate_target_matrix(root)
+        validate_runtime_support_matrix_targets(root)
+    except CommandError as error:
+        restored = ""
+        if restore_on_failure:
+            restore_worktree_to_head(root)
+            restored = "; the project work tree was restored to HEAD"
+        die(f"template-update stopped: {error}{restored}; {TARGET_MATRIX_MIGRATION_HINT}")
+
+
+def restore_worktree_to_head(root: Path) -> None:
+    run_git(["reset", "--hard", "--quiet", "HEAD"], cwd=root, check=True)
+    run_git(["clean", "-d", "--force", "--quiet"], cwd=root, check=True)
+
+
+def template_update_preflight_cli(args: Sequence[str]) -> int:
+    usage = "Usage: template-update-preflight [--root PATH] [--restore-on-failure]"
+    root: Path | None = None
+    restore = False
+    index = 0
+    while index < len(args):
+        arg = args[index]
+        if arg in {"-h", "--help"}:
+            print(usage)
+            return 0
+        if arg == "--restore-on-failure":
+            restore = True
+        elif arg == "--root" and index + 1 < len(args):
+            index += 1
+            root = Path(args[index])
+        else:
+            die(f"unknown option: {arg}; {usage}")
+        index += 1
+    template_update_preflight(root or project_root(), restore_on_failure=restore)
+    return 0
+
+
+def _missing_seed_paths(root: Path) -> list[str]:
+    return [rel for rel in PROJECT_OWNED_PYTHON_SEED_PATHS if not (root / rel).exists()]
+
+
 def check_update(requested_ref: str = "", *, root: Path | None = None) -> int:
     repo_root = root or project_root()
     source_path = template_source_path(repo_root)
@@ -980,14 +1052,24 @@ def update_template(requested_ref: str = "", pretend: bool = False, *, root: Pat
         else template_answers_value(repo_root, "_commit", "unknown")
     )
     target_ref = resolve_target_overlay_ref(source_path, requested_ref)
-    if current_version == target_ref:
+    up_to_date = current_version == target_ref
+    if up_to_date:
         print("Overlay is already up-to-date")
-        return 0
+        # The first update from v0.3.36 on Windows runs the previous Python code of the project, which
+        # does not seed; a repeated run of the current code adds the missing seed-once files.
+        if pretend or not _missing_seed_paths(repo_root):
+            return 0
+    else:
+        template_update_preflight(repo_root)
     with tempfile.TemporaryDirectory(prefix="overlay-release-") as temp_dir:
         release_root = Path(temp_dir) / "release"
         run_git(
             ["clone", "--depth", "1", "--branch", target_ref, source_path, str(release_root)], cwd=repo_root, check=True
         )
+        if up_to_date:
+            for rel in seed_missing_project_files(release_root, repo_root):
+                print(f"seed {rel}")
+            return 0
         if pretend:
             sync_overlay_manifests(
                 release_root,

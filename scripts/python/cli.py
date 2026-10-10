@@ -37,6 +37,7 @@ from .template_tools import (
     migrate_runtime_support_matrix,
     new_project,
     resolve_project_template,
+    template_update_preflight_cli,
     update_project,
     update_template,
 )
@@ -288,6 +289,8 @@ def main(argv: list[str] | None = None) -> int:
                     die(f"unknown option: {args[index]}")
                 index += 1
             return check_update(requested_ref)
+        if command == "template-update-preflight":
+            return template_update_preflight_cli(args)
         if command == "update-template":
             requested_ref = ""
             pretend = False

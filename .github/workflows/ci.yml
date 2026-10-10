@@ -166,6 +166,10 @@ jobs:
         if: runner.os != 'Windows'
         run: bash tests/smoke/runtime-overlay-rollback-contract.sh
 
+      - name: Template update preflight contract
+        if: runner.os != 'Windows'
+        run: bash tests/smoke/template-update-preflight.sh
+
   runtime-gate:
     name: runtime-gate
     if: github.event_name == 'workflow_dispatch'

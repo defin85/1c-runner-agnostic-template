@@ -210,6 +210,17 @@ preserve_manifest_has_entry() {
 # scripts/python/project_extensions.py.
 PROJECT_OWNED_PYTHON_SEED_PATHS=(pyproject.toml uv.lock requirements-dev.txt pyrightconfig.json ruff.toml)
 
+# Succeeds when the project lacks at least one seed-once file.
+missing_project_seed_files() {
+  local target_root="$1"
+  local relpath
+
+  for relpath in "${PROJECT_OWNED_PYTHON_SEED_PATHS[@]}"; do
+    [ -e "$target_root/$relpath" ] || return 0
+  done
+  return 1
+}
+
 seed_missing_project_files() {
   local source_root="$1"
   local target_root="$2"
@@ -218,10 +229,8 @@ seed_missing_project_files() {
   for relpath in "${PROJECT_OWNED_PYTHON_SEED_PATHS[@]}"; do
     [ -e "$target_root/$relpath" ] && continue
     [ -f "$source_root/$relpath" ] || continue
-    if [ "${DRY_RUN:-0}" = "1" ]; then
-      printf 'seed %s\n' "$relpath"
-      continue
-    fi
+    printf 'seed %s\n' "$relpath"
+    [ "${DRY_RUN:-0}" = "1" ] && continue
     mkdir -p "$(dirname -- "$target_root/$relpath")"
     cp -p "$source_root/$relpath" "$target_root/$relpath"
   done

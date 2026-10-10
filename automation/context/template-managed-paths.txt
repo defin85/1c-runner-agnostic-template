@@ -1185,6 +1185,8 @@ tests/fixtures/kd21/scenario/matrix.json
 tests/fixtures/kd21/scenario/scenario.json
 tests/fixtures/kd21/structures/source.xml
 tests/fixtures/kd21/structures/target.xml
+tests/fixtures/legacy-update-template/lib-overlay.sh
+tests/fixtures/legacy-update-template/update-template.sh
 tests/fixtures/managed-form-cli/base-v2/CommonForms/Форма.xml
 tests/fixtures/managed-form-cli/base-v2/CommonForms/Форма/Ext/Form.xml
 tests/fixtures/managed-form-cli/base-v2/CommonForms/Форма/Ext/Form/Module.bsl
@@ -1391,6 +1393,7 @@ tests/python/test_runtime_profile_v3.py
 tests/python/test_runtime_result.py
 tests/python/test_runtime_selection.py
 tests/python/test_runtime_support_matrix.py
+tests/python/test_template_update_preflight.py
 tests/python/test_thin_launchers.py
 tests/python/test_type_checking_contracts.py
 tests/python/test_v8std.py
@@ -1436,6 +1439,7 @@ tests/smoke/runtime-overlay-rollback-contract.sh
 tests/smoke/runtime-profile-legacy-rejection.sh
 tests/smoke/runtime-profile-migration-helper.sh
 tests/smoke/skill-bindings-paths.sh
+tests/smoke/template-update-preflight.sh
 tests/smoke/update-1c-project-wrapper.sh
 tests/smoke/v8unpack-contract.sh
 tests/smoke/vanessa-bdd-warm-service-contract.sh
