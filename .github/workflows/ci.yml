@@ -141,9 +141,9 @@ jobs:
         shell: pwsh
         run: |
           if ($env:RUNNER_OS -eq 'Windows') {
-            ./scripts/qa/python-tests.ps1
+            ./scripts/qa/python-tests.ps1 --parallel
           } else {
-            bash ./scripts/qa/python-tests.sh
+            bash ./scripts/qa/python-tests.sh --parallel
           }
 
       - name: Python type checking contract

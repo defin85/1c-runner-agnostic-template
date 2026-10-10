@@ -32,6 +32,7 @@ make verify-python-lint     # ruff check . && ruff format --check .   (Windows: 
 make verify-types           # scripts/qa/type-check.sh -> basedpyright  (Windows: ./make.ps1 verify-types)
 make verify-python-tests    # полный pytest по tests/python            (Windows: ./make.ps1 verify-python-tests)
 make verify-python-tests ARGS="--fast"   # быстрый набор, который запускает agent-verify
+make verify-python-tests ARGS="--parallel"   # тот же полный набор на всех ядрах через pytest-xdist (так запускает CI)
 bash tests/smoke/python-type-checking-contract.sh
 bash tests/smoke/python-ruff-config-contract.sh
 ```
@@ -47,7 +48,7 @@ bash tests/smoke/python-ruff-config-contract.sh
   uv export --locked --format requirements-txt --no-hashes --no-emit-project --no-annotate --output-file requirements-dev.txt
   ```
 
-- `make agent-verify` запускает быстрый набор pytest: весь `tests/python`, кроме самых долгих наборов операций metadata CLI (список `PYTEST_SLOW_FILES` в `scripts/python/type_checking.py`). Полный набор (несколько минут) запускается в CI в job `fixture` и локально через `make verify-python-tests`.
+- `make agent-verify` запускает быстрый набор pytest: весь `tests/python`, кроме самых долгих наборов операций metadata CLI (список `PYTEST_SLOW_FILES` в `scripts/python/type_checking.py`). Полный набор (несколько минут) запускается в CI в job `fixture` с `--parallel` и локально через `make verify-python-tests`. `--parallel` добавляет `-n auto`, если `pytest-xdist` есть в uv-окружении проекта; иначе тесты идут в одном процессе с предупреждением.
 
 ## Local GitHub Actions Preflight
 

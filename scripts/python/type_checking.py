@@ -545,15 +545,29 @@ def run_python_lint(root: Path | None = None) -> int:
     return check_status or format_status
 
 
+def _has_pytest_xdist(uv: str, root: Path) -> bool:
+    probe = [uv, "run", "--locked", "python", "-c", "import xdist"]
+    return subprocess.run(probe, cwd=root, check=False, capture_output=True).returncode == 0
+
+
 def run_python_tests(args: Sequence[str] = (), root: Path | None = None) -> int:
-    """Run pytest from the uv environment; `--fast` skips PYTEST_SLOW_FILES, other args pass through."""
+    """Run pytest from the uv environment; other args pass through.
+
+    `--fast` skips PYTEST_SLOW_FILES. `--parallel` spreads the tests over all CPU cores with
+    pytest-xdist (`-n auto`) when the project environment has it, otherwise runs them in one process.
+    """
     repo_root = root or project_root()
     try:
         uv = _uv()
     except QualityError as error:
         return _fail(error)
-    extra = [arg for arg in args if arg != "--fast"]
+    extra = [arg for arg in args if arg not in {"--fast", "--parallel"}]
     command = [uv, "run", "--locked", "python", "-m", "pytest", "-q", "-p", "no:cacheprovider"]
+    if "--parallel" in args:
+        if _has_pytest_xdist(uv, repo_root):
+            command += ["-n", "auto"]
+        else:
+            print("pytest-xdist is not in the project uv environment; running tests in one process", file=sys.stderr)
     if "--fast" in args:
         command += [f"--ignore={path}" for path in PYTEST_SLOW_FILES]
     command += extra or [PYTEST_ROOT]

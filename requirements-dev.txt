@@ -6,6 +6,7 @@ basedpyright==1.39.9
 colorama==0.4.6
 copier==9.18.2
 dunamai==1.26.2
+execnet==2.1.2
 funcy==2.1
 iniconfig==2.3.1
 jinja2==3.1.6
@@ -25,6 +26,7 @@ pydantic==2.13.5
 pydantic-core==2.46.5
 pygments==2.21.0
 pytest==9.0.2
+pytest-xdist==3.8.0
 pyyaml==6.0.3
 questionary==2.1.1
 referencing==0.37.0

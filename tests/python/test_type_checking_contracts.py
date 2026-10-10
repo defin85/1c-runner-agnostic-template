@@ -146,3 +146,24 @@ def test_current_ruff_passes(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) ->
     version = type_checking.REQUIRED_MINIMUMS["ruff"]
     monkeypatch.setattr(type_checking.subprocess, "run", _fake_run(0, stdout=f"ruff {version}\n"))
     check_ruff_available(tmp_path, "uv")
+
+
+@pytest.mark.parametrize(("has_xdist", "expected_n"), [(True, ["-n", "auto"]), (False, [])])
+def test_parallel_flag_adds_xdist_workers_only_when_available(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, has_xdist: bool, expected_n: list[str]
+) -> None:
+    commands: list[list[str]] = []
+    monkeypatch.setattr(type_checking, "_uv", lambda: "uv")
+    monkeypatch.setattr(type_checking, "_has_pytest_xdist", lambda _uv, _root: has_xdist)
+    monkeypatch.setattr(type_checking, "_run", lambda command, _root: commands.append(list(command)) or 0)
+
+    assert type_checking.run_python_tests(["--parallel", "--fast"], tmp_path) == 0
+
+    command = commands[0]
+    assert "--parallel" not in command
+    assert (
+        command[command.index("no:cacheprovider") + 1 : command.index("no:cacheprovider") + 1 + len(expected_n)]
+        == expected_n
+    )
+    assert command[-1] == type_checking.PYTEST_ROOT
+    assert f"--ignore={type_checking.PYTEST_SLOW_FILES[0]}" in command

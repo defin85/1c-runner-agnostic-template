@@ -333,7 +333,7 @@ class OrdinaryFormConversionTest(unittest.TestCase):
             epf_tree.mkdir()
             (epf_tree / "ExternalDataProcessor.json").write_text("{}", encoding="utf-8")
             for source in (epf, epf_tree):
-                with self.subTest(source=source), self.assertRaisesRegex(CommandError, "prepare-sources"):
+                with self.subTest(source=str(source)), self.assertRaisesRegex(CommandError, "prepare-sources"):
                     run_ordinary_form_conversion(
                         [
                             "publish-sources",
