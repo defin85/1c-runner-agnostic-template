@@ -657,7 +657,7 @@ build_client_command() {
 
   CLIENT_BINARY="$(platform_client_binary_path)"
   ADAPTER="${RUNTIME_PROFILE_RUNNER_ADAPTER:-direct-platform}"
-  [ "$ADAPTER" = "direct-platform" ] || die "YAxUnit warm RPC requires runnerAdapter=direct-platform"
+  [ "$ADAPTER" = "direct-platform" ] || die "YAxUnit warm RPC requires a direct-platform profile (no transport)"
 
   out_ref=("$CLIENT_BINARY" "ENTERPRISE")
   append_connection_args out_ref

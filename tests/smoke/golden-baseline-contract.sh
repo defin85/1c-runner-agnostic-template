@@ -72,9 +72,8 @@ profile_path="$tmpdir/profile.json"
 snapshot_path="$tmpdir/golden.dump"
 cat >"$profile_path" <<EOF
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "profileName": "golden-fixture",
-  "runnerAdapter": "direct-platform",
   "target": {"id": "golden_target"},
   "ibcmd": {
     "runtimeMode": "dbms-infobase",

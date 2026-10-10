@@ -4,6 +4,7 @@ import json
 import os
 import shutil
 import socket
+import sys
 import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -1714,24 +1715,110 @@ def _find_free_tcp_port() -> int:
         return int(sock.getsockname()[1])
 
 
+def _option_value(argv: list[str], flag: str) -> str:
+    """Value after the first ``flag`` in raw arguments, or "" when absent; used before full parsing."""
+    for index, arg in enumerate(argv[:-1]):
+        if arg == flag:
+            return argv[index + 1]
+    return ""
+
+
+def _report_wrapper_error(stderr_log: Path, message: str) -> None:
+    """Print ``error: message`` to the process stderr and append it to the run-root stderr.log."""
+    print(f"error: {message}", file=sys.stderr)
+    with stderr_log.open("a", encoding="utf-8", newline="\n") as stream:
+        stream.write(f"error: {message}\n")
+
+
+def _write_wrapper_bootstrap_failure(
+    capability_id: str,
+    label: str,
+    execution_source: str,
+    run_root: Path,
+    started_at: str,
+    error: CommandError,
+    *,
+    profile_path: Path | None,
+    dry_run: bool,
+    selection: dict[str, Any],
+) -> None:
+    """Publish summary.json and stderr.log for a wrapper that failed on arguments or the runtime profile.
+
+    The caller re-raises ``error``; the CLI then prints ``error: <message>`` to the process stderr.
+    """
+    stdout_log = run_root / "stdout.log"
+    stderr_log = run_root / "stderr.log"
+    stdout_log.touch()
+    with stderr_log.open("a", encoding="utf-8", newline="\n") as stream:
+        stream.write(f"error: {error}\n")
+    _write_delegate_summary(
+        capability_summary_path(run_root),
+        capability_id,
+        label,
+        None,
+        profile_path,
+        run_root,
+        started_at,
+        timestamp_utc(),
+        stdout_log,
+        stderr_log,
+        dry_run,
+        error.exit_code or 1,
+        execution_source,
+        {**selection, "selected_files": [], "ignored_files": [], "error": str(error)},
+        None,
+        {},
+    )
+
+
+def _require_git_command() -> None:
+    if shutil.which("git") is None:
+        die("command not found: git")
+
+
 def run_load_diff_src(argv: list[str]) -> int:
-    args = parse_capability_cli_args(argv, allow_files=False)
-    if args.show_help:
+    if capability_help_requested(argv):
         raise CommandError("help-requested", 2)
     root = project_root()
-    run_root = prepare_capability_run_root("load-diff-src", args.run_root_input)
+    started_at = timestamp_utc()
+    run_root: Path | None = None
+    profile_path: Path | None = None
+    try:
+        if "--files" in argv:
+            die("load-diff-src derives file selection internally; --files is not supported")
+        args = parse_capability_cli_args(argv, allow_files=False)
+        run_root = prepare_capability_run_root("load-diff-src", args.run_root_input)
+        (run_root / "stdout.log").write_text("", encoding="utf-8", newline="\n")
+        (run_root / "stderr.log").write_text("", encoding="utf-8", newline="\n")
+        profile_path = resolve_runtime_profile_path(args.profile_input)
+        _require_git_command()
+        profile = require_runtime_profile(load_runtime_profile(profile_path))
+    except CommandError as error:
+        run_root_input = _option_value(argv, "--run-root")
+        if run_root is None and run_root_input:
+            run_root = ensure_dir(run_root_input)
+        if run_root is not None:
+            _write_wrapper_bootstrap_failure(
+                "load-diff-src",
+                "Load source diff",
+                "git-diff-to-load-src",
+                run_root,
+                started_at,
+                error,
+                profile_path=profile_path,
+                dry_run="--dry-run" in argv or os.environ.get("DRY_RUN", "0") == "1",
+                selection={"source_dir": None, "base_ref": None},
+            )
+        raise
     summary_path = capability_summary_path(run_root)
     stdout_log = run_root / "stdout.log"
     stderr_log = run_root / "stderr.log"
-    stdout_log.write_text("", encoding="utf-8", newline="\n")
-    stderr_log.write_text("", encoding="utf-8", newline="\n")
-    started_at = timestamp_utc()
-    profile = require_runtime_profile(load_runtime_profile(resolve_runtime_profile_path(args.profile_input)))
     adapter = os.environ.get("RUNNER_ADAPTER") or profile.runner_adapter
     source_dir = capability_string_or_default(profile, "load-src", "sourceDir", "./src/cf")
     source_dir_rel = normalize_capability_selected_file(source_dir)
     if not git_is_worktree(root):
         error = "git-backed diff requires a git worktree"
+        _report_wrapper_error(stderr_log, error)
         _write_delegate_summary(
             summary_path,
             "load-diff-src",
@@ -1774,6 +1861,7 @@ def run_load_diff_src(argv: list[str]) -> int:
     delegated = None
     if not selected_files:
         exit_code = 65
+        _report_wrapper_error(stderr_log, "no eligible changed files inside source tree")
     else:
         delegated_run_root = run_root / "load-src"
         delegated_args = [
@@ -1828,46 +1916,75 @@ def run_load_diff_src(argv: list[str]) -> int:
 
 
 def run_load_task_src(argv: list[str]) -> int:
+    if capability_help_requested(argv):
+        raise CommandError("help-requested", 2)
     profile_input = ""
     run_root_input = ""
     dry_run = os.environ.get("DRY_RUN", "0") == "1"
     selector_mode = ""
     selector_value = ""
-    index = 0
-    while index < len(argv):
-        arg = argv[index]
-        if arg in {"-h", "--help"}:
-            raise CommandError("help-requested", 2)
-        if arg == "--profile":
-            index += 1
-            profile_input = argv[index]
-        elif arg == "--run-root":
-            index += 1
-            run_root_input = argv[index]
-        elif arg == "--dry-run":
-            dry_run = True
-        elif arg in {"--work-item", "--range"}:
-            if selector_mode:
-                die("load-task-src requires exactly one selector")
-            selector_mode = arg[2:]
-            index += 1
-            selector_value = argv[index]
-        elif arg == "--files":
-            die("load-task-src derives file selection internally; --files is not supported")
-        else:
-            die(f"unknown argument: {arg}")
-        index += 1
-    if not selector_mode:
-        die("load-task-src requires one of --work-item or --range")
     root = project_root()
-    run_root = prepare_capability_run_root("load-task-src", run_root_input)
+    started_at = timestamp_utc()
+    run_root: Path | None = None
+    profile_path: Path | None = None
+    try:
+        index = 0
+        while index < len(argv):
+            arg = argv[index]
+            if arg in {"--profile", "--run-root", "--work-item", "--range"}:
+                if index + 1 >= len(argv):
+                    die(f"{arg} requires a value")
+                value = argv[index + 1]
+                index += 1
+                if arg == "--profile":
+                    profile_input = value
+                elif arg == "--run-root":
+                    run_root_input = value
+                elif selector_mode:
+                    die("load-task-src requires exactly one selector")
+                else:
+                    selector_mode = arg[2:]
+                    selector_value = value
+            elif arg == "--dry-run":
+                dry_run = True
+            elif arg == "--files":
+                die("load-task-src derives file selection internally; --files is not supported")
+            else:
+                die(f"unknown argument: {arg}")
+            index += 1
+        if not selector_mode:
+            die("load-task-src requires one of --work-item or --range")
+        run_root = prepare_capability_run_root("load-task-src", run_root_input)
+        (run_root / "stdout.log").write_text("", encoding="utf-8", newline="\n")
+        (run_root / "stderr.log").write_text("", encoding="utf-8", newline="\n")
+        profile_path = resolve_runtime_profile_path(profile_input)
+        _require_git_command()
+        profile = require_runtime_profile(load_runtime_profile(profile_path))
+    except CommandError as error:
+        run_root_input = run_root_input or _option_value(argv, "--run-root")
+        if run_root is None and run_root_input:
+            run_root = ensure_dir(run_root_input)
+        if run_root is not None:
+            _write_wrapper_bootstrap_failure(
+                "load-task-src",
+                "Load task-scoped source changes",
+                "git-task-to-load-src",
+                run_root,
+                started_at,
+                error,
+                profile_path=profile_path,
+                dry_run=dry_run,
+                selection={
+                    "source_dir": None,
+                    "selector": {"mode": selector_mode or None, "value": selector_value or None},
+                    "selected_commits": [],
+                    "deleted_paths": [],
+                },
+            )
+        raise
     summary_path = capability_summary_path(run_root)
     stdout_log = run_root / "stdout.log"
     stderr_log = run_root / "stderr.log"
-    stdout_log.write_text("", encoding="utf-8", newline="\n")
-    stderr_log.write_text("", encoding="utf-8", newline="\n")
-    started_at = timestamp_utc()
-    profile = require_runtime_profile(load_runtime_profile(resolve_runtime_profile_path(profile_input)))
     adapter = os.environ.get("RUNNER_ADAPTER") or profile.runner_adapter
     source_dir = capability_string_or_default(profile, "load-src", "sourceDir", "./src/cf")
     source_dir_rel = normalize_capability_selected_file(source_dir)
@@ -1897,8 +2014,10 @@ def run_load_task_src(argv: list[str]) -> int:
     driver = None
     if not selected_commits:
         exit_code = 65
+        _report_wrapper_error(stderr_log, "no commits matched selector")
     elif not selected_files:
         exit_code = 65
+        _report_wrapper_error(stderr_log, "no eligible committed files inside source tree")
     else:
         delegated_run_root = run_root / "load-src"
         delegated_args = [

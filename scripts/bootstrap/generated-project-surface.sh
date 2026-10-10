@@ -3,6 +3,9 @@ set -euo pipefail
 
 generated_readme_block_start="<!-- RUNNER_AGNOSTIC_PROJECT:START -->"
 generated_readme_block_end="<!-- RUNNER_AGNOSTIC_PROJECT:END -->"
+# Repo that ships this script: the matrix renderer is imported from its scripts/python package,
+# so rendering works when the target project has no scripts/ tree yet (fixtures, first copy).
+generated_project_surface_tool_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)"
 
 normalize_project_description() {
   local description="${1:-}"
@@ -808,15 +811,13 @@ EOF
 # code the Windows bootstrap and the matrix check use, so both platforms get one format.
 render_runtime_support_matrix() {
   local json_file markdown_file=""
-  local repo_root
 
   json_file="$(cd -- "$(dirname -- "$1")" && pwd)/$(basename -- "$1")"
   if [ -n "${2:-}" ]; then
     markdown_file="$(cd -- "$(dirname -- "$2")" && pwd)/$(basename -- "$2")"
   fi
-  repo_root="$(cd -- "$(dirname -- "$json_file")/../.." && pwd)"
   (
-    cd "$repo_root" &&
+    cd "$generated_project_surface_tool_root" &&
       "${ONEC_PYTHON:-python3}" -B -c '
 import sys
 from pathlib import Path

@@ -50,9 +50,24 @@ class CfeRuntimeTests(unittest.TestCase):
             with self.subTest(value=value), self.assertRaises(CommandError):
                 validate_extension_name(value)
 
+    def _load_cfe(self, project: Path, run_root: Path, *extensions: str) -> int:
+        args = ["--profile", str(ROOT / "env" / "local.example.json"), "--run-root", str(run_root)]
+        for name in extensions:
+            args += ["--extension", name]
+        with patch("scripts.python.cfe_runtime.project_root", return_value=project):
+            return run_cfe_command("load-cfe", args)
+
+    @staticmethod
+    def _project_with_extensions(temp: Path, *names: str) -> Path:
+        project = temp / "project"
+        for name in names:
+            (project / "src" / "cfe" / name).mkdir(parents=True)
+        return project
+
     def test_summary_and_logs_redact_resolved_secrets(self) -> None:
         secret = "cfe-secret-value"
         with tempfile.TemporaryDirectory() as temp_dir, patch.dict(os.environ, {"ONEC_IBCMD_PASSWORD": secret}):
+            project = self._project_with_extensions(Path(temp_dir), "Тест")
             run_root = Path(temp_dir) / "run"
 
             def fake_run(request: ObservationRequest) -> ObservationResult:
@@ -62,19 +77,9 @@ class CfeRuntimeTests(unittest.TestCase):
                 return ObservationResult(0, "completed", "completed", request.run_root / "observation.jsonl")
 
             with patch("scripts.python.cfe_runtime.run_observed", side_effect=fake_run):
-                exit_code = run_cfe_command(
-                    "load-cfe",
-                    [
-                        "--profile",
-                        str(ROOT / "env" / "local.example.json"),
-                        "--extension",
-                        "Тест",
-                        "--run-root",
-                        str(run_root),
-                    ],
-                )
+                exit_code = self._load_cfe(project, run_root, "Тест")
             combined = "".join(
-                (run_root / name).read_text(encoding="utf-8") for name in ("summary.json", "stdout.log", "stderr.log")
+                path.read_text(encoding="utf-8") for path in sorted(run_root.rglob("*")) if path.is_file()
             )
             self.assertEqual(exit_code, 0)
             self.assertNotIn(secret, combined)
@@ -82,25 +87,53 @@ class CfeRuntimeTests(unittest.TestCase):
 
     def test_interruption_publishes_summary(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
+            project = self._project_with_extensions(Path(temp_dir), "Тест")
             run_root = Path(temp_dir) / "run"
             with (
                 patch.dict(os.environ, {"ONEC_IBCMD_PASSWORD": "secret"}),
                 patch("scripts.python.cfe_runtime.run_observed", side_effect=KeyboardInterrupt),
             ):
-                exit_code = run_cfe_command(
-                    "load-cfe",
-                    [
-                        "--profile",
-                        str(ROOT / "env" / "local.example.json"),
-                        "--extension",
-                        "Тест",
-                        "--run-root",
-                        str(run_root),
-                    ],
-                )
+                exit_code = self._load_cfe(project, run_root, "Тест")
             summary = json.loads((run_root / "summary.json").read_text(encoding="utf-8"))
             self.assertEqual(exit_code, 130)
             self.assertEqual(summary["status"], "interrupted")
+
+    def test_load_cfe_discovers_extensions_and_stops_at_first_failed_step(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            project = self._project_with_extensions(Path(temp_dir), "Второе", "Первое")
+            run_root = Path(temp_dir) / "run"
+            calls: list[tuple[str, str]] = []
+
+            def fake_run(request: ObservationRequest) -> ObservationResult:
+                step = request.run_root.name
+                extension = request.run_root.parent.parent.name
+                calls.append((extension, step))
+                code = 9 if (extension, step) == ("Второе", "check") else 0
+                return ObservationResult(code, "completed", "completed", request.run_root / "observation.jsonl")
+
+            with (
+                patch.dict(os.environ, {"ONEC_IBCMD_PASSWORD": "secret"}),
+                patch("scripts.python.cfe_runtime.run_observed", side_effect=fake_run),
+            ):
+                exit_code = self._load_cfe(project, run_root)
+            summary = json.loads((run_root / "summary.json").read_text(encoding="utf-8"))
+            failed = json.loads((run_root / "extensions" / "Второе" / "summary.json").read_text(encoding="utf-8"))
+            self.assertEqual(exit_code, 9)
+            self.assertEqual(calls, [("Второе", "import"), ("Второе", "check")])
+            self.assertEqual(summary["extension_source"]["selected_names"], ["Второе", "Первое"])
+            self.assertEqual(summary["failed_extension"], "Второе")
+            self.assertEqual(summary["failed_step"], "check")
+            self.assertEqual([item["status"] for item in summary["results"]], ["failed", None])
+            self.assertEqual(failed["failure"]["classification"], "extension-sync failed")
+            self.assertFalse((run_root / "extensions" / "Первое").exists())
+
+    def test_load_cfe_rejects_missing_or_absent_extensions(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            empty = self._project_with_extensions(Path(temp_dir))
+            with self.assertRaisesRegex(CommandError, "no extensions found under"):
+                self._load_cfe(empty, Path(temp_dir) / "run-empty")
+            with self.assertRaisesRegex(CommandError, "extension source not found under"):
+                self._load_cfe(empty, Path(temp_dir) / "run-missing", "Нет")
 
     def _fake_platform_profile(self, temp: Path, script: str) -> Path:
         binary = temp / "bin" / "1cv8"
@@ -154,6 +187,7 @@ class CfeRuntimeTests(unittest.TestCase):
 
     def test_multi_step_operation_keeps_one_observation_per_step(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
+            project = self._project_with_extensions(Path(temp_dir), "Тест")
             run_root = Path(temp_dir) / "run"
             roots: list[Path] = []
 
@@ -165,19 +199,10 @@ class CfeRuntimeTests(unittest.TestCase):
                 patch.dict(os.environ, {"ONEC_IBCMD_PASSWORD": "secret"}),
                 patch("scripts.python.cfe_runtime.run_observed", side_effect=fake_run),
             ):
-                exit_code = run_cfe_command(
-                    "load-cfe",
-                    [
-                        "--profile",
-                        str(ROOT / "env" / "local.example.json"),
-                        "--extension",
-                        "Тест",
-                        "--run-root",
-                        str(run_root),
-                    ],
-                )
+                exit_code = self._load_cfe(project, run_root, "Тест")
             self.assertEqual(exit_code, 0)
-            self.assertEqual(roots, [run_root / "steps" / name for name in ("01", "02", "03")])
+            step_root = run_root.resolve() / "extensions" / "Тест" / "steps"
+            self.assertEqual(roots, [step_root / name for name in ("import", "check", "apply")])
 
 
 class CfeOptionsTests(unittest.TestCase):

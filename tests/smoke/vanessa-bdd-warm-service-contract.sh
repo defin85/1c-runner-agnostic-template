@@ -168,9 +168,8 @@ chmod +x "$bindir/"*
 
 cat >"$fixture_root/env/local.json" <<EOF
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "profileName": "vanessa-bdd-warm-fixture",
-  "runnerAdapter": "direct-platform",
   "target": {
     "id": "local-bdd"
   },

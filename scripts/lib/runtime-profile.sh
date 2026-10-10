@@ -45,8 +45,9 @@ resolve_runtime_profile_path() {
 
 runtime_profile_migration_error() {
   local profile_path="$1"
+  local schema_version="$2"
 
-  die "runtime profile schemaVersion=1 is no longer supported: $profile_path. Migrate it with ./scripts/template/migrate-runtime-profile-v2.sh <legacy-profile> and see docs/migrations/runtime-profile-v2.md"
+  die "runtime profile schemaVersion=$schema_version is no longer supported: $profile_path. Migrate it with ./scripts/template/migrate-runtime-profile-v3.sh <schema-v2-profile> and see docs/migrations/runtime-profile-v3.md"
 }
 
 require_runtime_profile_loaded() {
@@ -277,6 +278,10 @@ profile_array_to_named_array() {
   mapfile -d '' -t out_ref < <(jq -j "($expr // []) | .[] | tostring, \"\u0000\"" <<<"$RUNTIME_PROFILE_JSON")
 }
 
+# Loads a schemaVersion=3 runtime profile with the same validation as
+# scripts/python/runtime_profiles.py:load_runtime_profile, so shell contours
+# (warm BDD/YAxUnit services, golden DB helpers) read the same env/local.json
+# as the Python runtime. The runner adapter is derived from `transport`.
 load_runtime_profile() {
   local profile_path="$1"
   local root_type=""
@@ -284,6 +289,7 @@ load_runtime_profile() {
   local runner_adapter=""
   local profile_name=""
   local shell_env_type=""
+  local validation_error=""
 
   reset_runtime_profile_state
 
@@ -303,22 +309,52 @@ load_runtime_profile() {
     die "runtime profile root must be an object: $profile_path"
   fi
 
-  schema_version="$(jq -r '.schemaVersion // empty' <<<"$RUNTIME_PROFILE_JSON")"
+  schema_version="$(jq -r '.schemaVersion // empty | tostring' <<<"$RUNTIME_PROFILE_JSON")"
   shell_env_type="$(jq -r '(.shellEnv // null) | if . == null then "null" else type end' <<<"$RUNTIME_PROFILE_JSON")"
 
-  if [ "$schema_version" = "1" ] || { [ -z "$schema_version" ] && [ "$shell_env_type" = "object" ]; }; then
-    runtime_profile_migration_error "$profile_path"
+  if [ "$schema_version" = "1" ] || [ "$schema_version" = "2" ]; then
+    runtime_profile_migration_error "$profile_path" "$schema_version"
+  fi
+  if [ -z "$schema_version" ] && [ "$shell_env_type" = "object" ]; then
+    runtime_profile_migration_error "$profile_path" "1"
   fi
 
-  if [ "$schema_version" != "2" ]; then
+  if [ "$schema_version" != "3" ]; then
     die "unsupported runtime profile schemaVersion=$schema_version in $profile_path"
   fi
 
-  runner_adapter="$(jq -r '.runnerAdapter // empty' <<<"$RUNTIME_PROFILE_JSON")"
-  profile_name="$(jq -r '.profileName // empty' <<<"$RUNTIME_PROFILE_JSON")"
+  validation_error="$(jq -r '
+    def jtype: if . == null then "null" else type end;
+    if has("runnerAdapter") then
+      "schemaVersion=3 profile must not define runnerAdapter"
+    elif (.transport != null) and (.transport | type) != "object" then
+      "runtime profile field has invalid type: transport (\(.transport | jtype))"
+    elif (.transport != null) and ((.transport | keys - ["kind"]) | length) > 0 then
+      "runtime profile transport has unknown fields: \(.transport | keys - ["kind"] | sort | join(", "))"
+    elif (.transport != null) and .transport.kind != "remote-windows" then
+      "unsupported transport.kind=\(.transport.kind)"
+    elif ((.capabilities // {}) | type) != "object" then
+      "runtime profile field has invalid type: capabilities (\(.capabilities | jtype))"
+    else
+      ([(.capabilities // {}) | to_entries[]
+        | if (.value | type) != "object" then
+            "runtime profile field has invalid type: capabilities.\(.key) (\(.value | jtype))"
+          elif (.value | has("command")) then
+            "schemaVersion=3 does not support profile-defined command orchestration: capabilities.\(.key).command; use a repo-owned structured backend"
+          elif (.value | has("backend")) and ((.key != "publishHttp") or (.value.backend != "apache-webinst")) then
+            "unsupported backend=\(.value.backend) for capabilities.\(.key)"
+          else empty end] | first // "")
+    end
+  ' <<<"$RUNTIME_PROFILE_JSON")"
+  if [ -n "$validation_error" ]; then
+    die "$validation_error in $profile_path"
+  fi
 
-  if [ -z "$runner_adapter" ]; then
-    die "runtime profile is missing runnerAdapter in $profile_path"
+  profile_name="$(jq -r '.profileName // empty' <<<"$RUNTIME_PROFILE_JSON")"
+  if jq -e '.transport.kind? == "remote-windows"' <<<"$RUNTIME_PROFILE_JSON" >/dev/null; then
+    runner_adapter="remote-windows"
+  else
+    runner_adapter="direct-platform"
   fi
 
   RUNTIME_PROFILE_PATH="$profile_path"

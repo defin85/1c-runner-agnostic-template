@@ -5,6 +5,7 @@ import json
 import os
 import shutil
 import tempfile
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -143,24 +144,36 @@ def template_source_path(root: Path) -> str:
         raise
 
 
+README_ROUTER_START = "<!-- RUNNER_AGNOSTIC_PROJECT:START -->"
+README_ROUTER_END = "<!-- RUNNER_AGNOSTIC_PROJECT:END -->"
+
+
+def _generated_readme_router() -> str:
+    return "\n".join(
+        [
+            README_ROUTER_START,
+            "## Agent Entry Point",
+            "",
+            "Этот репозиторий является generated 1С-проектом, созданным на шаблоне `1c-runner-agnostic-template`.",
+            "",
+            "- Canonical onboarding router: [docs/agent/generated-project-index.md](docs/agent/generated-project-index.md).",
+            "- Read-only first screen: `make codex-onboard` или `./make.ps1 codex-onboard`.",
+            "- Curated project truth: [automation/context/project-map.md](automation/context/project-map.md).",
+            "- Project-owned code map: [docs/agent/architecture-map.md](docs/agent/architecture-map.md).",
+            "- Operator-local runtime bridge: [docs/agent/operator-local-runbook.md](docs/agent/operator-local-runbook.md).",
+            "- Project-specific runtime digest: [docs/agent/runtime-quickstart.md](docs/agent/runtime-quickstart.md).",
+            "- Checked-in runtime support truth: [automation/context/runtime-support-matrix.md](automation/context/runtime-support-matrix.md), [automation/context/runtime-support-matrix.json](automation/context/runtime-support-matrix.json).",
+            "- AI-ready skill routing: [automation/context/recommended-skills.generated.md](automation/context/recommended-skills.generated.md), `make imported-skills-readiness`.",
+            README_ROUTER_END,
+        ]
+    )
+
+
 def _generated_readme(project_name: str, project_description: str) -> str:
     return (
         "\n".join(
             [
-                "<!-- RUNNER_AGNOSTIC_PROJECT:START -->",
-                "## Agent Entry Point",
-                "",
-                "Этот репозиторий является generated 1С-проектом, созданным на шаблоне `1c-runner-agnostic-template`.",
-                "",
-                "- Canonical onboarding router: [docs/agent/generated-project-index.md](docs/agent/generated-project-index.md).",
-                "- Read-only first screen: `make codex-onboard` или `./make.ps1 codex-onboard`.",
-                "- Curated project truth: [automation/context/project-map.md](automation/context/project-map.md).",
-                "- Project-owned code map: [docs/agent/architecture-map.md](docs/agent/architecture-map.md).",
-                "- Operator-local runtime bridge: [docs/agent/operator-local-runbook.md](docs/agent/operator-local-runbook.md).",
-                "- Project-specific runtime digest: [docs/agent/runtime-quickstart.md](docs/agent/runtime-quickstart.md).",
-                "- Checked-in runtime support truth: [automation/context/runtime-support-matrix.md](automation/context/runtime-support-matrix.md), [automation/context/runtime-support-matrix.json](automation/context/runtime-support-matrix.json).",
-                "- AI-ready skill routing: [automation/context/recommended-skills.generated.md](automation/context/recommended-skills.generated.md), `make imported-skills-readiness`.",
-                "<!-- RUNNER_AGNOSTIC_PROJECT:END -->",
+                _generated_readme_router(),
                 "",
                 f"# {project_name}",
                 "",
@@ -170,6 +183,29 @@ def _generated_readme(project_name: str, project_description: str) -> str:
         )
         + "\n"
     )
+
+
+def _refresh_generated_readme(readme: Path, project_name: str, project_description: str) -> None:
+    """Replace only the template router block; project text below it stays as the project wrote it."""
+    text = readme.read_text(encoding="utf-8") if readme.is_file() else ""
+    is_source_overview = (
+        "# 1c-runner-agnostic-template" in text and "docs/agent/index.md" in text and README_ROUTER_START not in text
+    )
+    if not text.strip() or is_source_overview:
+        write_text(readme, _generated_readme(project_name, project_description))
+        return
+    kept: list[str] = []
+    inside = False
+    for line in text.splitlines():
+        if line == README_ROUTER_START:
+            inside = True
+        elif inside and line == README_ROUTER_END:
+            inside = False
+        elif not inside:
+            kept.append(line)
+    while kept and not kept[0].strip():
+        kept.pop(0)
+    write_text(readme, _generated_readme_router() + "\n\n" + "\n".join(kept) + "\n")
 
 
 def _project_map(project_name: str, project_slug: str, project_description: str) -> str:
@@ -681,6 +717,36 @@ def seed_generated_project_surface(root: Path, project_name: str, project_slug: 
     write_text(root / "automation" / "context" / "runtime-support-matrix.md", _runtime_support_matrix_md(matrix))
 
 
+def refresh_generated_project_surface(
+    root: Path, project_name: str, project_slug: str, project_description: str
+) -> None:
+    """Template-update counterpart of seed_generated_project_surface, same as the POSIX
+    refresh_generated_project_surface_on_update: README gets a fresh router block, every other
+    project-owned file is written only when it is missing, so filled matrix and quickstart stay intact."""
+    for name in ("cf", "cfe", "epf", "erf"):
+        ensure_dir(root / "src" / name)
+    _refresh_generated_readme(root / "README.md", project_name, project_description)
+    starters: dict[str, Callable[[], str]] = {
+        "automation/context/project-map.md": lambda: _project_map(project_name, project_slug, project_description),
+        "docs/agent/architecture-map.md": _architecture_map,
+        "docs/agent/operator-local-runbook.md": _operator_local_runbook,
+        "docs/agent/runtime-quickstart.md": _runtime_quickstart,
+    }
+    for rel, render in starters.items():
+        if not (root / rel).exists():
+            write_text(root / rel, render())
+    context = root / "automation" / "context"
+    if not (context / "runtime-profile-policy.json").exists():
+        write_json(context / "runtime-profile-policy.json", _runtime_profile_policy())
+    if not (context / "operator-local-targets.json").exists():
+        write_json(context / "operator-local-targets.json", _operator_local_targets_json())
+    matrix_json = context / "runtime-support-matrix.json"
+    if not matrix_json.exists():
+        write_json(matrix_json, _runtime_support_matrix_json())
+    if not (context / "runtime-support-matrix.md").exists():
+        render_runtime_support_matrix_files(matrix_json, context / "runtime-support-matrix.md")
+
+
 def append_agents_overlay(agents_file: Path) -> None:
     ensure_dir(agents_file.parent)
     existing = agents_file.read_text(encoding="utf-8") if agents_file.is_file() else ""
@@ -788,7 +854,7 @@ def bootstrap_post_update(
         overlay_manifest_file(Path(template_src_path)),
         overlay_preserve_manifest_file(Path(template_src_path)),
     )
-    seed_generated_project_surface(repo_root, project_name, project_slug, project_description)
+    refresh_generated_project_surface(repo_root, project_name, project_slug, project_description)
     append_agents_overlay(repo_root / "AGENTS.md")
     write_overlay_version(repo_root, bootstrap_template_ref_or_fallback(repo_root, Path(template_src_path)))
     write_overlay_source(repo_root, template_src_path)
@@ -871,7 +937,7 @@ def update_template(requested_ref: str = "", pretend: bool = False, *, root: Pat
             overlay_preserve_manifest_file(release_root),
         )
         seed_missing_project_files(release_root, repo_root)
-        seed_generated_project_surface(
+        refresh_generated_project_surface(
             repo_root,
             template_answers_value(repo_root, "project_name"),
             template_answers_value(repo_root, "project_slug"),

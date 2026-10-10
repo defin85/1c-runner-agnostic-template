@@ -71,12 +71,20 @@
   - Обновить или удалить smoke, построенные на профиле `schemaVersion` 2 и target-matrix: `runtime-ibcmd-doctor-contract.sh`, `runtime-ibcmd-capability-contract.sh`, `manage-cfe-contract.sh`, `configure-cfe-runtime-flags-contract.sh`, `runtime-load-diff-src*`, `runtime-load-task-src*`, `runtime-profile-legacy-rejection`.
   - Убрать устаревшие `--target` и `capabilities.bdd.command` из навыка `1c-run-bdd`.
   - Проверка: перечисленные smoke проходят или удалены вместе с записями манифеста; `check-agent-docs` на Python падает при отсутствующей обязательной ссылке.
-- [ ] 3.6 Перевести оставшиеся контуры на профиль v3 и вернуть проверки, отключённые при задаче 3.5.
+- [x] 3.6 Перевести оставшиеся контуры на профиль v3 и вернуть проверки, отключённые при задаче 3.5.
   - Перевести `scripts/lib/runtime-profile.sh` (тёплый BDD-контур `run-bdd-warm-service.sh`, `run-bdd-warm-run.sh`) на `schemaVersion` 3, чтобы он работал с тем же `env/local.json`, что остальные команды; перевести фикстуру `vanessa-bdd-warm-service-contract.sh` на v3.
   - Перевести `tests/smoke/load-cfe-contract.sh` на профиль v3.
   - Решить, входят ли в контракт `load-diff-src`/`load-task-src` сообщение о пустой выборке в stderr и `summary.json` при ошибке профиля или аргументов (shell-версия их писала, Python-runtime — нет); при положительном решении вернуть поведение в runtime и проверки в smoke.
+    - Решение: входят. Спецификация `agent-runtime-toolkit` требует писать `summary.json` при любом завершении обёртки и диагностику в `stderr.log` при пустой выборке. Python-runtime возвращается к поведению shell-версии: при пустой выборке печатает `error: …` в stderr и `stderr.log`; при ошибке профиля или аргументов (кроме `--help`) пишет `summary.json` со `status: failed`.
   - Вернуть `validate_runtime_support_matrix` в проверку документации, когда matrix созданного проекта на Linux и Windows строится одним кодом (см. 7.1); выровнять пересоздание matrix и quickstart при `template-update` на Windows с Linux (сейчас Windows пересоздаёт project-owned файлы при каждом обновлении).
   - Проверка: перечисленные smoke проходят на профиле v3; `check-agent-docs` созданного проекта проверяет matrix; `template-update` на Windows не меняет заполненные matrix и quickstart.
+  - Сделано: shell-загрузчик профиля (`scripts/lib/runtime-profile.sh`) принимает только v3 и отклоняет v1/v2 с подсказкой миграции; на v3 переведены фикстуры тёплых BDD/YAxUnit-контуров, `golden-baseline` и `load-cfe`. `load-cfe` снова загружает все расширения из `src/cfe` или из повторяемого `--extension` и останавливается на первом сбое. Общая функция `refresh_generated_project_surface` создаёт matrix и quickstart при `template-update` только при их отсутствии на обеих ОС. На Windows не запускалось: нет `pwsh`.
+
+- [ ] 3.7 Исправить четыре smoke, которые проходят на `main` и падают на ветке change.
+  - `check-cfe-applicability.sh`, `check-cfe-config.sh`: Python-версия завершается с `invalid extension name:` при пустом имени, не пишет `summary.json` и возвращает другой код выхода, чем ожидает smoke. Вернуть поведение, описанное в спецификации, или обновить smoke, если спецификация допускает новое поведение.
+  - `multi-target-extension-workspace.sh`: фикстура на профиле v2, а `load-cfe` в Python не поддерживает `--target`, хотя smoke ожидает отказ `multi-target workspace requires --target <id>`. Перевести фикстуру на v3 и вернуть выбор цели либо зафиксировать в спецификации отказ от `--target`; документация созданного проекта сейчас показывает `load-cfe.sh --target <id>`.
+  - `bootstrap-agents-overlay.sh`: в созданном проекте нет строки `"configurationRoots": ["src/cf", "src/cfe", "src/epf", "src/erf"]`.
+  - Проверка: все четыре smoke проходят; `runtime-ibcmd-validation-contract.sh` и `yaxunit-contour-contract.sh` падают и на `main`, они вне этой задачи.
 
 ## 4. Необязательные модули: механизм
 

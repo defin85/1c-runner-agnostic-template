@@ -35,6 +35,14 @@ assert_stderr_contains() {
   fi
 }
 
+assert_exists() {
+  local path="$1"
+
+  if [ ! -e "$path" ]; then
+    printf 'expected path to exist: %s\n' "$path" >&2
+    exit 1
+  fi
+}
 
 assert_jq() {
   local file="$1"
@@ -161,6 +169,8 @@ run_deleted_root="$tmpdir/run-deleted"
 stderr_deleted="$tmpdir/run-deleted.stderr"
 run_expect_failure "$repo_deleted" "$run_deleted_root" "$stderr_deleted"
 assert_jq "$run_deleted_root/summary.json" '.selection.error == "no eligible changed files inside source tree"' "deleted-selection-error"
+assert_stderr_contains "$stderr_deleted" "error: no eligible changed files inside source tree"
+assert_stderr_contains "$run_deleted_root/stderr.log" "error: no eligible changed files inside source tree"
 assert_jq "$run_deleted_root/summary.json" '.status == "failed"' "deleted-status"
 assert_jq "$run_deleted_root/summary.json" '.selection.selected_files == []' "deleted-selected-empty"
 assert_jq "$run_deleted_root/summary.json" '.selection.ignored_files == [{"path":"src/cf/Catalogs/Items.xml","reason":"missing-or-deleted"}]' "deleted-ignored"
@@ -173,6 +183,8 @@ run_outside_root="$tmpdir/run-outside"
 stderr_outside="$tmpdir/run-outside.stderr"
 run_expect_failure "$repo_outside" "$run_outside_root" "$stderr_outside"
 assert_jq "$run_outside_root/summary.json" '.selection.error == "no eligible changed files inside source tree"' "outside-selection-error"
+assert_stderr_contains "$stderr_outside" "error: no eligible changed files inside source tree"
+assert_stderr_contains "$run_outside_root/stderr.log" "error: no eligible changed files inside source tree"
 assert_jq "$run_outside_root/summary.json" '.status == "failed"' "outside-status"
 assert_jq "$run_outside_root/summary.json" '.selection.selected_files == []' "outside-selected-empty"
 assert_jq "$run_outside_root/summary.json" '.selection.ignored_files == [{"path":"README.outside","reason":"outside-source-tree"}]' "outside-ignored"
@@ -184,6 +196,8 @@ run_clean_root="$tmpdir/run-clean"
 stderr_clean="$tmpdir/run-clean.stderr"
 run_expect_failure "$repo_clean" "$run_clean_root" "$stderr_clean"
 assert_jq "$run_clean_root/summary.json" '.selection.error == "no eligible changed files inside source tree"' "clean-selection-error"
+assert_stderr_contains "$stderr_clean" "error: no eligible changed files inside source tree"
+assert_stderr_contains "$run_clean_root/stderr.log" "error: no eligible changed files inside source tree"
 assert_jq "$run_clean_root/summary.json" '.status == "failed"' "clean-status"
 assert_jq "$run_clean_root/summary.json" '.selection.selected_files == []' "clean-selected-empty"
 assert_jq "$run_clean_root/summary.json" '.selection.ignored_files == []' "clean-ignored-empty"
@@ -198,6 +212,8 @@ run_expect_failure "$repo_nongit" "$run_nongit_root" "$stderr_nongit"
 assert_jq "$run_nongit_root/summary.json" '.status == "failed"' "nongit-status"
 assert_jq "$run_nongit_root/summary.json" '.selection.error == "git-backed diff requires a git worktree"' "nongit-selection-error"
 assert_jq "$run_nongit_root/summary.json" '.delegated == null' "nongit-no-delegation"
+assert_stderr_contains "$stderr_nongit" "git-backed diff requires a git worktree"
+assert_stderr_contains "$run_nongit_root/stderr.log" "git-backed diff requires a git worktree"
 
 repo_cli_guard="$tmpdir/repo-cli-guard"
 write_fixture_repo "$repo_cli_guard"
@@ -209,7 +225,13 @@ run_expect_failure_with_args \
   --profile env/local.json \
   --run-root "$run_cli_guard_root" \
   --files "Catalogs/Items.xml"
-assert_stderr_contains "$stderr_cli_guard" "--files is not supported for this command"
+assert_stderr_contains "$stderr_cli_guard" "load-diff-src derives file selection internally; --files is not supported"
+assert_exists "$run_cli_guard_root/summary.json"
+assert_jq "$run_cli_guard_root/summary.json" '.status == "failed" and .exit_code != 0' "cli-guard-status"
+assert_jq "$run_cli_guard_root/summary.json" '.selection.selected_files == []' "cli-guard-selected-empty"
+assert_jq "$run_cli_guard_root/summary.json" '.selection.error == "load-diff-src derives file selection internally; --files is not supported"' "cli-guard-error"
+assert_jq "$run_cli_guard_root/summary.json" '.delegated == null' "cli-guard-no-delegation"
+assert_stderr_contains "$run_cli_guard_root/stderr.log" "error: load-diff-src derives file selection internally; --files is not supported"
 
 repo_missing_profile="$tmpdir/repo-missing-profile"
 write_fixture_repo "$repo_missing_profile"
@@ -221,6 +243,10 @@ run_expect_failure_with_args \
   --profile env/missing.json \
   --run-root "$run_missing_profile_root"
 assert_stderr_contains "$stderr_missing_profile" "runtime profile not found:"
+assert_exists "$run_missing_profile_root/summary.json"
+assert_jq "$run_missing_profile_root/summary.json" '.status == "failed"' "missing-profile-status"
+assert_jq "$run_missing_profile_root/summary.json" '.selection.error | startswith("runtime profile not found: ")' "missing-profile-error"
+assert_jq "$run_missing_profile_root/summary.json" '.delegated == null' "missing-profile-no-delegation"
 
 repo_invalid_profile="$tmpdir/repo-invalid-profile"
 write_fixture_repo "$repo_invalid_profile"
@@ -233,3 +259,21 @@ run_expect_failure_with_args \
   --profile env/invalid.json \
   --run-root "$run_invalid_profile_root"
 assert_stderr_contains "$stderr_invalid_profile" "runtime profile root must be an object:"
+assert_exists "$run_invalid_profile_root/summary.json"
+assert_jq "$run_invalid_profile_root/summary.json" '.status == "failed"' "invalid-profile-status"
+assert_jq "$run_invalid_profile_root/summary.json" '.selection.error | startswith("runtime profile root must be an object: ")' "invalid-profile-error"
+assert_jq "$run_invalid_profile_root/summary.json" '.delegated == null' "invalid-profile-no-delegation"
+
+repo_legacy_profile="$tmpdir/repo-legacy-profile"
+write_fixture_repo "$repo_legacy_profile"
+jq '.schemaVersion = 2 | .runnerAdapter = "direct-platform"' "$repo_legacy_profile/env/local.json" >"$repo_legacy_profile/env/legacy.json"
+run_legacy_profile_root="$tmpdir/run-legacy-profile"
+stderr_legacy_profile="$tmpdir/run-legacy-profile.stderr"
+run_expect_failure_with_args \
+  "$repo_legacy_profile" \
+  "$stderr_legacy_profile" \
+  --profile env/legacy.json \
+  --run-root "$run_legacy_profile_root"
+assert_stderr_contains "$stderr_legacy_profile" "runtime profile schemaVersion=2 is no longer supported"
+assert_jq "$run_legacy_profile_root/summary.json" '.status == "failed" and .delegated == null' "legacy-profile-status"
+assert_jq "$run_legacy_profile_root/summary.json" '.selection.error | startswith("runtime profile schemaVersion=2 is no longer supported")' "legacy-profile-error"

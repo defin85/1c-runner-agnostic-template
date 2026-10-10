@@ -540,6 +540,12 @@ def _generated_assertions(d: _Docs) -> None:
     _generated_project_delta(d)
     _generated_runtime_profile_policy(d)
     matrix = _generated_runtime_support_matrix(d)
+    # Linux and Windows render the matrix with the same template_tools code, so the platform
+    # entries, live-evidence expiry and Markdown freshness are checked on both.
+    from .qa import validate_runtime_support_matrix
+
+    if validate_runtime_support_matrix(d.root) != 0:
+        d.status = 1
     for rel in (
         "automation/context/project-map.md",
         "docs/agent/architecture-map.md",

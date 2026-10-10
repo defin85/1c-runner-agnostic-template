@@ -9,7 +9,9 @@ from scripts.python.qa import validate_runtime_support_matrix
 from scripts.python.template_tools import (
     _runtime_support_matrix_json,
     _runtime_support_matrix_md,
+    refresh_generated_project_surface,
     render_runtime_support_matrix_files,
+    seed_generated_project_surface,
 )
 
 
@@ -108,6 +110,49 @@ class RuntimeSupportMatrixTests(unittest.TestCase):
                 encoding="utf-8",
             )
             self.assertEqual(validate_runtime_support_matrix(root), 1)
+
+
+class TemplateUpdateSurfaceTests(unittest.TestCase):
+    """template-update on Windows runs refresh_generated_project_surface; it must match the POSIX refresh."""
+
+    def test_refresh_keeps_filled_project_owned_files(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            seed_generated_project_surface(root, "Fixture", "fixture", "Fixture project")
+            context = root / "automation" / "context"
+            filled = {
+                context / "runtime-support-matrix.json": '{"filled": true}\n',
+                context / "runtime-support-matrix.md": "# Filled matrix\n",
+                root / "docs" / "agent" / "runtime-quickstart.md": "# Filled quickstart\n",
+            }
+            for path, text in filled.items():
+                path.write_text(text, encoding="utf-8")
+            readme = root / "README.md"
+            readme.write_text(readme.read_text(encoding="utf-8") + "\nProject notes.\n", encoding="utf-8")
+            (root / "docs" / "agent" / "architecture-map.md").unlink()
+
+            refresh_generated_project_surface(root, "Fixture", "fixture", "Fixture project")
+
+            for path, text in filled.items():
+                self.assertEqual(path.read_text(encoding="utf-8"), text, path.name)
+            self.assertTrue((root / "docs" / "agent" / "architecture-map.md").is_file())
+            readme_text = readme.read_text(encoding="utf-8")
+            self.assertEqual(readme_text.count("<!-- RUNNER_AGNOSTIC_PROJECT:START -->"), 1)
+            self.assertTrue(readme_text.startswith("<!-- RUNNER_AGNOSTIC_PROJECT:START -->"))
+            self.assertIn("Project notes.", readme_text)
+
+    def test_refresh_recreates_missing_matrix_from_shared_renderer(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            refresh_generated_project_surface(root, "Fixture", "fixture", "")
+            context = root / "automation" / "context"
+            payload = json.loads((context / "runtime-support-matrix.json").read_text(encoding="utf-8"))
+            markdown = context / "runtime-support-matrix.md"
+            self.assertEqual(markdown.read_text(encoding="utf-8"), _runtime_support_matrix_md(payload))
+            self.assertEqual(validate_runtime_support_matrix(root), 0)
+            markdown.unlink()
+            refresh_generated_project_surface(root, "Fixture", "fixture", "")
+            self.assertEqual(markdown.read_text(encoding="utf-8"), _runtime_support_matrix_md(payload))
 
 
 if __name__ == "__main__":

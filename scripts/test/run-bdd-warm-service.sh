@@ -608,7 +608,7 @@ start_role() {
   local -a runtime_env=()
 
   adapter="${RUNTIME_PROFILE_RUNNER_ADAPTER:-direct-platform}"
-  [ "$adapter" = "direct-platform" ] || die "BDD warm service requires runnerAdapter=direct-platform"
+  [ "$adapter" = "direct-platform" ] || die "BDD warm service requires a direct-platform profile (no transport)"
   direct_platform_xpra_enabled || die "BDD warm service requires platform.xpra.enabled=true"
 
   build_client_command command

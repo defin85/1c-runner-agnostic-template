@@ -48,9 +48,8 @@ chmod +x "$fake_ibcmd"
 
 cat >"$fixture_root/env/local.json" <<EOF
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "profileName": "load-cfe-fixture",
-  "runnerAdapter": "direct-platform",
   "platform": {
     "ibcmdPath": "$fake_ibcmd"
   },
@@ -116,10 +115,10 @@ assert_jq "$run_root/summary.json" '.execution.mode == "ibcmd-sequential-extensi
 assert_jq "$run_root/summary.json" '(.extension_source.selected_names | sort) == ["FixtureCommon", "FixtureLogistics"]' "wrapper-extensions"
 assert_jq "$run_root/summary.json" '.failure == null' "wrapper-no-failure"
 assert_jq "$run_root/summary.json" '[.results[] | select(.status == "success")] | length == 2' "wrapper-results-success"
-assert_jq "$run_root/extensions/FixtureCommon/summary.json" '.status == "success"' "delanscommon-summary-status"
-assert_jq "$run_root/extensions/FixtureCommon/summary.json" '[.steps[] | select(.id == "import" and .status == "success")] | length == 1' "delanscommon-import-step"
-assert_jq "$run_root/extensions/FixtureCommon/summary.json" '[.steps[] | select(.id == "check" and .status == "success")] | length == 1' "delanscommon-check-step"
-assert_jq "$run_root/extensions/FixtureCommon/summary.json" '[.steps[] | select(.id == "apply" and .status == "success")] | length == 1' "delanscommon-apply-step"
+assert_jq "$run_root/extensions/FixtureCommon/summary.json" '.status == "success"' "fixturecommon-summary-status"
+assert_jq "$run_root/extensions/FixtureCommon/summary.json" '[.steps[] | select(.id == "import" and .status == "success")] | length == 1' "fixturecommon-import-step"
+assert_jq "$run_root/extensions/FixtureCommon/summary.json" '[.steps[] | select(.id == "check" and .status == "success")] | length == 1' "fixturecommon-check-step"
+assert_jq "$run_root/extensions/FixtureCommon/summary.json" '[.steps[] | select(.id == "apply" and .status == "success")] | length == 1' "fixturecommon-apply-step"
 assert_contains "$run_root/extensions/FixtureCommon/import.command.txt" "config"
 assert_contains "$run_root/extensions/FixtureCommon/import.command.txt" "import"
 assert_contains "$run_root/extensions/FixtureCommon/import.command.txt" "--extension=FixtureCommon"

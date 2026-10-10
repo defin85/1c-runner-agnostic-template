@@ -234,6 +234,7 @@ Inline shell snippets и trivial success commands вроде `true`, `echo ...` 
 ## Vanessa BDD Warm-Service
 
 `bdd-warm-service` — operator-local contour. Checked-in target identity живет в `automation/context/operator-local-targets.json` под `operatorLocalTargets.vanessaBdd`; ignored runtime profile хранит credentials и локальные пути.
+Тёплые контуры (`run-bdd-warm-service.sh`, `run-bdd-warm-run.sh`, `run-yaxunit-warm-service.sh`) читают тот же `env/local.json` со `schemaVersion: 3`, что и остальные команды; профиль `schemaVersion: 2` они отклоняют с подсказкой `./scripts/template/migrate-runtime-profile-v3.sh`.
 
 Минимальные local-private поля:
 

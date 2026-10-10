@@ -140,8 +140,7 @@ write_stage_stub "$fixture_root/scripts/platform/update-db.sh"
 
 cat >"$profile_path" <<EOF
 {
-  "schemaVersion": 2,
-  "runnerAdapter": "direct-platform",
+  "schemaVersion": 3,
   "platform": {
     "binaryPath": "$fake_bin/1cv8",
     "ibcmdPath": "$fake_bin/ibcmd"

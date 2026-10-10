@@ -267,9 +267,8 @@ write_stage_stub "$fixture_root/scripts/platform/update-db.sh"
 
 cat >"$profile_path" <<EOF
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "profileName": "yaxunit-warm-rpc-fixture",
-  "runnerAdapter": "direct-platform",
   "platform": {
     "binaryPath": "$fake_bin/1cv8",
     "ibcmdPath": "$fake_bin/ibcmd"
@@ -301,9 +300,8 @@ EOF
 
 cat >"$sleep_profile_path" <<EOF
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "profileName": "yaxunit-warm-rpc-sleep-fixture",
-  "runnerAdapter": "direct-platform",
   "platform": {
     "binaryPath": "$fake_sleep_bin/1cv8",
     "ibcmdPath": "$fake_sleep_bin/ibcmd"

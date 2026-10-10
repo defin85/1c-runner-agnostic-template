@@ -35,6 +35,14 @@ assert_stderr_contains() {
   fi
 }
 
+assert_exists() {
+  local path="$1"
+
+  if [ ! -e "$path" ]; then
+    printf 'expected path to exist: %s\n' "$path" >&2
+    exit 1
+  fi
+}
 
 assert_contains() {
   local file="$1"
@@ -169,6 +177,8 @@ assert_jq "$run_missing_root/summary.json" '.status == "failed"' "missing-status
 assert_jq "$run_missing_root/summary.json" '.selection.selector.mode == "work-item"' "missing-selector-mode"
 assert_jq "$run_missing_root/summary.json" '.selection.selected_commits == []' "missing-commits-empty"
 assert_jq "$run_missing_root/summary.json" '.selection.error == "no commits matched selector"' "missing-error"
+assert_stderr_contains "$stderr_missing" "error: no commits matched selector"
+assert_stderr_contains "$run_missing_root/stderr.log" "error: no commits matched selector"
 assert_jq "$run_missing_root/summary.json" '.delegated == null' "missing-no-delegation"
 
 repo_range="$tmpdir/repo-range"
@@ -232,6 +242,8 @@ assert_jq "$run_deleted_root/summary.json" '.status == "failed"' "deleted-status
 assert_jq "$run_deleted_root/summary.json" '.selection.selected_files == []' "deleted-selected-empty"
 assert_jq "$run_deleted_root/summary.json" '.selection.deleted_paths | length == 1' "deleted-path-count"
 assert_jq "$run_deleted_root/summary.json" '.selection.error == "no eligible committed files inside source tree"' "deleted-error"
+assert_stderr_contains "$stderr_deleted" "error: no eligible committed files inside source tree"
+assert_stderr_contains "$run_deleted_root/stderr.log" "error: no eligible committed files inside source tree"
 assert_jq "$run_deleted_root/summary.json" '.delegated == null' "deleted-no-delegation"
 
 repo_delegated_failure="$tmpdir/repo-delegated-failure"
@@ -280,6 +292,12 @@ run_expect_failure_with_args \
   --run-root "$run_missing_profile_root" \
   --work-item 1004
 assert_stderr_contains "$stderr_missing_profile" "runtime profile not found:"
+assert_exists "$run_missing_profile_root/summary.json"
+assert_jq "$run_missing_profile_root/summary.json" '.status == "failed" and .exit_code != 0' "missing-profile-status"
+assert_jq "$run_missing_profile_root/summary.json" '.selection.selector.mode == "work-item"' "missing-profile-selector-mode"
+assert_jq "$run_missing_profile_root/summary.json" '.selection.selector.value == "1004"' "missing-profile-selector-value"
+assert_jq "$run_missing_profile_root/summary.json" '.selection.error | startswith("runtime profile not found: ")' "missing-profile-error"
+assert_jq "$run_missing_profile_root/summary.json" '.delegated == null' "missing-profile-no-delegation"
 
 repo_required_profile="$tmpdir/repo-required-profile"
 write_fixture_repo "$repo_required_profile"
@@ -292,6 +310,12 @@ run_expect_failure_with_args \
   --run-root "$run_required_profile_root" \
   --work-item 1005
 assert_stderr_contains "$stderr_required_profile" "runtime profile is required; pass --profile <file> or create env/local.json"
+assert_exists "$run_required_profile_root/summary.json"
+assert_jq "$run_required_profile_root/summary.json" '.status == "failed" and .exit_code != 0' "required-profile-status"
+assert_jq "$run_required_profile_root/summary.json" '.selection.selector.mode == "work-item"' "required-profile-selector-mode"
+assert_jq "$run_required_profile_root/summary.json" '.selection.selector.value == "1005"' "required-profile-selector-value"
+assert_jq "$run_required_profile_root/summary.json" '.selection.error == "runtime profile is required; pass --profile <file> or create env/local.json"' "required-profile-error"
+assert_jq "$run_required_profile_root/summary.json" '.delegated == null' "required-profile-no-delegation"
 
 repo_invalid_profile="$tmpdir/repo-invalid-profile"
 write_fixture_repo "$repo_invalid_profile"
@@ -305,6 +329,12 @@ run_expect_failure_with_args \
   --run-root "$run_invalid_profile_root" \
   --work-item 1006
 assert_stderr_contains "$stderr_invalid_profile" "runtime profile root must be an object:"
+assert_exists "$run_invalid_profile_root/summary.json"
+assert_jq "$run_invalid_profile_root/summary.json" '.status == "failed" and .exit_code != 0' "invalid-profile-status"
+assert_jq "$run_invalid_profile_root/summary.json" '.selection.selector.mode == "work-item"' "invalid-profile-selector-mode"
+assert_jq "$run_invalid_profile_root/summary.json" '.selection.selector.value == "1006"' "invalid-profile-selector-value"
+assert_jq "$run_invalid_profile_root/summary.json" '.selection.error | startswith("runtime profile root must be an object: ")' "invalid-profile-error"
+assert_jq "$run_invalid_profile_root/summary.json" '.delegated == null' "invalid-profile-no-delegation"
 
 repo_conflict="$tmpdir/repo-conflict"
 write_fixture_repo "$repo_conflict"
@@ -312,8 +342,11 @@ run_conflict_root="$tmpdir/run-conflict"
 stderr_conflict="$tmpdir/run-conflict.stderr"
 run_expect_failure "$repo_conflict" "$run_conflict_root" "$stderr_conflict" --work-item 1002 --range HEAD
 assert_stderr_contains "$stderr_conflict" "load-task-src requires exactly one selector"
-# Selector conflicts are rejected while parsing arguments, before a run root exists.
-if [ -e "$run_conflict_root/summary.json" ]; then
-  printf 'selector conflict must fail before creating summary.json\n' >&2
-  exit 1
-fi
+assert_exists "$run_conflict_root/summary.json"
+assert_exists "$run_conflict_root/stderr.log"
+assert_jq "$run_conflict_root/summary.json" '.status == "failed"' "conflict-status"
+assert_jq "$run_conflict_root/summary.json" '.selection.selector.mode == "work-item"' "conflict-selector-mode"
+assert_jq "$run_conflict_root/summary.json" '.selection.selector.value == "1002"' "conflict-selector-value"
+assert_jq "$run_conflict_root/summary.json" '.selection.error == "load-task-src requires exactly one selector"' "conflict-selection-error"
+assert_jq "$run_conflict_root/summary.json" '.delegated == null' "conflict-no-delegation"
+assert_stderr_contains "$run_conflict_root/stderr.log" "load-task-src requires exactly one selector"

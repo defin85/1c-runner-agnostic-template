@@ -758,7 +758,7 @@ resolve_capability_driver() {
 
   driver="$(profile_string "$(capability_driver_expr "$capability_id") // empty")"
   if [ -z "$driver" ]; then
-    adapter="$(profile_string '.runnerAdapter // empty')"
+    adapter="${RUNTIME_PROFILE_RUNNER_ADAPTER:-}"
     if [ "$adapter" = "direct-platform" ]; then
       printf 'ibcmd\n'
     else

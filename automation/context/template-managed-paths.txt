@@ -1303,6 +1303,7 @@ tests/python/test_run_client.py
 tests/python/test_runtime_atomic.py
 tests/python/test_runtime_capability_options.py
 tests/python/test_runtime_doctor_context.py
+tests/python/test_runtime_load_wrappers.py
 tests/python/test_runtime_observation.py
 tests/python/test_runtime_observation_techlog.py
 tests/python/test_runtime_os.py
