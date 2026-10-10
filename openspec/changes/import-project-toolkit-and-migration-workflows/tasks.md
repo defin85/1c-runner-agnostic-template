@@ -105,7 +105,8 @@
   - Проверка: unit-тесты перенесённых функций и проверок; на клоне проекта-источника тесты проекта, импортирующие эти функции, собираются; `ruff check` с проектным `exclude` не проверяет исключённые файлы проекта; `copier-update-ready` и `make agent-verify` проходят.
   - Сделано: перенесены `resolve_openspec_path`, `object_dict`, `object_list`, `reap_dead_x_displays` (с вызовом из `direct-platform.sh`), `_generated_structural_contracts`; `find_unclassified_python` учитывает `exclude`; Р18 реализовано (`scripts/qa/ruff-base.toml`, seed-once `ruff.toml`, `check_ruff_config`, smoke `python-ruff-config-contract.sh`); перед ruff проверяется наличие инструмента. `init_launch_logs` не переносится: механизм заменён адаптером наблюдения (Р11), проект переписывает свой тест. `_analyze_bsl_standalone` вынесен в задачу 3.11 по Р19.
 
-- [ ] 3.10 Исправить 15 тестов, упавших в первом Windows-прогоне CI (задание `fixture (windows-latest)`, ручной запуск на ветке change).
+- [x] 3.10 Исправить 15 тестов, упавших в первом Windows-прогоне CI (задание `fixture (windows-latest)`, ручной запуск на ветке change).
+  - Подтверждено 2026-10-10: CI run 38064171309 на `34bbf4e`, все задания зелёные, включая `fixture (windows-latest)`.
   - `test_bsl_connections.py`, `test_bsl_mcp_runtime.py`: при очищенном окружении `Path.home()` падает с `Could not determine home directory`; код не должен требовать домашний каталог, когда путь задан явно, а тест — задавать `USERPROFILE` на Windows.
   - `test_metadata_template_ops.py`, `test_metadata_template_xlsx.py`: макет с LF записывается с CRLF; запись должна сохранять исходные концы строк на любой ОС.
   - `test_ordinary_form_conversion.py` (6 тестов): сравнение короткого (`RUNNER~1`) и длинного пути, `UnicodeEncodeError: 'charmap'` при выводе дочернего процесса, поиск `src/epf/managed` с разделителями Windows.
