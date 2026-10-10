@@ -36,6 +36,15 @@ def read_events(run_root: Path) -> list[dict[str, Any]]:
     return [json.loads(line) for line in lines]
 
 
+def _is_zombie(pid: int) -> bool:
+    """True when Linux reports the process as exited but not reaped (state ``Z``)."""
+    try:
+        stat = Path(f"/proc/{pid}/stat").read_text(encoding="ascii", errors="replace")
+    except OSError:
+        return False
+    return stat.rpartition(")")[2].split()[:1] == ["Z"]
+
+
 class ObservationTestCase(unittest.TestCase):
     def setUp(self) -> None:
         self._tmp = tempfile.TemporaryDirectory()
@@ -60,6 +69,10 @@ class ObservationTestCase(unittest.TestCase):
             try:
                 os.kill(pid, 0)
             except ProcessLookupError:
+                return
+            if _is_zombie(pid):
+                # Stopped, but not reaped: in a container whose PID 1 does not reap orphans
+                # (for example `tail -f /dev/null` under act) the zombie never disappears.
                 return
             time.sleep(0.1)
         self.fail(f"process {pid} of the stopped group is still alive")
