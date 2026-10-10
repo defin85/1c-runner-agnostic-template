@@ -5,7 +5,7 @@ import json
 import os
 import shutil
 import tempfile
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from pathlib import Path
 from typing import Any
 
@@ -84,13 +84,15 @@ def sync_overlay_manifests(
     target_root: Path,
     previous_manifest: Path,
     next_manifest: Path,
-    preserve_manifest: Path | None = None,
+    preserve_manifest: Path | Sequence[Path] | None = None,
     *,
     dry_run: bool = False,
 ) -> None:
+    """Sync template-managed files; preserve manifests (release and project lists) win over both manifests."""
     previous_entries = set(_manifest_entries(previous_manifest))
     next_entries = set(_manifest_entries(next_manifest))
-    preserve_entries = set(_manifest_entries(preserve_manifest)) if preserve_manifest else set()
+    preserve_manifests = [preserve_manifest] if isinstance(preserve_manifest, Path) else list(preserve_manifest or [])
+    preserve_entries = {entry for manifest in preserve_manifests for entry in _manifest_entries(manifest)}
     for rel in sorted(previous_entries | next_entries):
         source_path = source_root / rel
         target_path = target_root / rel
@@ -992,7 +994,7 @@ def update_template(requested_ref: str = "", pretend: bool = False, *, root: Pat
                 repo_root,
                 overlay_manifest_file(repo_root),
                 overlay_manifest_file(release_root),
-                overlay_preserve_manifest_file(release_root),
+                [overlay_preserve_manifest_file(release_root), overlay_preserve_manifest_file(repo_root)],
                 dry_run=True,
             )
             seed_missing_project_files(release_root, repo_root, dry_run=True)
@@ -1003,7 +1005,8 @@ def update_template(requested_ref: str = "", pretend: bool = False, *, root: Pat
             repo_root,
             overlay_manifest_file(repo_root),
             overlay_manifest_file(release_root),
-            overlay_preserve_manifest_file(release_root),
+            # The project list keeps paths registered locally, e.g. by `optional-module-init`.
+            [overlay_preserve_manifest_file(release_root), overlay_preserve_manifest_file(repo_root)],
         )
         seed_missing_project_files(release_root, repo_root)
         refresh_generated_project_surface(

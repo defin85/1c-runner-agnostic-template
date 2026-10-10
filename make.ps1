@@ -62,6 +62,7 @@ $targets = @{
     "verify-traceability" = @((Resolve-TargetScript "scripts\llm\verify-traceability.ps1"))
     "template-check-update" = @((Resolve-TargetScript "scripts\template\check-update.ps1"))
     "template-update" = @((Resolve-TargetScript "scripts\template\update-template.ps1"))
+    "optional-module-init" = @((Resolve-TargetScript "scripts\template\optional-module-init.ps1"))
 }
 
 # Project-owned extension point. make.project.ps1 is dot-sourced when it exists and may add
@@ -126,7 +127,8 @@ if ($Target -eq "help") {
         "  ./make.ps1 export-context-write",
         "  ./make.ps1 verify-traceability",
         "  ./make.ps1 template-check-update",
-        "  ./make.ps1 template-update"
+        "  ./make.ps1 template-update",
+        "  ./make.ps1 optional-module-init <name>"
     ) | ForEach-Object { Write-Output $_ }
     if ($projectTargets.Count -gt 0) {
         Write-Output ""

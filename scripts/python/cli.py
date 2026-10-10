@@ -120,6 +120,10 @@ def main(argv: list[str] | None = None) -> int:
             return run_testing_campaign(args)
         if command == "init-test-tooling":
             return init_test_tooling(args)
+        if command == "optional-module-init":
+            from .optional_modules import optional_module_init
+
+            return optional_module_init(args)
         if command == "install-test-tooling":
             return install_test_tooling(args)
         if command == "load-diff-src":

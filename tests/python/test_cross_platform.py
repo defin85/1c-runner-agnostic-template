@@ -220,6 +220,20 @@ class CrossPlatformSmokeTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn("testing-campaign", result.stdout)
 
+    def test_optional_module_init_wrappers_route_to_python_cli(self) -> None:
+        ps1 = (ROOT / "scripts" / "template" / "optional-module-init.ps1").read_text(encoding="utf-8")
+        self.assertIn('"optional-module-init" @RemainingArgs', ps1)
+        self.assertIn("scripts\\template\\optional-module-init.ps1", (ROOT / "make.ps1").read_text(encoding="utf-8"))
+        self.assertIn(
+            "./scripts/template/optional-module-init.sh $(MODULE)", (ROOT / "Makefile").read_text(encoding="utf-8")
+        )
+        if os.name == "nt":
+            result = run_command(powershell_command("scripts/template/optional-module-init.ps1", "no-such-module"))
+        else:
+            result = run_command(["bash", "scripts/template/optional-module-init.sh", "no-such-module"])
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("unknown optional module: no-such-module", result.stdout + result.stderr)
+
 
 if __name__ == "__main__":
     unittest.main()

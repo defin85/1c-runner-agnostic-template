@@ -83,6 +83,7 @@ bash tests/smoke/bootstrap-agents-overlay.sh
 bash tests/smoke/copier-update-ready.sh
 bash tests/smoke/template-release-workflow.sh
 bash tests/smoke/project-extension-points.sh
+bash tests/smoke/optional-module-init.sh
 ```
 
 `make agent-verify` после базовых проверок выполняет project-owned шаги из `scripts/qa/agent-verify.d/`, если каталог есть. В source repo шаблона этого каталога нет. Контракт точек расширения generated project (`Makefile.project`, `make.project.ps1`, `scripts/qa/agent-verify.d/`, проектный блок `.gitignore`/`.gitattributes`/`.contextignore`) описан в [docs/template-maintenance.md](../template-maintenance.md#project-owned-extension-points).

@@ -1342,6 +1342,8 @@
 ./scripts/template/migrate-runtime-profile-v3.sh
 ./scripts/template/migrate-runtime-support-matrix.ps1
 ./scripts/template/migrate-runtime-support-matrix.sh
+./scripts/template/optional-module-init.ps1
+./scripts/template/optional-module-init.sh
 ./scripts/template/update-template.ps1
 ./scripts/template/update-template.sh
 ./scripts/test/init-test-tooling.ps1
@@ -1582,6 +1584,7 @@
 ./tests/python/test_metadata_type_dependencies.py
 ./tests/python/test_metadata_validate.py
 ./tests/python/test_onec_xpra_display_reaper.py
+./tests/python/test_optional_modules.py
 ./tests/python/test_ordinary_form_conversion.py
 ./tests/python/test_qa_skill_bindings.py
 ./tests/python/test_remote_transport.py
@@ -1619,6 +1622,7 @@
 ./tests/smoke/new-1c-project-current-dir-defaults.sh
 ./tests/smoke/observation-contract.sh
 ./tests/smoke/onec-port-lease-contract.sh
+./tests/smoke/optional-module-init.sh
 ./tests/smoke/project-extension-points.sh
 ./tests/smoke/python-ruff-config-contract.sh
 ./tests/smoke/python-type-checking-contract.sh

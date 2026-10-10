@@ -1,6 +1,6 @@
 SHELL := bash
 
-.PHONY: help agent-verify verify-python-lint verify-types verify-python-tests act-preflight qa analyze-bsl check-bsl check-cf-modules analyze-bsl-external artifact-storage run-client check-agent-docs check-skill-bindings sync-claude-skills check-overlay-manifest codex-onboard imported-skills-readiness create-ib dump-src load-src load-cfe manage-cfe configure-cfe-runtime-flags check-cfe-applicability check-cfe-config load-diff-src load-task-src update-db diff-src doctor technological-log publish-http bsl-analyzer-mcp check-x11-contour test-yaxunit sync-yaxunit-runtime yaxunit-warm-service web-client-diagnostic golden-create golden-restore golden-baseline test-bdd bdd-warm-service smoke export-context export-context-preview export-context-check export-context-write verify-traceability template-check-update template-update
+.PHONY: help agent-verify verify-python-lint verify-types verify-python-tests act-preflight qa analyze-bsl check-bsl check-cf-modules analyze-bsl-external artifact-storage run-client check-agent-docs check-skill-bindings sync-claude-skills check-overlay-manifest codex-onboard imported-skills-readiness create-ib dump-src load-src load-cfe manage-cfe configure-cfe-runtime-flags check-cfe-applicability check-cfe-config load-diff-src load-task-src update-db diff-src doctor technological-log publish-http bsl-analyzer-mcp check-x11-contour test-yaxunit sync-yaxunit-runtime yaxunit-warm-service web-client-diagnostic golden-create golden-restore golden-baseline test-bdd bdd-warm-service smoke export-context export-context-preview export-context-check export-context-write verify-traceability template-check-update template-update optional-module-init
 
 help:
 	@printf '%s\n' \
@@ -58,6 +58,7 @@ help:
 		'  make verify-traceability' \
 		'  make template-check-update' \
 		'  make template-update' \
+		'  make optional-module-init MODULE=<name>' \
 		'' \
 		'Project targets: see Makefile.project (project-owned, optional).'
 
@@ -218,6 +219,9 @@ template-check-update:
 
 template-update:
 	@./scripts/template/update-template.sh
+
+optional-module-init:
+	@./scripts/template/optional-module-init.sh $(MODULE)
 
 # Project-owned targets live in Makefile.project. The template never ships that file and
 # template-update never writes it (automation/context/template-update-preserve-paths.txt).

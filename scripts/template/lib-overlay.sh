@@ -357,6 +357,8 @@ sync_overlay_manifests() {
   local previous_manifest="$3"
   local next_manifest="$4"
   local preserve_manifest="${5:-}"
+  # Optional project preserve list: paths the project registered itself, e.g. via optional-module-init.
+  local project_preserve_manifest="${6:-}"
   local union_file relpath
 
   [ -f "$next_manifest" ] || die "overlay manifest is missing in release: $next_manifest"
@@ -371,7 +373,8 @@ sync_overlay_manifests() {
     [ -n "$relpath" ] || continue
 
     # Project-owned paths win over the managed manifest: overlay sync never writes or removes them.
-    if preserve_manifest_has_entry "$preserve_manifest" "$relpath"; then
+    if preserve_manifest_has_entry "$preserve_manifest" "$relpath" \
+      || preserve_manifest_has_entry "$project_preserve_manifest" "$relpath"; then
       continue
     elif manifest_has_entry "$next_manifest" "$relpath"; then
       copy_manifest_entry_from_source "$source_root" "$target_root" "$relpath"
