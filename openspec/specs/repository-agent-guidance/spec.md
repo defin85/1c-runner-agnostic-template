@@ -56,7 +56,7 @@ The repository SHALL provide a documented, dependency-light verification path fo
 
 - **WHEN** an agent needs to verify onboarding assumptions or a documentation/tooling change
 - **THEN** the repository MUST provide a documented repo-owned baseline command or target for agent verification
-- **AND** that baseline MUST avoid requiring a licensed 1C runtime and optional heavyweight analyzers such as BSL LS/Java
+- **AND** that baseline MUST avoid requiring a licensed 1C runtime and the `bsl-analyzer` MCP server used by `make analyze-bsl`
 - **AND** the verification runbook MUST explain which deeper contours remain outside the baseline and when to use them
 
 ### Requirement: Versioned Execution Plans For Long-Running Agent Work
@@ -68,4 +68,3 @@ The repository SHALL provide a versioned home for execution plans that span long
 - **WHEN** a task spans multiple sessions, needs handoff, or touches multiple major repository zones
 - **THEN** the repository MUST provide a checked-in execution-plan location with usage rules and lifecycle states
 - **AND** the agent documentation index MUST link to that location as the canonical place for long-running plan artifacts
-
