@@ -62,13 +62,24 @@ $projectHelp += "  ./make.ps1 project-report"
 
 Команда миграции таблицы поддержки сред (шаг 5 после обновления) пересобирает `automation/context/runtime-support-matrix.md` из JSON целиком, а `make agent-verify` требует, чтобы файл совпадал с результатом сборки. Собственные разделы этого файла (описание целевого релиза, заметки о средах) перенесите в другой документ проекта, например в `automation/context/project-map.md`. Машинные поля можно оставить в JSON: команда сохраняет все существующие поля.
 
+### 6. Проверить, что матрица целей ссылается только на существующие каталоги
+
+После наложения файлов `template-update` пересобирает производный контекст. Если в `automation/context/target-matrix.json` есть цель или расширение без каталога, обновление завершается ошибкой `target source path not found: <путь>` или `target matrix extension not found under src/cfe: <имя>`. Файлы шаблона к этому моменту уже наложены, а контекст не пересобран.
+
+До обновления проверьте каждую цель:
+
+- каталог `sourcePath` каждой цели существует в рабочей копии;
+- каждое имя из `extensionMatrix` — каталог `src/cfe/<имя>`. Заготовка расширения в `src/cfe/_templates/<имя>` не подходит: перенесите расширение в `src/cfe/<имя>` или уберите имя из `extensionMatrix`.
+
+Проверка: `./scripts/llm/export-context.sh --check` в проекте завершается без этих ошибок.
+
 ## Обновление
 
 ```bash
 make template-update
 ```
 
-PowerShell: `./make.ps1 template-update`. До коммита просмотрите `git diff`: удалённые строки в `Makefile`, `make.ps1`, `AGENTS.md` и документах шаблона показывают, что не было перенесено на шагах 2–5.
+PowerShell: `./make.ps1 template-update`. До коммита просмотрите `git diff`: удалённые строки в `Makefile`, `make.ps1`, `AGENTS.md` и документах шаблона показывают, что не было перенесено на шагах 2–6.
 
 ## После обновления
 
@@ -94,7 +105,7 @@ uv add --dev "ruff>=<минимальная версия из сообщения
 uv export --locked --format requirements-txt --no-hashes --no-emit-project --no-annotate --output-file requirements-dev.txt
 ```
 
-`ruff.toml` теперь тоже принадлежит проекту (Р18), а правила `ruff` лежат в template-managed `scripts/qa/ruff-base.toml`. Если `ruff.toml` в проекте не было, `template-update` создаёт его со строкой `extend = "scripts/qa/ruff-base.toml"`. Существующий `ruff.toml` обновление не меняет, поэтому прежний файл без `extend` `make verify-python-lint` отклоняет с ошибкой `ruff.toml must keep extend = "scripts/qa/ruff-base.toml"`. Исправление:
+`ruff.toml` теперь тоже принадлежит проекту (Р18), а правила `ruff` лежат в template-managed `scripts/qa/ruff-base.toml`. Если `ruff.toml` в проекте не было, `template-update` новой версии создаёт его со строкой `extend = "scripts/qa/ruff-base.toml"`. Первое обновление с версии `v0.3.36` и раньше выполняет прежний `update-template.sh` проекта, который `ruff.toml` не создаёт; повторный запуск сообщает `Overlay is already up-to-date` и тоже его не создаёт. В этом случае создайте файл сами по образцу из пункта 2 ниже и закоммитьте его. Существующий `ruff.toml` обновление не меняет, поэтому прежний файл без `extend` `make verify-python-lint` отклоняет с ошибкой `ruff.toml must keep extend = "scripts/qa/ruff-base.toml"`. Исправление:
 
 1. Сохраните из прежнего `ruff.toml` только собственные настройки проекта: исключения файлов проекта и исключения правил для них. Настройки, которые совпадают с базой шаблона (`target-version`, `line-length`, `select`, исключение `automation/vendor` и `.artifacts`), удалите.
 2. Запишите `ruff.toml` в таком виде, заменив пути примера путями проекта:
